@@ -89,11 +89,12 @@ export class RoomsService {
       return room;
     }
     room.players = room.players.filter((p) => p.id !== playerId);
-    if (room.players.length === 0) {
+    const nextHost = room.players[0];
+    if (!nextHost) {
       this.rooms.delete(code);
       return room;
     }
-    if (room.hostId === playerId) room.hostId = room.players[0]!.id;
+    if (room.hostId === playerId) room.hostId = nextHost.id;
     return room;
   }
 
