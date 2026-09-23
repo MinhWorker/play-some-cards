@@ -27,12 +27,17 @@ docs/              How-to guides (adding a game, deploying)
 | --- | --- |
 | `npm install` | Install everything (npm workspaces; do not use pnpm/yarn) |
 | `npm run dev` | Server on :8033, web on :5033 (Vite proxies `/socket.io` and `/api` to the server) |
+| `npm run dev:web` / `npm run dev:server` | Run only one of the two |
 | `npm run check` | Lint + typecheck + unit tests. **Must pass before you finish any task.** |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run build` | Build shared, server, web |
 | `npm run smoke [url]` | Two bots play a full tic-tac-toe game against a running server (default `http://localhost:8033`) |
 
 Run one workspace: `npm run test -w @psc/shared`. Add a dependency: `npm install <pkg> -w @psc/web`.
+
+The owner runs the dev servers themselves in their own terminal. Do not start `npm run dev`
+and leave it running. If you need a running app to verify something, start it, check, and stop
+it before you finish.
 
 ## How it works
 

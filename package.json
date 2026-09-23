@@ -17,7 +17,9 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "dev:web": "npm run dev -w @psc/web",
+    "dev:server": "npm run build -w @psc/shared && concurrently -k -n shared,server -c magenta,blue \"npm run dev -w @psc/shared\" \"npm run dev -w @psc/server\""
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
