@@ -143,3 +143,12 @@ button:disabled {
   color: var(--error);
   margin: 0;
 }
+
+.banner {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 0 0 16px;
+  color: var(--muted);
+}

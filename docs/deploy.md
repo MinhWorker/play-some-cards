@@ -14,22 +14,24 @@ Every push to `main` deploys production; every PR gets a preview URL. Build sett
 Vercel env var: `VITE_SERVER_URL` = public URL of the game server (see below). It is baked in at
 build time, so redeploy after changing it.
 
-## Game server
+## Game server → Render
 
-**Status: not deployed yet.** Until it is, the Vercel site loads but cannot create rooms.
+Render service `play-some-cards-server` (free plan, Singapore), config mirrored in `render.yaml`:
+- URL: https://play-some-cards-server.onrender.com (health: `/api/health`)
+- Dashboard: https://dashboard.render.com/web/srv-daq1sc0473hc73e7bsl0
+- Auto-deploys on push to `main` when `apps/server/**`, `packages/shared/**` or
+  `package-lock.json` change.
+- Free plan sleeps after ~15 min idle; the first visit takes ~30-60s to wake it
+  (the web app shows a "Connecting…" banner meanwhile). Sleeping or redeploying wipes all rooms.
+- CLI: `render services`, `render logs -r srv-daq1sc0473hc73e7bsl0`,
+  `render deploys create srv-daq1sc0473hc73e7bsl0`.
 
-Do not host the server on Vercel. Vercel Functions do support WebSockets, but connections are
+Vercel's `VITE_SERVER_URL` (production + preview) points at this URL.
+
+Do not move the server to Vercel. Vercel Functions do support WebSockets, but connections are
 closed at the function's max duration and each connection may land on a different instance.
 Rooms live in one process's memory, so two friends in the same room could end up on different
-instances. Moving to Vercel would require storing rooms in Redis plus a Socket.IO Redis adapter. Host `apps/server` on something that runs Node processes
-(Render, Railway, Fly.io, a VPS). Settings for any of them:
-
-- Install: `npm ci`
-- Build: `npm run build -w @psc/shared && npm run build -w @psc/server`
-- Start: `npm start -w @psc/server`
-- Env: `PORT` is read automatically. Health check: `GET /api/health`.
-
-Keep exactly one server instance: rooms live in its memory.
+instances. Keep exactly one server instance for the same reason.
 
 ## Simplest option: one process, no Vercel
 

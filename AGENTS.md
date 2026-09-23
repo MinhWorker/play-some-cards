@@ -60,7 +60,7 @@ Run one workspace: `npm run test -w @psc/shared`. Add a dependency: `npm install
 ## Common tasks
 
 - Add a new game: follow `docs/adding-a-game.md`.
-- Deploy / CI: see `docs/deploy.md`.
+- Deploy / CI: see `docs/deploy.md`. Web = Vercel, server = Render, both auto-deploy from `main`.
 
 ## Before finishing
 
