@@ -5,7 +5,7 @@ code or link, play.
 
 ```
 npm install
-npm run dev        # open http://localhost:5173
+npm run dev        # open http://localhost:5033
 ```
 
 - Web: React + Vite (`apps/web`)

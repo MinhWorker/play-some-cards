@@ -35,5 +35,5 @@ instances. Keep exactly one server instance for the same reason.
 
 ## Simplest option: one process, no Vercel
 
-`npm run build && npm start -w @psc/server` serves the web app and the game on port 3000.
-Friends on the same Wi-Fi can open `http://<your-LAN-IP>:3000`.
+`npm run build && npm start -w @psc/server` serves the web app and the game on port 8033.
+Friends on the same Wi-Fi can open `http://<your-LAN-IP>:8033`.

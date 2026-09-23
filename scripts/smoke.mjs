@@ -2,7 +2,7 @@
 // and play tic-tac-toe to a win. Usage: node scripts/smoke.mjs [serverUrl]
 import { io } from 'socket.io-client';
 
-const url = process.argv[2] ?? 'http://localhost:3000';
+const url = process.argv[2] ?? 'http://localhost:8033';
 
 function client() {
   const socket = io(url, { transports: ['websocket'] });
