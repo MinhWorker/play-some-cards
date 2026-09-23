@@ -41,7 +41,7 @@ function getResult(state: TicTacToeState) {
 
 export const ticTacToe = defineGame<TicTacToeState, TicTacToeMove>({
   id: 'tic-tac-toe',
-  name: 'Tic-Tac-Toe',
+  name: 'Caro 3×3',
   minPlayers: 2,
   maxPlayers: 2,
   moveSchema,
@@ -52,9 +52,9 @@ export const ticTacToe = defineGame<TicTacToeState, TicTacToeMove>({
   },
 
   validateMove(state, move, player) {
-    if (getResult(state)) return 'Game is over';
-    if (state.turn !== player) return 'Not your turn';
-    if (state.board[move.cell] !== null) return 'Cell is taken';
+    if (getResult(state)) return 'Ván đã kết thúc';
+    if (state.turn !== player) return 'Chưa tới lượt bạn';
+    if (state.board[move.cell] !== null) return 'Ô này đã có người đánh';
     return null;
   },
 

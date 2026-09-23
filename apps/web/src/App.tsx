@@ -9,9 +9,9 @@ export function App() {
 
   return (
     <main className="app">
-      <h1 className="logo">Play Some Cards</h1>
+      <h1 className="logo">Chơi Chút Bài</h1>
       {!connected && (
-        <p className="banner">Connecting to the game server… this can take up to a minute.</p>
+        <p className="banner">Đang kết nối tới server… lần đầu có thể mất tới 1 phút.</p>
       )}
       {session ? (
         <Room session={session} snapshot={snapshot} onLeave={leave} />

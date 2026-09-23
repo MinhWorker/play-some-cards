@@ -16,12 +16,12 @@ describe('RoomsService', () => {
   });
 
   it('rejects unknown games', () => {
-    expect(() => new RoomsService().create('nope', 'Alice')).toThrow('Unknown game');
+    expect(() => new RoomsService().create('nope', 'Alice')).toThrow('Không có game');
   });
 
   it('only lets the host start', () => {
     const { service, room, guest } = setupRoom();
-    expect(() => service.start(room.code, guest.id)).toThrow('Only the host');
+    expect(() => service.start(room.code, guest.id)).toThrow('Chỉ chủ phòng');
   });
 
   it('plays a full game to a win', () => {
@@ -43,7 +43,7 @@ describe('RoomsService', () => {
   it('rejects malformed moves', () => {
     const { service, room, host } = setupRoom();
     service.start(room.code, host.id);
-    expect(() => service.move(room.code, host.id, { cell: 'x' })).toThrow('Invalid move');
+    expect(() => service.move(room.code, host.id, { cell: 'x' })).toThrow('Nước đi không hợp lệ');
   });
 
   it('lets a player rejoin with their session token', () => {

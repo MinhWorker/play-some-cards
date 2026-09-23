@@ -34,37 +34,37 @@ export function Home({ onEnter }: { onEnter: (joined: JoinedRoom) => void }) {
   return (
     <div className="stack">
       <label className="field">
-        Your name
+        Tên của bạn
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} />
       </label>
 
       <form className="card stack" onSubmit={join}>
-        <h2>Join a room</h2>
+        <h2>Vào phòng</h2>
         <input
-          placeholder="Room code"
+          placeholder="Mã phòng"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           maxLength={4}
           className="code-input"
         />
         <button type="submit" disabled={!name.trim() || code.trim().length !== 4}>
-          Join
+          Vào
         </button>
       </form>
 
       <form className="card stack" onSubmit={create}>
-        <h2>Create a room</h2>
+        <h2>Tạo phòng</h2>
         <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
           {gameList.map((g) => (
             <option key={g.id} value={g.id}>
               {g.name} (
               {g.minPlayers === g.maxPlayers ? g.minPlayers : `${g.minPlayers}–${g.maxPlayers}`}{' '}
-              players)
+              người)
             </option>
           ))}
         </select>
         <button type="submit" disabled={!name.trim()}>
-          Create
+          Tạo
         </button>
       </form>
 

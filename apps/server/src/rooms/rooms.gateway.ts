@@ -114,7 +114,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   private requireSeat(socket: AppSocket) {
     const { roomCode, playerId } = socket.data;
-    if (!roomCode || !playerId) throw new RoomError('You are not in a room');
+    if (!roomCode || !playerId) throw new RoomError('Bạn chưa ở trong phòng nào');
     return { roomCode, playerId };
   }
 
@@ -134,7 +134,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     } catch (err) {
       if (err instanceof RoomError) return { ok: false, error: err.message };
       console.error(err);
-      return { ok: false, error: 'Internal server error' };
+      return { ok: false, error: 'Server gặp lỗi, thử lại sau' };
     }
   }
 }

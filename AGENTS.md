@@ -54,6 +54,8 @@ Run one workspace: `npm run test -w @psc/shared`. Add a dependency: `npm install
   If an editor shows "cannot find @psc/shared", run `npm run build -w @psc/shared`.
 - New game logic needs tests in `packages/shared/src/games/<id>/<id>.test.ts`.
 - New socket events go in `protocol.ts` first; TypeScript then shows every place to update.
+- **All user-facing text is Vietnamese**: web UI copy, and server/game error messages
+  (they are shown to players). Code, comments, docs and identifiers stay in English.
 - Keep UI simple and mobile-friendly (friends play on phones). Use the CSS variables in
   `apps/web/src/styles.css`, which already handle dark mode.
 

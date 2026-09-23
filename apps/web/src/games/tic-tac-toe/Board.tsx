@@ -13,7 +13,7 @@ export function TicTacToeBoard({
 
   return (
     <div className="stack">
-      <p className="muted">{myTurn ? 'Your turn' : `${turnName}'s turn`}</p>
+      <p className="muted">{myTurn ? 'Tới lượt bạn' : `Lượt của ${turnName}`}</p>
       <div className="ttt-grid">
         {view.board.map((cell, i) => (
           <button

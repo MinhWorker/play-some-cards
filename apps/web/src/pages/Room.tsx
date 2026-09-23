@@ -12,7 +12,7 @@ interface Props {
 export function Room({ session, snapshot, onLeave }: Props) {
   const [error, setError] = useState('');
 
-  if (!snapshot) return <p>Connecting…</p>;
+  if (!snapshot) return <p>Đang kết nối…</p>;
 
   const me = session.playerId;
   const isHost = snapshot.hostId === me;
@@ -37,10 +37,10 @@ export function Room({ session, snapshot, onLeave }: Props) {
       <div className="room-header">
         <div>
           <div className="muted">{game?.name}</div>
-          <div className="room-code">Room {snapshot.code}</div>
+          <div className="room-code">Phòng {snapshot.code}</div>
         </div>
         <button type="button" className="secondary" onClick={onLeave}>
-          Leave
+          Rời phòng
         </button>
       </div>
 
@@ -48,9 +48,9 @@ export function Room({ session, snapshot, onLeave }: Props) {
         {snapshot.players.map((p) => (
           <li key={p.id} className={p.connected ? '' : 'muted'}>
             {p.name}
-            {p.id === me && ' (you)'}
+            {p.id === me && ' (bạn)'}
             {p.id === snapshot.hostId && ' ★'}
-            {!p.connected && ' — offline'}
+            {!p.connected && ' (mất kết nối)'}
           </li>
         ))}
       </ul>
@@ -58,15 +58,15 @@ export function Room({ session, snapshot, onLeave }: Props) {
       {snapshot.status === 'lobby' && (
         <div className="card stack">
           <p>
-            Invite friends with the code <b>{snapshot.code}</b> or this link:
+            Rủ bạn bè vào bằng mã <b>{snapshot.code}</b> hoặc gửi link này:
           </p>
           <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} />
           {isHost ? (
             <button type="button" onClick={() => send('game:start')}>
-              Start game
+              Bắt đầu
             </button>
           ) : (
-            <p className="muted">Waiting for the host to start…</p>
+            <p className="muted">Đang chờ chủ phòng bắt đầu…</p>
           )}
         </div>
       )}
@@ -79,12 +79,12 @@ export function Room({ session, snapshot, onLeave }: Props) {
         <div className="card stack">
           <h2>
             {snapshot.result.winners.length === 0
-              ? "It's a draw!"
-              : `${snapshot.result.winners.map(nameOf).join(', ')} won!`}
+              ? 'Hòa!'
+              : `${snapshot.result.winners.map(nameOf).join(', ')} thắng!`}
           </h2>
           {isHost && (
             <button type="button" onClick={() => send('game:restart')}>
-              Play again
+              Chơi ván mới
             </button>
           )}
         </div>

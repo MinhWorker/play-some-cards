@@ -42,7 +42,7 @@ export class RoomsService {
 
   create(gameId: string, name: string) {
     const game = getGame(gameId);
-    if (!game) throw new RoomError(`Unknown game: ${gameId}`);
+    if (!game) throw new RoomError(`Không có game: ${gameId}`);
     const player = this.newPlayer(name);
     const room: Room = {
       code: this.newCode(),
@@ -59,8 +59,8 @@ export class RoomsService {
 
   join(code: string, name: string) {
     const room = this.get(code);
-    if (room.status !== 'lobby') throw new RoomError('Game already started');
-    if (room.players.length >= room.game.maxPlayers) throw new RoomError('Room is full');
+    if (room.status !== 'lobby') throw new RoomError('Ván đã bắt đầu');
+    if (room.players.length >= room.game.maxPlayers) throw new RoomError('Phòng đã đủ người');
     const player = this.newPlayer(name);
     room.players.push(player);
     return { room, player };
@@ -69,7 +69,7 @@ export class RoomsService {
   rejoin(code: string, sessionToken: string) {
     const room = this.get(code);
     const player = room.players.find((p) => p.sessionToken === sessionToken);
-    if (!player) throw new RoomError('Session not found');
+    if (!player) throw new RoomError('Không tìm thấy phiên chơi của bạn');
     player.connected = true;
     return { room, player };
   }
@@ -100,11 +100,11 @@ export class RoomsService {
 
   start(code: string, playerId: PlayerId) {
     const room = this.get(code);
-    if (room.hostId !== playerId) throw new RoomError('Only the host can start');
-    if (room.status === 'playing') throw new RoomError('Game already started');
+    if (room.hostId !== playerId) throw new RoomError('Chỉ chủ phòng mới bắt đầu được');
+    if (room.status === 'playing') throw new RoomError('Ván đã bắt đầu');
     const count = room.players.length;
     if (count < room.game.minPlayers) {
-      throw new RoomError(`Need at least ${room.game.minPlayers} players`);
+      throw new RoomError(`Cần ít nhất ${room.game.minPlayers} người chơi`);
     }
     room.state = room.game.setup(
       room.players.map((p) => p.id),
@@ -117,9 +117,9 @@ export class RoomsService {
 
   move(code: string, playerId: PlayerId, rawMove: unknown) {
     const room = this.get(code);
-    if (room.status !== 'playing') throw new RoomError('Game is not running');
+    if (room.status !== 'playing') throw new RoomError('Ván chưa bắt đầu');
     const parsed = room.game.moveSchema.safeParse(rawMove);
-    if (!parsed.success) throw new RoomError('Invalid move');
+    if (!parsed.success) throw new RoomError('Nước đi không hợp lệ');
     const error = room.game.validateMove(room.state, parsed.data, playerId);
     if (error) throw new RoomError(error);
     room.state = room.game.applyMove(room.state, parsed.data, playerId, rng);
@@ -150,13 +150,13 @@ export class RoomsService {
 
   private get(code: string) {
     const room = this.rooms.get(code.toUpperCase());
-    if (!room) throw new RoomError('Room not found');
+    if (!room) throw new RoomError('Không tìm thấy phòng');
     return room;
   }
 
   private newPlayer(name: string): Player {
     const trimmed = name.trim().slice(0, 20);
-    if (!trimmed) throw new RoomError('Name is required');
+    if (!trimmed) throw new RoomError('Bạn cần nhập tên');
     return {
       id: randomUUID(),
       name: trimmed,

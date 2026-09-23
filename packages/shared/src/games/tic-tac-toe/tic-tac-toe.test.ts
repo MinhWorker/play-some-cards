@@ -20,12 +20,12 @@ describe('tic-tac-toe', () => {
 
   it('rejects moves out of turn', () => {
     const state = play([]);
-    expect(ticTacToe.validateMove(state, { cell: 0 }, 'b')).toBe('Not your turn');
+    expect(ticTacToe.validateMove(state, { cell: 0 }, 'b')).toBe('Chưa tới lượt bạn');
   });
 
   it('rejects taken cells', () => {
     const state = play([4]);
-    expect(ticTacToe.validateMove(state, { cell: 4 }, 'b')).toBe('Cell is taken');
+    expect(ticTacToe.validateMove(state, { cell: 4 }, 'b')).toBe('Ô này đã có người đánh');
   });
 
   it('detects a win', () => {
