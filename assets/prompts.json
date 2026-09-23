@@ -1,0 +1,67 @@
+{
+  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: apps/web/public/assets/<name>.webp",
+  "style": "Polished stylized 3D cartoon game art for a cheerful casual mobile board-game hub, in the spirit of popular 2015 Vietnamese mobile games. Saturated colors, soft warm lighting from the top-left, chunky rounded shapes, clean edges. Absolutely no text, letters, numbers or watermark.",
+  "transparentSuffix": "Single isolated object on a fully transparent background, centered with generous margin, no ground shadow, no sky, no clouds.",
+  "assets": {
+    "sky": {
+      "transparent": false,
+      "maxSize": 1920,
+      "prompt": "Wide landscape background: bright daytime sky, gradient from deep azure at the top to pale cyan near the horizon, a sea of soft fluffy white clouds along the bottom third, a few faint distant floating rocks far away. Calm, lots of empty space in the middle for game objects."
+    },
+    "cloud-a": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "One wide fluffy white cumulus cloud, soft blue-tinted shading underneath."
+    },
+    "cloud-b": {
+      "transparent": true,
+      "maxSize": 480,
+      "prompt": "One small round puffy white cloud made of three bumps, soft blue-tinted shading underneath."
+    },
+    "island-caro": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a giant wooden tic-tac-toe board with chunky red X and blue O pieces, small bushes and a tiny red flag. Isometric 3/4 view, whole island visible."
+    },
+    "island-cards": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a round wooden table covered in green felt with a fanned-out hand of oversized playing cards showing only big red heart and black spade suit symbols (no numbers or letters) and a small face-down stack of cards, a red paper lantern on a pole. Isometric 3/4 view, whole island visible."
+    },
+    "island-dice": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a colorful four-color race board game (red, blue, green, yellow paths) with a giant white dice with red dots and little horse-shaped game pieces. Isometric 3/4 view, whole island visible."
+    },
+    "island-chess": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top an oriental Chinese chess (xiangqi) board with round wooden disc pieces in red and black, a small bonsai pine tree and a stone lantern. Isometric 3/4 view, whole island visible."
+    },
+    "sign": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "A blank wide wooden signboard: one horizontal plank of warm orange-brown wood with rounded corners, darker wood border, two small metal nails, hanging from two short ropes. Front view, the plank face is empty and smooth so text can be placed on it."
+    },
+    "lock": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A shiny chunky golden padlock, closed, slightly tilted, front view."
+    },
+    "tile": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "One square light wooden board-game tile seen exactly from the top, flat orthographic top-down view, beveled edges, subtle wood grain, perfectly square, empty face."
+    },
+    "piece-x": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A chunky glossy red letter-X shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
+    },
+    "piece-o": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A chunky glossy blue ring (donut) shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
+    }
+  }
+}

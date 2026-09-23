@@ -19,11 +19,15 @@
     "check": "npm run lint && npm run typecheck && npm run test",
     "smoke": "node scripts/smoke.mjs",
     "dev:web": "npm run dev -w @psc/web",
-    "dev:server": "npm run build -w @psc/shared && concurrently -k -n shared,server -c magenta,blue \"npm run dev -w @psc/shared\" \"npm run dev -w @psc/server\""
+    "dev:server": "npm run build -w @psc/shared && concurrently -k -n shared,server -c magenta,blue \"npm run dev -w @psc/shared\" \"npm run dev -w @psc/server\"",
+    "gen:asset": "node scripts/gen-asset.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",
     "concurrently": "^10.0.5",
+    "playwright": "^1.63.0",
+    "sharp": "^0.35.4",
     "socket.io-client": "^4.8.3",
     "typescript": "~6.0.2"
   }

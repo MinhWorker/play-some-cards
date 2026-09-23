@@ -8,3 +8,6 @@ coverage/
 .vercel
 .env*
 !.env.example
+assets/raw/
+.e2e/
+.playwright-mcp/

@@ -1,7 +1,7 @@
 # Adding a game
 
-Use tic-tac-toe as the reference: `packages/shared/src/games/tic-tac-toe/` and
-`apps/web/src/games/tic-tac-toe/`.
+Use Caro 3×3 (tic-tac-toe) as the reference:
+`packages/shared/src/games/tic-tac-toe/` and `apps/web/src/games/tic-tac-toe/TicTacToeScene.ts`.
 
 ## 1. Rules (packages/shared)
 
@@ -17,9 +17,9 @@ const moveSchema = z.object({ /* ... */ });
 export type MyMove = z.infer<typeof moveSchema>;
 
 export const myGame = defineGame<MyState, MyMove, MyView>({
-  id: '<id>', name: 'My Game', minPlayers: 2, maxPlayers: 4, moveSchema,
+  id: '<id>', name: 'Tên tiếng Việt', minPlayers: 2, maxPlayers: 4, moveSchema,
   setup(players, rng) { ... },
-  validateMove(state, move, player) { return null /* or an error message */ },
+  validateMove(state, move, player) { return null /* or a Vietnamese error message */ },
   applyMove(state, move, player, rng) { return { ...state /* new object, no mutation */ } },
   getView(state, player) { ... },   // strip other players' hands, deck order, etc.
   getResult(state) { return null /* or { winners: [...] } */ },
@@ -34,14 +34,28 @@ Then:
 - write `<id>.test.ts` next to it: setup, illegal moves rejected, a game played to the end,
   and that `getView` hides secrets
 
-## 2. Board (apps/web)
+## 2. Art
 
-Create `apps/web/src/games/<id>/Board.tsx` exporting a component that takes
-`BoardProps<MyView, MyMove>` (from `apps/web/src/games/index.ts`), and register it in `boards`.
-The board only renders `view` and calls `sendMove(move)`; the server decides if it is legal.
-Winner/draw and "Play again" are already handled by `pages/Room.tsx`.
+List what the board needs (board/tiles, pieces or cards, the island for the home map) and
+generate each one. See "Art" in `AGENTS.md`. The home-map islands for upcoming games already
+exist (`island-cards`, `island-dice`, `island-chess`).
 
-## 3. Verify
+## 3. Board scene (apps/web)
 
-`npm run check`, then `npm run dev` and play it in two browser tabs (or one normal + one private
-window so they have separate sessions).
+Create `apps/web/src/games/<id>/<Name>Scene.ts` extending `BoardScene<MyView, MyMove>`:
+
+- `constructor() { super('<id>') }`: the scene key must equal the game id
+- `build()`: create sprites once
+- `draw()`: update them from `this.props` (`view`, `me`, `players`, `result`). It runs on
+  every state change and on resize, so position everything from `this.boardArea()`
+- call `this.sendMove(move)` on input; the server decides if it is legal
+- animate changes (tweens) so moves feel good
+
+Register it in `apps/web/src/games/index.ts`: add to `boardScenes`, and set `gameId` on its
+island in `islands` (this unlocks it on the home map). Winner/draw and "Chơi ván mới" are
+already handled by `pages/Room.tsx`.
+
+## 4. Verify
+
+`npm run check`, then extend `scripts/e2e.mjs` (or write a similar headless script) to play the
+new game, run it against `npm run dev`, and look at the screenshots in `.e2e/`.

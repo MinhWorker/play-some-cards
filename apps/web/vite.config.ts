@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   plugins: [react()],
+  // Phaser alone is ~1.2 MB minified; that is expected for a game engine.
+  build: { chunkSizeWarningLimit: 2000 },
   server: {
     port: 5033,
     strictPort: true,

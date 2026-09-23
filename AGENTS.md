@@ -14,10 +14,20 @@ packages/shared/   @psc/shared  Game rules + socket protocol types. Pure TS, no 
 apps/server/       @psc/server  NestJS + Socket.IO. Owns rooms and game state in memory.
   src/rooms/rooms.service.ts   Room/game logic, no sockets (unit tested)
   src/rooms/rooms.gateway.ts   Socket events -> service calls, broadcasts room:state
-apps/web/          @psc/web     React + Vite. Renders lobby, rooms and game boards.
-  src/games/<id>/Board.tsx     One board component per game
-  src/games/index.ts           gameId -> Board component map
-scripts/smoke.mjs  End-to-end check against a running server
+apps/web/          @psc/web     React + Vite + Phaser 4.
+  src/phaser/                  Full-screen Phaser canvas: the world (sky, island map, game boards)
+    PhaserStage.tsx            Mounts Phaser; React tells it what to show via a `Stage`
+    bridge.ts                  The only React <-> Phaser channel (events)
+    BoardScene.ts              Base class for game boards
+    scenes/                    Boot (loads images), Sky (background), Hub (island map)
+  src/games/<id>/<Name>Scene.ts  One Phaser board scene per game
+  src/games/index.ts           gameId -> scene map, and the islands shown on the home map
+  src/pages/                   React UI floating over the canvas (forms, panels, buttons)
+  public/assets/*.webp         Generated art (see "Art" below)
+assets/prompts.json  Prompt for every generated image
+scripts/gen-asset.mjs  Generates/edits art with Codex CLI
+scripts/smoke.mjs  Socket-level check against a running server
+scripts/e2e.mjs    Headless browser test of the real app
 docs/              How-to guides (adding a game, deploying)
 ```
 
@@ -31,13 +41,19 @@ docs/              How-to guides (adding a game, deploying)
 | `npm run check` | Lint + typecheck + unit tests. **Must pass before you finish any task.** |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run build` | Build shared, server, web |
-| `npm run smoke [url]` | Two bots play a full tic-tac-toe game against a running server (default `http://localhost:8033`) |
+| `npm run smoke [url]` | Two bots play a full Caro game against a running server (default `http://localhost:8033`) |
+| `npm run e2e [url]` | Headless Chromium: two players play Caro in the real UI (needs `npm run dev`). Screenshots in `.e2e/` |
+| `npm run gen:asset -- <name>` | Generate an image from `assets/prompts.json` with Codex CLI (`--missing` for all missing) |
+| `npm run gen:asset -- --edit <name> "<change>"` | Ask Codex to edit an existing image, keeping its style |
 
 Run one workspace: `npm run test -w @psc/shared`. Add a dependency: `npm install <pkg> -w @psc/web`.
 
 The owner runs the dev servers themselves in their own terminal. Do not start `npm run dev`
 and leave it running. If you need a running app to verify something, start it, check, and stop
 it before you finish.
+
+**Browser testing must be headless.** Use `npm run e2e` (or your own headless Playwright script).
+Never open a visible browser window (e.g. Playwright MCP tools); it pops up on the owner's screen.
 
 ## How it works
 
@@ -47,6 +63,11 @@ it before you finish.
 - **Never send raw game state to clients.** Hidden info (other players' cards, the deck) must be
   removed in `getView`.
 - Games are pure functions. Randomness only through the `rng` argument so tests are deterministic.
+- Web: React owns app state (session, room snapshot) and all forms/buttons. Phaser only draws
+  the world. React sends a `Stage` (`hub` | `sky` | `board` with view/me/players/result) to
+  `PhaserStage`; Phaser emits `hub:select`, `hub:locked`, `board:move` on `bridge`.
+  Use Phaser for anything game-like (boards, cards, pieces, animation, drag and drop, sound);
+  use React/CSS only for plain UI panels.
 - Rooms live in memory. Restarting the server wipes them; clients auto-rejoin by session token
   while the room still exists.
 
@@ -61,8 +82,21 @@ it before you finish.
 - New socket events go in `protocol.ts` first; TypeScript then shows every place to update.
 - **All user-facing text is Vietnamese**: web UI copy, and server/game error messages
   (they are shown to players). Code, comments, docs and identifiers stay in English.
-- Keep UI simple and mobile-friendly (friends play on phones). Use the CSS variables in
-  `apps/web/src/styles.css`, which already handle dark mode.
+- Keep UI mobile-friendly (friends play on phones). Test both a phone (390×844) and a desktop size.
+- Theme: floating sky islands, polished 3D-cartoon mobile-game look (like 2015 Vietnamese mobile
+  games). React panels use the wood/paper/yellow-button styles and CSS variables in
+  `apps/web/src/styles.css`; text uses the "Baloo 2" font (`FONT`/`titleStyle` in Phaser).
+
+## Art
+
+- All game art is **generated**, not hand-drawn: never draw art with SVG/CSS/Phaser graphics.
+- Add an entry to `assets/prompts.json` (the shared `style` is prepended automatically; set
+  `transparent: true` for objects), run `npm run gen:asset -- <name>`, add the key to
+  `IMAGE_KEYS` in `apps/web/src/phaser/assets.ts`, and look at the result before using it.
+- To tweak an image, prefer `--edit` over regenerating so it keeps the same look.
+- Never bake text into images (Vietnamese diacritics come out wrong). Put text on top in code.
+- Codex takes ~1.5 min per image. Output is trimmed and saved as WebP; raw PNGs stay in
+  `assets/raw/` (gitignored).
 
 ## Common tasks
 
@@ -72,6 +106,6 @@ it before you finish.
 ## Before finishing
 
 1. `npm run check` passes.
-2. For gameplay or protocol changes: start the server (`npm run build && npm start -w @psc/server`)
-   and run `npm run smoke`, or play it in the browser with two tabs.
+2. For gameplay, UI or protocol changes: run `npm run e2e` against `npm run dev` (start it only
+   if it is not already running, and stop what you started), and look at the screenshots.
 3. Update this file if you changed layout, commands or conventions.
