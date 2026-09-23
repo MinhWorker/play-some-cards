@@ -7,16 +7,21 @@ and on every pull request.
 
 ## Web app → Vercel
 
-The GitHub repo is connected to a Vercel project. Every push to `main` deploys production;
-every PR gets a preview URL. Build settings live in `vercel.json` (repo root).
+GitHub repo `MinhWorker/play-some-cards` is connected to Vercel project
+`minhnks-projects/play-some-cards` (production: https://play-some-cards.vercel.app).
+Every push to `main` deploys production; every PR gets a preview URL. Build settings live in `vercel.json` (repo root).
 
 Vercel env var: `VITE_SERVER_URL` = public URL of the game server (see below). It is baked in at
 build time, so redeploy after changing it.
 
 ## Game server
 
-Vercel cannot run the server: it needs a long-running process with WebSockets, and Vercel
-functions are short-lived. Host `apps/server` on something that runs Node processes
+**Status: not deployed yet.** Until it is, the Vercel site loads but cannot create rooms.
+
+Do not host the server on Vercel. Vercel Functions do support WebSockets, but connections are
+closed at the function's max duration and each connection may land on a different instance.
+Rooms live in one process's memory, so two friends in the same room could end up on different
+instances. Moving to Vercel would require storing rooms in Redis plus a Socket.IO Redis adapter. Host `apps/server` on something that runs Node processes
 (Render, Railway, Fly.io, a VPS). Settings for any of them:
 
 - Install: `npm ci`
