@@ -1,0 +1,96 @@
+import { games, type JoinedRoom, type RoomSnapshot } from '@psc/shared';
+import { useState } from 'react';
+import { boards } from '../games';
+import { request } from '../socket';
+
+interface Props {
+  session: JoinedRoom;
+  snapshot: RoomSnapshot | null;
+  onLeave: () => void;
+}
+
+export function Room({ session, snapshot, onLeave }: Props) {
+  const [error, setError] = useState('');
+
+  if (!snapshot) return <p>Connecting…</p>;
+
+  const me = session.playerId;
+  const isHost = snapshot.hostId === me;
+  const game = games[snapshot.gameId];
+  const Board = boards[snapshot.gameId];
+  const nameOf = (id: string) => snapshot.players.find((p) => p.id === id)?.name ?? '?';
+
+  async function send<E extends 'game:start' | 'game:restart'>(event: E) {
+    setError('');
+    await request(event, {}).catch((err: Error) => setError(err.message));
+  }
+
+  async function sendMove(move: unknown) {
+    setError('');
+    await request('game:move', { move }).catch((err: Error) => setError(err.message));
+  }
+
+  const inviteLink = `${window.location.origin}/?room=${snapshot.code}`;
+
+  return (
+    <div className="stack">
+      <div className="room-header">
+        <div>
+          <div className="muted">{game?.name}</div>
+          <div className="room-code">Room {snapshot.code}</div>
+        </div>
+        <button type="button" className="secondary" onClick={onLeave}>
+          Leave
+        </button>
+      </div>
+
+      <ul className="players">
+        {snapshot.players.map((p) => (
+          <li key={p.id} className={p.connected ? '' : 'muted'}>
+            {p.name}
+            {p.id === me && ' (you)'}
+            {p.id === snapshot.hostId && ' ★'}
+            {!p.connected && ' — offline'}
+          </li>
+        ))}
+      </ul>
+
+      {snapshot.status === 'lobby' && (
+        <div className="card stack">
+          <p>
+            Invite friends with the code <b>{snapshot.code}</b> or this link:
+          </p>
+          <input readOnly value={inviteLink} onFocus={(e) => e.target.select()} />
+          {isHost ? (
+            <button type="button" onClick={() => send('game:start')}>
+              Start game
+            </button>
+          ) : (
+            <p className="muted">Waiting for the host to start…</p>
+          )}
+        </div>
+      )}
+
+      {snapshot.status !== 'lobby' && Board && (
+        <Board view={snapshot.view} me={me} players={snapshot.players} sendMove={sendMove} />
+      )}
+
+      {snapshot.result && (
+        <div className="card stack">
+          <h2>
+            {snapshot.result.winners.length === 0
+              ? "It's a draw!"
+              : `${snapshot.result.winners.map(nameOf).join(', ')} won!`}
+          </h2>
+          {isHost && (
+            <button type="button" onClick={() => send('game:restart')}>
+              Play again
+            </button>
+          )}
+        </div>
+      )}
+
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}

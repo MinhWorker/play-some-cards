@@ -1,0 +1,14 @@
+.ttt-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: min(100%, 320px);
+  margin: 0 auto;
+}
+
+.ttt-cell {
+  aspect-ratio: 1;
+  font-size: 2.5rem;
+  font-weight: 700;
+  padding: 0;
+}
