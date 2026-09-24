@@ -22,6 +22,7 @@ export const myGame = defineGame<MyState, MyMove, MyView>({
   validateMove(state, move, player) { return null /* or a Vietnamese error message */ },
   applyMove(state, move, player, rng) { return { ...state /* new object, no mutation */ } },
   getView(state, player) { ... },   // strip other players' hands, deck order, etc.
+                                    // player === null means a spectator: public info only
   getResult(state) { return null /* or { winners: [...] } */ },
 });
 ```
@@ -32,7 +33,7 @@ Then:
 - export it from `packages/shared/src/index.ts`
 - add it to `games` in `packages/shared/src/registry.ts`
 - write `<id>.test.ts` next to it: setup, illegal moves rejected, a game played to the end,
-  and that `getView` hides secrets
+  and that `getView` hides secrets (also from spectators: `getView(state, null)`)
 
 ## 2. Art
 
@@ -46,7 +47,8 @@ Create `apps/web/src/games/<id>/<Name>Scene.ts` extending `BoardScene<MyView, My
 
 - `constructor() { super('<id>') }`: the scene key must equal the game id
 - `build()`: create sprites once
-- `draw()`: update them from `this.props` (`view`, `me`, `players`, `result`). It runs on
+- `draw()`: update them from `this.props` (`view`, `me`, `players`, `result`). For a spectator
+  `me` is not in `players` and the view is the public one, so never assume `me` is playing. It runs on
   every state change and on resize, so position everything from `this.boardArea()`
 - call `this.sendMove(move)` on input; the server decides if it is legal
 - animate changes (tweens) so moves feel good

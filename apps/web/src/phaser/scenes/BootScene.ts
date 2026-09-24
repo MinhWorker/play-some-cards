@@ -8,7 +8,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    for (const key of IMAGE_KEYS) this.load.image(key, `/assets/${key}.webp`);
+    for (const key of IMAGE_KEYS) this.load.image(key, `/images/${key}.webp`);
   }
 
   create() {

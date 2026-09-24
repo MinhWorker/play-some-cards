@@ -12,31 +12,29 @@ interface Props {
 
 export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
   const [error, setError] = useState('');
-  const [copied, setCopied] = useState(false);
 
   if (!snapshot) return <p className="toast">Đang vào phòng…</p>;
 
   const me = session.playerId;
   const isHost = snapshot.hostId === me;
+  const isPlayer = snapshot.players.some((p) => p.id === me);
   const game = games[snapshot.gameId];
   const nameOf = (id: string) => snapshot.players.find((p) => p.id === id)?.name ?? '?';
-  const inviteLink = `${window.location.origin}/?room=${snapshot.code}`;
+  const hostName = snapshot.hostId ? nameOf(snapshot.hostId) : null;
+  const watching = snapshot.spectators.filter((s) => s.connected).length;
+  const seatFree =
+    snapshot.status !== 'playing' && snapshot.players.length < (game?.maxPlayers ?? 0);
 
-  async function send(event: 'game:start' | 'game:restart') {
+  async function send(event: 'game:start' | 'game:restart' | 'room:sit') {
     setError('');
     await request(event, {}).catch((err: Error) => setError(err.message));
   }
 
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    } catch {
-      // Clipboard can be blocked; the link is still visible to copy by hand.
-    }
-  }
-
+  const sitButton = !isPlayer && seatFree && (
+    <button type="button" className="btn" onClick={() => send('room:sit')}>
+      Vào chơi
+    </button>
+  );
   const shownError = error || moveError;
 
   return (
@@ -47,7 +45,7 @@ export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
         </button>
         <div className="room-title">
           <div className="muted">{game?.name}</div>
-          <div className="room-code">Phòng {snapshot.code}</div>
+          <div className="room-code">{hostName ? `Phòng của ${hostName}` : 'Phòng trống'}</div>
         </div>
         <ul className="players">
           {snapshot.players.map((p) => (
@@ -57,28 +55,26 @@ export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
               {p.id === me && ' (bạn)'}
             </li>
           ))}
+          {watching > 0 && <li className="watchers">👀 {watching} đang xem</li>}
         </ul>
       </header>
 
       {snapshot.status === 'lobby' && (
         <div className="panel modal center">
-          <h2>Rủ bạn bè vào chơi</h2>
-          <p>
-            Mã phòng: <b className="big-code">{snapshot.code}</b>
-          </p>
-          <button type="button" className="btn secondary" onClick={copyLink}>
-            {copied ? 'Đã chép link!' : 'Chép link mời'}
-          </button>
-          <p className="muted">
-            {snapshot.players.length}/{game?.maxPlayers} người đã vào
+          <h2>Đang chờ người chơi</h2>
+          <p className="big-code">
+            👤 {snapshot.players.length}/{game?.maxPlayers}
           </p>
           {isHost ? (
             <button type="button" className="btn" onClick={() => send('game:start')}>
               Bắt đầu
             </button>
-          ) : (
+          ) : isPlayer ? (
             <p className="muted">Đang chờ chủ phòng bắt đầu…</p>
+          ) : (
+            sitButton
           )}
+          {shownError && <p className="error">{shownError}</p>}
         </div>
       )}
 
@@ -95,13 +91,15 @@ export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
             <button type="button" className="btn" onClick={() => send('game:restart')}>
               Chơi ván mới
             </button>
-          ) : (
+          ) : isPlayer ? (
             <p className="muted">Chờ chủ phòng mở ván mới…</p>
+          ) : (
+            sitButton
           )}
         </div>
       )}
 
-      {shownError && <p className="toast error">{shownError}</p>}
+      {shownError && snapshot.status !== 'lobby' && <p className="toast error">{shownError}</p>}
     </>
   );
 }

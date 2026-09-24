@@ -41,6 +41,9 @@ export function PhaserStage({ stage }: { stage: Stage }) {
         parent: parent.current,
         backgroundColor: '#8fd3f4',
         scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+        // Only listen on the canvas. Window listeners would let taps on React panels and
+        // modals (drawn over the canvas) reach the islands or board underneath.
+        input: { windowEvents: false },
         scene: [BootScene, SkyScene, HubScene, ...Object.values(boardScenes)],
       });
       g.events.once('booted', () => {

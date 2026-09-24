@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { islands } from '../../games';
+import { playSfx } from '../../sound';
 import { titleStyle } from '../assets';
 import { bridge } from '../bridge';
 
@@ -26,9 +27,22 @@ export class HubScene extends Phaser.Scene {
       const label = this.add
         .text(sign.x, sign.y + sign.displayHeight * 0.12, island.name, titleStyle(46))
         .setOrigin(0.5);
-      const parts: Phaser.GameObjects.GameObject[] = [img, sign, label];
-      if (!island.gameId) {
-        img.setTint(0xb8c4d6);
+      // Magic light orbs hide where the sign's ropes end (they don't meet the island art).
+      const ropeTop = sign.y - sign.displayHeight / 2;
+      const orbs = [-0.35, 0.35].map((f) =>
+        this.add.image(sign.x + sign.displayWidth * f, ropeTop, 'orb').setDisplaySize(72, 72),
+      );
+      const parts: Phaser.GameObjects.GameObject[] = [img, sign, ...orbs, label];
+      let glow: Phaser.Filters.Glow | undefined;
+      if (island.gameId) {
+        // Hover highlight: a warm glow around the island, toggled in hover().
+        glow = img.enableFilters().filters?.internal.addGlow(0xfff1a8, 5, 0, 1.4, false, 12, 14);
+        if (glow) glow.active = false;
+      } else {
+        // Locked ("coming soon"): island and sign in black and white; the gold lock stays.
+        for (const part of [img, sign, ...orbs]) {
+          part.enableFilters().filters?.internal.addColorMatrix().colorMatrix.grayscale();
+        }
         parts.push(this.add.image(0, -img.height * 0.05, 'lock').setScale(0.8));
       }
       // `float` bobs up and down; `container` is positioned by layout(). Keeping them separate
@@ -38,18 +52,44 @@ export class HubScene extends Phaser.Scene {
       container.setData('float', float);
       container.setSize(img.width, img.height + sign.displayHeight);
       container.setInteractive({ useHandCursor: true });
-      container.on('pointerover', () => this.hover(container, 1.06));
-      container.on('pointerout', () => this.hover(container, 1));
+      container.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+        // Mouse only: on touch screens "over" fires on every tap.
+        if (!pointer.wasTouch) playSfx('island-hover');
+      });
+      container.on('pointerover', () =>
+        this.hover(container, true, island.gameId ? { sign, glow } : null),
+      );
+      container.on('pointerout', () =>
+        this.hover(container, false, island.gameId ? { sign, glow } : null),
+      );
       container.on('pointerup', () => {
         if (island.gameId) bridge.emit('hub:select', island.gameId);
         else this.wobble(container);
       });
+      // Orbs pulse softly, out of sync with each other.
+      orbs.forEach((orb, j) => {
+        this.tweens.add({
+          targets: orb,
+          scale: orb.scale * 1.15,
+          alpha: 0.8,
+          duration: 900 + j * 200,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1,
+        });
+      });
       return { container, gameId: island.gameId };
     });
 
+    this.registry.set('showTitle', true);
     this.layout();
     this.scale.on('resize', this.layout, this);
-    this.events.once('shutdown', () => this.scale.off('resize', this.layout, this));
+    this.registry.events.on('changedata-titleBottom', this.layout, this);
+    this.events.once('shutdown', () => {
+      this.registry.set('showTitle', false);
+      this.scale.off('resize', this.layout, this);
+      this.registry.events.off('changedata-titleBottom', this.layout, this);
+    });
 
     // Gentle floating motion, each island slightly out of sync.
     this.views.forEach(({ container }, i) => {
@@ -68,9 +108,10 @@ export class HubScene extends Phaser.Scene {
   private layout() {
     const { width, height } = this.scale;
     const portrait = height > width;
-    // Leave room for the React header (top) and join panel (bottom).
-    const top = height * (portrait ? 0.18 : 0.2);
-    const bottom = height * (portrait ? 0.8 : 0.78);
+    // Leave room for the title (drawn by SkyScene, which reports its bottom edge).
+    const titleBottom = (this.registry.get('titleBottom') as number | undefined) ?? height * 0.2;
+    const top = Math.max(titleBottom, height * 0.12);
+    const bottom = height * (portrait ? 0.95 : 0.92);
     const n = this.views.length;
     const cols = portrait ? 2 : Math.min(n, 4);
     const rows = Math.ceil(n / cols);
@@ -90,9 +131,18 @@ export class HubScene extends Phaser.Scene {
     });
   }
 
-  private hover(container: Phaser.GameObjects.Container, factor: number) {
+  /** Grows the island; playable ones also swap to the bright sign and glow. */
+  private hover(
+    container: Phaser.GameObjects.Container,
+    on: boolean,
+    highlight: { sign: Phaser.GameObjects.Image; glow?: Phaser.Filters.Glow } | null,
+  ) {
     const base = container.getData('baseScale') as number;
+    const factor = on ? (highlight ? 1.08 : 1.03) : 1;
     this.tweens.add({ targets: container, scale: base * factor, duration: 150 });
+    if (!highlight) return;
+    highlight.sign.setTexture(on ? 'sign-hover' : 'sign');
+    if (highlight.glow) highlight.glow.active = on;
   }
 
   private wobble(container: Phaser.GameObjects.Container) {

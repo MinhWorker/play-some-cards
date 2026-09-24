@@ -3,8 +3,8 @@
 //   npm run gen:asset -- --missing            generate every asset that has no output yet
 //   npm run gen:asset -- --edit <name> "<change>"   ask Codex to edit the existing image
 //                                                   (keeps its style; e.g. "make the flag yellow")
-// Prompts live in assets/prompts.json. Output: apps/web/public/assets/<name>.webp
-// Raw full-size PNGs are kept in assets/raw/ (gitignored) for re-processing.
+// Prompts live in assets/prompts.json. Output: apps/web/public/images/<name>.webp
+// Raw full-size PNGs are kept in assets/images/ (gitignored) for re-processing.
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,8 +31,8 @@ function run(cmd, args, timeoutMs) {
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(readFileSync(join(root, 'assets/prompts.json'), 'utf8'));
-const outDir = join(root, 'apps/web/public/assets');
-const rawDir = join(root, 'assets/raw');
+const outDir = join(root, 'apps/web/public/images');
+const rawDir = join(root, 'assets/images');
 mkdirSync(outDir, { recursive: true });
 mkdirSync(rawDir, { recursive: true });
 

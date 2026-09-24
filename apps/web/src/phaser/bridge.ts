@@ -1,4 +1,4 @@
-import type { GameResult, PlayerId, PlayerInfo } from '@psc/shared';
+import type { GameResult, PlayerId, PlayerInfo, RoomScore } from '@psc/shared';
 import Phaser from 'phaser';
 
 /** Data a board scene needs to draw the current game. */
@@ -8,6 +8,8 @@ export interface BoardProps<View = unknown> {
   players: PlayerInfo[];
   /** Set once the game is over. */
   result: GameResult | null;
+  /** Wins per seat and draws over all games in this room. */
+  score: RoomScore;
 }
 
 /** What the canvas should show. Set by React, read by Phaser. */

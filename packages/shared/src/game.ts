@@ -28,8 +28,11 @@ export interface GameDefinition<State, Move, View = State> {
   validateMove(state: State, move: Move, player: PlayerId): string | null;
   /** Returns the NEW state. Only called after `validateMove` returned `null`. */
   applyMove(state: State, move: Move, player: PlayerId, rng: () => number): State;
-  /** What `player` is allowed to see. Hide other players' cards here. */
-  getView(state: State, player: PlayerId): View;
+  /**
+   * What `player` is allowed to see. Hide other players' cards here.
+   * `player` is `null` for spectators: show only what is public to everyone.
+   */
+  getView(state: State, player: PlayerId | null): View;
   /** `null` while the game is still running. */
   getResult(state: State): GameResult | null;
 }

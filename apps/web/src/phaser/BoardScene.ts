@@ -32,17 +32,21 @@ export abstract class BoardScene<View, Move> extends Phaser.Scene {
 
   /**
    * Where the board may draw, leaving room for the React room bar (top) and the
-   * result panel (bottom), plus a status line above the board.
+   * result panel (bottom), plus a score row and a status line above the board.
    */
   protected boardArea() {
     const { width, height } = this.scale;
-    const top = 110;
+    // On phones the room bar wraps onto three rows (back button, title, players).
+    const top = width < 700 ? 200 : 110;
     const bottom = 140;
-    const status = 60;
-    const size = Math.max(120, Math.min(width * 0.92, height - top - bottom - status));
+    const score = 50;
+    const status = 56;
+    const above = score + status;
+    const size = Math.max(120, Math.min(width * 0.92, height - top - bottom - above));
     const cx = width / 2;
-    const cy = top + status + (height - top - bottom - status) / 2;
-    return { size, cx, cy, statusY: cy - size / 2 - status / 2 };
+    const cy = top + above + (height - top - bottom - above) / 2;
+    const statusY = cy - size / 2 - status / 2;
+    return { size, cx, cy, statusY, scoreY: statusY - status / 2 - score / 2 };
   }
 
   protected nameOf(id: string) {

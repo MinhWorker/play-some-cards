@@ -1,5 +1,5 @@
 /**
- * Every image in apps/web/public/assets. Keys match the file names and the entries in
+ * Every image in apps/web/public/images. Keys match the file names and the entries in
  * assets/prompts.json (generate new art with `npm run gen:asset -- <name>`).
  */
 export const IMAGE_KEYS = [
@@ -11,6 +11,10 @@ export const IMAGE_KEYS = [
   'island-dice',
   'island-chess',
   'sign',
+  'sign-hover',
+  'orb',
+  'bird',
+  'vine',
   'lock',
   'tile',
   'piece-x',

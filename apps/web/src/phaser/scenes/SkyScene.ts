@@ -1,9 +1,14 @@
 import Phaser from 'phaser';
+import { Title } from '../Title';
 
-/** Always-on background: the sky image plus clouds drifting across. */
+/**
+ * Always-on background: the sky image, the game title (home map only, set through the
+ * registry key 'showTitle' by HubScene) and clouds drifting across in front of both.
+ */
 export class SkyScene extends Phaser.Scene {
   private sky!: Phaser.GameObjects.Image;
   private clouds: { img: Phaser.GameObjects.Image; speed: number }[] = [];
+  private title!: Title;
 
   constructor() {
     super('sky');
@@ -11,6 +16,11 @@ export class SkyScene extends Phaser.Scene {
 
   create() {
     this.sky = this.add.image(0, 0, 'sky').setOrigin(0.5);
+    this.title = this.add.existing(new Title(this));
+    this.showTitle(this.registry.get('showTitle') === true, false);
+    this.registry.events.on('changedata-showTitle', (_: unknown, show: boolean) =>
+      this.showTitle(show, true),
+    );
     for (let i = 0; i < 6; i++) {
       const img = this.add
         .image(0, 0, i % 2 ? 'cloud-b' : 'cloud-a')
@@ -22,14 +32,36 @@ export class SkyScene extends Phaser.Scene {
     this.scale.on('resize', this.layout, this);
   }
 
+  private showTitle(show: boolean, animate: boolean) {
+    this.tweens.killTweensOf(this.title);
+    if (!animate) this.title.setAlpha(show ? 1 : 0);
+    else this.tweens.add({ targets: this.title, alpha: show ? 1 : 0, duration: 300 });
+  }
+
   private layout() {
     const { width, height } = this.scale;
     this.sky.setPosition(width / 2, height / 2);
     this.sky.setScale(Math.max(width / this.sky.width, height / this.sky.height));
-    for (const { img } of this.clouds) {
-      img.setScale((Math.min(width, height) / 900) * Phaser.Math.FloatBetween(0.5, 1));
-      img.setPosition(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height));
-    }
+
+    // Title centered at the top. On portrait phones it sits below the profile/speaker row.
+    const portrait = height > width;
+    const titleScale = Math.min(1, (width * (portrait ? 0.86 : 0.5)) / this.title.span);
+    const birdsTop = portrait ? 76 : 6;
+    this.title.setScale(titleScale).setPosition(width / 2, birdsTop - this.title.top * titleScale);
+    this.registry.set('titleBottom', this.title.y + this.title.bottom * titleScale);
+
+    const base = Math.min(width, height) / 900;
+    this.clouds.forEach(({ img }, i) => {
+      // The first two clouds drift across the title so it peeks out from behind them.
+      if (i < 2) {
+        // Lighter and smaller than the rest, so the title still reads through them.
+        img.setScale(base * Phaser.Math.FloatBetween(0.4, 0.5)).setAlpha(0.55);
+        img.setPosition(Phaser.Math.Between(0, width), this.title.y + (i ? -20 : 25) * titleScale);
+      } else {
+        img.setScale(base * Phaser.Math.FloatBetween(0.5, 1));
+        img.setPosition(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height));
+      }
+    });
   }
 
   override update(_time: number, delta: number) {

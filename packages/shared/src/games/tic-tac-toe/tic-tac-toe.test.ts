@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ticTacToe } from './index.js';
+import { ticTacToe, winningLine } from './index.js';
 
 const rng = () => 0;
 
@@ -35,5 +35,10 @@ describe('tic-tac-toe', () => {
 
   it('detects a draw', () => {
     expect(ticTacToe.getResult(play([0, 1, 2, 4, 3, 5, 7, 6, 8]))).toEqual({ winners: [] });
+  });
+
+  it('reports the winning line', () => {
+    expect(winningLine(play([0, 3, 1, 4, 2]).board)).toEqual([0, 1, 2]);
+    expect(winningLine(play([0, 1, 2, 4, 3, 5, 7, 6, 8]).board)).toBeNull();
   });
 });

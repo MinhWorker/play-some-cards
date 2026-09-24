@@ -1,5 +1,5 @@
 {
-  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: apps/web/public/assets/<name>.webp",
+  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: apps/web/public/images/<name>.webp",
   "style": "Polished stylized 3D cartoon game art for a cheerful casual mobile board-game hub, in the spirit of popular 2015 Vietnamese mobile games. Saturated colors, soft warm lighting from the top-left, chunky rounded shapes, clean edges. Absolutely no text, letters, numbers or watermark.",
   "transparentSuffix": "Single isolated object on a fully transparent background, centered with generous margin, no ground shadow, no sky, no clouds.",
   "assets": {
@@ -43,6 +43,11 @@
       "maxSize": 512,
       "prompt": "A blank wide wooden signboard: one horizontal plank of warm orange-brown wood with rounded corners, darker wood border, two small metal nails, hanging from two short ropes. Front view, the plank face is empty and smooth so text can be placed on it."
     },
+    "sign-hover": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "The same blank wide wooden signboard (one horizontal plank with rounded corners, two small metal nails, hanging from two short ropes), but highlighted: bright golden-yellow glossy wood with a warm glowing rim and a few small sparkles at the corners. Front view, the plank face is empty and smooth so text can be placed on it."
+    },
     "lock": {
       "transparent": true,
       "maxSize": 256,
@@ -62,6 +67,56 @@
       "transparent": true,
       "maxSize": 256,
       "prompt": "A chunky glossy blue ring (donut) shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
+    },
+    "speaker-on": {
+      "transparent": true,
+      "maxSize": 192,
+      "prompt": "A chunky glossy golden-yellow cartoon loudspeaker icon (speaker cone facing right) with three curved sound-wave arcs in bright white-blue coming out of it, thick dark-brown outline, game UI button icon, side view."
+    },
+    "speaker-off": {
+      "transparent": true,
+      "maxSize": 192,
+      "prompt": "The same chunky glossy golden-yellow cartoon loudspeaker icon (speaker cone facing right), but instead of sound waves a bold red X next to it meaning muted, thick dark-brown outline, game UI button icon, side view."
+    },
+    "orb": {
+      "transparent": true,
+      "maxSize": 160,
+      "prompt": "A small glowing magic light orb: a bright round ball of soft warm golden-white light with a glossy core, a gentle soft halo around it and two or three tiny sparkles. Front view."
+    },
+    "avatar-boy": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A cute chibi RPG-style character portrait (head and shoulders) of a cheerful young boy with messy black hair, big friendly eyes and a big smile, wearing a small green adventurer scarf, inside a round glossy golden medallion frame with a bright sky-blue background inside the frame. Front view."
+    },
+    "avatar-girl": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A cute chibi RPG-style character portrait (head and shoulders) of a cheerful young girl with black hair in two buns, big friendly eyes and a big smile, wearing a small pink adventurer scarf, inside a round glossy golden medallion frame with a bright sky-blue background inside the frame. Front view."
+    },
+    "icon-edit": {
+      "transparent": true,
+      "maxSize": 128,
+      "prompt": "A chunky glossy cartoon pencil icon, yellow body with pink eraser and sharpened tip, tilted 45 degrees pointing down-left, thick dark-brown outline, game UI icon."
+    },
+    "icon-dice": {
+      "transparent": true,
+      "maxSize": 128,
+      "prompt": "One chunky glossy white cartoon dice with rounded corners and red dots, slightly tilted showing three faces, thick dark-brown outline, game UI icon."
+    },
+    "bird": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A small cute round chubby cartoon bird flying, seen from the front, both wings raised high mid-flap, little orange feet dangling straight down below its body, light blue feathers with a white belly, happy face."
+    },
+    "vine": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "A single straight vertical ivy vine rope: a thin twisted green-brown vine with small fresh green ivy leaves along its whole length, perfectly vertical, long and thin, running from the very top to the very bottom of the image."
+    },
+    "avatar-frame": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "An empty round glossy golden medallion frame ring with four small diamond ornaments at top, bottom, left and right; the inside of the ring is completely empty and fully transparent."
     }
   }
 }

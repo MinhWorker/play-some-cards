@@ -60,7 +60,8 @@ body {
   position: absolute;
   top: 12px;
   left: 16px;
-  right: 16px;
+  /* Leaves room for the speaker button in the top-right corner. */
+  right: 76px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -71,25 +72,6 @@ body {
 
 .hud-top > * {
   pointer-events: auto;
-}
-
-.hud-bottom {
-  position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(420px, calc(100% - 32px));
-}
-
-.logo {
-  margin: 0;
-  font-size: clamp(2rem, 6vw, 3.2rem);
-  font-weight: 800;
-  line-height: 1;
-  color: #fff;
-  -webkit-text-stroke: 6px var(--wood-dark);
-  paint-order: stroke fill;
-  text-shadow: 0 5px 0 var(--wood-dark);
 }
 
 .panel {
@@ -113,37 +95,119 @@ body {
   min-width: 0;
 }
 
-.name-field {
+/* Profile badge (top-left) and its edit modal (ProfileBadge.tsx). */
+.profile {
+  position: absolute;
+  top: 8px;
+  left: 12px;
   display: flex;
-  flex-direction: column;
-  font-weight: 700;
-  color: #fff;
-  -webkit-text-stroke: 3px var(--wood-dark);
-  paint-order: stroke fill;
+  align-items: center;
+  /* Only the speaker button shares the top row. */
+  max-width: min(340px, calc(100% - 90px));
 }
 
-.name-field input {
-  -webkit-text-stroke: 0;
-  width: 180px;
+.profile-avatar {
+  width: 60px;
+  height: 60px;
+  flex: none;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 3px 0 var(--wood-dark));
+}
+
+.profile-name {
+  min-width: 0;
+  margin-left: -16px;
+  padding: 2px 12px 0 22px;
+  background: var(--paper);
+  border: 3px solid var(--wood);
+  border-radius: 0 999px 999px 0;
+  font-weight: 800;
+  font-size: 1.05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  margin-left: 6px;
+  padding: 4px;
+  background: var(--btn);
+  border: 3px solid var(--btn-edge);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--btn-edge);
+  cursor: pointer;
+}
+
+.icon-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--btn-edge);
+}
+
+.icon-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.avatar-pick {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.avatar-pick button {
+  width: 92px;
+  height: 92px;
+  padding: 6px;
+  background: transparent;
+  border: 4px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.55;
+  transition:
+    transform 0.12s,
+    opacity 0.12s;
+}
+
+.avatar-pick button.selected {
+  opacity: 1;
+  background: var(--btn);
+  border-color: var(--btn-edge);
+  transform: scale(1.06);
+}
+
+.avatar-pick img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.name-row input {
+  flex: 1;
+  font-size: 1.15rem;
+}
+
+.name-row .dice {
+  width: 46px;
+  height: 46px;
 }
 
 input:focus-visible,
 .btn:focus-visible {
   outline: 3px solid var(--btn-2-edge);
   outline-offset: 2px;
-}
-
-.join {
-  display: flex;
-  gap: 10px;
-}
-
-.code-input {
-  flex: 1;
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  text-align: center;
-  font-size: 1.3rem;
 }
 
 .btn {
@@ -185,9 +249,11 @@ input:focus-visible,
 .modal-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 3;
   background: rgb(20 50 80 / 0.35);
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px;
 }
 
@@ -271,11 +337,96 @@ input:focus-visible,
   opacity: 0.5;
 }
 
+.players li.watchers {
+  background: var(--btn-2);
+  border-color: var(--btn-2-edge);
+}
+
+/* A game's room list (pages/GameRooms.tsx). */
+.rooms {
+  position: absolute;
+  top: 96px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rooms h2 {
+  flex: 1;
+  white-space: nowrap;
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+.rooms p {
+  margin: 0;
+}
+
+.rooms-head .btn {
+  white-space: nowrap;
+}
+
+.rooms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rooms .empty {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.room-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 2px 6px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 3px solid var(--paper-edge);
+  border-radius: 14px;
+  padding: 8px 12px;
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.room-info b {
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.room-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
 .muted {
   color: var(--ink-soft);
 }
 
-.hint,
 .toast,
 .banner {
   position: absolute;
@@ -288,12 +439,6 @@ input:focus-visible,
   font-weight: 700;
   border-radius: 999px;
   padding: 4px 16px;
-}
-
-.hint {
-  bottom: 96px;
-  color: #fff;
-  background: rgb(40 90 140 / 0.55);
 }
 
 .toast {
@@ -314,8 +459,134 @@ input:focus-visible,
   margin: 0;
 }
 
+/* Music: speaker button (top-right) with a volume panel below it. */
+.sound {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+}
+
+.sound-btn {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  padding: 6px;
+  background: var(--btn-2);
+  border: 3px solid var(--btn-2-edge);
+  border-radius: 16px;
+  box-shadow: 0 5px 0 var(--btn-2-edge);
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+
+.sound-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--btn-2-edge);
+}
+
+.sound-btn:focus-visible {
+  outline: 3px solid var(--wood-dark);
+  outline-offset: 2px;
+}
+
+.sound-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sound-btn.small {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+}
+
+.sound-panel {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  width: min(340px, calc(100vw - 24px));
+}
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sound-label {
+  width: 4.6em;
+  flex: none;
+  font-weight: 800;
+}
+
+.sound-panel input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--btn-edge);
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sound-value {
+  width: 2.2em;
+  text-align: right;
+  font-weight: 800;
+}
+
+/* Hover: buttons lift and brighten (mouse only; touch has no hover). */
+@media (hover: hover) {
+  .btn,
+  .sound-btn,
+  .icon-btn,
+  .avatar-pick button {
+    transition:
+      transform 0.1s,
+      filter 0.1s,
+      box-shadow 0.1s;
+  }
+
+  .btn:hover:not(:disabled, :active),
+  .sound-btn:hover:not(:active),
+  .icon-btn:hover:not(:active) {
+    transform: translateY(-2px);
+    filter: brightness(1.08) saturate(1.1);
+  }
+
+  .btn:hover:not(:disabled, :active) {
+    box-shadow: 0 7px 0 var(--btn-edge);
+  }
+
+  .btn.secondary:hover:not(:disabled, :active),
+  .sound-btn:hover:not(:active) {
+    box-shadow: 0 7px 0 var(--btn-2-edge);
+  }
+
+  .icon-btn:hover:not(:active) {
+    box-shadow: 0 6px 0 var(--btn-edge);
+  }
+
+  .avatar-pick button:hover {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .btn {
+  .btn,
+  .sound-btn,
+  .icon-btn,
+  .avatar-pick button {
     transition: none;
   }
 }

@@ -24,12 +24,18 @@ const LINES = [
   [2, 4, 6],
 ] as const;
 
-function winnerMark(board: Cell[]): Cell {
+/** The three cells of the winning line, or `null` if nobody has three in a row. */
+export function winningLine(board: Cell[]): [number, number, number] | null {
   for (const [a, b, c] of LINES) {
     const mark = board[a];
-    if (mark && mark === board[b] && mark === board[c]) return mark;
+    if (mark && mark === board[b] && mark === board[c]) return [a, b, c];
   }
   return null;
+}
+
+function winnerMark(board: Cell[]): Cell {
+  const line = winningLine(board);
+  return line ? (board[line[0]] ?? null) : null;
 }
 
 function getResult(state: TicTacToeState) {

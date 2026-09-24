@@ -3,34 +3,37 @@ import { useCallback, useEffect, useState } from 'react';
 import { loadSession, saveSession } from './session';
 import { request, socket } from './socket';
 
-/** Owns the connection to the current room: joining, leaving, rejoining and live state. */
-export function useRoom() {
+/**
+ * Owns the connection to the current room: joining, leaving, rejoining and live state.
+ * `onClosed` runs when the server disbands the room while we are in it.
+ */
+export function useRoom(onClosed: (info: { gameId: string; reason: string }) => void) {
   const [session, setSession] = useState<JoinedRoom | null>(loadSession);
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
 
   const enter = useCallback((joined: JoinedRoom) => {
     saveSession(joined);
     setSession(joined);
-    const url = new URL(window.location.href);
-    url.searchParams.set('room', joined.roomCode);
-    window.history.replaceState(null, '', url);
   }, []);
 
   const exit = useCallback(() => {
     saveSession(null);
     setSession(null);
     setSnapshot(null);
-    const url = new URL(window.location.href);
-    url.searchParams.delete('room');
-    window.history.replaceState(null, '', url);
   }, []);
 
   useEffect(() => {
+    const closed = (info: { gameId: string; reason: string }) => {
+      exit();
+      onClosed(info);
+    };
     socket.on('room:state', setSnapshot);
+    socket.on('room:closed', closed);
     return () => {
       socket.off('room:state', setSnapshot);
+      socket.off('room:closed', closed);
     };
-  }, []);
+  }, [exit, onClosed]);
 
   // Rejoin on first load and after every reconnect (e.g. server restart, Wi-Fi drop).
   useEffect(() => {
