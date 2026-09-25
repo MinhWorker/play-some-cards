@@ -45,4 +45,5 @@ version shows at the bottom of the sound panel.
 
 `npm run new:game -- <id> "Tên"` creates a small working game in `games/<id>/`; everything about
 your game stays in that folder, so several people can build games at once without conflicts.
+Try it alone at `http://localhost:5033/?play=<id>&players=2` (no server or account needed).
 See [docs/making-a-game.md](docs/making-a-game.md).

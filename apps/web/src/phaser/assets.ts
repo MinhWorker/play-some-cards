@@ -20,6 +20,7 @@ const IMAGES = {
   bird: 'shared',
   vine: 'shared',
   lock: 'shared',
+  arrow: 'shared',
 } satisfies Record<string, AssetOwner>;
 
 export const IMAGE_KEYS = Object.keys(IMAGES) as ImageKey[];

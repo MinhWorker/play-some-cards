@@ -1,0 +1,25 @@
+{
+  "$comment": "Prompts for this game's art: npm run gen:asset -- tic-tac-toe/<name> (the style in assets/prompts.json is added).",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a giant wooden tic-tac-toe board with chunky red X and blue O pieces, small bushes and a tiny red flag. Isometric 3/4 view, whole island visible."
+    },
+    "tile": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "One square light wooden board-game tile seen exactly from the top, flat orthographic top-down view, beveled edges, subtle wood grain, perfectly square, empty face."
+    },
+    "piece-x": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A chunky glossy red letter-X shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
+    },
+    "piece-o": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A chunky glossy blue ring (donut) shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
+    }
+  }
+}

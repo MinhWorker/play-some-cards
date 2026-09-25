@@ -4,10 +4,10 @@
 // Output: apps/web/public/shared/audio/<name>.<format>, or games/<game>/assets/<file or name> for
 // sounds with "game" ("unsorted" ones stay in apps/web/public/audio/). mp3 (128 kbps) by default, or wav (mono 16-bit)
 // for short effects, since MP3 always starts with ~25 ms of encoder padding. Short fades at cuts.
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { encodeSound } from './lib/media.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const { sounds } = JSON.parse(readFileSync(join(root, 'assets/audio.json'), 'utf8'));
@@ -26,30 +26,14 @@ for (const name of names) {
     process.exitCode = 1;
     continue;
   }
-  const args = ['-hide_banner', '-loglevel', 'error', '-y'];
-  if (sound.start) args.push('-ss', String(sound.start));
-  args.push('-i', src);
-  if (sound.duration) args.push('-t', String(sound.duration));
-  // Fade in after a cut start (avoids a click); fade out before a cut end.
-  const filters = [];
-  if (sound.start) filters.push('afade=t=in:d=0.005');
-  // Faster without changing pitch (atempo accepts 0.5–2).
-  if (sound.speed) filters.push(`atempo=${sound.speed}`);
-  if (sound.duration) filters.push(`afade=t=out:st=${Math.max(0, sound.duration - 0.1)}:d=0.1`);
-  if (filters.length) args.push('-af', filters.join(','));
   const format = sound.format ?? 'mp3';
-  args.push('-map_metadata', '-1');
-  if (format === 'wav') args.push('-ac', '1', '-c:a', 'pcm_s16le');
-  else args.push('-b:a', '128k');
   const outDir = sound.unsorted
     ? join(root, 'apps/web/public/audio')
     : sound.game
       ? join(root, 'games', sound.game, 'assets')
       : join(root, 'apps/web/public/shared/audio');
-  mkdirSync(outDir, { recursive: true });
-  args.push(join(outDir, `${sound.file ?? name}.${format}`));
-  const res = spawnSync('ffmpeg', args, { stdio: 'inherit' });
-  if (res.status === 0) console.log(`✓ ${name}`);
+  if (encodeSound(src, join(outDir, `${sound.file ?? name}.${format}`), sound))
+    console.log(`✓ ${name}`);
   else {
     console.error(`✗ ${name}: ffmpeg failed`);
     process.exitCode = 1;

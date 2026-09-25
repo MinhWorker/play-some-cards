@@ -28,6 +28,13 @@ export class SkyScene extends Phaser.Scene {
       this.clouds.push({ img, speed: Phaser.Math.FloatBetween(6, 18) });
     }
     this.scene.sendToBack();
+    // Parallax: the sky and clouds drift a little when the home map's strip scrolls.
+    let lastScroll = 0;
+    this.registry.events.on('changedata-hubScroll', (_: unknown, scroll: number) => {
+      for (const { img } of this.clouds) img.x -= (scroll - lastScroll) * 0.12;
+      lastScroll = scroll;
+      this.placeSky(scroll);
+    });
     this.layout();
     this.scale.on('resize', this.layout, this);
   }
@@ -40,12 +47,18 @@ export class SkyScene extends Phaser.Scene {
 
   private layout() {
     const { width, height } = this.scale;
-    this.sky.setPosition(width / 2, height / 2);
-    this.sky.setScale(Math.max(width / this.sky.width, height / this.sky.height));
+    // 10% larger than the screen, so the parallax shift never shows an edge.
+    this.sky.setScale(Math.max(width / this.sky.width, height / this.sky.height) * 1.1);
+    this.placeSky((this.registry.get('hubScroll') as number | undefined) ?? 0);
 
     // Title centered at the top. On portrait phones it sits below the profile/speaker row.
     const portrait = height > width;
-    const titleScale = Math.min(1, (width * (portrait ? 0.86 : 0.5)) / this.title.span);
+    // Phones held sideways get a smaller title, leaving height for the islands.
+    const short = !portrait && height < 500;
+    const titleScale = Math.min(
+      1,
+      (width * (portrait ? 0.86 : short ? 0.3 : 0.5)) / this.title.span,
+    );
     const birdsTop = portrait ? 76 : 6;
     this.title.setScale(titleScale).setPosition(width / 2, birdsTop - this.title.top * titleScale);
     this.registry.set('titleBottom', this.title.y + this.title.bottom * titleScale);
@@ -62,6 +75,12 @@ export class SkyScene extends Phaser.Scene {
         img.setPosition(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height));
       }
     });
+  }
+
+  private placeSky(scroll: number) {
+    const { width, height } = this.scale;
+    const room = (this.sky.displayWidth - width) / 2;
+    this.sky.setPosition(width / 2 + Phaser.Math.Clamp(-scroll * 0.03, -room, room), height / 2);
   }
 
   override update(_time: number, delta: number) {

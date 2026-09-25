@@ -50,8 +50,17 @@ export function isPlayable(game: AnyGameDefinition | undefined): game is AnyGame
   return !!game && (game.status === 'ready' || showWip);
 }
 
+export interface Portal {
+  gameId: string;
+  name: string;
+  /** Phaser texture key of its island (loaded by BootScene from `url`). */
+  texture: string;
+  url: string;
+  locked: boolean;
+}
+
 /** Games on the home map: ready ones first, then works in progress. */
-export const portals = Object.values(games)
+export const portals: Portal[] = Object.values(games)
   .sort((a, b) => Number(a.status === 'wip') - Number(b.status === 'wip'))
   .map((game) => ({
     gameId: game.id,
@@ -60,3 +69,15 @@ export const portals = Object.values(games)
     url: gameAssets(game.id).images[game.portal.image] ?? '',
     locked: !isPlayable(game),
   }));
+
+// Dev only: `?portals=12` shows exactly that many portals (copies are locked) to try the layout.
+const fake =
+  import.meta.env.DEV && Number(new URLSearchParams(window.location.search).get('portals'));
+if (fake) {
+  const real = portals.slice();
+  portals.length = Math.min(fake, real.length);
+  for (let i = portals.length; i < fake; i++) {
+    const copy = real[i % real.length] as Portal;
+    portals.push({ ...copy, gameId: `fake-${i}`, name: `${copy.name} ${i + 1}`, locked: true });
+  }
+}

@@ -13,6 +13,8 @@ games/<id>/        @psc/game-<id>  One game = one folder (see docs/making-a-game
   src/client.ts      export default defineClient({ scene }); browser only, loaded lazily
   src/<Name>Scene.ts Board, extends BoardScene from @psc/sdk/client
   assets/            App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'))
+  sources/           Optional originals (Git LFS) + prompts.json (Codex) + audio.json (cuts);
+                     `npm run assets` turns them into assets/
 games/tsconfig.*.json  Shared configs every game's tsconfig extends
 packages/sdk/      @psc/sdk     What games may use. `.`: defineGame/definePlugin, types, rng helpers
                                 (shuffle/pick/int/seededRng), test helpers (playMoves, moveError,
@@ -39,7 +41,9 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans
   src/App.tsx                  Top-level state: which page shows, what Phaser draws (`Stage`)
   src/pages/<Page>/            One folder per screen, with its own .css and sub-components:
                                Home (island map), GameRooms (a game's live room list),
-                               Room (room bar, lobby panel, result panel), Login (log in / sign up)
+                               Room (room bar, lobby panel, result panel), Login (log in / sign up),
+                               Sandbox (`/?play=<id>&players=2`: rules run in the browser, seat
+                               switcher, no server/login; not on the production site)
   src/components/hud/          Shared HUD shown on every screen (import from '@/components/hud'):
     CloudCurtain.tsx           Loading/transition screen: cloud banks close, then part (cloud-spread
                                sound). Closed at start until Phaser has loaded; `transition(change)`
@@ -65,7 +69,10 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans
     PhaserStage.tsx            Mounts Phaser; React tells it what to show via a `Stage`
     bridge.ts                  The only React <-> Phaser channel (events)
     assets.ts                  The app's own images (not games'); re-exports titleStyle/FONT
-    scenes/                    Boot (loads images + game portals), Sky (background), Hub (island map)
+    scenes/                    Boot (loads images + game portals), Sky (background, parallax),
+                               Hub (horizontal strip of portals: drag with inertia + snap, wheel,
+                               arrow buttons, dots; keyboard + hidden a11y buttons in pages/Home;
+                               `?portals=12` in dev fills it with copies to test the layout)
     objects/                   Reusable Phaser objects (Title)
   src/games/index.ts           Finds games by glob: their assets' URLs, lazy client loaders,
                                `portals` for the hub, `isPlayable` (wip locked in production)
@@ -73,18 +80,21 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans
   public/audio/                Sounds whose purpose is not decided yet (`unsorted` in audio.json)
 assets/              Source files for the web app's images and audio (see "Art" and "Audio").
                      Committed with Git LFS (.gitattributes); run `git lfs install` once
-  prompts.json         Prompt for every generated image (`game` = output in games/<id>/assets/)
+  prompts.json         Style + prompts for the app's own images (games keep theirs in sources/)
   audio.json           Which original becomes each app sound (+ trims, `game`/`unsorted`)
   shared/images/         Full-size Codex output for shared art
   shared/audio/{music,sfx}/  Originals of shared music and effects
-  games/<id>/{images,audio}/  Originals used by one game
+  games/<id>/audio/    Audio originals of existing games (audio.json); new game files go in
+                       games/<id>/sources/
   audio/               Not sorted yet: Lyria/Veo experiments and downloaded effects nobody uses
                        yet. Move a file to shared/ or games/<id>/ once it has a job
 scripts/libs.mjs   Finds games/*, writes shared's generated/games.ts, builds sdk + games + shared
                    (`npm run build -w @psc/shared` runs it; also on install and in dev --watch)
 scripts/new-game.mjs + game-template/  `npm run new:game`: copies the starter game
-scripts/gen-asset.mjs  Generates/edits art with Codex CLI
-scripts/build-audio.mjs  Encodes audio sources into apps/web/public/ or games/<id>/assets/
+scripts/gen-asset.mjs  Generates/edits art with Codex CLI (app prompts + games/*/sources/prompts.json)
+scripts/assets.mjs     `npm run assets`: games/<id>/sources/ -> assets/ (images + sources/audio.json)
+scripts/build-audio.mjs  `npm run audio`: assets/audio.json -> apps/web/public/ or games/<id>/assets/
+scripts/lib/media.mjs  Shared WebP / ffmpeg helpers
 scripts/generate-tien-len-sfx.py  Generates the Tiến lên cue sources locally (Python + ffmpeg)
 scripts/generate-xiangqi-sfx.py  Generates the Xiangqi cue sources locally (Python standard library)
 scripts/smoke.mjs  Socket-level check against a running server
@@ -108,9 +118,11 @@ CHANGELOG.md       Written by release-please; don't edit by hand
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run build` | Build sdk, games, shared, server, web |
 | `npm run new:game -- <id> "Tên"` | Create `games/<id>/` from the starter game (status `wip`) |
+| `http://localhost:5033/?play=<id>&players=2` | Sandbox: try a game's board alone (dev + PR previews) |
+| `npm run assets [-- <id>]` | Make a game's `assets/` from its `sources/` (`--force` redoes all) |
 | `npm run smoke [url]` | Three bots register; two play a full Caro game (one reconnects from a new "device" mid-game) while the third watches, against a running server (default `http://localhost:8033`) |
 | `npm run e2e [url]` | Headless Chromium: three people sign up, two pick Caro, create/join from the room list and play (one closes the browser and logs back in mid-game) while the third watches (needs `npm run dev`). Screenshots in `.e2e/` |
-| `npm run gen:asset -- <name>` | Generate an image from `assets/prompts.json` with Codex CLI (`--missing` for all missing) |
+| `npm run gen:asset -- <name>` | Generate an image with Codex CLI: `<name>` from `assets/prompts.json`, or `<id>/<name>` from a game's `sources/prompts.json` (`--missing` for all missing) |
 | `npm run gen:asset -- --edit <name> "<change>"` | Ask Codex to edit an existing image, keeping its style |
 | `npm run db:generate -w @psc/server` | Write a migration after editing `apps/server/src/db/schema.ts` (applied on server start) |
 | `npm run db:studio -w @psc/server` | Browse the dev database (Drizzle Studio) |
@@ -197,12 +209,13 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 - Art is generated or drawn by people; never draw art with code (SVG/CSS/Phaser graphics).
 - Every image and sound has an owner: `shared` (the app) or one game id. App-ready files:
   `apps/web/public/shared/…` or `games/<id>/assets/`; originals: `assets/shared/…` or
-  `assets/games/<id>/…`. In app code, get URLs from `imageUrl(name)` / `soundUrl(…)` in
+  `games/<id>/sources/` (older game audio: `assets/games/<id>/audio/`). In app code, get URLs from `imageUrl(name)` / `soundUrl(…)` in
   `src/lib/assetUrl.ts`; in a game, use file names (`this.image('tile')`, `this.sfx('move')`).
 - Add an entry to `assets/prompts.json` (the shared `style` is prepended automatically; set
   `transparent: true` for objects, `game: "<id>"` for art only one game uses), run
-  `npm run gen:asset -- <name>`, and look at the result before using it. `file` renames the
-  output (every game's home-map image is `island`). App images used by Phaser also go in `IMAGES`
+  `npm run gen:asset -- <name>`, and look at the result before using it. A game's prompts go in
+  `games/<id>/sources/prompts.json` (no `game` field; run `gen:asset -- <id>/<name>`; raw PNG in
+  sources/, WebP in assets/; its home-map image is `island`). App images used by Phaser also go in `IMAGES`
   in `apps/web/src/phaser/assets.ts`; images used only by React (e.g. `speaker-on`) are loaded
   with `<img src={imageUrl('speaker-on')}>`. A game's images need no list.
 - To tweak an image, prefer `--edit` over regenerating so it keeps the same look.
@@ -212,7 +225,7 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 - Codex sometimes paints a fake grey checkerboard instead of real transparency; check alpha
   (e.g. with sharp) and clear it if needed.
 - Codex takes ~1.5 min per image. Output is trimmed and saved as WebP; raw PNGs stay in
-  `assets/<owner>/images/` (Git LFS).
+  `assets/shared/images/` or `games/<id>/sources/` (Git LFS).
 
 ## Audio
 

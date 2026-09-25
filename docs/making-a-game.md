@@ -8,8 +8,16 @@ npm run new:game -- my-game "Tên tiếng Việt"
 npm run dev
 ```
 
-That creates a small working game ("race to 21") marked `wip`. Open the home map and it's there.
-Turn it into your game step by step, keeping it playable.
+That creates a small working game ("race to 21") marked `wip`. Turn it into your game step by
+step, keeping it playable.
+
+- **Alone:** http://localhost:5033/?play=my-game&players=2 runs the rules right in the browser:
+  no server, no account. The buttons at the top switch seats (and "Khán giả" shows what a
+  spectator sees). Saving a file reloads it. Works in PR previews too, not on the real site.
+- **For real:** http://localhost:5033, log in, pick its island; open a second (private) window
+  to be the other player.
+
+If `package-lock.json` conflicts when you merge `main` into your branch, run `npm install`.
 
 ## The folder
 
@@ -21,6 +29,7 @@ games/<id>/
   src/client.ts       export default defineClient({ scene: MyScene })
   src/<Name>Scene.ts  the board, drawn with Phaser
   assets/             images (.webp/.png) and sounds (.wav/.mp3), used by file name
+  sources/            optional originals (big PNGs, .psd/.kra, raw audio); see below
   README.md           rules and credits
 ```
 
@@ -65,12 +74,25 @@ Extend `BoardScene<View, Move>` from `@psc/sdk/client`:
 
 ## Art and sound
 
-Put finished files in `assets/`. Draw them, generate them, or ask for help; just never draw art
-with code (SVG/CSS/Phaser graphics) and never put text inside images (write it with Phaser).
-`assets/island.webp` is the game's island on the home map (`meta.portal.image`).
+Put finished files in `assets/` and they are used as they are. Draw them, generate them, or ask
+for help; just never draw art with code (SVG/CSS/Phaser graphics) and never put text inside
+images (write it with Phaser). `assets/island.webp` is the game's island on the home map
+(`meta.portal.image`).
 
-The owner's AI tools write there too: an entry with `"game": "<id>"` in `assets/prompts.json`
-(`npm run gen:asset`) or `assets/audio.json` (`npm run audio`) lands in `games/<id>/assets/`.
+Big originals can go in `sources/` (stored with Git LFS) and `npm run assets -- <id>` makes the
+app-ready files: every image in `sources/` becomes a trimmed, resized `assets/<same name>.webp`
+(options per image in `sources/prompts.json`: `transparent`, `maxSize`), and sounds listed in
+`sources/audio.json` are cut and encoded:
+
+```json
+{ "sounds": { "move": { "src": "wood-knock.wav", "start": 0.05, "duration": 0.4, "format": "wav" } } }
+```
+
+Use `"format": "wav"` for short effects (MP3 adds a small delay at the start).
+
+To generate art with Codex (if you have it), add a prompt to `sources/prompts.json`
+(`{ "assets": { "card-back": { "transparent": true, "maxSize": 256, "prompt": "…" } } }`) and run
+`npm run gen:asset -- <id>/card-back`.
 
 ## Done?
 

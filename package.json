@@ -26,7 +26,8 @@
     "gen:asset": "node scripts/gen-asset.mjs",
     "audio": "node scripts/build-audio.mjs",
     "e2e": "node scripts/e2e.mjs",
-    "new:game": "node scripts/new-game.mjs"
+    "new:game": "node scripts/new-game.mjs",
+    "assets": "node scripts/assets.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

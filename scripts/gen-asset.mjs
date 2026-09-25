@@ -3,18 +3,25 @@
 //   npm run gen:asset -- --missing            generate every asset that has no output yet
 //   npm run gen:asset -- --edit <name> "<change>"   ask Codex to edit the existing image
 //                                                   (keeps its style; e.g. "make the flag yellow")
-// Prompts live in assets/prompts.json. Output: apps/web/public/shared/images/<name>.webp, or
-// games/<game>/assets/<file or name>.webp when the entry has "game" (used by that game only;
-// "file" names the output when it differs from the prompt name, e.g. every game's "island";
-// "path" puts it anywhere else, relative to the repo root).
-// Raw full-size PNGs are kept next to it in assets/shared/images/ or assets/games/<game>/images/
-// (Git LFS) for re-processing.
+// The app's prompts live in assets/prompts.json: output apps/web/public/shared/images/<name>.webp
+// ("path" puts it elsewhere, relative to the repo root), raw PNG in assets/shared/images/.
+// A game's prompts live in games/<id>/sources/prompts.json and are named "<id>/<name>": raw PNG
+// in games/<id>/sources/<name>.png, output games/<id>/assets/<name>.webp (same as `npm run assets`).
+// Raw PNGs are kept (Git LFS) for re-processing and --edit.
 import { spawn } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import sharp from 'sharp';
+import { toWebp } from './lib/media.mjs';
 
 /** Runs a command with stdin closed (codex exec otherwise waits for stdin input). */
 function run(cmd, args, timeoutMs) {
@@ -36,19 +43,26 @@ function run(cmd, args, timeoutMs) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(readFileSync(join(root, 'assets/prompts.json'), 'utf8'));
 
-/** "shared" or "games/<id>": the folder an asset lives in, under assets/ and apps/web/public/. */
-const ownerDir = (name) => {
-  const game = config.assets[name]?.game;
-  return game ? `games/${game}` : 'shared';
-};
-const outFile = (name) => {
-  const { game, file, path } = config.assets[name] ?? {};
-  if (path) return join(root, path);
-  return game
-    ? join(root, 'games', game, 'assets', `${file ?? name}.webp`)
-    : join(root, 'apps/web/public/shared/images', `${name}.webp`);
-};
-const rawDir = (name) => join(root, 'assets', ownerDir(name), 'images');
+/** Every prompt by name, with where its raw PNG and its WebP go. */
+const entries = {};
+for (const [name, asset] of Object.entries(config.assets)) {
+  entries[name] = {
+    ...asset,
+    raw: join(root, 'assets/shared/images', `${name}.png`),
+    out: join(root, asset.path ?? `apps/web/public/shared/images/${name}.webp`),
+  };
+}
+for (const id of readdirSync(join(root, 'games'))) {
+  const file = join(root, 'games', id, 'sources/prompts.json');
+  if (!existsSync(file)) continue;
+  for (const [name, asset] of Object.entries(JSON.parse(readFileSync(file, 'utf8')).assets ?? {})) {
+    entries[`${id}/${name}`] = {
+      ...asset,
+      raw: join(root, 'games', id, 'sources', `${name}.png`),
+      out: join(root, 'games', id, 'assets', `${name}.webp`),
+    };
+  }
+}
 
 const args = process.argv.slice(2);
 const editIndex = args.indexOf('--edit');
@@ -60,17 +74,18 @@ if (edit && (!edit.name || !edit.change)) {
 const names = edit
   ? [edit.name]
   : args.includes('--missing')
-    ? Object.keys(config.assets).filter((n) => !existsSync(outFile(n)))
+    ? Object.keys(entries).filter((n) => !existsSync(entries[n].out))
     : args;
 if (names.length === 0) {
   console.log('Usage: npm run gen:asset -- <name...> | --missing');
-  console.log('Assets:', Object.keys(config.assets).join(', '));
+  console.log('Assets:', Object.keys(entries).join(', '));
   process.exit(1);
 }
 
 async function generate(name) {
-  const asset = config.assets[name];
-  if (!asset) throw new Error(`No prompt for "${name}" in assets/prompts.json`);
+  const asset = entries[name];
+  if (!asset)
+    throw new Error(`No prompt "${name}" (assets/prompts.json or games/<id>/sources/prompts.json)`);
   const prompt = [config.style, asset.prompt, asset.transparent ? config.transparentSuffix : '']
     .filter(Boolean)
     .join(' ');
@@ -78,7 +93,7 @@ async function generate(name) {
   const background = asset.transparent ? ' with a transparent background' : '';
   const save =
     'then copy the generated PNG to ./out.png in the current directory. Do nothing else.';
-  const existing = join(rawDir(name), `${name}.png`);
+  const existing = asset.raw;
   const isEdit = edit?.name === name;
   if (isEdit && !existsSync(existing)) throw new Error(`No existing image to edit: ${existing}`);
   const instruction = isEdit
@@ -90,31 +105,14 @@ async function generate(name) {
   await run('codex', [...codexArgs, instruction], 10 * 60 * 1000);
   const raw = join(work, 'out.png');
   if (!existsSync(raw)) throw new Error(`Codex did not produce an image for "${name}"`);
-  mkdirSync(rawDir(name), { recursive: true });
-  copyFileSync(raw, join(rawDir(name), `${name}.png`));
+  mkdirSync(dirname(asset.raw), { recursive: true });
+  copyFileSync(raw, asset.raw);
   rmSync(work, { recursive: true, force: true });
-  await processRaw(name, asset);
-}
-
-export async function processRaw(name, asset) {
-  const raw = join(rawDir(name), `${name}.png`);
-  mkdirSync(dirname(outFile(name)), { recursive: true });
-  let img = sharp(raw);
-  if (asset.transparent) {
-    const { channels } = await img.metadata();
-    const alpha = channels === 4 ? (await img.stats()).channels[3] : null;
-    if (!alpha || alpha.min > 10) console.warn(`! ${name}: background is not transparent`);
-    img = sharp(await img.trim().toBuffer());
-  }
-  await img
-    .resize({
-      width: asset.maxSize,
-      height: asset.maxSize,
-      fit: 'inside',
-      withoutEnlargement: true,
-    })
-    .webp({ quality: 85, alphaQuality: 90 })
-    .toFile(outFile(name));
+  await toWebp(asset.raw, asset.out, {
+    transparent: asset.transparent,
+    maxSize: asset.maxSize,
+    label: name,
+  });
   console.log(`✓ ${name}`);
 }
 

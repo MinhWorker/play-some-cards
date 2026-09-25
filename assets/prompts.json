@@ -23,34 +23,6 @@
       "maxSize": 1400,
       "prompt": "A tall, dense wall of fluffy white cumulus clouds, portrait orientation (taller than wide), completely filling the left side of the frame from top edge to bottom edge with no gaps or holes. The left edge is cut off flat by the frame; the right edge is a big bumpy puffy cloud outline made of large round billows. Soft blue-tinted shading between the billows, bright white highlights on top. The cloud itself is the object; everything outside the cloud is transparent."
     },
-    "island-caro": {
-      "game": "tic-tac-toe",
-      "file": "island",
-      "transparent": true,
-      "maxSize": 640,
-      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a giant wooden tic-tac-toe board with chunky red X and blue O pieces, small bushes and a tiny red flag. Isometric 3/4 view, whole island visible."
-    },
-    "island-cards": {
-      "game": "tien-len",
-      "file": "island",
-      "transparent": true,
-      "maxSize": 640,
-      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a round wooden table covered in green felt with a fanned-out hand of oversized playing cards showing only big red heart and black spade suit symbols (no numbers or letters) and a small face-down stack of cards, a red paper lantern on a pole. Isometric 3/4 view, whole island visible."
-    },
-    "island-dice": {
-      "game": "co-ca-ngua",
-      "file": "island",
-      "transparent": true,
-      "maxSize": 640,
-      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a colorful four-color race board game (red, blue, green, yellow paths) with a giant white dice with red dots and little horse-shaped game pieces. Isometric 3/4 view, whole island visible."
-    },
-    "island-chess": {
-      "game": "xiangqi",
-      "file": "island",
-      "transparent": true,
-      "maxSize": 640,
-      "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top an oriental Chinese chess (xiangqi) board with round wooden disc pieces in red and black, a small bonsai pine tree and a stone lantern. Isometric 3/4 view, whole island visible."
-    },
     "sign": {
       "transparent": true,
       "maxSize": 512,
@@ -65,24 +37,6 @@
       "transparent": true,
       "maxSize": 256,
       "prompt": "A shiny chunky golden padlock, closed, slightly tilted, front view."
-    },
-    "tile": {
-      "game": "tic-tac-toe",
-      "transparent": true,
-      "maxSize": 256,
-      "prompt": "One square light wooden board-game tile seen exactly from the top, flat orthographic top-down view, beveled edges, subtle wood grain, perfectly square, empty face."
-    },
-    "piece-x": {
-      "game": "tic-tac-toe",
-      "transparent": true,
-      "maxSize": 256,
-      "prompt": "A chunky glossy red letter-X shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
-    },
-    "piece-o": {
-      "game": "tic-tac-toe",
-      "transparent": true,
-      "maxSize": 256,
-      "prompt": "A chunky glossy blue ring (donut) shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
     },
     "speaker-on": {
       "transparent": true,
