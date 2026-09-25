@@ -1,0 +1,224 @@
+/*
+ * Shared building blocks for the React UI: the click-through UI layer, HUD scaling,
+ * wooden panels, buttons, inputs and modals. Component-specific styles live next to
+ * their component (e.g. components/hud/SoundControl.css).
+ */
+
+.stage {
+  position: fixed;
+  inset: 0;
+}
+
+/* The UI layer lets clicks through to the canvas except on its own controls. */
+.ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.ui > *,
+.ui button,
+.ui input,
+.ui label {
+  pointer-events: auto;
+}
+
+/*
+ * HUD scale (lib/hudScale.ts): add `hud` to any floating panel or button group so it
+ * shrinks as a whole on small screens instead of getting cut off. `zoom` also scales
+ * the layout box, unlike `transform: scale`.
+ */
+.hud {
+  zoom: var(--hud, 1);
+}
+
+/* A row across the top of the screen (e.g. the room bar). */
+.hud-top {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  /* Leaves room for the speaker button in the top-right corner. */
+  right: 76px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  pointer-events: none;
+}
+
+.hud-top > * {
+  pointer-events: auto;
+}
+
+.panel {
+  background: var(--paper);
+  border: 4px solid var(--wood);
+  border-radius: 18px;
+  box-shadow:
+    inset 0 0 0 3px var(--paper-edge),
+    0 6px 0 var(--wood-dark);
+  padding: 14px 16px;
+}
+
+.ui input {
+  font: inherit;
+  font-weight: 700;
+  color: var(--ink);
+  background: #fff;
+  border: 3px solid var(--paper-edge);
+  border-radius: 12px;
+  padding: 6px 12px;
+  min-width: 0;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  margin-left: 6px;
+  padding: 4px;
+  background: var(--btn);
+  border: 3px solid var(--btn-edge);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--btn-edge);
+  cursor: pointer;
+}
+
+.icon-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--btn-edge);
+}
+
+.icon-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+input:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--btn-2-edge);
+  outline-offset: 2px;
+}
+
+.btn {
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--ink);
+  background: var(--btn);
+  border: 3px solid var(--btn-edge);
+  border-radius: 14px;
+  box-shadow: 0 5px 0 var(--btn-edge);
+  padding: 6px 20px 4px;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--btn-edge);
+}
+
+.btn.secondary {
+  background: var(--btn-2);
+  border-color: var(--btn-2-edge);
+  box-shadow: 0 5px 0 var(--btn-2-edge);
+}
+
+.btn.small {
+  font-size: 1rem;
+  padding: 4px 14px 2px;
+}
+
+.btn:disabled {
+  filter: grayscale(0.7);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: rgb(20 50 80 / 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  text-align: center;
+  width: min(360px, 100%);
+}
+
+.modal h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+.modal p {
+  margin: 0;
+}
+
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100% - 32px));
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--error);
+  margin: 0;
+}
+
+/* Hover: buttons lift and brighten (mouse only; touch has no hover). */
+@media (hover: hover) {
+  .btn,
+  .icon-btn {
+    transition:
+      transform 0.1s,
+      filter 0.1s,
+      box-shadow 0.1s;
+  }
+
+  .btn:hover:not(:disabled, :active),
+  .icon-btn:hover:not(:active) {
+    transform: translateY(-2px);
+    filter: brightness(1.08) saturate(1.1);
+  }
+
+  .btn:hover:not(:disabled, :active) {
+    box-shadow: 0 7px 0 var(--btn-edge);
+  }
+
+  .btn.secondary:hover:not(:disabled, :active) {
+    box-shadow: 0 7px 0 var(--btn-2-edge);
+  }
+
+  .icon-btn:hover:not(:active) {
+    box-shadow: 0 6px 0 var(--btn-edge);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .icon-btn {
+    transition: none;
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: apps/web/public/images/<name>.webp",
+  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: apps/web/public/shared/images/<name>.webp, or apps/web/public/games/<game>/images/ when 'game' is set (art used by one game only)",
   "style": "Polished stylized 3D cartoon game art for a cheerful casual mobile board-game hub, in the spirit of popular 2015 Vietnamese mobile games. Saturated colors, soft warm lighting from the top-left, chunky rounded shapes, clean edges. Absolutely no text, letters, numbers or watermark.",
   "transparentSuffix": "Single isolated object on a fully transparent background, centered with generous margin, no ground shadow, no sky, no clouds.",
   "assets": {
@@ -17,6 +17,11 @@
       "transparent": true,
       "maxSize": 480,
       "prompt": "One small round puffy white cloud made of three bumps, soft blue-tinted shading underneath."
+    },
+    "cloud-curtain": {
+      "transparent": true,
+      "maxSize": 1400,
+      "prompt": "A tall, dense wall of fluffy white cumulus clouds, portrait orientation (taller than wide), completely filling the left side of the frame from top edge to bottom edge with no gaps or holes. The left edge is cut off flat by the frame; the right edge is a big bumpy puffy cloud outline made of large round billows. Soft blue-tinted shading between the billows, bright white highlights on top. The cloud itself is the object; everything outside the cloud is transparent."
     },
     "island-caro": {
       "transparent": true,
@@ -54,16 +59,19 @@
       "prompt": "A shiny chunky golden padlock, closed, slightly tilted, front view."
     },
     "tile": {
+      "game": "tic-tac-toe",
       "transparent": true,
       "maxSize": 256,
       "prompt": "One square light wooden board-game tile seen exactly from the top, flat orthographic top-down view, beveled edges, subtle wood grain, perfectly square, empty face."
     },
     "piece-x": {
+      "game": "tic-tac-toe",
       "transparent": true,
       "maxSize": 256,
       "prompt": "A chunky glossy red letter-X shaped game piece, like thick candy or plastic, seen from the top at a slight angle."
     },
     "piece-o": {
+      "game": "tic-tac-toe",
       "transparent": true,
       "maxSize": 256,
       "prompt": "A chunky glossy blue ring (donut) shaped game piece, like thick candy or plastic, seen from the top at a slight angle."

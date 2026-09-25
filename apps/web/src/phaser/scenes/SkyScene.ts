@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { Title } from '../Title';
+import { Title } from '@/phaser/objects/Title';
 
 /**
  * Always-on background: the sky image, the game title (home map only, set through the

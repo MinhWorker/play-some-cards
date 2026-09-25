@@ -1,8 +1,8 @@
 import { type TicTacToeMove, type TicTacToeState, winningLine } from '@psc/shared';
 import type Phaser from 'phaser';
-import { titleStyle } from '../../phaser/assets';
-import { BoardScene } from '../../phaser/BoardScene';
-import { playSfx } from '../../sound';
+import { playSfx } from '@/lib/sound';
+import { titleStyle } from '@/phaser/assets';
+import { BoardScene } from '@/phaser/BoardScene';
 
 /** Seat 0 plays X (red), seat 1 plays O (blue). */
 const SEATS = [
@@ -60,7 +60,7 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
 
   protected draw() {
     const { view, me, result } = this.props;
-    const { size, cx, cy, statusY, scoreY } = this.boardArea();
+    const { size, cx, cy, hud, statusY, scoreY } = this.boardArea();
     const cellSize = size / 3;
     const line = winningLine(view.board);
 
@@ -69,11 +69,12 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
       : view.turn === me
         ? 'Tới lượt bạn!'
         : `Lượt của ${this.nameOf(view.turn)}`;
+    const { width } = this.scale;
     this.status
-      .setText(status)
-      .setFontSize(Math.min(44, Math.max(26, cellSize * 0.28)))
+      .setFontSize(Math.min(44, Math.max(26, cellSize * 0.28)) * hud)
       .setPosition(cx, statusY);
-    this.drawScore(cx, scoreY, size);
+    this.fitText(this.status, status, width - 24);
+    this.drawScore(cx, scoreY, size, hud);
 
     this.tiles.forEach((tile, cell) => {
       const x = cx + ((cell % 3) - 1) * cellSize;
@@ -111,16 +112,21 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
     this.firstDraw = false;
   }
 
-  /** Red player, score, blue player: e.g. [X] Minh  2 – 1  Lan [O]. */
-  private drawScore(cx: number, y: number, size: number) {
+  /**
+   * Red player, score, blue player: e.g. [X] Minh  2 – 1  Lan [O]. Long names are cut
+   * short with "…" so the row fits the screen.
+   */
+  private drawScore(cx: number, y: number, size: number, hud: number) {
     const { players, score } = this.props;
-    const font = Math.min(26, Math.max(18, size * 0.06));
+    const { width } = this.scale;
+    const font = Math.min(26, Math.max(18, size * 0.06)) * hud;
     const icon = font * 1.5;
     this.score.numbers
       .setText(`${score.wins[0] ?? 0}  –  ${score.wins[1] ?? 0}`)
       .setFontSize(font * 1.5)
       .setPosition(cx, y);
     const half = this.score.numbers.width / 2 + font * 0.6;
+    const nameWidth = width / 2 - 12 - half - font * 0.4 - icon;
     SEATS.forEach((seat, i) => {
       const side = i === 0 ? -1 : 1;
       const name = this.score.names[i];
@@ -128,10 +134,10 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
       if (!name || !img) return;
       const player = players[i];
       name
-        .setText(player ? player.name : '…')
         .setFontSize(font)
         .setColor(seat.color)
         .setPosition(cx + side * half, y);
+      this.fitText(name, player ? player.name : '…', nameWidth);
       img
         .setDisplaySize(icon, icon)
         .setPosition(cx + side * (half + name.width + font * 0.4 + icon / 2), y);

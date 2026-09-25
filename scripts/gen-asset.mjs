@@ -3,8 +3,10 @@
 //   npm run gen:asset -- --missing            generate every asset that has no output yet
 //   npm run gen:asset -- --edit <name> "<change>"   ask Codex to edit the existing image
 //                                                   (keeps its style; e.g. "make the flag yellow")
-// Prompts live in assets/prompts.json. Output: apps/web/public/images/<name>.webp
-// Raw full-size PNGs are kept in assets/images/ (gitignored) for re-processing.
+// Prompts live in assets/prompts.json. Output: apps/web/public/shared/images/<name>.webp, or
+// apps/web/public/games/<game>/images/<name>.webp when the entry has "game" (used by one game only).
+// Raw full-size PNGs are kept next to it in assets/shared/images/ or assets/games/<game>/images/
+// (gitignored) for re-processing.
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -31,10 +33,14 @@ function run(cmd, args, timeoutMs) {
 }
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const config = JSON.parse(readFileSync(join(root, 'assets/prompts.json'), 'utf8'));
-const outDir = join(root, 'apps/web/public/images');
-const rawDir = join(root, 'assets/images');
-mkdirSync(outDir, { recursive: true });
-mkdirSync(rawDir, { recursive: true });
+
+/** "shared" or "games/<id>": the folder an asset lives in, under assets/ and apps/web/public/. */
+const ownerDir = (name) => {
+  const game = config.assets[name]?.game;
+  return game ? `games/${game}` : 'shared';
+};
+const outDir = (name) => join(root, 'apps/web/public', ownerDir(name), 'images');
+const rawDir = (name) => join(root, 'assets', ownerDir(name), 'images');
 
 const args = process.argv.slice(2);
 const editIndex = args.indexOf('--edit');
@@ -46,7 +52,7 @@ if (edit && (!edit.name || !edit.change)) {
 const names = edit
   ? [edit.name]
   : args.includes('--missing')
-    ? Object.keys(config.assets).filter((n) => !existsSync(join(outDir, `${n}.webp`)))
+    ? Object.keys(config.assets).filter((n) => !existsSync(join(outDir(n), `${n}.webp`)))
     : args;
 if (names.length === 0) {
   console.log('Usage: npm run gen:asset -- <name...> | --missing');
@@ -64,7 +70,7 @@ async function generate(name) {
   const background = asset.transparent ? ' with a transparent background' : '';
   const save =
     'then copy the generated PNG to ./out.png in the current directory. Do nothing else.';
-  const existing = join(rawDir, `${name}.png`);
+  const existing = join(rawDir(name), `${name}.png`);
   const isEdit = edit?.name === name;
   if (isEdit && !existsSync(existing)) throw new Error(`No existing image to edit: ${existing}`);
   const instruction = isEdit
@@ -76,13 +82,15 @@ async function generate(name) {
   await run('codex', [...codexArgs, instruction], 10 * 60 * 1000);
   const raw = join(work, 'out.png');
   if (!existsSync(raw)) throw new Error(`Codex did not produce an image for "${name}"`);
-  copyFileSync(raw, join(rawDir, `${name}.png`));
+  mkdirSync(rawDir(name), { recursive: true });
+  copyFileSync(raw, join(rawDir(name), `${name}.png`));
   rmSync(work, { recursive: true, force: true });
   await processRaw(name, asset);
 }
 
 export async function processRaw(name, asset) {
-  const raw = join(rawDir, `${name}.png`);
+  const raw = join(rawDir(name), `${name}.png`);
+  mkdirSync(outDir(name), { recursive: true });
   let img = sharp(raw);
   if (asset.transparent) {
     const { channels } = await img.metadata();
@@ -98,7 +106,7 @@ export async function processRaw(name, asset) {
       withoutEnlargement: true,
     })
     .webp({ quality: 85, alphaQuality: 90 })
-    .toFile(join(outDir, `${name}.webp`));
+    .toFile(join(outDir(name), `${name}.webp`));
   console.log(`✓ ${name}`);
 }
 

@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
-import { islands } from '../../games';
-import { playSfx } from '../../sound';
-import { titleStyle } from '../assets';
-import { bridge } from '../bridge';
+import { islands } from '@/games';
+import { playSfx } from '@/lib/sound';
+import { titleStyle } from '@/phaser/assets';
+import { bridge } from '@/phaser/bridge';
 
 interface IslandView {
   container: Phaser.GameObjects.Container;
@@ -63,6 +63,7 @@ export class HubScene extends Phaser.Scene {
         this.hover(container, false, island.gameId ? { sign, glow } : null),
       );
       container.on('pointerup', () => {
+        playSfx('island-click');
         if (island.gameId) bridge.emit('hub:select', island.gameId);
         else this.wobble(container);
       });

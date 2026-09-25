@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { hudScale } from '@/lib/hudScale';
 import { type BoardProps, bridge } from './bridge';
 
 /**
@@ -20,9 +21,11 @@ export abstract class BoardScene<View, Move> extends Phaser.Scene {
     const onResize = () => this.draw();
     bridge.on('board:props', onStage);
     this.scale.on('resize', onResize);
+    this.registry.events.on('changedata-hudTop', onResize);
     this.events.once('shutdown', () => {
       bridge.off('board:props', onStage);
       this.scale.off('resize', onResize);
+      this.registry.events.off('changedata-hudTop', onResize);
     });
   }
 
@@ -31,22 +34,36 @@ export abstract class BoardScene<View, Move> extends Phaser.Scene {
   }
 
   /**
-   * Where the board may draw, leaving room for the React room bar (top) and the
-   * result panel (bottom), plus a score row and a status line above the board.
+   * Where the board may draw, leaving room for the React room bar (top, its real height comes
+   * from the registry key 'hudTop') and the result panel (bottom), plus a score row and a
+   * status line above the board. Phones held sideways show the result panel on the right
+   * instead (pages/Room/Room.css), so the board keeps the full height.
    */
   protected boardArea() {
     const { width, height } = this.scale;
-    // On phones the room bar wraps onto three rows (back button, title, players).
-    const top = width < 700 ? 200 : 110;
-    const bottom = 140;
-    const score = 50;
-    const status = 56;
+    const hud = hudScale();
+    const sideways = width > height && height < 500;
+    const top = ((this.registry.get('hudTop') as number | undefined) ?? 110 * hud) + 8 * hud;
+    const bottom = sideways ? 12 : 140 * hud;
+    const score = 50 * hud;
+    const status = 56 * hud;
     const above = score + status;
     const size = Math.max(120, Math.min(width * 0.92, height - top - bottom - above));
     const cx = width / 2;
     const cy = top + above + (height - top - bottom - above) / 2;
     const statusY = cy - size / 2 - status / 2;
-    return { size, cx, cy, statusY, scoreY: statusY - status / 2 - score / 2 };
+    return { size, cx, cy, hud, statusY, scoreY: statusY - status / 2 - score / 2 };
+  }
+
+  /** Sets `text`, cutting it short with "…" so it is at most `maxWidth` wide. */
+  protected fitText(obj: Phaser.GameObjects.Text, text: string, maxWidth: number) {
+    obj.setText(text);
+    let chars = [...text];
+    while (obj.width > maxWidth && chars.length > 1) {
+      chars = chars.slice(0, -1);
+      obj.setText(`${chars.join('').trimEnd()}…`);
+    }
+    return obj;
   }
 
   protected nameOf(id: string) {

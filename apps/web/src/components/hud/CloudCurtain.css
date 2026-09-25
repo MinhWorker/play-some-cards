@@ -1,0 +1,49 @@
+/* Cloud curtain (CloudCurtain.tsx): above everything; the two halves overlap in the middle. */
+.curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.curtain[data-open="true"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.curtain-side {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80%;
+}
+
+.curtain-left {
+  left: 0;
+}
+
+.curtain-right {
+  right: 0;
+}
+
+.curtain-side img {
+  /* Taller than the screen: the cloud bank's ragged top edge stays off-screen. */
+  position: absolute;
+  top: -16%;
+  width: 100%;
+  height: 124%;
+  object-fit: cover;
+  object-position: right center;
+}
+
+/* On tall screens the cloud edge is relatively deeper, so the halves overlap more. */
+@media (orientation: portrait) {
+  .curtain-side {
+    width: 95%;
+  }
+}
+
+/* The same cloud bank, mirrored so its puffy edge faces the middle. */
+.curtain-right img {
+  transform: scaleX(-1);
+}

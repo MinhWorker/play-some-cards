@@ -8,7 +8,12 @@ coverage/
 .vercel
 .env*
 !.env.example
-assets/images/
+# Original art/audio stay local; only the app-ready files in apps/web/public/ are committed.
+assets/shared/images/
+assets/shared/audio/
+assets/games/*/images/
+assets/games/*/audio/
+# Not sorted yet (purpose undecided).
 assets/audio/
 .e2e/
 .playwright-mcp/

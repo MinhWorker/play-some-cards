@@ -38,7 +38,8 @@ Then:
 ## 2. Art
 
 List what the board needs (board/tiles, pieces or cards, the island for the home map) and
-generate each one. See "Art" in `AGENTS.md`. The home-map islands for upcoming games already
+generate each one with `"game": "<id>"` in `assets/prompts.json`, so the files land in
+`apps/web/public/games/<id>/`. See "Art" in `AGENTS.md`. The home-map islands for upcoming games already
 exist (`island-cards`, `island-dice`, `island-chess`).
 
 ## 3. Board scene (apps/web)
@@ -55,7 +56,7 @@ Create `apps/web/src/games/<id>/<Name>Scene.ts` extending `BoardScene<MyView, My
 
 Register it in `apps/web/src/games/index.ts`: add to `boardScenes`, and set `gameId` on its
 island in `islands` (this unlocks it on the home map). Winner/draw and "Chơi ván mới" are
-already handled by `pages/Room.tsx`.
+already handled by `pages/Room/Room.tsx`.
 
 ## 4. Verify
 

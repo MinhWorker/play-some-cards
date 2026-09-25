@@ -1,27 +1,33 @@
+import { type AssetOwner, imageUrl } from '@/lib/assetUrl';
+
 /**
- * Every image in apps/web/public/images. Keys match the file names and the entries in
+ * Every image Phaser uses, with the folder it lives in: 'shared' (apps/web/public/shared/images)
+ * or a game id (apps/web/public/games/<id>/images). Keys match the entries in
  * assets/prompts.json (generate new art with `npm run gen:asset -- <name>`).
  */
-export const IMAGE_KEYS = [
-  'sky',
-  'cloud-a',
-  'cloud-b',
-  'island-caro',
-  'island-cards',
-  'island-dice',
-  'island-chess',
-  'sign',
-  'sign-hover',
-  'orb',
-  'bird',
-  'vine',
-  'lock',
-  'tile',
-  'piece-x',
-  'piece-o',
-] as const;
+const IMAGES = {
+  sky: 'shared',
+  'cloud-a': 'shared',
+  'cloud-b': 'shared',
+  'island-caro': 'shared',
+  'island-cards': 'shared',
+  'island-dice': 'shared',
+  'island-chess': 'shared',
+  sign: 'shared',
+  'sign-hover': 'shared',
+  orb: 'shared',
+  bird: 'shared',
+  vine: 'shared',
+  lock: 'shared',
+  tile: 'tic-tac-toe',
+  'piece-x': 'tic-tac-toe',
+  'piece-o': 'tic-tac-toe',
+} satisfies Record<string, AssetOwner>;
 
-export type ImageKey = (typeof IMAGE_KEYS)[number];
+export const IMAGE_KEYS = Object.keys(IMAGES) as ImageKey[];
+export const imagePath = (key: ImageKey) => imageUrl(key, IMAGES[key]);
+
+export type ImageKey = keyof typeof IMAGES;
 
 /** Font loaded in index.html; Phaser text must wait for it (see PhaserStage). */
 export const FONT = '"Baloo 2", system-ui, sans-serif';

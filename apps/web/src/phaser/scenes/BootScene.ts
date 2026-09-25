@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { IMAGE_KEYS } from '../assets';
+import { IMAGE_KEYS, imagePath } from '@/phaser/assets';
 
 /** Loads every image once, then starts the sky and tells PhaserStage it is ready. */
 export class BootScene extends Phaser.Scene {
@@ -8,7 +8,7 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    for (const key of IMAGE_KEYS) this.load.image(key, `/images/${key}.webp`);
+    for (const key of IMAGE_KEYS) this.load.image(key, imagePath(key));
   }
 
   create() {

@@ -1,0 +1,83 @@
+/* A game's room list (GameRooms.tsx). */
+.rooms {
+  position: absolute;
+  top: 96px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rooms h2 {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+  font-size: 1.8rem;
+  line-height: 1.1;
+}
+
+.rooms p {
+  margin: 0;
+}
+
+.rooms-head .btn {
+  white-space: nowrap;
+}
+
+.rooms-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rooms .empty {
+  text-align: center;
+  padding: 24px 0;
+}
+
+.room-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 2px 6px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 3px solid var(--paper-edge);
+  border-radius: 14px;
+  padding: 8px 12px;
+}
+
+.room-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.room-info b {
+  font-size: 1.1rem;
+  overflow-wrap: anywhere;
+}
+
+.room-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}

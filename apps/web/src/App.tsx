@@ -1,43 +1,37 @@
-import { games, type JoinedRoom } from '@psc/shared';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ProfileBadge } from './ProfileBadge';
-import { GameRooms } from './pages/GameRooms';
-import { Home } from './pages/Home';
-import { Room } from './pages/Room';
-import { bridge, type Stage } from './phaser/bridge';
-import { PhaserStage } from './phaser/PhaserStage';
-import { loadProfile, type Profile, saveProfile } from './profile';
-import { SoundControl } from './SoundControl';
-import { request } from './socket';
-import { installButtonSounds, playSfx } from './sound';
-import { useConnected } from './useConnected';
-import { useRoom } from './useRoom';
+import type { JoinedRoom } from '@psc/shared';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Banner,
+  CloudCurtain,
+  ProfileBadge,
+  revealCurtain,
+  SoundControl,
+  Toast,
+  transition,
+} from '@/components/hud';
+import { useBoardMoves } from '@/hooks/useBoardMoves';
+import { useBrowsingGame } from '@/hooks/useBrowsingGame';
+import { useConnected } from '@/hooks/useConnected';
+import { useGameEndSound } from '@/hooks/useGameEndSound';
+import { useProfile } from '@/hooks/useProfile';
+import { useRoom } from '@/hooks/useRoom';
+import { installButtonSounds } from '@/lib/sound';
+import { GameRooms } from '@/pages/GameRooms/GameRooms';
+import { Home } from '@/pages/Home/Home';
+import { Room } from '@/pages/Room/Room';
+import type { Stage } from '@/phaser/bridge';
+import { PhaserStage } from '@/phaser/PhaserStage';
 
-/** The game whose room list is open, kept in the URL (?game=<id>) so refresh keeps it. */
-function gameFromUrl() {
-  const id = new URLSearchParams(window.location.search).get('game');
-  return id && games[id] ? id : null;
-}
-
+/**
+ * The whole app. Phaser draws the world full-screen (PhaserStage); React draws the UI on
+ * top: one page (Home, GameRooms or Room) plus the shared HUD (profile, sound, curtain).
+ */
 export function App() {
   const connected = useConnected();
-  const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [profile, setProfile] = useState(loadProfile);
-  const [browsing, setBrowsing] = useState(gameFromUrl);
-
-  const changeProfile = (value: Profile) => {
-    setProfile(value);
-    saveProfile(value);
-  };
-
-  const browse = useCallback((gameId: string | null) => {
-    setBrowsing(gameId);
-    const url = new URL(window.location.href);
-    if (gameId) url.searchParams.set('game', gameId);
-    else url.searchParams.delete('game');
-    window.history.replaceState(null, '', url);
-  }, []);
+  const [profile, changeProfile] = useProfile();
+  const [browsing, browse] = useBrowsingGame();
+  const [moveError, setMoveError] = useBoardMoves();
 
   // The room was disbanded while we were in it: back to that game's room list.
   const onClosed = useCallback(
@@ -51,32 +45,9 @@ export function App() {
   const { session, snapshot, enter, leave } = useRoom(onClosed);
 
   useEffect(installButtonSounds, []);
+  useGameEndSound(session, snapshot);
 
-  // Win/lose sound, only when a game ends while we watch it happen (not when rejoining a
-  // finished room). Draws and spectators get no sound.
-  const lastStatus = useRef(snapshot?.status);
-  useEffect(() => {
-    const was = lastStatus.current;
-    lastStatus.current = snapshot?.status;
-    if (!session || !snapshot?.result || was !== 'playing') return;
-    const { winners } = snapshot.result;
-    const playing = snapshot.players.some((p) => p.id === session.playerId);
-    if (!playing || winners.length === 0) return;
-    playSfx(winners.includes(session.playerId) ? 'game-win' : 'game-lose');
-  }, [session, snapshot]);
-
-  // Moves come from the Phaser board; errors (e.g. "Chưa tới lượt bạn") show in React.
-  useEffect(() => {
-    const onMove = (move: unknown) => {
-      setError('');
-      request('game:move', { move }).catch((err: Error) => setError(err.message));
-    };
-    bridge.on('board:move', onMove);
-    return () => {
-      bridge.off('board:move', onMove);
-    };
-  }, []);
-
+  // What the Phaser canvas shows behind the UI.
   const stage = useMemo<Stage>(() => {
     if (!session) return browsing ? { mode: 'sky' } : { mode: 'hub' };
     if (!snapshot || snapshot.status === 'lobby') return { mode: 'sky' };
@@ -91,8 +62,11 @@ export function App() {
     };
   }, [session, snapshot, browsing]);
 
+  // Picking an island flies through the clouds to its room list.
+  const pickGame = useCallback((gameId: string) => transition(() => browse(gameId)), [browse]);
+
   const onEnter = (joined: JoinedRoom) => {
-    setError('');
+    setMoveError('');
     enter(joined);
   };
 
@@ -104,13 +78,11 @@ export function App() {
 
   return (
     <>
-      <PhaserStage stage={stage} />
+      <PhaserStage stage={stage} onReady={revealCurtain} />
       <main className="ui">
-        {!connected && (
-          <p className="banner">Đang kết nối tới server… lần đầu có thể mất tới 1 phút.</p>
-        )}
+        {!connected && <Banner>Đang kết nối tới server… lần đầu có thể mất tới 1 phút.</Banner>}
         {session ? (
-          <Room session={session} snapshot={snapshot} onLeave={onLeave} error={error} />
+          <Room session={session} snapshot={snapshot} onLeave={onLeave} error={moveError} />
         ) : browsing ? (
           <GameRooms
             gameId={browsing}
@@ -119,12 +91,13 @@ export function App() {
             onEnter={onEnter}
           />
         ) : (
-          <Home onPickGame={browse} />
+          <Home onPickGame={pickGame} />
         )}
         {!session && <ProfileBadge profile={profile} onChange={changeProfile} />}
-        {notice && <p className="toast">{notice}</p>}
+        {notice && <Toast>{notice}</Toast>}
         <SoundControl />
       </main>
+      <CloudCurtain />
     </>
   );
 }

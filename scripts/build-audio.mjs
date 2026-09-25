@@ -1,10 +1,11 @@
-// Re-encodes the app's sounds from the originals in assets/audio/ (see assets/audio.json).
+// Re-encodes the app's sounds from the originals under assets/ (see assets/audio.json).
 //   npm run audio              rebuild every sound
 //   npm run audio -- <name>    rebuild only these
-// Output: apps/web/public/audio/<name>.<format>: mp3 (128 kbps) by default, or wav (mono 16-bit)
+// Output: apps/web/public/shared/audio/<name>.<format>, or apps/web/public/games/<game>/audio/ for
+// sounds with "game" ("unsorted" ones stay in apps/web/public/audio/). mp3 (128 kbps) by default, or wav (mono 16-bit)
 // for short effects, since MP3 always starts with ~25 ms of encoder padding. Short fades at cuts.
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,7 +20,7 @@ for (const name of names) {
     process.exitCode = 1;
     continue;
   }
-  const src = join(root, 'assets/audio', sound.src);
+  const src = join(root, 'assets', sound.src);
   if (!existsSync(src)) {
     console.error(`✗ ${name}: missing ${src}`);
     process.exitCode = 1;
@@ -40,7 +41,13 @@ for (const name of names) {
   args.push('-map_metadata', '-1');
   if (format === 'wav') args.push('-ac', '1', '-c:a', 'pcm_s16le');
   else args.push('-b:a', '128k');
-  args.push(join(root, 'apps/web/public/audio', `${name}.${format}`));
+  const outDir = join(
+    root,
+    'apps/web/public',
+    sound.unsorted ? 'audio' : sound.game ? `games/${sound.game}/audio` : 'shared/audio',
+  );
+  mkdirSync(outDir, { recursive: true });
+  args.push(join(outDir, `${name}.${format}`));
   const res = spawnSync('ffmpeg', args, { stdio: 'inherit' });
   if (res.status === 0) console.log(`✓ ${name}`);
   else {

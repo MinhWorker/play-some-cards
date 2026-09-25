@@ -1,17 +1,172 @@
 {
-  "$comment": "Which original file (in assets/audio/) becomes each sound the web app plays. Rebuild with: npm run audio. Output: apps/web/public/audio/<name>.<format>. Optional: start = seconds cut from the beginning (quiet lead-in), duration = seconds kept, speed = playback rate (1.3 = 30% faster, same pitch), format = 'wav' for short effects (MP3 adds ~25 ms of silence at the start; WAV does not) or 'mp3' (default).",
+  "$comment": "Which original audio file becomes each sound the web app plays. Rebuild with: npm run audio [-- <name>]. src is relative to assets/. Output: apps/web/public/shared/audio/<name>.<format>, or apps/web/public/games/<game>/audio/ when 'game' is set (sounds used by one game only). 'unsorted': purpose not decided yet; kept in the old assets/audio/ and apps/web/public/audio/ folders. Optional: start = seconds cut from the beginning (quiet lead-in), duration = seconds kept, speed = playback rate (1.3 = 30% faster, same pitch), format = 'wav' for short effects (MP3 adds ~25 ms of silence at the start; WAV does not) or 'mp3' (default).",
   "sounds": {
-    "music": { "src": "music/Breezy_Heights.mp3" },
-    "button-click": { "src": "sfx/button-click.mp3", "start": 0.04, "speed": 1.3, "format": "wav" },
+    "music": {
+      "src": "shared/audio/music/Breezy_Heights.mp3"
+    },
+    "music-hub-lyria": {
+      "unsorted": true,
+      "src": "audio/music/psc-sky-islands-main-theme.mp3"
+    },
+    "music-hub-loop-lyria": {
+      "unsorted": true,
+      "src": "audio/music/psc-sky-islands-hub-candidate.mp3"
+    },
+    "music-board-loop-lyria": {
+      "unsorted": true,
+      "src": "audio/music/psc-sky-islands-board-loop.mp3"
+    },
+    "button-click": {
+      "src": "shared/audio/sfx/button-click.mp3",
+      "start": 0.04,
+      "speed": 1.3,
+      "format": "wav"
+    },
     "button-hover": {
-      "src": "sfx/button-hover.mp3",
+      "src": "shared/audio/sfx/button-hover.mp3",
       "start": 0.04,
       "duration": 0.4,
       "format": "wav"
     },
-    "island-hover": { "src": "sfx/stone-effect.mp3", "start": 0.09, "format": "wav" },
-    "mark-drop": { "src": "sfx/water-drop-effect.mp3", "start": 0.03, "format": "wav" },
-    "game-win": { "src": "sfx/winning-effect-1.mp3", "start": 0.05, "format": "wav" },
-    "game-lose": { "src": "sfx/losing-effect-1.mp3", "start": 0.04, "format": "wav" }
+    "island-hover": {
+      "src": "shared/audio/sfx/stone-effect.mp3",
+      "start": 0.09,
+      "format": "wav"
+    },
+    "island-click": {
+      "src": "shared/audio/sfx/pop-1.mp3",
+      "start": 0.02,
+      "duration": 0.3,
+      "format": "wav"
+    },
+    "cloud-spread": {
+      "src": "shared/audio/sfx/cloud-spread.mp3",
+      "duration": 0.85,
+      "format": "wav"
+    },
+    "mark-drop": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/water-drop-effect.mp3",
+      "start": 0.03,
+      "format": "wav"
+    },
+    "xiangqi-start": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-start.wav",
+      "format": "wav"
+    },
+    "xiangqi-piece-select": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-piece-select.wav",
+      "format": "wav"
+    },
+    "xiangqi-move": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-move.wav",
+      "format": "wav"
+    },
+    "xiangqi-capture": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-capture.wav",
+      "format": "wav"
+    },
+    "xiangqi-check": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-check.wav",
+      "format": "wav"
+    },
+    "xiangqi-turn": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-turn.wav",
+      "format": "wav"
+    },
+    "xiangqi-illegal": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/psc-xiangqi-illegal.wav",
+      "format": "wav"
+    },
+    "tien-len-deal": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-deal.wav",
+      "format": "wav"
+    },
+    "tien-len-card-select": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-card-source.wav",
+      "start": 0.08,
+      "duration": 0.3,
+      "speed": 1.25,
+      "format": "wav"
+    },
+    "tien-len-card-play": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-card-source.wav",
+      "start": 0.01,
+      "duration": 0.45,
+      "format": "wav"
+    },
+    "tien-len-pass": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-pass.wav",
+      "format": "wav"
+    },
+    "tien-len-turn": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-turn.wav",
+      "format": "wav"
+    },
+    "tien-len-last-card": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-last-card.wav",
+      "format": "wav"
+    },
+    "tien-len-combo": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-combo.wav",
+      "format": "wav"
+    },
+    "tien-len-special-cut": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-special-cut.wav",
+      "format": "wav"
+    },
+    "tien-len-special-hand": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-special-hand.wav",
+      "format": "wav"
+    },
+    "tien-len-trick-clear": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/psc-tien-len-trick-clear.wav",
+      "format": "wav"
+    },
+    "marker-place-veo": {
+      "unsorted": true,
+      "src": "audio/sfx/psc-wood-marker-place-veo.mp3",
+      "duration": 4,
+      "format": "wav"
+    },
+    "game-win": {
+      "src": "shared/audio/sfx/winning-effect-1.mp3",
+      "start": 0.05,
+      "format": "wav"
+    },
+    "game-win-lyria": {
+      "unsorted": true,
+      "src": "audio/music/psc-sky-islands-victory-cue.mp3",
+      "duration": 5,
+      "format": "wav"
+    },
+    "game-lose": {
+      "src": "shared/audio/sfx/losing-effect-1.mp3",
+      "start": 0.04,
+      "format": "wav"
+    },
+    "game-lose-lyria": {
+      "unsorted": true,
+      "src": "audio/music/psc-sky-islands-defeat-cue.mp3",
+      "duration": 5,
+      "format": "wav"
+    }
   }
 }

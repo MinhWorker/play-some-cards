@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { ImageKey } from '../phaser/assets';
+import type { ImageKey } from '@/phaser/assets';
 import { TicTacToeScene } from './tic-tac-toe/TicTacToeScene';
 
 /**

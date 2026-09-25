@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { useEffect, useRef } from 'react';
-import { boardScenes } from '../games';
+import { boardScenes } from '@/games';
 import { bridge, type Stage } from './bridge';
 import { BootScene } from './scenes/BootScene';
 import { HubScene } from './scenes/HubScene';
@@ -23,13 +23,28 @@ function applyStage(game: Phaser.Game, stage: Stage) {
   }
 }
 
-/** Full-screen Phaser canvas behind the React UI. */
-export function PhaserStage({ stage }: { stage: Stage }) {
+/** Full-screen Phaser canvas behind the React UI. `onReady` fires once images are loaded. */
+export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => void }) {
   const parent = useRef<HTMLDivElement>(null);
   const game = useRef<Phaser.Game | null>(null);
   const ready = useRef(false);
   const latest = useRef(stage);
   latest.current = stage;
+  const readyCallback = useRef(onReady);
+  readyCallback.current = onReady;
+
+  // The room bar's height, kept in the registry so board scenes can leave room for it.
+  const hudTop = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const onHudTop = (px: number | undefined) => {
+      hudTop.current = px;
+      game.current?.registry.set('hudTop', px);
+    };
+    bridge.on('hud:top', onHudTop);
+    return () => {
+      bridge.off('hud:top', onHudTop);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +63,9 @@ export function PhaserStage({ stage }: { stage: Stage }) {
       });
       g.events.once('booted', () => {
         ready.current = true;
+        g.registry.set('hudTop', hudTop.current);
         applyStage(g, latest.current);
+        readyCallback.current?.();
       });
       game.current = g;
       // Lets scripts/e2e.mjs find objects on the canvas (dev server only).

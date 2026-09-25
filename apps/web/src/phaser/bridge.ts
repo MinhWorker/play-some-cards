@@ -20,7 +20,7 @@ export type Stage =
 
 /**
  * The only link between React and Phaser.
- * React -> Phaser: 'stage' (Stage).
+ * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px).
  * Phaser -> React: 'hub:select' (gameId), 'board:move' (move).
  */
 export const bridge = new Phaser.Events.EventEmitter();

@@ -1,0 +1,39 @@
+/*
+ * Theme: floating sky islands (inspired by 2015 Vietnamese mobile games).
+ * The world (sky, islands, boards) is drawn by Phaser with generated art.
+ * CSS is only for the UI floating on top: wooden panels, chunky buttons.
+ * Colors and the font live here; reuse the variables instead of new hex codes.
+ */
+:root {
+  --font: "Baloo 2", system-ui, sans-serif;
+  --ink: #4a2a10;
+  --ink-soft: #8a5a2b;
+  --paper: #fff6e0;
+  --paper-edge: #e9c98f;
+  --wood: #b86b2b;
+  --wood-dark: #6e3a12;
+  --btn: #ffc93c;
+  --btn-edge: #d9861a;
+  --btn-2: #7fd3ff;
+  --btn-2-edge: #2f8ecb;
+  --error: #d6333a;
+  --sky: #8fd3f4;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--sky);
+  overflow: hidden;
+}
