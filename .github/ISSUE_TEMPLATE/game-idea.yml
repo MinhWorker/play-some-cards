@@ -1,6 +1,6 @@
 name: Game idea
 description: A game you'd like to play here
-labels: [game idea]
+labels: [game idea, needs-triage]
 body:
   - type: input
     id: name
