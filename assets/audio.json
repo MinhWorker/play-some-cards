@@ -17,127 +17,159 @@
       "src": "audio/music/psc-sky-islands-board-loop.mp3"
     },
     "button-click": {
-      "src": "shared/audio/sfx/button-click.mp3",
-      "start": 0.04,
-      "speed": 1.3,
+      "src": "shared/audio/sfx-selected/button-click.mp4",
+      "start": 1.85,
+      "duration": 0.8,
       "format": "wav"
     },
     "button-hover": {
-      "src": "shared/audio/sfx/button-hover.mp3",
-      "start": 0.04,
-      "duration": 0.4,
+      "src": "shared/audio/sfx-selected/button-hover.mp4",
+      "start": 0.89,
+      "duration": 0.8,
       "format": "wav"
     },
     "island-hover": {
-      "src": "shared/audio/sfx/stone-effect.mp3",
-      "start": 0.09,
+      "src": "shared/audio/sfx-selected/island-hover.mp4",
+      "start": 0.01,
+      "duration": 0.9,
       "format": "wav"
     },
     "island-click": {
-      "src": "shared/audio/sfx/pop-1.mp3",
-      "start": 0.02,
-      "duration": 0.3,
+      "src": "shared/audio/sfx-selected/island-click.mp4",
+      "start": 0.13,
+      "duration": 1.2,
       "format": "wav"
     },
     "cloud-spread": {
-      "src": "shared/audio/sfx/cloud-spread.mp3",
-      "duration": 0.85,
+      "src": "shared/audio/sfx-selected/cloud-spread.mp4",
+      "start": 1.61,
+      "duration": 1.16,
       "format": "wav"
     },
     "mark-drop": {
       "game": "tic-tac-toe",
-      "src": "games/tic-tac-toe/audio/water-drop-effect.mp3",
-      "start": 0.03,
+      "src": "games/tic-tac-toe/audio/sfx-selected/mark-drop.mp4",
+      "start": 0.92,
+      "duration": 0.57,
       "format": "wav"
     },
     "xiangqi-start": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-start.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-start.mp4",
+      "start": 0.04,
+      "duration": 0.37,
       "format": "wav"
     },
     "xiangqi-piece-select": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-piece-select.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-piece-select.mp4",
+      "start": 0.64,
+      "duration": 0.33,
       "format": "wav"
     },
     "xiangqi-move": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-move.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-move.mp4",
+      "start": 1.56,
+      "duration": 0.77,
       "format": "wav"
     },
     "xiangqi-capture": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-capture.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-capture.mp4",
+      "start": 1.32,
+      "duration": 0.65,
       "format": "wav"
     },
     "xiangqi-check": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-check.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-check.mp4",
+      "start": 0.16,
+      "duration": 0.65,
       "format": "wav"
     },
     "xiangqi-turn": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-turn.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-turn.mp4",
+      "start": 0.04,
+      "duration": 1.37,
       "format": "wav"
     },
     "xiangqi-illegal": {
       "game": "xiangqi",
-      "src": "games/xiangqi/audio/psc-xiangqi-illegal.wav",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-illegal.mp4",
+      "start": 3.04,
+      "duration": 0.45,
       "format": "wav"
     },
     "tien-len-deal": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-deal.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-deal.mp4",
+      "start": 1.12,
+      "duration": 0.41,
       "format": "wav"
     },
     "tien-len-card-select": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-card-source.wav",
-      "start": 0.08,
-      "duration": 0.3,
-      "speed": 1.25,
+      "src": "games/tien-len/audio/sfx-selected/tien-len-card-select.mp4",
+      "start": 1.0,
+      "duration": 0.65,
       "format": "wav"
     },
     "tien-len-card-play": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-card-source.wav",
-      "start": 0.01,
-      "duration": 0.45,
+      "src": "games/tien-len/audio/sfx-selected/tien-len-card-play.mp4",
+      "start": 0.56,
+      "duration": 0.49,
       "format": "wav"
     },
     "tien-len-pass": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-pass.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-pass.mp4",
+      "start": 0.32,
+      "duration": 0.25,
       "format": "wav"
     },
     "tien-len-turn": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-turn.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-turn.mp4",
+      "start": 0.0,
+      "duration": 0.25,
       "format": "wav"
     },
     "tien-len-last-card": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-last-card.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-last-card.mp4",
+      "start": 1.32,
+      "duration": 0.37,
       "format": "wav"
     },
     "tien-len-combo": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-combo.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-combo.mp4",
+      "start": 0.32,
+      "duration": 0.49,
       "format": "wav"
     },
     "tien-len-special-cut": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-special-cut.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-special-cut.mp4",
+      "start": 0.56,
+      "duration": 0.29,
       "format": "wav"
     },
     "tien-len-special-hand": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-special-hand.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-special-hand.mp4",
+      "start": 0.04,
+      "duration": 0.45,
       "format": "wav"
     },
     "tien-len-trick-clear": {
       "game": "tien-len",
-      "src": "games/tien-len/audio/psc-tien-len-trick-clear.wav",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-trick-clear.mp4",
+      "start": 1.4,
+      "duration": 0.37,
       "format": "wav"
     },
     "marker-place-veo": {
@@ -147,8 +179,9 @@
       "format": "wav"
     },
     "game-win": {
-      "src": "shared/audio/sfx/winning-effect-1.mp3",
-      "start": 0.05,
+      "src": "shared/audio/sfx-selected/game-win.mp4",
+      "start": 1.69,
+      "duration": 1.8,
       "format": "wav"
     },
     "game-win-lyria": {
@@ -158,14 +191,337 @@
       "format": "wav"
     },
     "game-lose": {
-      "src": "shared/audio/sfx/losing-effect-1.mp3",
-      "start": 0.04,
+      "src": "shared/audio/sfx-selected/game-lose.mp4",
+      "start": 0.0,
+      "duration": 0.69,
       "format": "wav"
     },
     "game-lose-lyria": {
       "unsorted": true,
       "src": "audio/music/psc-sky-islands-defeat-cue.mp3",
       "duration": 5,
+      "format": "wav"
+    },
+    "music-sky-a": {
+      "src": "shared/audio/music/generated/music-sky-a.mp3"
+    },
+    "music-sky-b": {
+      "src": "shared/audio/music/generated/music-sky-b.mp3"
+    },
+    "music-hub-a": {
+      "src": "shared/audio/music/generated/music-hub-a.mp3"
+    },
+    "music-hub-b": {
+      "src": "shared/audio/music/generated/music-hub-b.mp3"
+    },
+    "music-hub-c": {
+      "src": "shared/audio/music/generated/music-hub-c.mp3"
+    },
+    "music-hub-d": {
+      "src": "shared/audio/music/generated/music-hub-d.mp3"
+    },
+    "music-caro-a": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/music-caro-a.mp3"
+    },
+    "music-caro-b": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/music-caro-b.mp3"
+    },
+    "music-caro-c": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/music-caro-c.mp3"
+    },
+    "music-caro-d": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/music-caro-d.mp3"
+    },
+    "music-tien-len-a": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/music-tien-len-a.mp3"
+    },
+    "music-tien-len-b": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/music-tien-len-b.mp3"
+    },
+    "music-tien-len-c": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/music-tien-len-c.mp3"
+    },
+    "music-tien-len-d": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/music-tien-len-d.mp3"
+    },
+    "music-tien-len-e": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/music-tien-len-e.mp3"
+    },
+    "music-tien-len-f": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/music-tien-len-f.mp3"
+    },
+    "music-co-ca-ngua-a": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/music-co-ca-ngua-a.mp3"
+    },
+    "music-co-ca-ngua-b": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/music-co-ca-ngua-b.mp3"
+    },
+    "music-co-ca-ngua-c": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/music-co-ca-ngua-c.mp3"
+    },
+    "music-co-ca-ngua-d": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/music-co-ca-ngua-d.mp3"
+    },
+    "music-co-ca-ngua-e": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/music-co-ca-ngua-e.mp3"
+    },
+    "music-co-ca-ngua-f": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/music-co-ca-ngua-f.mp3"
+    },
+    "music-xiangqi-a": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/music-xiangqi-a.mp3"
+    },
+    "music-xiangqi-b": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/music-xiangqi-b.mp3"
+    },
+    "music-xiangqi-c": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/music-xiangqi-c.mp3"
+    },
+    "music-xiangqi-d": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/music-xiangqi-d.mp3"
+    },
+    "music-xiangqi-e": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/music-xiangqi-e.mp3"
+    },
+    "music-xiangqi-f": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/music-xiangqi-f.mp3"
+    },
+    "island-locked": {
+      "src": "shared/audio/sfx-selected/island-locked.mp4",
+      "start": 0.04,
+      "duration": 0.77,
+      "format": "wav"
+    },
+    "caro-select": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-select.mp4",
+      "start": 4.52,
+      "duration": 0.41,
+      "format": "wav"
+    },
+    "caro-o-place": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-o-place.mp4",
+      "start": 1.08,
+      "duration": 0.41,
+      "format": "wav"
+    },
+    "caro-line-complete": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-line-complete.mp4",
+      "start": 0.69,
+      "duration": 1.8,
+      "format": "wav"
+    },
+    "caro-start": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-start.mp4",
+      "start": 0.52,
+      "duration": 1.09,
+      "format": "wav"
+    },
+    "caro-win": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-win.mp4",
+      "start": 0.56,
+      "duration": 1.49,
+      "format": "wav"
+    },
+    "caro-draw": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-draw.mp4",
+      "start": 2.0,
+      "duration": 0.49,
+      "format": "wav"
+    },
+    "caro-invalid": {
+      "game": "tic-tac-toe",
+      "src": "games/tic-tac-toe/audio/sfx-selected/caro-invalid.mp4",
+      "start": 3.0,
+      "duration": 0.45,
+      "format": "wav"
+    },
+    "xiangqi-checkmate": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-checkmate.mp4",
+      "start": 2.24,
+      "duration": 0.77,
+      "format": "wav"
+    },
+    "xiangqi-capture-heavy": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-capture-heavy.mp4",
+      "start": 0.28,
+      "duration": 0.25,
+      "format": "wav"
+    },
+    "xiangqi-decisive-move": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-decisive-move.mp4",
+      "start": 0.2,
+      "duration": 1.29,
+      "format": "wav"
+    },
+    "xiangqi-draw": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-draw.mp4",
+      "start": 0.12,
+      "duration": 1.53,
+      "format": "wav"
+    },
+    "xiangqi-game-win": {
+      "game": "xiangqi",
+      "src": "games/xiangqi/audio/sfx-selected/xiangqi-game-win.mp4",
+      "start": 2.33,
+      "duration": 0.15,
+      "format": "wav"
+    },
+    "tien-len-bomb": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-bomb.mp4",
+      "start": 0.24,
+      "duration": 0.29,
+      "format": "wav"
+    },
+    "tien-len-win": {
+      "game": "tien-len",
+      "src": "games/tien-len/audio/sfx-selected/tien-len-win.mp4",
+      "start": 7.29,
+      "duration": 0.15,
+      "format": "wav"
+    },
+    "ludo-dice-roll": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-dice-roll.mp4",
+      "start": 0.4,
+      "duration": 1.37,
+      "format": "wav"
+    },
+    "ludo-dice-six": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-dice-six.mp4",
+      "start": 0.21,
+      "duration": 1.72,
+      "format": "wav"
+    },
+    "ludo-token-leave": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-leave.mp4",
+      "start": 0.56,
+      "duration": 1.17,
+      "format": "wav"
+    },
+    "ludo-token-select": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-select.mp4",
+      "start": 2.12,
+      "duration": 0.65,
+      "format": "wav"
+    },
+    "ludo-token-step": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-step.mp4",
+      "start": 1.04,
+      "duration": 0.45,
+      "format": "wav"
+    },
+    "ludo-token-safe": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-safe.mp4",
+      "start": 7.65,
+      "duration": 0.15,
+      "format": "wav"
+    },
+    "ludo-token-bump": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-bump.mp4",
+      "start": 6.6,
+      "duration": 0.89,
+      "format": "wav"
+    },
+    "ludo-token-return": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-return.mp4",
+      "start": 2.01,
+      "duration": 0.36,
+      "format": "wav"
+    },
+    "ludo-token-finish": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-token-finish.mp4",
+      "start": 0.0,
+      "duration": 1.77,
+      "format": "wav"
+    },
+    "ludo-turn": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-turn.mp4",
+      "start": 0.48,
+      "duration": 0.69,
+      "format": "wav"
+    },
+    "ludo-game-start": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-game-start.mp4",
+      "start": 0.36,
+      "duration": 1.45,
+      "format": "wav"
+    },
+    "ludo-win": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-win.mp4",
+      "start": 0.08,
+      "duration": 1.45,
+      "format": "wav"
+    },
+    "ludo-pawn-jump": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-pawn-jump.mp4",
+      "start": 7.2,
+      "duration": 0.69,
+      "format": "wav"
+    },
+    "ludo-final-lap": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-final-lap.mp4",
+      "start": 0.0,
+      "duration": 1.33,
+      "format": "wav"
+    },
+    "ludo-tie": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-tie.mp4",
+      "start": 0.08,
+      "duration": 0.85,
+      "format": "wav"
+    },
+    "ludo-no-move": {
+      "game": "co-ca-ngua",
+      "src": "games/co-ca-ngua/audio/sfx-selected/ludo-no-move.mp4",
+      "start": 1.04,
+      "duration": 0.33,
       "format": "wav"
     }
   }

@@ -31,6 +31,13 @@ export function gameAssets(gameId: string): GameAssets {
   return assetsById[gameId] ?? { images: {}, sounds: {} };
 }
 
+/** A game's background music: every `music*` file in its assets/ (empty if it has none). */
+export function gameMusic(gameId: string): string[] {
+  return Object.entries(gameAssets(gameId).sounds)
+    .filter(([name]) => name.startsWith('music'))
+    .map(([, url]) => url);
+}
+
 /** Loads a game's board code (scene). */
 export async function loadClient(gameId: string): Promise<GameClient> {
   const load = clients[`../../../../games/${gameId}/src/client.ts`];

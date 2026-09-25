@@ -35,6 +35,7 @@ export const BOARD_MOVE = 'board:move';
  *
  * Images and sounds come from the game's own `assets/` folder by file name:
  * `this.image(x, y, 'tile')` shows `assets/tile.webp`, `this.sfx('move')` plays `assets/move.wav`.
+ * Files named `music*` (mp3) are the game's background music; the app plays a random one.
  */
 export abstract class BoardScene<View, Move> extends Phaser.Scene {
   protected props!: BoardProps<View>;
@@ -51,7 +52,10 @@ export abstract class BoardScene<View, Move> extends Phaser.Scene {
       const key = `${this.gameId}/${name}`;
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
-    for (const url of Object.values(sounds)) clientHost().loadSound(url);
+    // `music*` files are the game's background music: the app streams one, no need to preload.
+    for (const [name, url] of Object.entries(sounds)) {
+      if (!name.startsWith('music')) clientHost().loadSound(url);
+    }
   }
 
   create() {

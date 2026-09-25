@@ -34,8 +34,10 @@ assets/            Originals of the app's own art/audio (Git LFS): prompts.json 
                    audio/ (unsorted experiments)
 scripts/           libs.mjs (find games, build sdk + games + shared), new-game.mjs + game-template/,
                    gen-asset.mjs (Codex), assets.mjs, build-audio.mjs, lib/media.mjs, smoke.mjs,
-                   e2e.mjs, *.py (audio generation)
-docs/              making-a-game, deploy (CI, versions, hosting), generating-music, game audio notes
+                   e2e.mjs, generate-game-music.py (Lyria), generate-game-sfx.py +
+                   prepare-game-sfx.py (Veo effects), older generate-*-sfx.py experiments
+docs/              making-a-game, deploy (CI, versions, hosting), generating-music, generating-sfx,
+                   <game>-audio notes
 .github/           CI, PR checks, release-please, Dependabot, CODEOWNERS, templates,
                    rulesets/main.json (branch rules, applied by the owner)
 ```
@@ -123,8 +125,12 @@ never open a visible browser window.
   fake checkerboard instead of transparency: check alpha. ~1.5 min per image.
 - `avatar-long.webp` is a real photo (`assets/shared/images/Long-look-at-u.jpg`) in the generated
   `avatar-frame`, not generated art.
-- Music: Google Cloud Lyria (docs/generating-music.md). Effects: downloaded or generated sources
-  in `assets/audio/sfx/` (unsorted) until they get a job. `assets/audio.json` maps each
+- Music: image-guided Google Cloud Lyria (docs/generating-music.md). Effects: Google Cloud Veo
+  short videos with synced sound; pick and trim the audio (docs/generating-sfx.md). No procedural
+  substitutes. Picked clips are in `assets/**/sfx-selected/` (Git LFS); other takes in
+  `sfx-candidates/` stay local (gitignored). A game's music = every `music*` file in its
+  `assets/` (a random one plays on its board); the app's is `APP_MUSIC` in `src/lib/sound.ts`.
+  `assets/audio.json` maps each
   app sound to an original with optional `start`/`duration`/`speed`, `game` (output in
   `games/<id>/assets/`) or `unsorted` (not wired into the app yet). Short effects use
   `"format": "wav"` (MP3 starts with ~25 ms of padding).

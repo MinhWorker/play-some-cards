@@ -13,3 +13,5 @@ coverage/
 __pycache__/
 # Written by scripts/libs.mjs
 packages/shared/src/generated/
+# Veo takes that were not picked (large); the picked clips in sfx-selected/ are committed.
+assets/**/sfx-candidates/

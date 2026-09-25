@@ -1,6 +1,22 @@
 # Generate music with Google Cloud Lyria
 
-Use this workflow for original background music and short musical cues. Lyria generates music, not isolated sound effects. Generated originals belong in `assets/shared/audio/music/`, or `assets/games/<id>/audio/` for music only one game uses (both gitignored); only the app-ready files under `apps/web/public/` are committed. Older experiments that have no job yet stay in `assets/audio/music/`.
+Use this workflow for original background music and short musical cues. Lyria generates music, not isolated sound effects; use [generating-sfx.md](generating-sfx.md) for the Veo SFX workflow. `scripts/generate-game-music.py` creates image-guided alternate tracks for the sky, hub, and each game island. Generated music originals belong in `assets/shared/audio/music/`, or `assets/games/<id>/audio/` for music only one game uses (both committed through Git LFS); the app reads only the files under `apps/web/public/`. Older experiments that have no job yet stay in `assets/audio/music/`.
+
+## Generate the game music set
+
+With `gcloud` authenticated and `aiplatform.googleapis.com` enabled in the billing project, run:
+
+```bash
+python3 scripts/generate-game-music.py --jobs 3
+```
+
+The script sends each game's island image as a visual reference and generates two sky tracks, four hub tracks, four Caro tracks, and six tracks for Tiến Lên, Cờ Cá Ngựa, and Cờ Tướng. It saves originals locally under `assets/`. The web app picks a random track in each group when entering the sky, hub, or game board. Rebuild the app files after generating:
+
+```bash
+npm run audio
+```
+
+The full build also refreshes SFX from `assets/audio.json`; to rebuild only music tracks, pass their names after `--`, for example `npm run audio -- music-hub-a music-caro-a`.
 
 ## Generate an MP3
 

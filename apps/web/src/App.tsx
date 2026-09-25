@@ -9,6 +9,7 @@ import {
   Toast,
   transition,
 } from '@/components/hud';
+import { gameMusic } from '@/games';
 import { useAccount } from '@/hooks/useAccount';
 import { useBoardMoves } from '@/hooks/useBoardMoves';
 import { useBrowsingGame } from '@/hooks/useBrowsingGame';
@@ -16,7 +17,7 @@ import { useConnected } from '@/hooks/useConnected';
 import { useGameEndSound } from '@/hooks/useGameEndSound';
 import { useRoom } from '@/hooks/useRoom';
 import { useVersionGuard } from '@/hooks/useVersionGuard';
-import { installButtonSounds } from '@/lib/sound';
+import { appMusic, installButtonSounds, setMusicScene } from '@/lib/sound';
 import { GameRooms } from '@/pages/GameRooms/GameRooms';
 import { Home } from '@/pages/Home/Home';
 import { Login } from '@/pages/Login/Login';
@@ -65,6 +66,15 @@ export function App() {
       score: snapshot.score,
     };
   }, [account.status, session, snapshot, browsing]);
+
+  // Background music follows what the canvas shows; a game without music keeps the sky's.
+  const musicScene = stage.mode === 'board' ? stage.gameId : stage.mode;
+  useEffect(() => {
+    const tracks =
+      musicScene === 'hub' || musicScene === 'sky' ? appMusic(musicScene) : gameMusic(musicScene);
+    if (tracks.length) setMusicScene(musicScene, tracks);
+    else setMusicScene('sky', appMusic('sky'));
+  }, [musicScene]);
 
   // Picking an island flies through the clouds to its room list.
   const pickGame = useCallback((gameId: string) => transition(() => browse(gameId)), [browse]);

@@ -359,7 +359,7 @@ export class HubScene extends Phaser.Scene {
     if (!view) return;
     this.setFocus(i, true);
     if (view.portal.locked) {
-      playSfx('island-click');
+      playSfx('island-locked');
       this.wobble(view.container);
       bridge.emit('hub:locked');
       return;

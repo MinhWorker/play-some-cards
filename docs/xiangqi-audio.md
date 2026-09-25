@@ -1,6 +1,6 @@
 # Xiangqi sound plan
 
-The Xiangqi pack uses dry wooden piece sounds with restrained bell accents. It has no voice lines or board music. The app's shared `game-win` and `game-lose` cues cover the result screen.
+The Cờ Tướng pack uses dry wooden piece sounds with restrained bell accents. It has no voice lines or board ambience.
 
 | Moment | Sound | Trigger |
 | --- | --- | --- |
@@ -8,16 +8,13 @@ The Xiangqi pack uses dry wooden piece sounds with restrained bell accents. It h
 | Select a piece | `xiangqi-piece-select` | On a local selection change. |
 | Make a regular move | `xiangqi-move` | Once after the server accepts a non-capturing move. |
 | Capture a piece | `xiangqi-capture` | Instead of `xiangqi-move` after the server accepts a capture. |
+| Consequential capture | `xiangqi-capture-heavy` | Instead of `xiangqi-capture` for an especially important capture. |
 | Put the opposing general in check | `xiangqi-check` | Once when the game state transitions into check. |
 | Turn reaches the local player | `xiangqi-turn` | On a transition into the local player's turn, not on room load or reconnect. |
 | Server rejects a move | `xiangqi-illegal` | Once when a move is rejected, if the UI exposes that feedback. |
-| Game ends | shared `game-win` / `game-lose` | Reuse the app result cues, including checkmate. |
+| A decisive winning move | `xiangqi-decisive-move` | Once after the final move is accepted. |
+| Checkmate | `xiangqi-checkmate` | Once when the match transitions to a checkmate result. |
+| Draw | `xiangqi-draw` | Once when the authoritative result is a draw. |
+| Local player wins | `xiangqi-game-win` or shared `game-win` | Choose one result cue so victory sounds do not overlap. |
 
-Regenerate the seven source cues with `python3 scripts/generate-xiangqi-sfx.py`, then build their app-ready files with:
-
-```bash
-python3 scripts/generate-xiangqi-sfx.py
-npm run audio -- xiangqi-start xiangqi-piece-select xiangqi-move xiangqi-capture xiangqi-check xiangqi-turn xiangqi-illegal
-```
-
-Generated source WAVs are written under `assets/games/xiangqi/audio/` (gitignored). The committed mono WAVs go under `games/xiangqi/assets/`, where the Xiangqi board plays them with `this.sfx(name)`.
+The current pack has 12 cloud-generated SFX IDs built into `games/xiangqi/assets/`. Use the shared video generation, trim, and WAV workflow in [generating-sfx.md](generating-sfx.md). The Xiangqi board can call `this.sfx(name)` after accepted moves or authoritative check, turn, and result transitions.

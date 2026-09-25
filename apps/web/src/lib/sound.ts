@@ -55,13 +55,28 @@ const SFX = {
   'button-hover': 'shared',
   'island-hover': 'shared',
   'island-click': 'shared',
+  'island-locked': 'shared',
   'cloud-spread': 'shared',
   'game-win': 'shared',
   'game-lose': 'shared',
 } satisfies Record<string, AssetOwner>;
 export type Sfx = keyof typeof SFX;
 
-const music = new Audio(soundUrl('music', 'shared', 'mp3'));
+/**
+ * The app's own music (public/shared/audio/<name>.mp3): a random track per scene. A game's music
+ * is every `music*` file in its assets/ (see `gameMusic` in games/index.ts).
+ */
+const APP_MUSIC = {
+  sky: ['music-sky-a', 'music-sky-b'],
+  hub: ['music-hub-a', 'music-hub-b', 'music-hub-c', 'music-hub-d'],
+};
+export const appMusic = (scene: keyof typeof APP_MUSIC) =>
+  APP_MUSIC[scene].map((name) => soundUrl(name, 'shared', 'mp3'));
+
+const pickTrack = (urls: string[]) => urls[Math.floor(Math.random() * urls.length)] ?? '';
+
+let musicScene = 'sky';
+const music = new Audio(pickTrack(appMusic('sky')));
 music.loop = true;
 music.preload = 'auto';
 
@@ -131,6 +146,19 @@ export function applySound(settings: SoundSettings) {
   if (musicGain) musicGain.gain.value = settings.music.volume;
   if (sfxGain) sfxGain.gain.value = settings.sfx.volume;
   void syncMusic().catch(() => {});
+}
+
+/**
+ * Switches the background music to a random one of `tracks` when the scene changes (`scene` is
+ * 'sky', 'hub' or a game id). The same scene keeps its current track.
+ */
+export function setMusicScene(scene: string, tracks: string[]) {
+  if (scene === musicScene || tracks.length === 0) return;
+  musicScene = scene;
+  music.pause();
+  music.src = pickTrack(tracks);
+  music.load();
+  if (!isSilent(current.music)) void syncMusic().catch(() => {});
 }
 
 /** Plays one of the app's effects. Silent until the first tap/click unlocks audio, or when muted. */
