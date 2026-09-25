@@ -1,16 +1,7 @@
-import type { GameResult, PlayerId, PlayerInfo, RoomScore } from '@psc/shared';
+import type { BoardProps } from '@psc/sdk/client';
 import Phaser from 'phaser';
 
-/** Data a board scene needs to draw the current game. */
-export interface BoardProps<View = unknown> {
-  view: View;
-  me: PlayerId;
-  players: PlayerInfo[];
-  /** Set once the game is over. */
-  result: GameResult | null;
-  /** Wins per seat and draws over all games in this room. */
-  score: RoomScore;
-}
+export type { BoardProps };
 
 /** What the canvas should show. Set by React, read by Phaser. */
 export type Stage =
@@ -21,6 +12,7 @@ export type Stage =
 /**
  * The only link between React and Phaser.
  * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px).
- * Phaser -> React: 'hub:select' (gameId), 'board:move' (move).
+ * Phaser -> React: 'hub:select' (gameId), 'hub:locked', 'board:move' (move).
+ * Board scenes (from games/) don't see this: PhaserStage passes their props and moves along.
  */
 export const bridge = new Phaser.Events.EventEmitter();

@@ -11,3 +11,5 @@ coverage/
 .e2e/
 .playwright-mcp/
 __pycache__/
+# Written by scripts/libs.mjs
+packages/shared/src/generated/

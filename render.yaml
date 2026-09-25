@@ -14,6 +14,9 @@ services:
       paths:
         - apps/server/**
         - packages/shared/**
+        - packages/sdk/**
+        - games/**
+        - scripts/libs.mjs
         - package-lock.json
         # The root package.json holds the app version (bumped by release PRs).
         - package.json

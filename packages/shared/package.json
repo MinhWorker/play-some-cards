@@ -10,15 +10,17 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "build": "node ../../scripts/libs.mjs",
+    "dev": "node ../../scripts/libs.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
+    "@psc/sdk": "*",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "@types/node": "^22.20.4"
   }
 }

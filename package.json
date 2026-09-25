@@ -5,12 +5,14 @@
   "type": "module",
   "workspaces": [
     "packages/*",
+    "games/*",
     "apps/*"
   ],
   "engines": {
     "node": ">=22"
   },
   "scripts": {
+    "postinstall": "node scripts/libs.mjs --generate",
     "dev": "npm run build -w @psc/shared && concurrently -k -n shared,server,web -c magenta,blue,green \"npm run dev -w @psc/shared\" \"npm run dev -w @psc/server\" \"npm run dev -w @psc/web\"",
     "build": "npm run build -w @psc/shared && npm run build -w @psc/server && npm run build -w @psc/web",
     "typecheck": "npm run build -w @psc/shared && npm run typecheck --workspaces --if-present",
@@ -23,7 +25,8 @@
     "dev:server": "npm run build -w @psc/shared && concurrently -k -n shared,server -c magenta,blue \"npm run dev -w @psc/shared\" \"npm run dev -w @psc/server\"",
     "gen:asset": "node scripts/gen-asset.mjs",
     "audio": "node scripts/build-audio.mjs",
-    "e2e": "node scripts/e2e.mjs"
+    "e2e": "node scripts/e2e.mjs",
+    "new:game": "node scripts/new-game.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

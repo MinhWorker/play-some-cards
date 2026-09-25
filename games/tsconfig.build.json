@@ -1,0 +1,13 @@
+{
+  "$comment": "Compiles a game's server part (src/index.ts and what it imports) to dist/ for the server.",
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "rootDir": "${configDir}/src",
+    "outDir": "${configDir}/dist",
+    "declaration": true,
+    "declarationMap": true
+  },
+  "files": ["${configDir}/src/index.ts"]
+}

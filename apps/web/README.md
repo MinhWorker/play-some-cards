@@ -24,11 +24,10 @@ src/
   hooks/              React hooks: login, room connection, sounds, URL state
   lib/                Plain TypeScript (no React): socket, login, sound, asset URLs
   styles/             theme.css (colors, font) and base.css (panels, buttons, modals)
-  phaser/             The Phaser side: stage, bridge, base board scene, scenes/, objects/
-  games/<id>/         One board scene per game (e.g. tic-tac-toe/TicTacToeScene.ts)
+  phaser/             The Phaser side: stage, bridge, scenes/ (boot, sky, hub), objects/
+  games/index.ts      Finds every game in the repo's games/ folder (assets, board code)
 public/
   shared/             Images and sounds used across the app
-  games/<id>/         Images and sounds used by one game only
   audio/              Sounds not sorted yet (experiments)
 ```
 
@@ -41,12 +40,12 @@ Imports that leave the current folder use `@/`, which means `src/`: `import { re
 | A screen's layout or text | `src/pages/<Page>/` |
 | The profile badge, speaker button, cloud transition, toasts | `src/components/hud/` |
 | Colors, font, button and panel styles | `src/styles/` |
-| How a board looks or reacts to taps | `src/games/<id>/<Name>Scene.ts` |
+| How a board looks or reacts to taps | `games/<id>/src/<Name>Scene.ts` (repo root) |
 | The island map or the sky | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |
 | Talking to the server | `src/lib/socket.ts`, `src/hooks/useRoom.ts` |
 | Login and accounts | `src/pages/Login/`, `src/lib/auth.ts`, `src/hooks/useAccount.ts` |
 | Music and sound effects | `src/lib/sound.ts` + `assets/audio.json` |
-| Images | `assets/prompts.json` (generated) + `src/phaser/assets.ts` |
-| Game rules | `packages/shared/src/games/<id>/` (not in this app) |
+| The app's images | `assets/prompts.json` (generated) + `src/phaser/assets.ts` |
+| Game rules | `games/<id>/src/rules.ts` (repo root) |
 
-See `AGENTS.md` at the repo root for conventions and `docs/adding-a-game.md` to add a game.
+See `AGENTS.md` at the repo root for conventions and `docs/making-a-game.md` to make a game.
