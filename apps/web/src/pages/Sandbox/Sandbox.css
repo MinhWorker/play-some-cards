@@ -1,0 +1,10 @@
+.sandbox-bar {
+  flex-wrap: wrap;
+}
+
+.sandbox-seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}

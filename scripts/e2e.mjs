@@ -59,12 +59,25 @@ try {
     await page.getByRole('button', { name: 'Sửa hồ sơ' }).waitFor();
   }
 
-  /** Picks the Caro island to reach its room list. */
-  async function openCaroRooms(page) {
-    await page.waitForTimeout(800); // let islands settle
-    await clickCanvas(page, 'hub', (s) => s.views[0].container);
-    await page.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
+  /**
+   * Picks a game on the island strip by id. On phones a side island first slides into focus,
+   * so tap again until the room list opens.
+   */
+  async function openRooms(page, gameId) {
+    const create = page.getByRole('button', { name: '+ Tạo phòng' });
+    for (let i = 0; i < 3 && !(await create.count()); i++) {
+      await page.waitForTimeout(800); // let the strip settle
+      await clickCanvas(
+        page,
+        'hub',
+        new Function(
+          `return (s) => s.views.find((v) => v.portal.gameId === '${gameId}').container`,
+        )(),
+      );
+    }
+    await create.waitFor();
   }
+  const openCaroRooms = (page) => openRooms(page, 'tic-tac-toe');
 
   // Wrong password is refused with a message; usernames with special characters too.
   await guest.goto(url);
@@ -102,7 +115,7 @@ try {
   await host.getByRole('button', { name: 'Về đảo' }).click();
   await host.waitForTimeout(800);
   await host.screenshot({ path: `${out}/1-hub.png` });
-  await clickCanvas(host, 'hub', (s) => s.views[0].container);
+  await openCaroRooms(host);
   await host.getByRole('button', { name: '+ Tạo phòng' }).click();
   await host.getByText('Phòng của Minh').waitFor();
 
