@@ -21,8 +21,8 @@ src/
     hud/              UI shown on every screen: profile badge, sound button,
                       cloud transition, toasts. Import from '@/components/hud'
     ui/               Small building blocks (Button)
-  hooks/              React hooks: room connection, profile, sounds, URL state
-  lib/                Plain TypeScript (no React): socket, sound, storage, asset URLs
+  hooks/              React hooks: login, room connection, sounds, URL state
+  lib/                Plain TypeScript (no React): socket, login, sound, asset URLs
   styles/             theme.css (colors, font) and base.css (panels, buttons, modals)
   phaser/             The Phaser side: stage, bridge, base board scene, scenes/, objects/
   games/<id>/         One board scene per game (e.g. tic-tac-toe/TicTacToeScene.ts)
@@ -44,6 +44,7 @@ Imports that leave the current folder use `@/`, which means `src/`: `import { re
 | How a board looks or reacts to taps | `src/games/<id>/<Name>Scene.ts` |
 | The island map or the sky | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |
 | Talking to the server | `src/lib/socket.ts`, `src/hooks/useRoom.ts` |
+| Login and accounts | `src/pages/Login/`, `src/lib/auth.ts`, `src/hooks/useAccount.ts` |
 | Music and sound effects | `src/lib/sound.ts` + `assets/audio.json` |
 | Images | `assets/prompts.json` (generated) + `src/phaser/assets.ts` |
 | Game rules | `packages/shared/src/games/<id>/` (not in this app) |

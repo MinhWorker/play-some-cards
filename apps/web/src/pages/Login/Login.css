@@ -1,0 +1,72 @@
+/* Login / create-account panel (Login.tsx), centered over the sky. */
+.login {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(380px, calc(100% - 32px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.login .field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.login input {
+  font-size: 1.15rem;
+}
+
+/* An input with a square icon button after it (show password, random name). */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input-row input {
+  flex: 1;
+}
+
+.input-row .icon-btn {
+  width: 46px;
+  height: 46px;
+}
+
+.login .btn {
+  margin-top: 4px;
+}
+
+.login-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--paper-edge);
+  border-radius: 14px;
+}
+
+.login-tabs button {
+  flex: 1;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 10px;
+  padding: 6px 4px 4px;
+  cursor: pointer;
+}
+
+.login-tabs button[aria-pressed="true"] {
+  color: var(--ink);
+  background: var(--btn);
+  box-shadow: 0 3px 0 var(--btn-edge);
+}

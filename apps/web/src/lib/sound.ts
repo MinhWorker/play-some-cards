@@ -151,22 +151,59 @@ export function playSfx(name: Sfx) {
   source.start();
 }
 
+type ButtonSoundKind = 'click' | 'hover';
+const DEFAULT_BUTTON_SOUND: Record<ButtonSoundKind, Sfx> = {
+  click: 'button-click',
+  hover: 'button-hover',
+};
+
+/**
+ * Data attributes that change the click/hover sound of a button, or of every button inside an
+ * element (the nearest setting wins, so a button can override its container). `'none'` = silent,
+ * leaving one out keeps the inherited sound. Spread onto an element:
+ * `<form {...buttonSounds({ click: 'none', hover: 'none' })}>`, or use `Button`'s
+ * `clickSound` / `hoverSound` props.
+ */
+export function buttonSounds(sounds: { click?: Sfx | 'none'; hover?: Sfx | 'none' }) {
+  const attrs: Record<string, string> = {};
+  if (sounds.click) attrs['data-click-sound'] = sounds.click;
+  if (sounds.hover) attrs['data-hover-sound'] = sounds.hover;
+  return attrs;
+}
+
+/** The sound a button makes, from the nearest `data-click-sound` / `data-hover-sound`. */
+function buttonSound(button: Element, kind: ButtonSoundKind): Sfx | null {
+  const attr = `data-${kind}-sound`;
+  const name = button.closest(`[${attr}]`)?.getAttribute(attr);
+  if (!name) return DEFAULT_BUTTON_SOUND[kind];
+  if (name === 'none') return null;
+  if (name in SFX) return name as Sfx;
+  console.warn(`Unknown button sound "${name}"`);
+  return DEFAULT_BUTTON_SOUND[kind];
+}
+
 /**
  * Click and hover sounds for every button in the React UI, via event delegation so new
  * buttons get them automatically. Hover sounds only for a real mouse (a tap would fire both).
+ * Each button's sounds can be changed or muted with `buttonSounds`.
  */
 export function installButtonSounds() {
   const buttonFrom = (target: EventTarget | null) =>
     target instanceof Element ? target.closest<HTMLButtonElement>('button:not(:disabled)') : null;
+  const play = (button: Element, kind: ButtonSoundKind) => {
+    const name = buttonSound(button, kind);
+    if (name) playSfx(name);
+  };
 
   const onOver = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return;
     const button = buttonFrom(e.target);
     // Only when entering the button, not when moving between its children.
-    if (button && !button.contains(e.relatedTarget as Node | null)) playSfx('button-hover');
+    if (button && !button.contains(e.relatedTarget as Node | null)) play(button, 'hover');
   };
   const onClick = (e: MouseEvent) => {
-    if (buttonFrom(e.target)) playSfx('button-click');
+    const button = buttonFrom(e.target);
+    if (button) play(button, 'click');
   };
   document.addEventListener('pointerover', onOver);
   document.addEventListener('click', onClick);

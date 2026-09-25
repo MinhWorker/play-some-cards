@@ -111,6 +111,16 @@
       "maxSize": 128,
       "prompt": "One chunky glossy white cartoon dice with rounded corners and red dots, slightly tilted showing three faces, thick dark-brown outline, game UI icon."
     },
+    "icon-eye": {
+      "transparent": true,
+      "maxSize": 128,
+      "prompt": "One chunky glossy cartoon eye icon, wide open, white eyeball with a big round sky-blue iris and black pupil with a white shine, cute curved eyelashes on top, thick dark-brown outline, front view, game UI icon."
+    },
+    "icon-eye-off": {
+      "transparent": true,
+      "maxSize": 128,
+      "prompt": "The same chunky glossy cartoon eye icon but closed: a sleepy curved closed eyelid line with cute eyelashes pointing down, and a bold red diagonal slash across it from top-left to bottom-right, thick dark-brown outline, front view, game UI icon."
+    },
     "bird": {
       "transparent": true,
       "maxSize": 256,

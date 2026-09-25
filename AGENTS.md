@@ -7,33 +7,43 @@ Keep this file accurate when you change structure, commands, or conventions.
 
 ```
 packages/shared/   @psc/shared  Game rules + socket protocol types. Pure TS, no I/O. Used by both apps.
+  src/account.ts     Account rules (username/password/name zod schemas) + User/AuthResponse types
   src/game.ts        GameDefinition contract every game implements
   src/games/<id>/    One folder per game (rules + tests)
   src/registry.ts    List of playable games
   src/protocol.ts    Socket.IO event types (client <-> server)
 apps/server/       @psc/server  NestJS + Socket.IO. Owns rooms and game state in memory.
   src/rooms/rooms.service.ts   Room/game logic, no sockets (unit tested)
-  src/rooms/rooms.gateway.ts   Socket events -> service calls, broadcasts room:state
+  src/rooms/rooms.gateway.ts   Socket events -> service calls, broadcasts room:state. Refuses sockets
+                               without a valid login token
+  src/accounts/                Username + password accounts: auth.controller.ts (POST /api/auth/
+                               register|login|logout), accounts.service.ts (scrypt, login tokens),
+                               accounts.store.ts (Postgres, or memory without DATABASE_URL)
+  src/db/                      Neon Postgres via Drizzle: db.module.ts (inject `DB`, null without
+                               DATABASE_URL), schema.ts (users, sessions). Migrations in apps/server/drizzle/
 apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans: apps/web/README.md
   src/main.tsx                 Entry: global styles, HUD scale, renders <App />
   src/App.tsx                  Top-level state: which page shows, what Phaser draws (`Stage`)
   src/pages/<Page>/            One folder per screen, with its own .css and sub-components:
                                Home (island map), GameRooms (a game's live room list),
-                               Room (room bar, lobby panel, result panel)
+                               Room (room bar, lobby panel, result panel), Login (log in / sign up)
   src/components/hud/          Shared HUD shown on every screen (import from '@/components/hud'):
     CloudCurtain.tsx           Loading/transition screen: cloud banks close, then part (cloud-spread
                                sound). Closed at start until Phaser has loaded; `transition(change)`
                                wraps a scene change (used when picking an island)
-    ProfileBadge.tsx           Avatar + name (top-left); ProfileModal.tsx edits them
+    ProfileBadge.tsx           Avatar + name (top-left); ProfileModal.tsx edits them, logs out
     SoundControl.tsx           Speaker button (top-right): volume + mute for music and effects
     Toast.tsx                  Toast (middle) and Banner (top) messages
   src/components/ui/           Small building blocks (Button)
-  src/hooks/                   useRoom (join/leave/rejoin + live state), useConnected, useProfile,
-                               useBrowsingGame (?game= in URL), useBoardMoves, useGameEndSound
-  src/lib/                     Plain TS, no React: socket.ts (Socket.IO + `request`), session.ts,
-                               profile.ts (nickname/avatar in localStorage), sound.ts (music + effects,
+  src/hooks/                   useAccount (login state; after each connect asks the server for
+                               the user + their room), useRoom (enter/leave + live state),
+                               useConnected, useBrowsingGame (?game= in URL), useBoardMoves, useGameEndSound
+  src/lib/                     Plain TS, no React: socket.ts (Socket.IO + `request`), auth.ts
+                               (server URL, login token in localStorage, register/login calls),
+                               profile.ts (silly names, avatar images), sound.ts (music + effects,
                                Web Audio gain per channel since iOS ignores audio.volume;
-                               installButtonSounds() adds click/hover sounds to every button),
+                               installButtonSounds() adds click/hover sounds to every button;
+                               buttonSounds() changes/mutes them per button or container),
                                hudScale.ts, assetUrl.ts (URLs of files in public/)
   src/styles/                  theme.css (colors, font), base.css (panels, buttons, modals, `.hud`)
   src/phaser/                  Full-screen Phaser canvas: the world (sky, island map, game boards)
@@ -48,14 +58,15 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans
   public/shared/{images,audio}/        App-ready files used across the app (committed)
   public/games/<id>/{images,audio}/    App-ready files used by one game only (committed)
   public/audio/                Sounds whose purpose is not decided yet (`unsorted` in audio.json)
-assets/              Source files for the web app's images and audio (see "Art" and "Audio")
+assets/              Source files for the web app's images and audio (see "Art" and "Audio").
+                     Committed with Git LFS (.gitattributes); run `git lfs install` once
   prompts.json         Prompt for every generated image (`game` = belongs to one game)
   audio.json           Which original becomes each app sound (+ trims, `game`/`unsorted`)
-  shared/images/         Full-size Codex output for shared art (gitignored)
-  shared/audio/{music,sfx}/  Originals of shared music and effects (gitignored)
-  games/<id>/{images,audio}/  Originals used by one game (gitignored)
+  shared/images/         Full-size Codex output for shared art
+  shared/audio/{music,sfx}/  Originals of shared music and effects
+  games/<id>/{images,audio}/  Originals used by one game
   audio/               Not sorted yet: Lyria/Veo experiments and downloaded effects nobody uses
-                       yet (gitignored). Move a file to shared/ or games/<id>/ once it has a job
+                       yet. Move a file to shared/ or games/<id>/ once it has a job
 scripts/gen-asset.mjs  Generates/edits art with Codex CLI
 scripts/build-audio.mjs  Encodes audio sources into apps/web/public/ (from assets/audio.json)
 scripts/generate-tien-len-sfx.py  Generates the Tiến lên cue sources locally (Python + ffmpeg)
@@ -72,13 +83,16 @@ docs/              How-to guides (adding a game, deploying)
 | `npm install` | Install everything (npm workspaces; do not use pnpm/yarn) |
 | `npm run dev` | Server on :8033, web on :5033 (Vite proxies `/socket.io` and `/api` to the server) |
 | `npm run dev:web` / `npm run dev:server` | Run only one of the two |
+| `PORT=8133 WEB_PORT=5133 npm run dev` | Same, on other ports (e.g. a second checkout next to the first) |
 | `npm run check` | Lint + typecheck + unit tests. **Must pass before you finish any task.** |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run build` | Build shared, server, web |
-| `npm run smoke [url]` | Two bots play a full Caro game while a third watches, against a running server (default `http://localhost:8033`) |
-| `npm run e2e [url]` | Headless Chromium: two players pick Caro, create/join from the room list and play while a third watches (needs `npm run dev`). Screenshots in `.e2e/` |
+| `npm run smoke [url]` | Three bots register; two play a full Caro game (one reconnects from a new "device" mid-game) while the third watches, against a running server (default `http://localhost:8033`) |
+| `npm run e2e [url]` | Headless Chromium: three people sign up, two pick Caro, create/join from the room list and play (one closes the browser and logs back in mid-game) while the third watches (needs `npm run dev`). Screenshots in `.e2e/` |
 | `npm run gen:asset -- <name>` | Generate an image from `assets/prompts.json` with Codex CLI (`--missing` for all missing) |
 | `npm run gen:asset -- --edit <name> "<change>"` | Ask Codex to edit an existing image, keeping its style |
+| `npm run db:generate -w @psc/server` | Write a migration after editing `apps/server/src/db/schema.ts` (applied on server start) |
+| `npm run db:studio -w @psc/server` | Browse the dev database (Drizzle Studio) |
 | `npm run audio [-- <name>]` | Re-encode app sounds from `assets/` per `assets/audio.json` (run after replacing a source) |
 
 Run one workspace: `npm run test -w @psc/shared`. Add a dependency: `npm install <pkg> -w @psc/web`.
@@ -104,15 +118,24 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 - Leaving a room (`room:leave`) means quitting: the seat is freed, a running game is cancelled
   and the room goes back to the lobby. The next player becomes host; when no player is left the
   room is disbanded and spectators get `room:closed`. A dropped connection only marks the
-  player offline (they can rejoin). Rooms keep a score (`wins` per seat + `draws`) until disbanded.
+  player offline. Rooms keep a score (`wins` per seat + `draws`) until disbanded.
 - Games are pure functions. Randomness only through the `rng` argument so tests are deterministic.
 - Web: React owns app state (session, room snapshot) and all forms/buttons. Phaser only draws
   the world. React sends a `Stage` (`hub` | `sky` | `board` with view/me/players/result) to
   `PhaserStage`; Phaser emits `hub:select`, `hub:locked`, `board:move` on `bridge`.
   Use Phaser for anything game-like (boards, cards, pieces, animation, drag and drop, sound);
   use React/CSS only for plain UI panels.
-- Rooms live in memory. Restarting the server wipes them; clients auto-rejoin by session token
-  while the room still exists.
+- Everyone plays logged in. Account = unique `username` (letters/digits, stored lowercase) +
+  password; no email or password reset (forgot it → make a new account). The in-game `name` is
+  separate: it can repeat and change any time. Register/login is HTTP (`/api/auth/*`) and
+  returns a token; the socket connects with `auth: { token }` and is refused otherwise.
+- Being in a room belongs to the **account**, not the browser: a member's id is the user id, an
+  account is in at most one room (entering another room quits the old one), and after every
+  connect the client sends `session:resume` to get back into its room from any tab or device.
+- Postgres (Neon) stores accounts and login tokens (hashed). Local dev uses Neon branch `dev`
+  (`apps/server/.env`), production uses branch `main` (see `docs/deploy.md`). Without
+  `DATABASE_URL` accounts live in memory and vanish on restart.
+- Rooms live in memory. Restarting the server wipes them.
 
 ## Conventions
 
@@ -159,7 +182,7 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 - Codex sometimes paints a fake grey checkerboard instead of real transparency; check alpha
   (e.g. with sharp) and clear it if needed.
 - Codex takes ~1.5 min per image. Output is trimmed and saved as WebP; raw PNGs stay in
-  `assets/<owner>/images/` (gitignored).
+  `assets/<owner>/images/` (Git LFS).
 
 ## Audio
 
@@ -175,14 +198,19 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
   until they are sorted. When the owner replaces or renames an original, update the mapping and
   rerun it. Trim quiet lead-ins so UI sounds feel instant, and use `"format": "wav"` for short
   effects (MP3 always starts with ~25 ms of encoder padding; `playSfx` loads `<name>.wav`).
-- Only the files in `apps/web/public/` are committed; the originals are local only.
+- Originals in `assets/` are committed through Git LFS (patterns in `.gitattributes`); a new
+  binary type needs a pattern there. App-ready files in `apps/web/public/` are plain git.
 - Play effects with `playSfx(name)` from `src/lib/sound.ts` (add the name and its owner to `SFX`
-  there). Hover sounds are mouse-only (on touch, "hover" fires on every tap).
+  there). Every React button clicks/hovers by default; change or mute that per button
+  (`<Button clickSound=… hoverSound=…>`) or for all buttons inside an element
+  (`{...buttonSounds({ click: 'none', hover: 'none' })}`; the nearest setting wins). The login
+  form is quiet except its submit click. Hover sounds are mouse-only (on touch, "hover" fires on every tap).
 
 ## Common tasks
 
 - Add a new game: follow `docs/adding-a-game.md`.
 - Deploy / CI: see `docs/deploy.md`. Web = Vercel, server = Render, both auto-deploy from `main`.
+  Database = Neon Postgres (free plan).
 
 ## Before finishing
 

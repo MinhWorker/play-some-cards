@@ -1,8 +1,11 @@
+import type { ProfileUpdate, User } from './account.js';
 import type { GameResult, PlayerId } from './game.js';
 
 /**
  * Socket.IO contract between web and server. Both sides import these types,
  * so changing an event here makes TypeScript point at every place to update.
+ * The socket only connects when logged in: the client passes `auth: { token }` (from
+ * POST /api/auth/login or /register) and the server refuses the connection otherwise.
  */
 
 export interface PlayerInfo {
@@ -57,22 +60,28 @@ export type Ack<T = object> = (res: ({ ok: true } & T) | { ok: false; error: str
 
 export interface JoinedRoom {
   roomCode: string;
-  /** Your member id (a player's id in the game, or a spectator's id). */
+  /** Your member id in the room: your account's user id. */
   playerId: PlayerId;
-  /** Store this in the browser and send it back to rejoin after a refresh. */
-  sessionToken: string;
 }
 
 export interface ClientToServerEvents {
+  /**
+   * Sent after every (re)connect: who you are, and the room your account is in (if any). Being
+   * in a room follows the account, not the browser: closing the tab and logging in anywhere
+   * puts you back in your seat. An account is in at most one room.
+   */
+  'session:resume': (
+    req: Record<string, never>,
+    ack: Ack<{ user: User; room: JoinedRoom | null }>,
+  ) => void;
+  /** Change display name and avatar (also updates your name in your current room). */
+  'profile:update': (req: ProfileUpdate, ack: Ack<{ user: User }>) => void;
   /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
   'lobby:watch': (req: { gameId: string }, ack: Ack<{ rooms: RoomSummary[] }>) => void;
   'lobby:unwatch': (req: Record<string, never>, ack: Ack) => void;
-  'room:create': (req: { gameId: string; name: string }, ack: Ack<JoinedRoom>) => void;
-  'room:join': (
-    req: { roomCode: string; name: string; role: RoomRole },
-    ack: Ack<JoinedRoom>,
-  ) => void;
-  'room:rejoin': (req: { roomCode: string; sessionToken: string }, ack: Ack<JoinedRoom>) => void;
+  /** Creating or joining a room first leaves the room you were in (if it is another one). */
+  'room:create': (req: { gameId: string }, ack: Ack<JoinedRoom>) => void;
+  'room:join': (req: { roomCode: string; role: RoomRole }, ack: Ack<JoinedRoom>) => void;
   /**
    * A player leaving mid-game cancels that game; during or after a game the room goes back
    * to the lobby. When the host leaves, the next

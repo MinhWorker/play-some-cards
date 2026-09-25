@@ -1,15 +1,14 @@
 import type { ClientToServerEvents, ServerToClientEvents } from '@psc/shared';
 import { io, type Socket } from 'socket.io-client';
+import { loadToken, serverUrl } from '@/lib/auth';
 
 /**
- * Where the game server lives. Empty = same origin (dev via Vite proxy, or when the Nest
- * server serves the built web app). Set VITE_SERVER_URL when the web app is hosted
- * separately, e.g. on Vercel.
+ * The game connection. It only connects once logged in (useAccount calls `connect()`); the
+ * login token is read again on every (re)connect.
  */
-const serverUrl = import.meta.env.VITE_SERVER_URL || undefined;
-
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(serverUrl, {
-  autoConnect: true,
+  autoConnect: false,
+  auth: (cb) => cb({ token: loadToken() ?? '' }),
 });
 
 type Events = ClientToServerEvents;

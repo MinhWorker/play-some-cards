@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { RoomsService } from './rooms.service.js';
 
+/** A logged-in account (id = lowercase name, for readable tests). */
+const acc = (name: string) => ({ id: name.toLowerCase(), name });
+
 function setupRoom() {
   const service = new RoomsService();
-  const { room, player: host } = service.create('tic-tac-toe', 'Alice');
-  const { player: guest } = service.join(room.code, 'Bob', 'player');
+  const { room, player: host } = service.create('tic-tac-toe', acc('Alice'));
+  const { player: guest } = service.join(room.code, acc('Bob'), 'player');
   return { service, room, host, guest };
 }
 
@@ -16,7 +19,7 @@ describe('RoomsService', () => {
   });
 
   it('rejects unknown games', () => {
-    expect(() => new RoomsService().create('nope', 'Alice')).toThrow('Không có game');
+    expect(() => new RoomsService().create('nope', acc('Alice'))).toThrow('Không có game');
   });
 
   it('only lets the host start', () => {
@@ -46,12 +49,25 @@ describe('RoomsService', () => {
     expect(() => service.move(room.code, host.id, { cell: 'x' })).toThrow('Nước đi không hợp lệ');
   });
 
-  it('lets a player rejoin with their session token', () => {
+  it('puts an account back in its place when it joins its own room again', () => {
     const { service, room, guest } = setupRoom();
     service.setConnected(room.code, guest.id, false);
-    const { player } = service.rejoin(room.code, guest.sessionToken);
+    expect(service.roomOf('bob')).toBe(room);
+    const { player } = service.join(room.code, acc('Bob'), 'spectator');
     expect(player.id).toBe(guest.id);
     expect(player.connected).toBe(true);
+    expect(room.players).toHaveLength(2);
+    expect(room.spectators).toHaveLength(0);
+  });
+
+  it('renames an account inside its room', () => {
+    const { service, room } = setupRoom();
+    expect(service.rename('bob', 'Bobby')).toBe(room);
+    expect(service.snapshotFor(room, 'alice').players.map((p) => p.name)).toEqual([
+      'Alice',
+      'Bobby',
+    ]);
+    expect(service.rename('nobody', 'X')).toBeUndefined();
   });
 
   it('lists only rooms of the requested game', () => {
@@ -62,9 +78,9 @@ describe('RoomsService', () => {
 
   it('limits players to the seats but lets anyone watch', () => {
     const { service, room } = setupRoom();
-    expect(() => service.join(room.code, 'Cam', 'player')).toThrow('đủ người');
-    service.join(room.code, 'Cam', 'spectator');
-    service.join(room.code, 'Dao', 'spectator');
+    expect(() => service.join(room.code, acc('Cam'), 'player')).toThrow('đủ người');
+    service.join(room.code, acc('Cam'), 'spectator');
+    service.join(room.code, acc('Dao'), 'spectator');
     expect(room.spectators).toHaveLength(2);
     expect(service.list('tic-tac-toe')[0]).toMatchObject({
       players: 2,
@@ -79,7 +95,7 @@ describe('RoomsService', () => {
     service.start(room.code, host.id);
     service.setConnected(room.code, guest.id, false); // dropped connection keeps the seat
     expect(room.players).toHaveLength(2);
-    expect(() => service.join(room.code, 'Cam', 'player')).toThrow('Ván đang chơi');
+    expect(() => service.join(room.code, acc('Cam'), 'player')).toThrow('Ván đang chơi');
   });
 
   it('cancels the game when a player quits, and they can come back for a new one', () => {
@@ -89,14 +105,14 @@ describe('RoomsService', () => {
     expect(room.status).toBe('lobby');
     expect(room.state).toBeNull();
     expect(room.players.map((p) => p.id)).toEqual([host.id]);
-    service.join(room.code, 'Bob', 'player');
+    service.join(room.code, acc('Bob'), 'player');
     service.start(room.code, host.id);
     expect(room.status).toBe('playing');
   });
 
   it('stops spectators from moving and gives them the public view', () => {
     const { service, room, host } = setupRoom();
-    const { player: fan } = service.join(room.code, 'Cam', 'spectator');
+    const { player: fan } = service.join(room.code, acc('Cam'), 'spectator');
     service.start(room.code, host.id);
     expect(() => service.move(room.code, fan.id, { cell: 0 })).toThrow('Bạn đang xem');
     expect(service.snapshotFor(room, fan.id).view).toEqual(room.state);
@@ -104,7 +120,7 @@ describe('RoomsService', () => {
 
   it('lets a spectator take a free seat', () => {
     const { service, room, guest } = setupRoom();
-    const { player: fan } = service.join(room.code, 'Cam', 'spectator');
+    const { player: fan } = service.join(room.code, acc('Cam'), 'spectator');
     service.leave(room.code, guest.id);
     service.sit(room.code, fan.id);
     expect(room.players.map((p) => p.name)).toEqual(['Alice', 'Cam']);
@@ -131,11 +147,11 @@ describe('RoomsService', () => {
 
   it('disbands the room when no player is left, even with spectators inside', () => {
     const service = new RoomsService();
-    const { room, player } = service.create('tic-tac-toe', 'Alice');
-    service.join(room.code, 'Cam', 'spectator');
+    const { room, player } = service.create('tic-tac-toe', acc('Alice'));
+    service.join(room.code, acc('Cam'), 'spectator');
     expect(service.leave(room.code, player.id).closed).toBe(true);
     expect(service.list('tic-tac-toe')).toEqual([]);
-    expect(() => service.join(room.code, 'Dao', 'spectator')).toThrow('Phòng không còn nữa');
+    expect(() => service.join(room.code, acc('Dao'), 'spectator')).toThrow('Phòng không còn nữa');
   });
 
   it('keeps score per seat across games', () => {

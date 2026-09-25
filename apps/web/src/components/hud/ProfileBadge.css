@@ -93,3 +93,8 @@
     transition: none;
   }
 }
+
+.modal .sign-out {
+  align-self: center;
+  margin-top: 4px;
+}

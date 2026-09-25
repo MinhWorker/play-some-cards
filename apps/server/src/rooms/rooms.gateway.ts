@@ -8,16 +8,19 @@ import {
 import type {
   ClientToServerEvents,
   JoinedRoom,
-  PlayerId,
   RoomRole,
   ServerToClientEvents,
+  User,
 } from '@psc/shared';
 import type { Server, Socket } from 'socket.io';
+import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 interface SocketData {
+  /** Set by the auth middleware; every connected socket is logged in. */
+  user: User;
+  /** The room this socket shows. Your member id in it is `user.id`. */
   roomCode?: string;
-  playerId?: PlayerId;
   /** Game whose room list this socket is watching. */
   lobby?: string;
 }
@@ -35,22 +38,66 @@ const lobbyChannel = (gameId: string) => `lobby:${gameId}`;
  * is sent back as the ack. After every change we push a fresh `room:state` to each
  * member (filtered per member so hidden cards stay hidden) and a fresh room list to
  * everyone browsing that game.
+ *
+ * Sockets must be logged in (`auth: { token }`). Being in a room belongs to the account, so
+ * one account can have several sockets (tabs, devices) showing the same seat.
  */
 @WebSocketGateway({ cors: { origin: true } })
 export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @WebSocketServer() server!: AppServer;
 
-  constructor(private readonly rooms: RoomsService) {}
+  constructor(
+    private readonly rooms: RoomsService,
+    private readonly accounts: AccountsService,
+  ) {}
 
-  afterInit() {
+  afterInit(server: AppServer) {
+    // The client sees a refused connection as `connect_error` with this message.
+    server.use((socket, next) => {
+      this.accounts.authenticate(socket.handshake.auth?.token).then(
+        (user) => {
+          if (!user) return next(new Error('unauthorized'));
+          socket.data.user = user;
+          next();
+        },
+        (err) => {
+          console.error(err);
+          next(new Error('server'));
+        },
+      );
+    });
     setInterval(() => this.rooms.pruneEmptyRooms(), PRUNE_INTERVAL_MS).unref();
   }
 
+  /** Offline only when none of the account's sockets still shows the room. */
   handleDisconnect(socket: AppSocket) {
-    const { roomCode, playerId } = socket.data;
-    if (!roomCode || !playerId) return;
-    const room = this.rooms.setConnected(roomCode, playerId, false);
+    const { roomCode, user } = socket.data;
+    if (!roomCode || !user) return;
+    const stillHere = this.socketsOf(user.id).some(
+      (s) => s !== socket && s.data.roomCode === roomCode,
+    );
+    if (stillHere) return;
+    const room = this.rooms.setConnected(roomCode, user.id, false);
     if (room) this.broadcast(room);
+  }
+
+  @SubscribeMessage('session:resume')
+  resume(socket: AppSocket) {
+    return this.handle(() => {
+      const room = this.rooms.roomOf(socket.data.user.id);
+      return { user: socket.data.user, room: room ? this.enter(socket, room) : null };
+    });
+  }
+
+  @SubscribeMessage('profile:update')
+  updateProfile(socket: AppSocket, req: unknown) {
+    return this.handle(async () => {
+      const user = await this.accounts.updateProfile(socket.data.user.id, req);
+      for (const s of this.socketsOf(user.id)) s.data.user = user;
+      const room = this.rooms.rename(user.id, user.name);
+      if (room) this.broadcast(room);
+      return { user };
+    });
   }
 
   @SubscribeMessage('lobby:watch')
@@ -72,39 +119,29 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:create')
-  create(socket: AppSocket, req: { gameId: string; name: string }) {
+  create(socket: AppSocket, req: { gameId: string }) {
     return this.handle(() => {
-      const { room, player } = this.rooms.create(req.gameId, req.name);
-      return this.enter(socket, room, player);
+      this.leaveCurrentRoom(socket);
+      const { room } = this.rooms.create(req.gameId, socket.data.user);
+      return this.enter(socket, room);
     });
   }
 
   @SubscribeMessage('room:join')
-  join(socket: AppSocket, req: { roomCode: string; name: string; role: RoomRole }) {
+  join(socket: AppSocket, req: { roomCode: string; role: RoomRole }) {
     return this.handle(() => {
       const role = req.role === 'spectator' ? 'spectator' : 'player';
-      const { room, player } = this.rooms.join(req.roomCode, req.name, role);
-      return this.enter(socket, room, player);
-    });
-  }
-
-  @SubscribeMessage('room:rejoin')
-  rejoin(socket: AppSocket, req: { roomCode: string; sessionToken: string }) {
-    return this.handle(() => {
-      const { room, player } = this.rooms.rejoin(req.roomCode, req.sessionToken);
-      return this.enter(socket, room, player);
+      this.leaveCurrentRoom(socket, req.roomCode);
+      const { room } = this.rooms.join(req.roomCode, socket.data.user, role);
+      return this.enter(socket, room);
     });
   }
 
   @SubscribeMessage('room:leave')
   leave(socket: AppSocket) {
     return this.handle(() => {
-      const { roomCode, playerId } = this.requireSeat(socket);
-      const { room, closed } = this.rooms.leave(roomCode, playerId);
-      void socket.leave(roomCode);
-      socket.data = {};
-      if (closed) this.disband(room);
-      else this.broadcast(room);
+      const { roomCode } = this.requireSeat(socket);
+      this.leaveRoom(socket, roomCode);
       return {};
     });
   }
@@ -141,22 +178,49 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  private enter(
-    socket: AppSocket,
-    room: Room,
-    player: { id: PlayerId; sessionToken: string },
-  ): JoinedRoom {
+  private enter(socket: AppSocket, room: Room): JoinedRoom {
+    const userId = socket.data.user.id;
     this.unwatchLobby(socket);
-    socket.data = { roomCode: room.code, playerId: player.id };
+    socket.data.roomCode = room.code;
     void socket.join(room.code);
+    this.rooms.setConnected(room.code, userId, true);
     this.broadcast(room);
-    return { roomCode: room.code, playerId: player.id, sessionToken: player.sessionToken };
+    return { roomCode: room.code, playerId: userId };
+  }
+
+  /** Before entering a room: quit the account's other room, if any. */
+  private leaveCurrentRoom(socket: AppSocket, unlessCode?: string) {
+    const current = this.rooms.roomOf(socket.data.user.id);
+    if (current && current.code !== unlessCode?.toUpperCase()) this.leaveRoom(socket, current.code);
+  }
+
+  /**
+   * The account quits the room. Its other sockets still showing the room are sent out
+   * with `room:closed`; `socket` (the one asking) already knows.
+   */
+  private leaveRoom(socket: AppSocket, roomCode: string) {
+    const userId = socket.data.user.id;
+    const { room, closed } = this.rooms.leave(roomCode, userId);
+    for (const s of this.socketsOf(userId)) {
+      if (s.data.roomCode !== roomCode) continue;
+      if (s !== socket) {
+        s.emit('room:closed', { gameId: room.game.id, reason: 'Bạn đã rời phòng' });
+      }
+      void s.leave(roomCode);
+      s.data.roomCode = undefined;
+    }
+    if (closed) this.disband(room);
+    else this.broadcast(room);
   }
 
   private requireSeat(socket: AppSocket) {
-    const { roomCode, playerId } = socket.data;
-    if (!roomCode || !playerId) throw new RoomError('Bạn chưa ở trong phòng nào');
-    return { roomCode, playerId };
+    const { roomCode, user } = socket.data;
+    if (!roomCode) throw new RoomError('Bạn chưa ở trong phòng nào');
+    return { roomCode, playerId: user.id };
+  }
+
+  private socketsOf(userId: string) {
+    return [...this.server.sockets.sockets.values()].filter((s) => s.data.user?.id === userId);
   }
 
   /** Sends everyone still in a deleted room back out, then refreshes the room list. */
@@ -165,7 +229,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       if (socket.data.roomCode !== room.code) continue;
       socket.emit('room:closed', { gameId: room.game.id, reason: 'Phòng đã giải tán' });
       void socket.leave(room.code);
-      socket.data = {};
+      socket.data.roomCode = undefined;
     }
     this.broadcastLobby(room.game.id);
   }
@@ -184,19 +248,21 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   /** Sends each member its own filtered snapshot, and the new room list to browsers. */
   private broadcast(room: Room) {
     for (const socket of this.server.sockets.sockets.values()) {
-      const { roomCode, playerId } = socket.data;
-      if (roomCode === room.code && playerId) {
-        socket.emit('room:state', this.rooms.snapshotFor(room, playerId));
+      const { roomCode, user } = socket.data;
+      if (roomCode === room.code && user) {
+        socket.emit('room:state', this.rooms.snapshotFor(room, user.id));
       }
     }
     this.broadcastLobby(room.game.id);
   }
 
-  private handle(fn: () => object): Result {
+  private async handle(fn: () => object | Promise<object>): Promise<Result> {
     try {
-      return { ok: true, ...fn() };
+      return { ok: true, ...(await fn()) };
     } catch (err) {
-      if (err instanceof RoomError) return { ok: false, error: err.message };
+      if (err instanceof RoomError || err instanceof AccountError) {
+        return { ok: false, error: err.message };
+      }
       console.error(err);
       return { ok: false, error: 'Server gặp lỗi, thử lại sau' };
     }

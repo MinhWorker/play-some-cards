@@ -1,26 +1,28 @@
 import type { JoinedRoom, RoomSnapshot } from '@psc/shared';
 import { useCallback, useEffect, useState } from 'react';
-import { loadSession, saveSession } from '@/lib/session';
 import { request, socket } from '@/lib/socket';
 
 /**
- * Owns the connection to the current room: joining, leaving, rejoining and live state.
- * `onClosed` runs when the server disbands the room while we are in it.
+ * Owns the current room: entering, leaving and live state. Which room you are in comes from
+ * the server (useAccount's `onResume` calls `resume`), not from this browser.
+ * `onClosed` runs when the server sends us out of the room (disbanded, or we left elsewhere).
  */
 export function useRoom(onClosed: (info: { gameId: string; reason: string }) => void) {
-  const [session, setSession] = useState<JoinedRoom | null>(loadSession);
+  const [session, setSession] = useState<JoinedRoom | null>(null);
   const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
 
-  const enter = useCallback((joined: JoinedRoom) => {
-    saveSession(joined);
-    setSession(joined);
-  }, []);
-
   const exit = useCallback(() => {
-    saveSession(null);
     setSession(null);
     setSnapshot(null);
   }, []);
+
+  // The server sends the room's `room:state` before answering, so the snapshot is already here.
+  const enter = useCallback((joined: JoinedRoom) => setSession(joined), []);
+
+  const resume = useCallback(
+    (room: JoinedRoom | null) => (room ? enter(room) : exit()),
+    [enter, exit],
+  );
 
   useEffect(() => {
     const closed = (info: { gameId: string; reason: string }) => {
@@ -35,26 +37,10 @@ export function useRoom(onClosed: (info: { gameId: string; reason: string }) => 
     };
   }, [exit, onClosed]);
 
-  // Rejoin on first load and after every reconnect (e.g. server restart, Wi-Fi drop).
-  useEffect(() => {
-    const rejoin = () => {
-      const saved = loadSession();
-      if (!saved) return;
-      request('room:rejoin', { roomCode: saved.roomCode, sessionToken: saved.sessionToken }).catch(
-        exit,
-      );
-    };
-    if (socket.connected) rejoin();
-    socket.on('connect', rejoin);
-    return () => {
-      socket.off('connect', rejoin);
-    };
-  }, [exit]);
-
   const leave = useCallback(async () => {
     await request('room:leave', {}).catch(() => {});
     exit();
   }, [exit]);
 
-  return { session, snapshot, enter, leave };
+  return { session, snapshot, enter, resume, leave };
 }

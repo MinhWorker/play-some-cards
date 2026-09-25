@@ -6,7 +6,7 @@
 // Prompts live in assets/prompts.json. Output: apps/web/public/shared/images/<name>.webp, or
 // apps/web/public/games/<game>/images/<name>.webp when the entry has "game" (used by one game only).
 // Raw full-size PNGs are kept next to it in assets/shared/images/ or assets/games/<game>/images/
-// (gitignored) for re-processing.
+// (Git LFS) for re-processing.
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
