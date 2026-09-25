@@ -1,175 +1,261 @@
 #!/usr/bin/env python3
-"""Generate the original Xiangqi board-game sound effects.
+"""Generate Xiangqi sound effects with Veo, then cut them into app-ready WAVs.
 
-Requires Python's standard library. Generated sources go under assets/games/xiangqi/audio/
-(gitignored); run npm run audio -- <sound-name> to build app-ready WAV files.
+Requires gcloud auth, ffmpeg, ffprobe, and npm. The original MP4s are kept in the
+gitignored assets/games/xiangqi/audio/ directory; only the final WAVs are committed.
 """
 
-import math
-import random
-import struct
-import wave
+import argparse
+import base64
+import json
+import os
+import subprocess
+import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SFX_DIR = ROOT / "assets" / "games" / "xiangqi" / "audio"
-RATE = 48_000
-random.seed(9031)
+SOURCE_DIR = ROOT / "assets" / "games" / "xiangqi" / "audio"
+PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "rcloud-507417")
+REGION = "us-central1"
+MODEL = "veo-3.1-fast-generate-001"
+ENDPOINT = (
+    f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}"
+    f"/locations/{REGION}/publishers/google/models/{MODEL}"
+)
+TIMEOUT_SECONDS = 15 * 60
+
+SOUNDS = (
+    "xiangqi-start",
+    "xiangqi-piece-select",
+    "xiangqi-move",
+    "xiangqi-capture",
+    "xiangqi-check",
+    "xiangqi-turn",
+    "xiangqi-illegal",
+)
+
+VIDEOS = (
+    (
+        "veo-xiangqi-pieces.mp4",
+        "A clean cinematic macro video of a traditional Chinese chess (xiangqi) board "
+        "on a quiet wooden table. The audio is the priority: generate four distinct, "
+        "dry close-miked game sound effects, with clean silence between them and no "
+        "room tone. Show each action as it sounds. At about 0.3 seconds, two delicate "
+        "wooden pieces are placed on the board, followed by a tiny warm two-note start "
+        "chime. At about 2.1 seconds, a finger lightly taps and selects one wooden piece: "
+        "one small bright click. At about 4.0 seconds, a piece slides a short distance "
+        "over the board and is set down with one crisp wooden clack. At about 6.0 seconds, "
+        "a capture happens: one slightly heavier double wooden clack, then the captured "
+        "piece is lifted away. Keep every effect short, natural, distinct, and game-ready. "
+        "Leave roughly a second of silence after each event. No music, no speech, no "
+        "narration, no crowd, no wind, no background ambience, no extra impacts.",
+    ),
+    (
+        "veo-xiangqi-tactics.mp4",
+        "A clean cinematic macro video of a traditional Chinese chess (xiangqi) board "
+        "on a quiet wooden table. The audio is the priority: generate three distinct, "
+        "dry close-miked interface sound effects, with clean silence between them and "
+        "no room tone. At about 0.4 seconds, a king is put in check: one restrained "
+        "wooden tick and a brief two-note warning chime, clear but not alarming. At "
+        "about 3.1 seconds, a player's turn begins: one soft, friendly high ping. At "
+        "about 5.7 seconds, an illegal move is rejected: two quiet, low, muted wooden "
+        "knocks in quick succession. Show each sound with a small corresponding piece "
+        "or light cue on the board. Keep the sounds short, natural, separate, and "
+        "game-ready. Leave over a second of silence after each event. No music, no "
+        "speech, no narration, no crowd, no wind, no background ambience, no extra impacts.",
+    ),
+)
 
 
-def frames(seconds):
-    return max(0, round(seconds * RATE))
+def access_token():
+    return subprocess.check_output(
+        ["gcloud", "auth", "print-access-token"], text=True
+    ).strip()
 
 
-def silence(seconds):
-    return [0.0] * frames(seconds)
-
-
-def wood_hit(target, start, pitch=720, strength=0.2, duration=0.16):
-    offset = frames(start)
-    count = frames(duration)
-    modes = (
-        (0.72, 0.32, 27),
-        (1.0, 0.52, 35),
-        (1.49, 0.28, 52),
-        (2.07, 0.16, 74),
-        (3.22, 0.07, 108),
+def post_json(url, body, token):
+    request = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode(),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json; charset=utf-8",
+        },
     )
-    noise_state = 0.0
-    for index in range(count):
-        frame = offset + index
-        if frame >= len(target):
-            break
-        t = index / RATE
-        attack = 1 - math.exp(-t * 1150)
-        body = sum(
-            amplitude * math.sin(2 * math.pi * pitch * ratio * t) * math.exp(-t * decay)
-            for ratio, amplitude, decay in modes
+    try:
+        with urllib.request.urlopen(request, timeout=90) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as error:
+        details = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Google Cloud API returned HTTP {error.code}: {details[:3000]}"
+        ) from error
+
+
+def find_video(value):
+    if isinstance(value, dict):
+        videos = value.get("videos")
+        if isinstance(videos, list) and videos:
+            for video in videos:
+                if isinstance(video, dict) and (
+                    video.get("bytesBase64Encoded") or video.get("gcsUri")
+                ):
+                    return video
+        for child in value.values():
+            found = find_video(child)
+            if found:
+                return found
+    elif isinstance(value, list):
+        for child in value:
+            found = find_video(child)
+            if found:
+                return found
+    return None
+
+
+def fetch_gcs_video(uri, output):
+    result = subprocess.run(
+        ["gcloud", "storage", "cp", uri, str(output)],
+        cwd=ROOT,
+        check=False,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Could not download generated video from {uri}")
+
+
+def generate_video(filename, prompt, token):
+    output = SOURCE_DIR / filename
+    request = {
+        "instances": [{"prompt": prompt}],
+        "parameters": {
+            "aspectRatio": "16:9",
+            "durationSeconds": 8,
+            "generateAudio": True,
+            "sampleCount": 1,
+            "resolution": "720p",
+            "personGeneration": "dont_allow",
+            "negativePrompt": (
+                "music, soundtrack, song, singing, speech, narration, crowd, wind, "
+                "continuous ambience, reverberant room, loud effects, extra noises"
+            ),
+        },
+    }
+    print(f"Requesting {filename} from {MODEL} in project {PROJECT}…", flush=True)
+    operation = post_json(f"{ENDPOINT}:predictLongRunning", request, token)
+    operation_name = operation.get("name")
+    if not operation_name:
+        raise RuntimeError("Veo did not return an operation name: " + json.dumps(operation)[:2000])
+
+    deadline = time.monotonic() + TIMEOUT_SECONDS
+    while True:
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"Timed out waiting for {filename}; operation: {operation_name}")
+        time.sleep(15)
+        result = post_json(
+            f"{ENDPOINT}:fetchPredictOperation",
+            {"operationName": operation_name},
+            token,
         )
-        noise_state += 0.24 * (random.uniform(-1, 1) - noise_state)
-        click = noise_state * math.exp(-t * 125)
-        target[frame] += strength * attack * (body + 0.16 * click)
-
-
-def chime(target, frequency, start, duration=0.32, strength=0.12):
-    offset = frames(start)
-    count = frames(duration)
-    for index in range(count):
-        frame = offset + index
-        if frame >= len(target):
+        if result.get("error"):
+            raise RuntimeError(f"Veo generation failed: {json.dumps(result['error'])[:2500]}")
+        if result.get("done"):
             break
-        t = index / RATE
-        attack = min(1.0, t / 0.008)
-        envelope = attack * math.exp(-4.2 * t / duration)
-        partials = (
-            math.sin(2 * math.pi * frequency * t)
-            + 0.28 * math.sin(2 * math.pi * frequency * 2.72 * t)
-            + 0.08 * math.sin(2 * math.pi * frequency * 4.16 * t)
-        )
-        target[frame] += strength * envelope * partials
+        print(f"  Still generating {filename}…", flush=True)
+
+    video = find_video(result.get("response", result))
+    if not video:
+        raise RuntimeError("Veo completed without returning video bytes: " + json.dumps(result)[:2500])
+    SOURCE_DIR.mkdir(parents=True, exist_ok=True)
+    if video.get("bytesBase64Encoded"):
+        output.write_bytes(base64.b64decode(video["bytesBase64Encoded"]))
+    elif video.get("gcsUri"):
+        fetch_gcs_video(video["gcsUri"], output)
+    else:
+        raise RuntimeError("Veo returned an unsupported video result")
+    print(f"Saved {output.relative_to(ROOT)} ({output.stat().st_size / 1_000_000:.1f} MB)", flush=True)
 
 
-def scrape(target, start, duration=0.09, strength=0.08):
-    offset = frames(start)
-    count = frames(duration)
-    filtered = 0.0
-    for index in range(count):
-        frame = offset + index
-        if frame >= len(target):
-            break
-        t = index / RATE
-        ratio = t / duration
-        filtered += 0.19 * (random.uniform(-1, 1) - filtered)
-        envelope = math.sin(math.pi * ratio) ** 0.7
-        target[frame] += strength * envelope * filtered
+def inspect_video(path):
+    raw = subprocess.check_output(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=codec_type,codec_name,sample_rate,channels",
+            "-of",
+            "json",
+            str(path),
+        ],
+        text=True,
+    )
+    info = json.loads(raw)
+    audio_streams = [stream for stream in info.get("streams", []) if stream.get("codec_type") == "audio"]
+    if not audio_streams:
+        raise RuntimeError(f"Generated video has no audio stream: {path}")
+    duration = float(info.get("format", {}).get("duration", 0))
+    if not 7.0 <= duration <= 9.0:
+        raise RuntimeError(f"Expected an 8-second source but got {duration:.2f}s: {path}")
+    print(f"  {path.name}: {duration:.2f}s, audio {audio_streams[0]}", flush=True)
 
 
-def cue_start():
-    result = silence(0.92)
-    for index, (start, pitch) in enumerate(
-        ((0.03, 940), (0.16, 750), (0.29, 820), (0.42, 660), (0.55, 740))
-    ):
-        wood_hit(result, start, pitch=pitch, strength=0.15 - index * 0.012)
-    chime(result, 587.33, 0.57, duration=0.35, strength=0.07)
-    chime(result, 783.99, 0.69, duration=0.38, strength=0.07)
-    return result
-
-
-def cue_piece_select():
-    result = silence(0.24)
-    wood_hit(result, 0.01, pitch=1040, strength=0.22, duration=0.13)
-    return result
-
-
-def cue_move():
-    result = silence(0.38)
-    scrape(result, 0.005, duration=0.12, strength=0.09)
-    wood_hit(result, 0.095, pitch=670, strength=0.2, duration=0.18)
-    return result
-
-
-def cue_capture():
-    result = silence(0.48)
-    scrape(result, 0.0, duration=0.1, strength=0.07)
-    wood_hit(result, 0.035, pitch=560, strength=0.19, duration=0.21)
-    wood_hit(result, 0.105, pitch=430, strength=0.28, duration=0.24)
-    return result
-
-
-def cue_check():
-    result = silence(0.64)
-    wood_hit(result, 0.01, pitch=490, strength=0.13, duration=0.17)
-    chime(result, 784, 0.07, duration=0.34, strength=0.105)
-    chime(result, 622.25, 0.25, duration=0.38, strength=0.09)
-    return result
-
-
-def cue_turn():
-    result = silence(0.44)
-    wood_hit(result, 0.015, pitch=850, strength=0.11, duration=0.11)
-    chime(result, 880, 0.05, duration=0.32, strength=0.1)
-    return result
-
-
-def cue_illegal():
-    result = silence(0.34)
-    wood_hit(result, 0.015, pitch=360, strength=0.17, duration=0.17)
-    wood_hit(result, 0.1, pitch=290, strength=0.11, duration=0.16)
-    return result
-
-
-def write_wav(name, samples):
-    peak = max((abs(sample) for sample in samples), default=0)
-    scale = 0.7 / peak if peak else 1.0
-    SFX_DIR.mkdir(parents=True, exist_ok=True)
-    output = SFX_DIR / name
-    with wave.open(str(output), "wb") as audio:
-        audio.setnchannels(1)
-        audio.setsampwidth(2)
-        audio.setframerate(RATE)
-        audio.writeframes(
-            b"".join(
-                struct.pack("<h", max(-32768, min(32767, round(sample * scale * 32767))))
-                for sample in samples
-            )
-        )
-    print(f"Wrote {output.relative_to(ROOT)} ({len(samples) / RATE:.2f}s)")
+def build_app_sounds():
+    command = ["npm", "run", "audio", "--", *SOUNDS]
+    subprocess.run(command, cwd=ROOT, check=True)
+    for name in SOUNDS:
+        path = ROOT / "games" / "xiangqi" / "assets" / f"{name}.wav"
+        if not path.is_file() or path.stat().st_size < 1024:
+            raise RuntimeError(f"App-ready sound is missing or unexpectedly small: {path}")
 
 
 def main():
-    cues = (
-        ("psc-xiangqi-start.wav", cue_start),
-        ("psc-xiangqi-piece-select.wav", cue_piece_select),
-        ("psc-xiangqi-move.wav", cue_move),
-        ("psc-xiangqi-capture.wav", cue_capture),
-        ("psc-xiangqi-check.wav", cue_check),
-        ("psc-xiangqi-turn.wav", cue_turn),
-        ("psc-xiangqi-illegal.wav", cue_illegal),
+    global PROJECT, ENDPOINT
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--project",
+        default=PROJECT,
+        help="Google Cloud project to bill (default: GOOGLE_CLOUD_PROJECT or rcloud-507417)",
     )
-    for name, render in cues:
-        write_wav(name, render())
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Generate both videos again even when saved originals already exist",
+    )
+    args = parser.parse_args()
+    PROJECT = args.project
+    ENDPOINT = (
+        f"https://{REGION}-aiplatform.googleapis.com/v1/projects/{PROJECT}"
+        f"/locations/{REGION}/publishers/google/models/{MODEL}"
+    )
+
+    for tool in ("gcloud", "ffmpeg", "ffprobe", "npm"):
+        if subprocess.run(["which", tool], stdout=subprocess.DEVNULL, check=False).returncode != 0:
+            raise RuntimeError(f"Required command not found: {tool}")
+    token = None
+
+    for filename, prompt in VIDEOS:
+        source = SOURCE_DIR / filename
+        if source.exists() and not args.force:
+            print(f"Reusing existing source: {source.relative_to(ROOT)}", flush=True)
+        else:
+            if token is None:
+                token = access_token()
+                if not token:
+                    raise RuntimeError("gcloud returned an empty access token")
+            generate_video(filename, prompt, token)
+        inspect_video(source)
+
+    build_app_sounds()
+    print("Built seven Xiangqi WAV effects under games/xiangqi/assets/.", flush=True)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, RuntimeError, subprocess.CalledProcessError, TimeoutError) as error:
+        print(f"✗ {error}", file=sys.stderr)
+        sys.exit(1)

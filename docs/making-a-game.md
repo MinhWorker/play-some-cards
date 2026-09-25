@@ -89,6 +89,8 @@ app-ready files: every image in `sources/` becomes a trimmed, resized `assets/<s
 ```
 
 Use `"format": "wav"` for short effects (MP3 adds a small delay at the start).
+Files named `music-*.mp3` in `assets/` are the game's background music: one of them plays at
+random on its board.
 
 To generate art with Codex (if you have it), add a prompt to `sources/prompts.json`
 (`{ "assets": { "card-back": { "transparent": true, "maxSize": 256, "prompt": "…" } } }`) and run

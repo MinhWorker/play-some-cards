@@ -21,6 +21,8 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
   private highlighted = '';
   /** No landing sound for pieces already on the board when the scene opens (e.g. rejoin). */
   private firstDraw = true;
+  /** A result was already shown (the draw sound plays once). */
+  private hadResult = false;
 
   protected build() {
     this.status = this.add.text(0, 0, '', titleStyle(40)).setOrigin(0.5);
@@ -45,6 +47,7 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
     this.pieces = Array(9).fill(null);
     this.highlighted = '';
     this.firstDraw = true;
+    this.hadResult = false;
   }
 
   private canPlay(cell: number) {
@@ -57,6 +60,13 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
     const { size, cx, cy, hud, statusY, scoreY } = this.boardArea();
     const cellSize = size / 3;
     const line = winningLine(view.board);
+
+    if (this.firstDraw && !result && view.board.every((cell) => cell === null)) {
+      this.sfx('caro-start');
+    } else if (!this.firstDraw && !this.hadResult && result && !line) {
+      this.sfx('caro-draw');
+    }
+    this.hadResult = Boolean(result);
 
     const status = result
       ? 'Hết ván!'
@@ -93,7 +103,7 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
           duration: 260,
           ease: 'Back.easeOut',
         });
-        if (!this.firstDraw) this.sfx('mark-drop');
+        if (!this.firstDraw) this.sfx(mark === 'X' ? 'mark-drop' : 'caro-o-place');
       } else if (piece) {
         piece.setPosition(x, y);
         // Pieces still popping in or bouncing (winning line) keep their tweened scale.
@@ -144,6 +154,7 @@ export class TicTacToeScene extends BoardScene<TicTacToeState, TicTacToeMove> {
     if (key === this.highlighted) return;
     this.highlighted = key;
     if (!line) return;
+    if (!this.firstDraw) this.sfx('caro-line-complete');
     line.forEach((cell, i) => {
       const piece = this.pieces[cell];
       if (!piece) return;
