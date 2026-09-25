@@ -7,6 +7,8 @@ import { io } from 'socket.io-client';
 const url = process.argv[2] ?? 'http://localhost:8033';
 
 const tag = Date.now().toString(36);
+// Bots speak whatever protocol the server speaks (see PROTOCOL_VERSION).
+const { protocol } = await (await fetch(`${url}/api/health`)).json();
 
 async function auth(path, body) {
   const res = await fetch(`${url}/api/auth/${path}`, {
@@ -24,7 +26,7 @@ const signUp = (name) =>
   auth('register', { username: `${name}${tag}`, password: 'smoke123', name, avatar: 'boy' });
 
 function client(token) {
-  const socket = io(url, { transports: ['websocket'], auth: { token } });
+  const socket = io(url, { transports: ['websocket'], auth: { token, protocol } });
   const send = (event, payload) =>
     new Promise((resolve, reject) =>
       socket.emit(event, payload, (res) => (res.ok ? resolve(res) : reject(new Error(res.error)))),

@@ -1,0 +1,29 @@
+name: Bug
+description: Something is broken or looks wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: And what you expected instead. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      placeholder: |
+        1. Open Caro, create a room
+        2. ...
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: iPhone 13, Safari
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Shown at the bottom of the sound panel (speaker button, top right).
+      placeholder: v0.1.0 · 1a2b3c4

@@ -1,0 +1,4 @@
+# The owner reviews core changes. A game folder can name its own maintainer, who then reviews
+# PRs for that game, e.g.:
+# /games/xiangqi/  @their-github-name
+*  @MinhWorker

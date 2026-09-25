@@ -1,0 +1,49 @@
+name: PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # The PR title becomes the squash commit on main, and release-please reads it for the changelog.
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            refactor
+            docs
+            test
+            build
+            ci
+            chore
+            revert
+
+  # Web and server deploy separately: a protocol change needs a PROTOCOL_VERSION bump.
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: PROTOCOL_VERSION bumped when protocol.ts changed
+        env:
+          BASE: origin/${{ github.base_ref }}
+          COMPATIBLE: ${{ contains(github.event.pull_request.labels.*.name, 'protocol:compatible') }}
+        run: |
+          file=packages/shared/src/protocol.ts
+          if git diff --quiet "$BASE...HEAD" -- "$file"; then exit 0; fi
+          if git diff "$BASE...HEAD" -- "$file" | grep -q '^+export const PROTOCOL_VERSION'; then exit 0; fi
+          if [ "$COMPATIBLE" = true ]; then exit 0; fi
+          echo "::error file=$file::protocol.ts changed but PROTOCOL_VERSION did not. Bump it, or add the 'protocol:compatible' label if old clients and servers still work with this change."
+          exit 1

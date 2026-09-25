@@ -5,15 +5,50 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run check
       - run: npm run build
+
+  # The real app in headless Chromium, against a server without a database.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start the app
+        run: |
+          npm run dev > dev.log 2>&1 &
+          for i in $(seq 120); do
+            curl -sf localhost:8033/api/health > /dev/null && curl -sf localhost:5033 > /dev/null && exit 0
+            sleep 1
+          done
+          cat dev.log; exit 1
+      - run: npm run smoke
+      - run: npm run e2e
+      - name: Dev server log
+        if: failure()
+        run: cat dev.log
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-screenshots
+          path: .e2e/
+          retention-days: 7

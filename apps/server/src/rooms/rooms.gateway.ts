@@ -5,12 +5,14 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import type {
-  ClientToServerEvents,
-  JoinedRoom,
-  RoomRole,
-  ServerToClientEvents,
-  User,
+import {
+  type ClientToServerEvents,
+  type JoinedRoom,
+  PROTOCOL_MISMATCH,
+  PROTOCOL_VERSION,
+  type RoomRole,
+  type ServerToClientEvents,
+  type User,
 } from '@psc/shared';
 import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
@@ -54,6 +56,12 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   afterInit(server: AppServer) {
     // The client sees a refused connection as `connect_error` with this message.
     server.use((socket, next) => {
+      if (socket.handshake.auth?.protocol !== PROTOCOL_VERSION) {
+        // Web and server deploy separately; the client reloads or waits (see PROTOCOL_VERSION).
+        return next(
+          Object.assign(new Error(PROTOCOL_MISMATCH), { data: { protocol: PROTOCOL_VERSION } }),
+        );
+      }
       this.accounts.authenticate(socket.handshake.auth?.token).then(
         (user) => {
           if (!user) return next(new Error('unauthorized'));

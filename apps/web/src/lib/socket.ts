@@ -1,14 +1,21 @@
-import type { ClientToServerEvents, ServerToClientEvents } from '@psc/shared';
+import {
+  type ClientToServerEvents,
+  type HandshakeAuth,
+  PROTOCOL_VERSION,
+  type ServerToClientEvents,
+} from '@psc/shared';
 import { io, type Socket } from 'socket.io-client';
 import { loadToken, serverUrl } from '@/lib/auth';
 
 /**
  * The game connection. It only connects once logged in (useAccount calls `connect()`); the
- * login token is read again on every (re)connect.
+ * login token is read again on every (re)connect. `useVersionGuard` handles a server that
+ * speaks another PROTOCOL_VERSION.
  */
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(serverUrl, {
   autoConnect: false,
-  auth: (cb) => cb({ token: loadToken() ?? '' }),
+  auth: (cb) =>
+    cb({ token: loadToken() ?? '', protocol: PROTOCOL_VERSION } satisfies HandshakeAuth),
 });
 
 type Events = ClientToServerEvents;
