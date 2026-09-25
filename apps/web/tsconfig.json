@@ -7,7 +7,10 @@
     "jsx": "react-jsx",
     "types": ["vite/client"],
     "noEmit": true,
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "customConditions": ["psc-source"]
   },
   "include": ["src", "vite.config.ts"]
 }

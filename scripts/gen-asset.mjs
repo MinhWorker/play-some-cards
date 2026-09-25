@@ -4,7 +4,9 @@
 //   npm run gen:asset -- --edit <name> "<change>"   ask Codex to edit the existing image
 //                                                   (keeps its style; e.g. "make the flag yellow")
 // Prompts live in assets/prompts.json. Output: apps/web/public/shared/images/<name>.webp, or
-// apps/web/public/games/<game>/images/<name>.webp when the entry has "game" (used by one game only).
+// games/<game>/assets/<file or name>.webp when the entry has "game" (used by that game only;
+// "file" names the output when it differs from the prompt name, e.g. every game's "island";
+// "path" puts it anywhere else, relative to the repo root).
 // Raw full-size PNGs are kept next to it in assets/shared/images/ or assets/games/<game>/images/
 // (Git LFS) for re-processing.
 import { spawn } from 'node:child_process';
@@ -39,7 +41,13 @@ const ownerDir = (name) => {
   const game = config.assets[name]?.game;
   return game ? `games/${game}` : 'shared';
 };
-const outDir = (name) => join(root, 'apps/web/public', ownerDir(name), 'images');
+const outFile = (name) => {
+  const { game, file, path } = config.assets[name] ?? {};
+  if (path) return join(root, path);
+  return game
+    ? join(root, 'games', game, 'assets', `${file ?? name}.webp`)
+    : join(root, 'apps/web/public/shared/images', `${name}.webp`);
+};
 const rawDir = (name) => join(root, 'assets', ownerDir(name), 'images');
 
 const args = process.argv.slice(2);
@@ -52,7 +60,7 @@ if (edit && (!edit.name || !edit.change)) {
 const names = edit
   ? [edit.name]
   : args.includes('--missing')
-    ? Object.keys(config.assets).filter((n) => !existsSync(join(outDir(n), `${n}.webp`)))
+    ? Object.keys(config.assets).filter((n) => !existsSync(outFile(n)))
     : args;
 if (names.length === 0) {
   console.log('Usage: npm run gen:asset -- <name...> | --missing');
@@ -90,7 +98,7 @@ async function generate(name) {
 
 export async function processRaw(name, asset) {
   const raw = join(rawDir(name), `${name}.png`);
-  mkdirSync(outDir(name), { recursive: true });
+  mkdirSync(dirname(outFile(name)), { recursive: true });
   let img = sharp(raw);
   if (asset.transparent) {
     const { channels } = await img.metadata();
@@ -106,7 +114,7 @@ export async function processRaw(name, asset) {
       withoutEnlargement: true,
     })
     .webp({ quality: 85, alphaQuality: 90 })
-    .toFile(join(outDir(name), `${name}.webp`));
+    .toFile(outFile(name));
   console.log(`✓ ${name}`);
 }
 

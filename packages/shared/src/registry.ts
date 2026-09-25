@@ -1,22 +1,25 @@
 import type { AnyGameDefinition } from './game.js';
-import { ticTacToe } from './games/tic-tac-toe/index.js';
+import { plugins } from './generated/games.js';
 
 /**
- * Every playable game. To add a game: create `src/games/<id>/index.ts`,
- * then add it here. See docs/adding-a-game.md.
+ * Every game in games/*, found by scripts/gen-plugins.mjs (it writes generated/games.ts on
+ * install and before every build). There is nothing to register by hand.
  */
-export const games: Record<string, AnyGameDefinition> = {
-  [ticTacToe.id]: ticTacToe,
-};
+export const games: Record<string, AnyGameDefinition> = Object.fromEntries(
+  plugins.map(({ meta, rules }) => [meta.id, { ...rules, ...meta }]),
+);
 
 export function getGame(id: string): AnyGameDefinition | undefined {
   return games[id];
 }
 
 /** Lightweight info the web lobby can show without loading game logic. */
-export const gameList = Object.values(games).map(({ id, name, minPlayers, maxPlayers }) => ({
-  id,
-  name,
-  minPlayers,
-  maxPlayers,
-}));
+export const gameList = Object.values(games).map(
+  ({ id, name, minPlayers, maxPlayers, status }) => ({
+    id,
+    name,
+    minPlayers,
+    maxPlayers,
+    status,
+  }),
+);

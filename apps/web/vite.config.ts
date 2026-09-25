@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig } from 'vite';
 
 // Ports can be moved (e.g. to run a second copy of the repo next to the first one):
 // WEB_PORT for this dev server, PORT for the game server it forwards to (same as the server's).
@@ -28,9 +28,15 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(version),
     __APP_COMMIT__: JSON.stringify(commit()),
+    // Work-in-progress games are locked on the production site only (not in dev or PR previews).
+    __SHOW_WIP__: JSON.stringify(process.env.VERCEL_ENV !== 'production'),
   },
   // `@/…` means `src/…` (also set in tsconfig.json), so imports don't need ../../
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
+  resolve: {
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    // Games and the SDK are used as TypeScript source (hot reload), not their built dist/.
+    conditions: ['psc-source', ...defaultClientConditions],
+  },
   // Phaser alone is ~1.2 MB minified; that is expected for a game engine.
   build: { chunkSizeWarningLimit: 2000 },
   server: {

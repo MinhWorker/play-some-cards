@@ -43,4 +43,6 @@ version shows at the bottom of the sound panel.
 
 ## Making a game
 
-See [docs/adding-a-game.md](docs/adding-a-game.md).
+`npm run new:game -- <id> "Tên"` creates a small working game in `games/<id>/`; everything about
+your game stays in that folder, so several people can build games at once without conflicts.
+See [docs/making-a-game.md](docs/making-a-game.md).

@@ -46,9 +46,9 @@ export function loadSound(): SoundSettings {
 }
 
 /**
- * Short effects and where they live: 'shared' (public/shared/audio/<name>.wav) or a game id
- * (public/games/<id>/audio/<name>.wav). WAV: no MP3 start padding, so they play instantly.
- * Add a name here after adding it to assets/audio.json.
+ * The app's own short effects (public/shared/audio/<name>.wav). WAV: no MP3 start padding, so
+ * they play instantly. Add a name here after adding it to assets/audio.json. A game's effects
+ * are files in games/<id>/assets/, played by its board scene with `this.sfx(name)`.
  */
 const SFX = {
   'button-click': 'shared',
@@ -56,24 +56,6 @@ const SFX = {
   'island-hover': 'shared',
   'island-click': 'shared',
   'cloud-spread': 'shared',
-  'mark-drop': 'tic-tac-toe',
-  'xiangqi-start': 'xiangqi',
-  'xiangqi-piece-select': 'xiangqi',
-  'xiangqi-move': 'xiangqi',
-  'xiangqi-capture': 'xiangqi',
-  'xiangqi-check': 'xiangqi',
-  'xiangqi-turn': 'xiangqi',
-  'xiangqi-illegal': 'xiangqi',
-  'tien-len-deal': 'tien-len',
-  'tien-len-card-select': 'tien-len',
-  'tien-len-card-play': 'tien-len',
-  'tien-len-pass': 'tien-len',
-  'tien-len-turn': 'tien-len',
-  'tien-len-last-card': 'tien-len',
-  'tien-len-combo': 'tien-len',
-  'tien-len-special-cut': 'tien-len',
-  'tien-len-special-hand': 'tien-len',
-  'tien-len-trick-clear': 'tien-len',
   'game-win': 'shared',
   'game-lose': 'shared',
 } satisfies Record<string, AssetOwner>;
@@ -86,7 +68,9 @@ music.preload = 'auto';
 let ctx: AudioContext | null = null;
 let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
-const buffers = new Map<Sfx, AudioBuffer>();
+/** Decoded effects by URL; `wanted` are URLs asked for before audio was unlocked. */
+const buffers = new Map<string, AudioBuffer>();
+const wanted = new Set<string>(Object.entries(SFX).map(([name, owner]) => soundUrl(name, owner)));
 let current = loadSound();
 
 /** Web Audio is created on the first call; browsers only let it play after a user gesture. */
@@ -98,13 +82,22 @@ function ensureAudio() {
   musicGain.connect(ctx.destination);
   sfxGain.connect(ctx.destination);
   ctx.createMediaElementSource(music).connect(musicGain);
-  for (const [name, owner] of Object.entries(SFX) as [Sfx, AssetOwner][]) {
-    void fetch(soundUrl(name, owner))
-      .then((res) => res.arrayBuffer())
-      .then((data) => ctx?.decodeAudioData(data))
-      .then((buffer) => buffer && buffers.set(name, buffer))
-      .catch(() => {});
-  }
+  for (const url of wanted) decode(url);
+}
+
+function decode(url: string) {
+  void fetch(url)
+    .then((res) => res.arrayBuffer())
+    .then((data) => ctx?.decodeAudioData(data))
+    .then((buffer) => buffer && buffers.set(url, buffer))
+    .catch(() => {});
+}
+
+/** Downloads an effect ahead of time (games' sounds, when their board opens). */
+export function loadSoundUrl(url: string) {
+  if (wanted.has(url)) return;
+  wanted.add(url);
+  if (ctx) decode(url);
 }
 
 /** Starts or pauses the music to match settings; throws (async) while audio is still locked. */
@@ -140,10 +133,16 @@ export function applySound(settings: SoundSettings) {
   void syncMusic().catch(() => {});
 }
 
-/** Plays a UI sound effect. Silent until the first tap/click unlocks audio, or when muted. */
+/** Plays one of the app's effects. Silent until the first tap/click unlocks audio, or when muted. */
 export function playSfx(name: Sfx) {
+  playSoundUrl(soundUrl(name, SFX[name]));
+}
+
+/** Plays an effect by URL on the effects channel. */
+export function playSoundUrl(url: string) {
   ensureAudio();
-  const buffer = buffers.get(name);
+  loadSoundUrl(url);
+  const buffer = buffers.get(url);
   if (!ctx || !sfxGain || !buffer || isSilent(current.sfx) || ctx.state !== 'running') return;
   const source = ctx.createBufferSource();
   source.buffer = buffer;

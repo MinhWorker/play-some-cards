@@ -1,0 +1,25 @@
+{
+  "name": "@psc/game-tien-len",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "psc-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@psc/sdk": "*",
+    "zod": "^4.6.5"
+  },
+  "peerDependencies": {
+    "phaser": "^4.2.1"
+  }
+}

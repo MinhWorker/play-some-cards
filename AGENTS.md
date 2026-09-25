@@ -6,11 +6,23 @@ Keep this file accurate when you change structure, commands, or conventions.
 ## Layout
 
 ```
-packages/shared/   @psc/shared  Game rules + socket protocol types. Pure TS, no I/O. Used by both apps.
+games/<id>/        @psc/game-<id>  One game = one folder (see docs/making-a-game.md). Nothing
+                   outside it is edited to add or change a game.
+  src/index.ts       export default definePlugin({ meta, rules }); server-safe
+  src/rules.ts       Pure rules (GameRules) + src/rules.test.ts
+  src/client.ts      export default defineClient({ scene }); browser only, loaded lazily
+  src/<Name>Scene.ts Board, extends BoardScene from @psc/sdk/client
+  assets/            App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'))
+games/tsconfig.*.json  Shared configs every game's tsconfig extends
+packages/sdk/      @psc/sdk     What games may use. `.`: defineGame/definePlugin, types, rng helpers
+                                (shuffle/pick/int/seededRng), test helpers (playMoves, moveError,
+                                assertHidden). `/client`: defineClient, BoardScene, titleStyle,
+                                hudScale, setClientHost (the app gives scenes asset URLs + sound)
+packages/shared/   @psc/shared  Core only (games never import it): socket protocol, accounts, registry
   src/account.ts     Account rules (username/password/name zod schemas) + User/AuthResponse types
-  src/game.ts        GameDefinition contract every game implements
-  src/games/<id>/    One folder per game (rules + tests)
-  src/registry.ts    List of playable games
+  src/game.ts        Re-exports the SDK's game types; AnyGameDefinition = rules + meta
+  src/registry.ts    `games` / `getGame` / `gameList` from generated/games.ts (written by
+                     scripts/libs.mjs, gitignored)
   src/protocol.ts    Socket.IO event types (client <-> server) + PROTOCOL_VERSION
 apps/server/       @psc/server  NestJS + Socket.IO. Owns rooms and game state in memory.
   src/rooms/rooms.service.ts   Room/game logic, no sockets (unit tested)
@@ -52,31 +64,32 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans
   src/phaser/                  Full-screen Phaser canvas: the world (sky, island map, game boards)
     PhaserStage.tsx            Mounts Phaser; React tells it what to show via a `Stage`
     bridge.ts                  The only React <-> Phaser channel (events)
-    BoardScene.ts              Base class for game boards
-    assets.ts                  Every image Phaser loads + its owner folder; text styles
-    scenes/                    Boot (loads images), Sky (background), Hub (island map)
+    assets.ts                  The app's own images (not games'); re-exports titleStyle/FONT
+    scenes/                    Boot (loads images + game portals), Sky (background), Hub (island map)
     objects/                   Reusable Phaser objects (Title)
-  src/games/<id>/<Name>Scene.ts  One Phaser board scene per game
-  src/games/index.ts           gameId -> scene map, and the islands shown on the home map
-  public/shared/{images,audio}/        App-ready files used across the app (committed)
-  public/games/<id>/{images,audio}/    App-ready files used by one game only (committed)
+  src/games/index.ts           Finds games by glob: their assets' URLs, lazy client loaders,
+                               `portals` for the hub, `isPlayable` (wip locked in production)
+  public/shared/{images,audio}/        App-ready files of the app itself (committed)
   public/audio/                Sounds whose purpose is not decided yet (`unsorted` in audio.json)
 assets/              Source files for the web app's images and audio (see "Art" and "Audio").
                      Committed with Git LFS (.gitattributes); run `git lfs install` once
-  prompts.json         Prompt for every generated image (`game` = belongs to one game)
+  prompts.json         Prompt for every generated image (`game` = output in games/<id>/assets/)
   audio.json           Which original becomes each app sound (+ trims, `game`/`unsorted`)
   shared/images/         Full-size Codex output for shared art
   shared/audio/{music,sfx}/  Originals of shared music and effects
   games/<id>/{images,audio}/  Originals used by one game
   audio/               Not sorted yet: Lyria/Veo experiments and downloaded effects nobody uses
                        yet. Move a file to shared/ or games/<id>/ once it has a job
+scripts/libs.mjs   Finds games/*, writes shared's generated/games.ts, builds sdk + games + shared
+                   (`npm run build -w @psc/shared` runs it; also on install and in dev --watch)
+scripts/new-game.mjs + game-template/  `npm run new:game`: copies the starter game
 scripts/gen-asset.mjs  Generates/edits art with Codex CLI
-scripts/build-audio.mjs  Encodes audio sources into apps/web/public/ (from assets/audio.json)
+scripts/build-audio.mjs  Encodes audio sources into apps/web/public/ or games/<id>/assets/
 scripts/generate-tien-len-sfx.py  Generates the Tiến lên cue sources locally (Python + ffmpeg)
 scripts/generate-xiangqi-sfx.py  Generates the Xiangqi cue sources locally (Python standard library)
 scripts/smoke.mjs  Socket-level check against a running server
 scripts/e2e.mjs    Headless browser test of the real app
-docs/              How-to guides (adding a game, deploying)
+docs/              How-to guides (making a game, deploying)
 .github/           CI (ci.yml, pr.yml), release-please (release.yml), Dependabot, CODEOWNERS,
                    PR/issue templates, rulesets/main.json (branch rules, applied by the owner)
 release-please-config.json, .release-please-manifest.json  Versioning (see docs/deploy.md)
@@ -93,7 +106,8 @@ CHANGELOG.md       Written by release-please; don't edit by hand
 | `PORT=8133 WEB_PORT=5133 npm run dev` | Same, on other ports (e.g. a second checkout next to the first) |
 | `npm run check` | Lint + typecheck + unit tests. **Must pass before you finish any task.** |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
-| `npm run build` | Build shared, server, web |
+| `npm run build` | Build sdk, games, shared, server, web |
+| `npm run new:game -- <id> "Tên"` | Create `games/<id>/` from the starter game (status `wip`) |
 | `npm run smoke [url]` | Three bots register; two play a full Caro game (one reconnects from a new "device" mid-game) while the third watches, against a running server (default `http://localhost:8033`) |
 | `npm run e2e [url]` | Headless Chromium: three people sign up, two pick Caro, create/join from the room list and play (one closes the browser and logs back in mid-game) while the third watches (needs `npm run dev`). Screenshots in `.e2e/` |
 | `npm run gen:asset -- <name>` | Generate an image from `assets/prompts.json` with Codex CLI (`--missing` for all missing) |
@@ -127,6 +141,10 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
   room is disbanded and spectators get `room:closed`. A dropped connection only marks the
   player offline. Rooms keep a score (`wins` per seat + `draws`) until disbanded.
 - Games are pure functions. Randomness only through the `rng` argument so tests are deterministic.
+- Games are plugins: `scripts/libs.mjs` lists every `games/<id>` for the server (through
+  @psc/shared), the web globs their `assets/` and `src/client.ts`. The server runs games'
+  compiled `dist/`; the web and type checks use their TypeScript source (package export
+  condition `psc-source`). `meta.status: 'wip'` = locked on the production site only.
 - Web: React owns app state (session, room snapshot) and all forms/buttons. Phaser only draws
   the world. React sends a `Stage` (`hub` | `sky` | `board` with view/me/players/result) to
   `PhaserStage`; Phaser emits `hub:select`, `hub:locked`, `board:move` on `bridge`.
@@ -146,12 +164,16 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 
 ## Conventions
 
-- TypeScript strict everywhere. ESM: relative imports in `packages/shared` and `apps/server`
-  need the `.js` extension (`./foo.js`). The web app uses extensionless imports.
+- TypeScript strict everywhere. ESM: relative imports in `packages/*`, `games/*` and
+  `apps/server` need the `.js` extension (`./foo.js`). The web app uses extensionless imports.
+- A game imports only `@psc/sdk`, `@psc/sdk/client`, `phaser`, `zod` and its own files; core
+  never imports a game (Biome `noRestrictedImports` enforces both). Grow the SDK only when a
+  second game needs the same thing; changing an SDK API means updating every game in that PR.
 - Server: do **not** use `import type` for classes injected by Nest (DI needs the runtime value).
-- `packages/shared` must build before the others typecheck; root scripts already do this.
-  If an editor shows "cannot find @psc/shared", run `npm run build -w @psc/shared`.
-- New game logic needs tests in `packages/shared/src/games/<id>/<id>.test.ts`.
+- `npm run build -w @psc/shared` (= scripts/libs.mjs) must run before the server typechecks;
+  root scripts already do this. If an editor shows "cannot find @psc/shared" or a game package,
+  run it. After adding a game folder, run `npm install` and restart `npm run dev`.
+- Game rules need tests in `games/<id>/src/rules.test.ts` (helpers in `@psc/sdk`).
 - New socket events go in `protocol.ts` first; TypeScript then shows every place to update.
 - **All user-facing text is Vietnamese**: web UI copy, and server/game error messages
   (they are shown to players). Code, comments, docs and identifiers stay in English.
@@ -172,16 +194,17 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 
 ## Art
 
-- All game art is **generated**, not hand-drawn: never draw art with SVG/CSS/Phaser graphics.
-- Every image and sound has an owner: `shared` (used across the app) or one game id. Owners map
-  to folders: `assets/shared/…` + `apps/web/public/shared/…`, or `assets/games/<id>/…` +
-  `apps/web/public/games/<id>/…`. In code, get URLs from `imageUrl(name, owner)` /
-  `soundUrl(…)` in `src/lib/assetUrl.ts`; never hard-code `/shared/...` paths.
+- Art is generated or drawn by people; never draw art with code (SVG/CSS/Phaser graphics).
+- Every image and sound has an owner: `shared` (the app) or one game id. App-ready files:
+  `apps/web/public/shared/…` or `games/<id>/assets/`; originals: `assets/shared/…` or
+  `assets/games/<id>/…`. In app code, get URLs from `imageUrl(name)` / `soundUrl(…)` in
+  `src/lib/assetUrl.ts`; in a game, use file names (`this.image('tile')`, `this.sfx('move')`).
 - Add an entry to `assets/prompts.json` (the shared `style` is prepended automatically; set
   `transparent: true` for objects, `game: "<id>"` for art only one game uses), run
-  `npm run gen:asset -- <name>`, and look at the result before using it. Phaser images also go
-  in `IMAGES` in `apps/web/src/phaser/assets.ts` (with the same owner); images used only by
-  React (e.g. `speaker-on`) are loaded with `<img src={imageUrl('speaker-on')}>`.
+  `npm run gen:asset -- <name>`, and look at the result before using it. `file` renames the
+  output (every game's home-map image is `island`). App images used by Phaser also go in `IMAGES`
+  in `apps/web/src/phaser/assets.ts`; images used only by React (e.g. `speaker-on`) are loaded
+  with `<img src={imageUrl('speaker-on')}>`. A game's images need no list.
 - To tweak an image, prefer `--edit` over regenerating so it keeps the same look.
 - Never bake text into images (Vietnamese diacritics come out wrong). Put text on top in code.
 - `avatar-long.webp` is not generated: it is the photo `assets/shared/images/Long-look-at-u.jpg`,
@@ -200,22 +223,22 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 - The web app never reads `assets/` directly. `assets/audio.json` maps each app sound
   (a short, purpose-based name) to an original (`src`, relative to `assets/`), with optional
   `start`/`duration` trims, `speed`, and `game` (owner). `npm run audio` writes
-  `apps/web/public/<owner folder>/audio/<name>.mp3|wav`. Entries marked `unsorted` (purpose not
+  `apps/web/public/shared/audio/<name>.mp3|wav` or `games/<id>/assets/<name>.mp3|wav`. Entries marked `unsorted` (purpose not
   decided) stay in `assets/audio/` and `apps/web/public/audio/`; don't wire them into the app
   until they are sorted. When the owner replaces or renames an original, update the mapping and
   rerun it. Trim quiet lead-ins so UI sounds feel instant, and use `"format": "wav"` for short
   effects (MP3 always starts with ~25 ms of encoder padding; `playSfx` loads `<name>.wav`).
 - Originals in `assets/` are committed through Git LFS (patterns in `.gitattributes`); a new
   binary type needs a pattern there. App-ready files in `apps/web/public/` are plain git.
-- Play effects with `playSfx(name)` from `src/lib/sound.ts` (add the name and its owner to `SFX`
-  there). Every React button clicks/hovers by default; change or mute that per button
+- The app plays its effects with `playSfx(name)` from `src/lib/sound.ts` (add the name to `SFX`
+  there); a game's board plays `this.sfx(name)` for `games/<id>/assets/<name>.wav`. Every React button clicks/hovers by default; change or mute that per button
   (`<Button clickSound=… hoverSound=…>`) or for all buttons inside an element
   (`{...buttonSounds({ click: 'none', hover: 'none' })}`; the nearest setting wins). The login
   form is quiet except its submit click. Hover sounds are mouse-only (on touch, "hover" fires on every tap).
 
 ## Common tasks
 
-- Add a new game: follow `docs/adding-a-game.md`.
+- Make a new game: `npm run new:game`, then `docs/making-a-game.md`.
 - Deploy / CI: see `docs/deploy.md`. Web = Vercel, server = Render, both auto-deploy from `main`.
   Database = Neon Postgres (free plan).
 

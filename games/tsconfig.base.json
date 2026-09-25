@@ -1,0 +1,13 @@
+{
+  "$comment": "Type checking for a game folder (rules + board scene). Each game's tsconfig.json extends this.",
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "customConditions": ["psc-source"],
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": [],
+    "noEmit": true
+  },
+  "include": ["${configDir}/src"]
+}

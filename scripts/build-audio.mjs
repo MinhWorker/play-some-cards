@@ -1,7 +1,7 @@
 // Re-encodes the app's sounds from the originals under assets/ (see assets/audio.json).
 //   npm run audio              rebuild every sound
 //   npm run audio -- <name>    rebuild only these
-// Output: apps/web/public/shared/audio/<name>.<format>, or apps/web/public/games/<game>/audio/ for
+// Output: apps/web/public/shared/audio/<name>.<format>, or games/<game>/assets/<file or name> for
 // sounds with "game" ("unsorted" ones stay in apps/web/public/audio/). mp3 (128 kbps) by default, or wav (mono 16-bit)
 // for short effects, since MP3 always starts with ~25 ms of encoder padding. Short fades at cuts.
 import { spawnSync } from 'node:child_process';
@@ -41,13 +41,13 @@ for (const name of names) {
   args.push('-map_metadata', '-1');
   if (format === 'wav') args.push('-ac', '1', '-c:a', 'pcm_s16le');
   else args.push('-b:a', '128k');
-  const outDir = join(
-    root,
-    'apps/web/public',
-    sound.unsorted ? 'audio' : sound.game ? `games/${sound.game}/audio` : 'shared/audio',
-  );
+  const outDir = sound.unsorted
+    ? join(root, 'apps/web/public/audio')
+    : sound.game
+      ? join(root, 'games', sound.game, 'assets')
+      : join(root, 'apps/web/public/shared/audio');
   mkdirSync(outDir, { recursive: true });
-  args.push(join(outDir, `${name}.${format}`));
+  args.push(join(outDir, `${sound.file ?? name}.${format}`));
   const res = spawnSync('ffmpeg', args, { stdio: 'inherit' });
   if (res.status === 0) console.log(`✓ ${name}`);
   else {

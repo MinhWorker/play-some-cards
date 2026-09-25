@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { islands } from '@/games';
+import { portals } from '@/games';
 import { playSfx } from '@/lib/sound';
 import { titleStyle } from '@/phaser/assets';
 import { bridge } from '@/phaser/bridge';
@@ -10,8 +10,8 @@ interface IslandView {
 }
 
 /**
- * Home screen: one floating island per game (from `islands` in games/index.ts).
- * Clicking a playable island emits 'hub:select'; locked islands just wobble.
+ * Home screen: one floating island per game (every folder in games/, see `portals`).
+ * Clicking a playable island emits 'hub:select'; locked ones (work in progress) just wobble.
  */
 export class HubScene extends Phaser.Scene {
   private views: IslandView[] = [];
@@ -21,8 +21,9 @@ export class HubScene extends Phaser.Scene {
   }
 
   create() {
-    this.views = islands.map((island) => {
-      const img = this.add.image(0, 0, island.image);
+    this.views = portals.map((island) => {
+      const open = !island.locked;
+      const img = this.add.image(0, 0, island.texture);
       const sign = this.add.image(0, img.height * 0.42, 'sign').setScale(0.9);
       const label = this.add
         .text(sign.x, sign.y + sign.displayHeight * 0.12, island.name, titleStyle(46))
@@ -34,7 +35,7 @@ export class HubScene extends Phaser.Scene {
       );
       const parts: Phaser.GameObjects.GameObject[] = [img, sign, ...orbs, label];
       let glow: Phaser.Filters.Glow | undefined;
-      if (island.gameId) {
+      if (open) {
         // Hover highlight: a warm glow around the island, toggled in hover().
         glow = img.enableFilters().filters?.internal.addGlow(0xfff1a8, 5, 0, 1.4, false, 12, 14);
         if (glow) glow.active = false;
@@ -56,15 +57,11 @@ export class HubScene extends Phaser.Scene {
         // Mouse only: on touch screens "over" fires on every tap.
         if (!pointer.wasTouch) playSfx('island-hover');
       });
-      container.on('pointerover', () =>
-        this.hover(container, true, island.gameId ? { sign, glow } : null),
-      );
-      container.on('pointerout', () =>
-        this.hover(container, false, island.gameId ? { sign, glow } : null),
-      );
+      container.on('pointerover', () => this.hover(container, true, open ? { sign, glow } : null));
+      container.on('pointerout', () => this.hover(container, false, open ? { sign, glow } : null));
       container.on('pointerup', () => {
         playSfx('island-click');
-        if (island.gameId) bridge.emit('hub:select', island.gameId);
+        if (open) bridge.emit('hub:select', island.gameId);
         else this.wobble(container);
       });
       // Orbs pulse softly, out of sync with each other.

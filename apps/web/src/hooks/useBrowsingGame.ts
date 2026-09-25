@@ -1,10 +1,11 @@
 import { games } from '@psc/shared';
 import { useCallback, useState } from 'react';
+import { isPlayable } from '@/games';
 
 /** The game whose room list is open, kept in the URL (?game=<id>) so refresh keeps it. */
 function gameFromUrl() {
   const id = new URLSearchParams(window.location.search).get('game');
-  return id && games[id] ? id : null;
+  return id && isPlayable(games[id]) ? id : null;
 }
 
 /** Which game's room list is open (null = island map), synced with the URL. */
