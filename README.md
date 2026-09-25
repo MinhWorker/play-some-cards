@@ -24,9 +24,11 @@ second browser window (or a private one) to play against yourself.
 
 ## What's inside
 
+- `games/<id>`: one folder per game (rules, board, art, sounds). Make your own with
+  `npm run new:game`, see [docs/making-a-game.md](docs/making-a-game.md)
+- `packages/sdk`: the small API games are written against
 - `apps/web`: React + Vite for the UI, Phaser 4 for the world and the game boards
 - `apps/server`: NestJS + Socket.IO; the server owns the rooms and checks every move
-- `packages/shared`: game rules and the socket protocol, used by both
 
 `npm run check` runs lint, type checks and tests. More commands and the full map: `AGENTS.md`.
 

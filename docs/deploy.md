@@ -29,6 +29,14 @@ previews talk to the production server, so a preview that bumps the protocol sho
 Database migrations run when the server starts, while the previous web build may still be live:
 make them work with the previous build (add a column first, remove the old one in a later PR).
 
+## Games
+
+`npm run build -w @psc/shared` (what Render and Vercel run) builds `@psc/sdk`, every game's server
+part and `@psc/shared` (scripts/libs.mjs), so a new folder in `games/` is deployed with no
+settings to change. The web build includes each game as its own lazily loaded chunk. Games with
+`status: 'wip'` are locked where `VERCEL_ENV=production` (the real site) and playable everywhere
+else, including PR previews; the sandbox (`/?play=<id>`) follows the same rule.
+
 ## Web app → Vercel
 
 GitHub repo `MinhWorker/play-some-cards` is connected to Vercel project

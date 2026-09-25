@@ -20,4 +20,4 @@ python3 scripts/generate-xiangqi-sfx.py
 npm run audio -- xiangqi-start xiangqi-piece-select xiangqi-move xiangqi-capture xiangqi-check xiangqi-turn xiangqi-illegal
 ```
 
-Generated source WAVs are written under `assets/games/xiangqi/audio/` (gitignored). The committed mono WAVs go under `apps/web/public/games/xiangqi/audio/`; the sounds are registered in `apps/web/src/lib/sound.ts` for a future Xiangqi scene to use with `playSfx(name)`.
+Generated source WAVs are written under `assets/games/xiangqi/audio/` (gitignored). The committed mono WAVs go under `games/xiangqi/assets/`, where the Xiangqi board plays them with `this.sfx(name)`.

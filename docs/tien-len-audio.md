@@ -23,4 +23,4 @@ python3 scripts/generate-tien-len-sfx.py
 npm run audio -- tien-len-deal tien-len-pass tien-len-turn tien-len-last-card tien-len-combo tien-len-special-cut tien-len-special-hand tien-len-trick-clear tien-len-card-select tien-len-card-play
 ```
 
-Every effect is a mono WAV so it starts without MP3 encoder padding. Originals live in `assets/games/tien-len/audio/`; the built files in `apps/web/public/games/tien-len/audio/`. Playback names are registered in `apps/web/src/lib/sound.ts`; a future Tiến lên scene can call `playSfx(name)` when its authoritative view changes.
+Every effect is a mono WAV so it starts without MP3 encoder padding. Originals live in `assets/games/tien-len/audio/`; the built files in `games/tien-len/assets/`. The Tiến lên board plays them with `this.sfx(name)` when its authoritative view changes.

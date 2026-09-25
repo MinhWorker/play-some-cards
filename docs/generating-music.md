@@ -68,7 +68,7 @@ Write a specific prompt: say whether it is instrumental, its mood/instruments/te
    ```
 
    For a short cue, set `duration` and `"format": "wav"` so playback starts without MP3 encoder padding.
-3. Build the app asset with `npm run audio -- music-board-loop`. This writes `apps/web/public/shared/audio/music-board-loop.mp3` (or `.wav`; `apps/web/public/games/<id>/audio/` for a game's own sound).
+3. Build the app asset with `npm run audio -- music-board-loop`. This writes `apps/web/public/shared/audio/music-board-loop.mp3` (or `.wav`; `games/<id>/assets/` for a game's own sound).
 4. Check that it plays and that its length/trim is right; use `ffprobe` to inspect duration. Commit the mapping and app-ready output, not the original in `assets/`.
 
 As of September 2026, the pricing page lists Lyria 3 Clip at $0.04 per generation and Pro at $0.08; verify before a large batch. Preview model names/prices can change.
