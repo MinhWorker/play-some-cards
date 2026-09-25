@@ -2,8 +2,32 @@
 
 ## CI (GitHub Actions)
 
-`.github/workflows/ci.yml` runs `npm run check` and `npm run build` on every push to `main`
-and on every pull request.
+- `ci.yml` (every PR and push to `main`): `check` = `npm run check` + `npm run build`;
+  `e2e` = `npm run dev` without a database, then `npm run smoke` and `npm run e2e` in headless
+  Chromium (screenshots are uploaded as the `e2e-screenshots` artifact).
+- `pr.yml` (PRs): `title` checks the Conventional Commit title; `protocol` fails when
+  `packages/shared/src/protocol.ts` changed without a `PROTOCOL_VERSION` bump (label
+  `protocol:compatible` to skip).
+- `release.yml` (push to `main`): release-please keeps the release PR up to date.
+- Dependabot opens grouped weekly PRs for npm and GitHub Actions.
+
+## Versions
+
+One version for the whole app, in the root `package.json`, bumped only by release-please. The
+release PR ("chore(main): release x.y.z") collects the `feat:`/`fix:` PR titles merged since the
+last release into `CHANGELOG.md`; merging it tags `vX.Y.Z` and publishes a GitHub release. Every
+merge to `main` deploys, released or not; a release is a named checkpoint.
+
+The running version shows at the bottom of the sound panel (`v0.1.0 · <commit>`) and in
+`/api/health` (`version`, `commit`, `protocol`).
+
+Web and server deploy separately (Render takes a few minutes longer than Vercel), so they compare
+`PROTOCOL_VERSION` when the socket connects. A page older than the server reloads itself; a page
+newer than the server shows "Server đang cập nhật" and retries until the server catches up. PR
+previews talk to the production server, so a preview that bumps the protocol shows that banner.
+
+Database migrations run when the server starts, while the previous web build may still be live:
+make them work with the previous build (add a column first, remove the old one in a later PR).
 
 ## Web app → Vercel
 

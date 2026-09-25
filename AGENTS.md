@@ -11,7 +11,7 @@ packages/shared/   @psc/shared  Game rules + socket protocol types. Pure TS, no 
   src/game.ts        GameDefinition contract every game implements
   src/games/<id>/    One folder per game (rules + tests)
   src/registry.ts    List of playable games
-  src/protocol.ts    Socket.IO event types (client <-> server)
+  src/protocol.ts    Socket.IO event types (client <-> server) + PROTOCOL_VERSION
 apps/server/       @psc/server  NestJS + Socket.IO. Owns rooms and game state in memory.
   src/rooms/rooms.service.ts   Room/game logic, no sockets (unit tested)
   src/rooms/rooms.gateway.ts   Socket events -> service calls, broadcasts room:state. Refuses sockets
@@ -21,6 +21,7 @@ apps/server/       @psc/server  NestJS + Socket.IO. Owns rooms and game state in
                                accounts.store.ts (Postgres, or memory without DATABASE_URL)
   src/db/                      Neon Postgres via Drizzle: db.module.ts (inject `DB`, null without
                                DATABASE_URL), schema.ts (users, sessions). Migrations in apps/server/drizzle/
+  src/version.ts               App version (root package.json) + deployed commit, for /api/health
 apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans: apps/web/README.md
   src/main.tsx                 Entry: global styles, HUD scale, renders <App />
   src/App.tsx                  Top-level state: which page shows, what Phaser draws (`Stage`)
@@ -37,14 +38,16 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide for humans
   src/components/ui/           Small building blocks (Button)
   src/hooks/                   useAccount (login state; after each connect asks the server for
                                the user + their room), useRoom (enter/leave + live state),
-                               useConnected, useBrowsingGame (?game= in URL), useBoardMoves, useGameEndSound
+                               useConnected, useVersionGuard (reload/wait on PROTOCOL_VERSION mismatch),
+                               useBrowsingGame (?game= in URL), useBoardMoves, useGameEndSound
   src/lib/                     Plain TS, no React: socket.ts (Socket.IO + `request`), auth.ts
                                (server URL, login token in localStorage, register/login calls),
                                profile.ts (silly names, avatar images), sound.ts (music + effects,
                                Web Audio gain per channel since iOS ignores audio.volume;
                                installButtonSounds() adds click/hover sounds to every button;
                                buttonSounds() changes/mutes them per button or container),
-                               hudScale.ts, assetUrl.ts (URLs of files in public/)
+                               hudScale.ts, assetUrl.ts (URLs of files in public/), version.ts
+                               (version + commit baked in by vite.config.ts)
   src/styles/                  theme.css (colors, font), base.css (panels, buttons, modals, `.hud`)
   src/phaser/                  Full-screen Phaser canvas: the world (sky, island map, game boards)
     PhaserStage.tsx            Mounts Phaser; React tells it what to show via a `Stage`
@@ -74,6 +77,10 @@ scripts/generate-xiangqi-sfx.py  Generates the Xiangqi cue sources locally (Pyth
 scripts/smoke.mjs  Socket-level check against a running server
 scripts/e2e.mjs    Headless browser test of the real app
 docs/              How-to guides (adding a game, deploying)
+.github/           CI (ci.yml, pr.yml), release-please (release.yml), Dependabot, CODEOWNERS,
+                   PR/issue templates, rulesets/main.json (branch rules, applied by the owner)
+release-please-config.json, .release-please-manifest.json  Versioning (see docs/deploy.md)
+CHANGELOG.md       Written by release-please; don't edit by hand
 ```
 
 ## Commands (run from repo root)
@@ -211,6 +218,15 @@ Never open a visible browser window (e.g. Playwright MCP tools); it pops up on t
 - Add a new game: follow `docs/adding-a-game.md`.
 - Deploy / CI: see `docs/deploy.md`. Web = Vercel, server = Render, both auto-deploy from `main`.
   Database = Neon Postgres (free plan).
+
+## Git and PRs
+
+- Never push to `main`. Work on a branch and open a PR; it is squash-merged.
+- The PR title is a Conventional Commit (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, …,
+  optional scope like `feat(xiangqi):`); CI checks it and release-please builds the changelog
+  from it. Never edit version numbers or `CHANGELOG.md`.
+- Changing `protocol.ts` in a way old clients/servers can't handle: bump `PROTOCOL_VERSION`.
+- DB migrations must keep working with the previous web build (add first, remove later).
 
 ## Before finishing
 

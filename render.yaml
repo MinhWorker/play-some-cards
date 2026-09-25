@@ -15,6 +15,8 @@ services:
         - apps/server/**
         - packages/shared/**
         - package-lock.json
+        # The root package.json holds the app version (bumped by release PRs).
+        - package.json
     envVars:
       - key: NODE_VERSION
         value: "22"

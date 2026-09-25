@@ -1,0 +1,26 @@
+name: Game idea
+description: A game you'd like to play here
+labels: [game idea]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Game
+      placeholder: Cờ tướng
+    validations:
+      required: true
+  - type: input
+    id: players
+    attributes:
+      label: Players
+      placeholder: "2"
+  - type: textarea
+    id: rules
+    attributes:
+      label: Rules, or a link to them
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Help
+      options:
+        - label: I'd like to build it (see CONTRIBUTING.md)

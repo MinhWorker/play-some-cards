@@ -8,6 +8,24 @@ import type { GameResult, PlayerId } from './game.js';
  * POST /api/auth/login or /register) and the server refuses the connection otherwise.
  */
 
+/**
+ * Bump this whenever a change here breaks older clients or servers (renamed/removed events,
+ * changed payloads). Web and server deploy separately, so they compare it on connect: the
+ * client sends it in `auth.protocol`, and the server refuses a mismatch with
+ * `PROTOCOL_MISMATCH` (the error's `data.protocol` is the server's version). CI fails when this
+ * file changes without a bump, unless the PR has the `protocol:compatible` label.
+ */
+export const PROTOCOL_VERSION = 1;
+
+/** `connect_error` message when the client's PROTOCOL_VERSION differs from the server's. */
+export const PROTOCOL_MISMATCH = 'protocol-mismatch';
+
+/** What the client passes as Socket.IO `auth` when connecting. */
+export interface HandshakeAuth {
+  token: string;
+  protocol: number;
+}
+
 export interface PlayerInfo {
   id: PlayerId;
   name: string;

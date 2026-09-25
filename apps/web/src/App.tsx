@@ -15,6 +15,7 @@ import { useBrowsingGame } from '@/hooks/useBrowsingGame';
 import { useConnected } from '@/hooks/useConnected';
 import { useGameEndSound } from '@/hooks/useGameEndSound';
 import { useRoom } from '@/hooks/useRoom';
+import { useVersionGuard } from '@/hooks/useVersionGuard';
 import { installButtonSounds } from '@/lib/sound';
 import { GameRooms } from '@/pages/GameRooms/GameRooms';
 import { Home } from '@/pages/Home/Home';
@@ -29,6 +30,7 @@ import { PhaserStage } from '@/phaser/PhaserStage';
  */
 export function App() {
   const connected = useConnected();
+  const version = useVersionGuard();
   const [notice, setNotice] = useState('');
   const [browsing, browse] = useBrowsingGame();
   const [moveError, setMoveError] = useBoardMoves();
@@ -82,8 +84,15 @@ export function App() {
     <>
       <PhaserStage stage={stage} onReady={revealCurtain} />
       <main className="ui">
-        {!connected && account.status !== 'guest' && (
-          <Banner>Đang kết nối tới server… lần đầu có thể mất tới 1 phút.</Banner>
+        {version === 'newer' ? (
+          <Banner>Đã có phiên bản mới, đang tải lại…</Banner>
+        ) : version === 'older' ? (
+          <Banner>Server đang cập nhật, chờ chút nhé…</Banner>
+        ) : (
+          !connected &&
+          account.status !== 'guest' && (
+            <Banner>Đang kết nối tới server… lần đầu có thể mất tới 1 phút.</Banner>
+          )
         )}
         {account.status === 'guest' ? (
           <Login onSignIn={signIn} />
