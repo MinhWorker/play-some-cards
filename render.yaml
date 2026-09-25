@@ -18,3 +18,6 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "22"
+      # Neon Postgres, branch "main" (pooled URL). Secret: set in the Render dashboard.
+      - key: DATABASE_URL
+        sync: false

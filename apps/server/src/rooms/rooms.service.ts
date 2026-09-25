@@ -1,4 +1,4 @@
-import { randomBytes, randomInt, randomUUID } from 'node:crypto';
+import { randomInt } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   type AnyGameDefinition,
@@ -14,12 +14,17 @@ import {
 
 export class RoomError extends Error {}
 
-/** Someone in a room: a seated player or a spectator. */
+/** Someone in a room: a seated player or a spectator. `id` is their account's user id. */
 interface Member {
   id: PlayerId;
   name: string;
-  sessionToken: string;
   connected: boolean;
+}
+
+/** The account entering a room (from the logged-in socket). */
+export interface Account {
+  id: string;
+  name: string;
 }
 
 export interface Room {
@@ -43,15 +48,17 @@ const rng = () => Math.random();
  * All room and game state lives here, in memory. Restarting the server clears every room.
  * Each room belongs to one game; players browse a game's rooms with `list`.
  * This class knows nothing about sockets; the gateway translates events into these calls.
+ * Members are accounts, and an account is in at most one room: the gateway makes a player
+ * leave their old room before entering another one (see `roomOf`).
  */
 @Injectable()
 export class RoomsService {
   private readonly rooms = new Map<string, Room>();
 
-  create(gameId: string, name: string) {
+  create(gameId: string, account: Account) {
     const game = getGame(gameId);
     if (!game) throw new RoomError(`Không có game: ${gameId}`);
-    const player = this.newMember(name);
+    const player = this.newMember(account);
     const room: Room = {
       code: this.newCode(),
       game,
@@ -76,10 +83,16 @@ export class RoomsService {
       .sort((a, b) => Number(b.canJoin) - Number(a.canJoin));
   }
 
-  join(code: string, name: string, role: RoomRole) {
+  /** Joining a room you are already in just puts you back in your place. */
+  join(code: string, account: Account, role: RoomRole) {
     const room = this.get(code);
+    const existing = this.members(room).find((m) => m.id === account.id);
+    if (existing) {
+      existing.connected = true;
+      return { room, player: existing };
+    }
     if (role === 'player') this.assertSeatFree(room);
-    const member = this.newMember(name);
+    const member = this.newMember(account);
     if (role === 'player') {
       room.players.push(member);
       room.hostId ??= member.id;
@@ -101,12 +114,20 @@ export class RoomsService {
     return room;
   }
 
-  rejoin(code: string, sessionToken: string) {
-    const room = this.get(code);
-    const member = this.members(room).find((m) => m.sessionToken === sessionToken);
-    if (!member) throw new RoomError('Không tìm thấy phiên chơi của bạn');
-    member.connected = true;
-    return { room, player: member };
+  /** The room this account is in, if any. */
+  roomOf(userId: string) {
+    for (const room of this.rooms.values()) {
+      if (this.members(room).some((m) => m.id === userId)) return room;
+    }
+    return undefined;
+  }
+
+  /** The account changed its display name: update it in its room (returned, if any). */
+  rename(userId: string, name: string) {
+    const room = this.roomOf(userId);
+    const member = room && this.members(room).find((m) => m.id === userId);
+    if (member) member.name = name;
+    return room;
   }
 
   setConnected(code: string, memberId: PlayerId, connected: boolean) {
@@ -242,15 +263,8 @@ export class RoomsService {
     return room;
   }
 
-  private newMember(name: string): Member {
-    const trimmed = name.trim().slice(0, 20);
-    if (!trimmed) throw new RoomError('Bạn cần nhập tên');
-    return {
-      id: randomUUID(),
-      name: trimmed,
-      sessionToken: randomBytes(16).toString('hex'),
-      connected: true,
-    };
+  private newMember(account: Account): Member {
+    return { id: account.id, name: account.name, connected: true };
   }
 
   private newCode() {

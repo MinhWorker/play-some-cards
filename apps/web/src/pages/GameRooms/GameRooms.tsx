@@ -7,13 +7,12 @@ import './GameRooms.css';
 
 interface Props {
   gameId: string;
-  name: string;
   onBack: () => void;
   onEnter: (joined: JoinedRoom) => void;
 }
 
 /** A game's live room list: create a room, join one as a player, or watch. */
-export function GameRooms({ gameId, name, onBack, onEnter }: Props) {
+export function GameRooms({ gameId, onBack, onEnter }: Props) {
   const game = games[gameId];
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState('');
@@ -49,9 +48,7 @@ export function GameRooms({ gameId, name, onBack, onEnter }: Props) {
   }
 
   const join = (roomCode: string, role: RoomRole) =>
-    run(() => request('room:join', { roomCode, name, role }));
-
-  const hasName = name.trim().length > 0;
+    run(() => request('room:join', { roomCode, role }));
 
   return (
     <section className="hud panel rooms" aria-label={`Phòng ${game?.name ?? ''}`}>
@@ -60,12 +57,7 @@ export function GameRooms({ gameId, name, onBack, onEnter }: Props) {
           ←
         </Button>
         <h2>{game?.name}</h2>
-        <Button
-          disabled={!hasName}
-          onClick={() => run(() => request('room:create', { gameId, name }))}
-        >
-          + Tạo phòng
-        </Button>
+        <Button onClick={() => run(() => request('room:create', { gameId }))}>+ Tạo phòng</Button>
       </div>
       {error && <p className="error">{error}</p>}
 
@@ -76,7 +68,7 @@ export function GameRooms({ gameId, name, onBack, onEnter }: Props) {
       ) : (
         <ul className="room-list">
           {rooms.map((r) => (
-            <RoomRow key={r.code} room={r} canAct={hasName} onJoin={(role) => join(r.code, role)} />
+            <RoomRow key={r.code} room={r} onJoin={(role) => join(r.code, role)} />
           ))}
         </ul>
       )}

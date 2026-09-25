@@ -1,16 +1,11 @@
+import type { Avatar } from '@psc/shared';
 import { imageUrl } from '@/lib/assetUrl';
 
-/** The player's nickname and avatar, remembered in this browser. */
-export type Avatar = 'boy' | 'girl' | 'long';
-const AVATAR_IDS: readonly string[] = ['boy', 'girl', 'long'];
-
+/** Display name + avatar (kept on the account, see `User` in @psc/shared). */
 export interface Profile {
   name: string;
   avatar: Avatar;
 }
-
-const NAME_KEY = 'psc:name';
-const AVATAR_KEY = 'psc:avatar';
 
 /** Given to players who haven't picked a nickname yet (and by the dice in the profile modal). */
 const SILLY_NAMES = [
@@ -51,24 +46,19 @@ export function randomSillyName(current = '') {
   return choices[Math.floor(Math.random() * choices.length)] ?? 'Gà Bông';
 }
 
-export function loadProfile(): Profile {
+/**
+ * Defaults for a new account: the nickname and avatar this browser used before accounts
+ * existed (kept in localStorage), else a silly name and a random avatar.
+ */
+export function startingProfile(): Profile {
   let name = '';
   let avatar: Avatar = Math.random() < 0.5 ? 'boy' : 'girl';
   try {
-    name = localStorage.getItem(NAME_KEY)?.trim() ?? '';
-    const saved = localStorage.getItem(AVATAR_KEY);
-    if (saved && AVATAR_IDS.includes(saved)) avatar = saved as Avatar;
+    name = localStorage.getItem('psc:name')?.trim().slice(0, 20) ?? '';
+    const saved = localStorage.getItem('psc:avatar');
+    if (saved === 'boy' || saved === 'girl' || saved === 'long') avatar = saved;
   } catch {}
-  const profile = { name: name || randomSillyName(), avatar };
-  saveProfile(profile);
-  return profile;
-}
-
-export function saveProfile(profile: Profile) {
-  try {
-    localStorage.setItem(NAME_KEY, profile.name);
-    localStorage.setItem(AVATAR_KEY, profile.avatar);
-  } catch {}
+  return { name: name || randomSillyName(), avatar };
 }
 
 export const avatarImage = (avatar: Avatar) => imageUrl(`avatar-${avatar}`);
