@@ -41,6 +41,11 @@ version shows at the bottom of the sound panel.
 - A change to the socket protocol that breaks old clients bumps `PROTOCOL_VERSION`
   (`packages/shared/src/protocol.ts`); CI reminds you.
 
+## License
+
+Your code is shared under MIT and your art/audio under CC BY-NC 4.0
+([LICENSE-ASSETS.md](LICENSE-ASSETS.md)). Only add art or sounds you have the right to share.
+
 ## Making a game
 
 `npm run new:game -- <id> "Tên"` creates a small working game in `games/<id>/`; everything about

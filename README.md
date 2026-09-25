@@ -36,3 +36,8 @@ second browser window (or a private one) to play against yourself.
 
 Anyone is welcome, with whatever tools you like. See [CONTRIBUTING.md](CONTRIBUTING.md).
 Deploying: [docs/deploy.md](docs/deploy.md).
+
+## License
+
+Code: [MIT](LICENSE). Art and audio: [CC BY-NC 4.0](LICENSE-ASSETS.md) (free to use and change,
+not for making money), with a few listed exceptions.
