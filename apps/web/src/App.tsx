@@ -73,13 +73,14 @@ export function App() {
       gameId: snapshot.gameId,
       view: snapshot.view,
       me: session.playerId,
-      players: snapshot.players,
+      players: snapshot.seats ?? snapshot.players,
       hostId: snapshot.hostId,
       result: snapshot.result,
       score: snapshot.score,
       options: snapshot.options,
       round: snapshot.round,
       last: snapshot.last,
+      timer: snapshot.timer,
     };
   }, [account.status, session, snapshot, browsing, settingUp, editing]);
 

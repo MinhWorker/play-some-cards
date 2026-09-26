@@ -10,7 +10,7 @@ const folder = (owner: AssetOwner) => (owner === 'shared' ? '/shared' : `/games/
 export const imageUrl = (name: string, owner: AssetOwner = 'shared') =>
   `${folder(owner)}/images/${name}.webp`;
 
-/** Built sounds (see assets/audio.json): WAV for short effects, MP3 for music. */
+/** App sounds (public/shared/audio): WAV for short effects, MP3 for music. */
 export const soundUrl = (
   name: string,
   owner: AssetOwner = 'shared',

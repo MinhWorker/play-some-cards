@@ -1,21 +1,32 @@
-# Art and audio license
+# Giấy phép hình và âm thanh
 
-The code is MIT (see `LICENSE`). The art and audio are licensed separately:
+Mã nguồn theo MIT (xem `LICENSE`). Hình và âm thanh có giấy phép riêng:
 
-**[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)**: use, copy and change them
-freely, as long as you credit "Chơi Chút Bài (github.com/MinhWorker/play-some-cards)" and don't
-use them to make money.
+**[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)**: được dùng, sao chép và sửa
+tự do, miễn là ghi nguồn "Chơi Chút Bài (github.com/MinhWorker/play-some-cards)" và không dùng để
+kiếm tiền.
 
-This covers the images and sounds in `apps/web/public/`, `games/*/assets/`, `games/*/sources/`
-and `assets/`, except:
+Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `games/*/assets/`,
+`games/*/sources/` và `assets/`, trừ:
 
-- **Third-party sound files** kept as originals, which stay under their own license from the
-  site they came from (e.g. the Pixabay/Freesound downloads in `assets/audio/sfx/`,
-  `assets/shared/audio/sfx/*.mp3` and `assets/shared/audio/music/Breezy_Heights.mp3`). The app
-  does not use them.
-- **The photo of Long** (`assets/shared/images/Long-look-at-u.jpg` and the avatar made from it,
-  `apps/web/public/shared/images/avatar-long.webp`), which is a real person's photo: not licensed
-  for reuse outside this game.
+- **File âm thanh của bên thứ ba** giữ ở dạng gốc, vẫn theo giấy phép của trang nguồn (ví dụ các
+  file tải từ Pixabay/Freesound trong `assets/audio/sfx/`, `assets/shared/audio/sfx/*.mp3` và
+  `assets/shared/audio/music/Breezy_Heights.mp3`). Ứng dụng chỉ dùng hai file trong số đó: tiếng
+  click và tiếng hover của nút (`apps/web/public/shared/audio/button-click.wav` và
+  `button-hover.wav`, cắt từ `assets/shared/audio/sfx/button-click.mp3` và `button-hover.mp3`),
+  vẫn theo giấy phép gốc của chúng. Các hiệu ứng của Tiến Lên
+  (`games/tien-len/assets/tien-len-*.wav`, trừ `tien-len-bomb` và `tien-len-win`; bản gốc là
+  `assets/games/tien-len/audio/psc-tien-len-*.wav`) được làm từ bản ghi "taking playing card"
+  của oxidvideos trên Pixabay, theo giấy phép Pixabay; tiếng đập bài (`tien-len-card-play`,
+  `tien-len-combo`) trộn thêm tiếng gỗ `assets/audio/sfx/u_scysdwddsp-wood-effect-254997.mp3`
+  (Pixabay). Nhạc tổng kết `games/tien-len/assets/tien-len-standings.mp3` là
+  `assets/audio/sfx/pw23check-winning-218995.mp3` ("winning" của pw23check, Pixabay).
+- **Ảnh của Long** (`assets/shared/images/Long-look-at-u.jpg` và avatar làm từ nó,
+  `apps/web/public/shared/images/avatar-long.webp`), là ảnh người thật: không được dùng lại bên
+  ngoài game này.
 
-By contributing art or audio, you agree to share it under the same license (and you must have
-the right to do so).
+Khi đóng góp hình hoặc âm thanh, bạn đồng ý chia sẻ chúng theo cùng giấy phép. Tài nguyên miễn phí
+lấy từ nơi khác vẫn theo điều kiện của nơi đó; ghi nguồn khi tiện. Đừng dùng tài nguyên trả phí hay
+bị cấm dùng, và không ai đem bán tài nguyên của dự án.
+
+Bản pháp lý chính thức của CC BY-NC 4.0 là văn bản tại đường link trên.

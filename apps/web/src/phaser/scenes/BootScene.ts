@@ -14,6 +14,9 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
+    // Keys that scenes watch with 'changedata-<key>' must exist first: setting a new key only
+    // sends 'setdata', so the hub's first "show the title" would go unheard.
+    this.registry.set({ showTitle: false, hubScroll: 0 });
     this.scene.launch('sky');
     this.game.events.emit('booted');
   }

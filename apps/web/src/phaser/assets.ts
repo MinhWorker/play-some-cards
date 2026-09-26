@@ -5,7 +5,7 @@ export { FONT, titleStyle } from '@psc/sdk/client';
 /**
  * Every image the app's own scenes use (apps/web/public/shared/images). Keys match the entries
  * in assets/prompts.json (generate new art with `npm run gen:asset -- <name>`). A game's images
- * live in games/<id>/assets/ and are loaded by its board scene.
+ * live in games/<id>/assets/ and are loaded by its game screen.
  */
 const IMAGES = {
   sky: 'shared',

@@ -5,18 +5,22 @@ export interface GameAssets {
 }
 
 /**
- * What the app provides to board scenes: asset URLs and its sound engine (which follows the
- * player's volume settings). Games never call this; `BoardScene.image()` / `sfx()` do.
+ * What the app provides to game scenes: asset URLs and its sound engine (which follows the
+ * player's volume settings). Games never call this; `GameScene.sprite()` / `sfx()` do.
  */
 export interface ClientHost {
   assets(gameId: string): GameAssets;
   loadSound(url: string): void;
   playSound(url: string): void;
+  /** Player pictures by avatar name (`boy`, `girl`, …, and `bot` for the computer). */
+  avatars(): Record<string, string>;
+  /** The app's own button sounds, so buttons in games sound like the app's. */
+  playUiSound(kind: 'click' | 'hover'): void;
 }
 
 let current: ClientHost | null = null;
 
-/** Called once by the app (or the sandbox) before any board scene starts. */
+/** Called once by the app (or the sandbox) before any game scene starts. */
 export function setClientHost(host: ClientHost) {
   current = host;
 }

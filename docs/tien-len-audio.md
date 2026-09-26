@@ -1,20 +1,28 @@
-# Tiến lên sound plan
+# Kế hoạch âm thanh Tiến Lên
 
-The pack uses short, tactile card sounds and warm pitched cues suited to a casual table game. It has no voice lines or background music. Result screens reuse the app's shared `game-win` and `game-lose` cues.
+Bộ âm thanh dùng tiếng bài ngắn, có cảm giác chạm tay, và các âm có cao độ ấm áp hợp với một ván
+bài vui. Không có giọng nói. Bảng tổng kết có nhạc riêng (`tien-len-standings`) thay cho `game-win`
+/ `game-lose` chung của ứng dụng (`showsResult` tắt chúng).
 
-| Moment | Sound | Trigger |
+| Khoảnh khắc | Âm thanh | Khi nào phát |
 | --- | --- | --- |
-| Initial hand arrives | `tien-len-deal` | Once when the dealt hand first appears; skip on reconnects. |
-| Select or unselect a card | `tien-len-card-select` | On a local selection change. Keep the level quiet if selection can happen rapidly. |
-| Play a single card | `tien-len-card-play` | Once after the server accepts a single-card play. Use the combination cues for grouped plays. |
-| Pass | `tien-len-pass` | Once after the server accepts a pass. |
-| Turn reaches the local player | `tien-len-turn` | Only on a transition into the local player's turn, not on room load. |
-| Any player is down to one card | `tien-len-last-card` | Once per hand on the first one-card state. |
-| Ordinary pair, triple, or straight | `tien-len-combo` | Instead of the single-card cue after an accepted combination. |
-| A valid cut or bomb | `tien-len-special-cut` | Instead of the single-card cue for a special play that cuts the current trick, according to the selected rule variant. |
-| Four-of-a-kind bomb | `tien-len-bomb` | Instead of `tien-len-special-cut` when a four-of-a-kind is played. |
-| A rare strongest hand | `tien-len-special-hand` | Instead of the single-card cue for a top-tier hand supported by the selected rule variant. |
-| All other players pass and a new trick starts | `tien-len-trick-clear` | Once when control returns to the trick leader. |
-| Local player wins the hand | `tien-len-win` | Once when the authoritative result changes to a local win; other results can reuse shared `game-lose`. |
+| Bài được chia | `tien-len-deal` | Một lần khi tay bài vừa chia hiện ra lần đầu; bỏ qua khi kết nối lại. |
+| Chọn hoặc bỏ chọn một lá | `tien-len-card-select` | Khi đổi lựa chọn trên máy mình. Để nhỏ tiếng nếu có thể chọn liên tục. |
+| Bài rời tay | `tien-len-throw` | Mỗi lần có người đánh, lúc bài bắt đầu bay về giữa bàn. |
+| Đánh một lá lẻ | `tien-len-card-play` | Một lần sau khi server chấp nhận nước đánh một lá. Nước đánh nhiều lá dùng âm thanh bộ. |
+| Bỏ lượt | `tien-len-pass` | Một lần sau khi server chấp nhận bỏ lượt. |
+| Tới lượt người chơi trên máy này | `tien-len-turn` | Chỉ khi chuyển sang lượt người chơi trên máy này, không phát lúc vào phòng. |
+| Có người còn một lá | `tien-len-last-card` | Một lần mỗi ván, lúc lần đầu có người còn một lá. |
+| Đôi, ba hoặc sảnh thường | `tien-len-combo` | Thay cho âm thanh lá lẻ sau khi một bộ được chấp nhận. |
+| Chặt hợp lệ | `tien-len-special-cut` | Thay cho âm thanh lá lẻ khi một nước đặc biệt chặt vòng hiện tại, theo biến thể luật được chọn. |
+| Chặt bằng tứ quý | `tien-len-bomb` | Thay `tien-len-special-cut` khi đánh tứ quý. |
+| Mọi người bỏ lượt, bắt đầu vòng mới | `tien-len-trick-clear` | Một lần khi quyền đánh quay về người dẫn vòng, cùng lúc bài của vòng cũ bị gạt vào chồng úp ở mép bàn (4 đợt, khớp 4 tiếng quẹt). |
+| Người chơi trên máy này về nhất một vòng | `tien-len-win` | Cùng lúc chữ "Về nhất!" nhảy lên. |
+| Sảnh dài (7 lá trở lên) | `tien-len-special-hand` | Thay cho âm thanh bộ, cùng chữ "Sảnh dài!" / "Sảnh rồng!". |
+| Bảng tổng kết ván đấu | `tien-len-standings` | Một lần cho mọi người khi bảng "Tổng kết" hiện ra (hết vòng cuối, hoặc bàn còn dưới 2 người). |
 
-The current pack has 12 cloud-generated SFX IDs built into `games/tien-len/assets/`. Generate/select their synchronized-audio video sources and build the mono WAVs with the shared workflow in [generating-sfx.md](generating-sfx.md). The Tiến Lên board can call `this.sfx(name)` after accepted moves or authoritative state transitions.
+Bộ hiện có 13 hiệu ứng trong `games/tien-len/assets/`, cộng nhạc tổng kết.
+Tiếng chát của mỗi âm nằm ngay đầu file, và phát trong callback lúc lá bài chạm bàn (`land`),
+nên đổi tốc độ bay vẫn khớp. `TienLenView` phát chúng trong `onStart` (chia bài), `onPlay` (theo bộ: lẻ, bộ, tứ quý/đôi thông,
+chặt, còn một lá), `onPass`, và `onState` (hết vòng, tới lượt mình). Khi có ai về nhất, sảnh dài
+hay bảng tổng kết, xem bảng trên.

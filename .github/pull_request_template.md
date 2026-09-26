@@ -1,7 +1,7 @@
-<!-- Title: Conventional Commit, e.g. "feat(xiangqi): cannon captures" or "fix: room list flicker". -->
+<!-- Tiêu đề: Conventional Commit bằng tiếng Anh, ví dụ "feat(xiangqi): cannon captures" hoặc "fix: room list flicker". -->
 
-**What and why**
+**Làm gì và vì sao**
 
 
-**Screenshots** (UI changes: a phone and a desktop size)
+**Ảnh chụp** (nếu đổi giao diện: cỡ điện thoại và cỡ máy tính)
 

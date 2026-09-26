@@ -2,7 +2,7 @@
  * The room settings screen, in steps: play a friend or the computer, (computer) how strong,
  * then the board size. It opens for "Tạo phòng" and again for "Tuỳ chỉnh" inside a room, where
  * the room's current picks are marked gold. The last tap calls `this.submit(options)`; those
- * options stay with the room (rules `setup`/`bot`, the board's `props.options`).
+ * options stay with the room (`ctx.options` in CaroGame and CaroView).
  */
 import { hudScale, RoomSetupScene, titleStyle } from '@psc/sdk/client';
 import type Phaser from 'phaser';

@@ -12,7 +12,7 @@ export const SETUP_CURRENT = 'setup:current';
  * someone taps "Tạo phòng", and again when the host taps "Tuỳ chỉnh" inside the room between
  * games. Draw it however the game likes, then call `this.submit(options)`: that object becomes
  * the room's options. The server checks it with the plugin's `room.options` schema, then it
- * reaches `setup` and `bot` in the rules and `this.props.options` on the board.
+ * reaches the game and its screens as `ctx.options`.
  *
  * `this.current` is the room's options when editing (`null` for a new room), e.g. to mark what
  * is picked now. `build` creates objects once; `draw` places them (called again on resize). The

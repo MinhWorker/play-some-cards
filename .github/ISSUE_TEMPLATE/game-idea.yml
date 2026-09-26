@@ -1,5 +1,5 @@
-name: Game idea
-description: A game you'd like to play here
+name: Ý tưởng game
+description: Một game bạn muốn chơi ở đây
 labels: [game idea, needs-triage]
 body:
   - type: input
@@ -12,15 +12,15 @@ body:
   - type: input
     id: players
     attributes:
-      label: Players
+      label: Số người chơi
       placeholder: "2"
   - type: textarea
     id: rules
     attributes:
-      label: Rules, or a link to them
+      label: Luật chơi, hoặc link tới luật
   - type: checkboxes
     id: help
     attributes:
-      label: Help
+      label: Giúp sức
       options:
-        - label: I'd like to build it (see CONTRIBUTING.md)
+        - label: Mình muốn tự làm game này (xem CONTRIBUTING.md)

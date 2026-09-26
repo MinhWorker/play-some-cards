@@ -1,22 +1,23 @@
-# Cờ Cá Ngựa audio plan
+# Kế hoạch âm thanh Cờ Cá Ngựa
 
-The 16 SFX cues are mapped with `"game": "co-ca-ngua"` in `assets/audio.json` and built into `games/co-ca-ngua/assets/`; the board plays them with `this.sfx(name)`. Generate/select sources and build the WAV files with [generating-sfx.md](generating-sfx.md). Trigger sounds from accepted state changes so rejected or replayed moves do not produce duplicate effects.
+16 hiệu ứng nằm trong `games/co-ca-ngua/assets/`; bàn chơi phát chúng bằng `this.sfx(name)`. Phát âm thanh theo các thay đổi state đã được chấp
+nhận, để nước đi bị từ chối hoặc được phát lại không tạo hiệu ứng trùng.
 
-| Moment | Sound | Trigger |
+| Khoảnh khắc | Âm thanh | Khi nào phát |
 | --- | --- | --- |
-| A race starts | `ludo-game-start` | Once when the first race state appears; skip on reconnect. |
-| Roll the die | `ludo-dice-roll` | Once for the current player's accepted roll, ending when the result appears. |
-| The die shows six | `ludo-dice-six` | After the result is known, layered lightly at the end of the roll. |
-| A horse leaves its stable | `ludo-token-leave` | Once when it enters the track. |
-| Select a horse | `ludo-token-select` | On local selection change. |
-| Move one space | `ludo-token-step` | For each confirmed animated step; lower volume for long moves. |
-| Land on a safe tile | `ludo-token-safe` | Once when the token finishes its move on a protected tile. |
-| Bump an opponent | `ludo-token-bump` | Once when the move captures an opponent token. |
-| Return to stable | `ludo-token-return` | When the bumped token animation returns to its stable. |
-| Reach home | `ludo-token-finish` | Once when a token enters its home slot. |
-| Jump animation | `ludo-pawn-jump` | Use instead of `ludo-token-step` for a special jump move. |
-| Enter the final lap | `ludo-final-lap` | Once on the first transition to a player's final path. |
-| Turn changes | `ludo-turn` | On a transition into the local player's turn, not on room load. |
-| No legal move | `ludo-no-move` | Once when the resolved die result leaves every token unable to move. |
-| Race ends in a tie | `ludo-tie` | Once for an authoritative tied result. |
-| Local player wins | `ludo-win` or shared `game-win` | Choose one result cue so victory sounds do not overlap. |
+| Cuộc đua bắt đầu | `ludo-game-start` | Một lần khi state đầu tiên xuất hiện; bỏ qua khi kết nối lại. |
+| Gieo xúc xắc | `ludo-dice-roll` | Một lần cho lượt gieo được chấp nhận của người đang chơi, kết thúc khi có kết quả. |
+| Xúc xắc ra sáu | `ludo-dice-six` | Sau khi biết kết quả, chồng nhẹ ở cuối tiếng gieo. |
+| Ngựa ra chuồng | `ludo-token-leave` | Một lần khi ngựa vào đường đua. |
+| Chọn một con ngựa | `ludo-token-select` | Khi đổi lựa chọn trên máy mình. |
+| Đi một ô | `ludo-token-step` | Cho mỗi bước đã xác nhận có hoạt ảnh; nhỏ tiếng hơn với nước đi dài. |
+| Dừng ở ô an toàn | `ludo-token-safe` | Một lần khi ngựa kết thúc nước đi trên ô được bảo vệ. |
+| Đá ngựa đối thủ | `ludo-token-bump` | Một lần khi nước đi đá một con ngựa đối thủ. |
+| Về chuồng | `ludo-token-return` | Khi hoạt ảnh con ngựa bị đá quay về chuồng. |
+| Về đích | `ludo-token-finish` | Một lần khi ngựa vào ô đích. |
+| Hoạt ảnh nhảy | `ludo-pawn-jump` | Dùng thay `ludo-token-step` cho nước nhảy đặc biệt. |
+| Vào vòng cuối | `ludo-final-lap` | Một lần khi người chơi lần đầu vào đường về đích. |
+| Đổi lượt | `ludo-turn` | Khi tới lượt người chơi trên máy này, không phát lúc vào phòng. |
+| Không có nước đi | `ludo-no-move` | Một lần khi kết quả xúc xắc khiến mọi con ngựa không đi được. |
+| Cuộc đua hoà | `ludo-tie` | Một lần cho kết quả hoà do server quyết định. |
+| Người chơi trên máy này thắng | `ludo-win` hoặc `game-win` dùng chung | Chọn một âm thanh kết quả để tiếng chiến thắng không chồng lên nhau. |

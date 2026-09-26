@@ -47,8 +47,8 @@ export function loadSound(): SoundSettings {
 
 /**
  * The app's own short effects (public/shared/audio/<name>.wav). WAV: no MP3 start padding, so
- * they play instantly. Add a name here after adding it to assets/audio.json. A game's effects
- * are files in games/<id>/assets/, played by its board scene with `this.sfx(name)`.
+ * they play instantly. Add a name here after adding its file to public/shared/audio/. A game's effects
+ * are files in games/<id>/assets/, played by its game screen with `this.sfx(name)`.
  */
 const SFX = {
   'button-click': 'shared',
@@ -85,6 +85,10 @@ let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 /** Decoded effects by URL; `wanted` are URLs asked for before audio was unlocked. */
 const buffers = new Map<string, AudioBuffer>();
+/** Effects asked for before they finished loading (url → when), played once they arrive. */
+const waiting = new Map<string, number>();
+/** How late an effect may still start (a game's sounds load while its board opens). */
+const MAX_DELAY_MS = 1500;
 const wanted = new Set<string>(Object.entries(SFX).map(([name, owner]) => soundUrl(name, owner)));
 let current = loadSound();
 
@@ -104,7 +108,13 @@ function decode(url: string) {
   void fetch(url)
     .then((res) => res.arrayBuffer())
     .then((data) => ctx?.decodeAudioData(data))
-    .then((buffer) => buffer && buffers.set(url, buffer))
+    .then((buffer) => {
+      if (!buffer) return;
+      buffers.set(url, buffer);
+      const askedAt = waiting.get(url);
+      waiting.delete(url);
+      if (askedAt !== undefined && performance.now() - askedAt < MAX_DELAY_MS) start(buffer);
+    })
     .catch(() => {});
 }
 
@@ -166,12 +176,17 @@ export function playSfx(name: Sfx) {
   playSoundUrl(soundUrl(name, SFX[name]));
 }
 
-/** Plays an effect by URL on the effects channel. */
+/** Plays an effect by URL on the effects channel (one still loading plays as soon as it arrives). */
 export function playSoundUrl(url: string) {
   ensureAudio();
   loadSoundUrl(url);
   const buffer = buffers.get(url);
-  if (!ctx || !sfxGain || !buffer || isSilent(current.sfx) || ctx.state !== 'running') return;
+  if (buffer) start(buffer);
+  else waiting.set(url, performance.now());
+}
+
+function start(buffer: AudioBuffer) {
+  if (!ctx || !sfxGain || isSilent(current.sfx) || ctx.state !== 'running') return;
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.connect(sfxGain);

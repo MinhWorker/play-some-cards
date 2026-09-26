@@ -60,24 +60,39 @@ try {
   }
 
   /**
-   * Picks a game on the island strip by id. On phones a side island first slides into focus,
-   * so tap again until the room list opens.
+   * Picks a game on the island strip by id: the arrows step it into focus (it may be off
+   * screen), then a tap opens its room list.
    */
   async function openRooms(page, gameId) {
     const create = page.getByRole('button', { name: '+ Tạo phòng' });
-    for (let i = 0; i < 3 && !(await create.count()); i++) {
+    for (let i = 0; i < 8 && !(await create.count()); i++) {
       await page.waitForTimeout(800); // let the strip settle
-      await clickCanvas(
-        page,
-        'hub',
-        new Function(
-          `return (s) => s.views.find((v) => v.portal.gameId === '${gameId}').container`,
-        )(),
-      );
+      await page.waitForFunction(() => window.__phaser?.scene.isActive('hub'));
+      const off = await page.evaluate((id) => {
+        const hub = window.__phaser.scene.getScene('hub');
+        return hub.views.findIndex((v) => v.portal.gameId === id) - hub.focus;
+      }, gameId);
+      const pick = off
+        ? `(s) => s.arrows[${off > 0 ? 1 : 0}]`
+        : `(s) => s.views.find((v) => v.portal.gameId === '${gameId}').container`;
+      await clickCanvas(page, 'hub', new Function(`return ${pick}`)());
+      // The room list opens after the cloud transition; tapping again meanwhile would wait on a
+      // hub that is closing.
+      if (!off) await create.waitFor({ timeout: 10000 }).catch(() => {});
     }
     await create.waitFor();
   }
   const openCaroRooms = (page) => openRooms(page, 'tic-tac-toe');
+
+  /** "← Rời phòng", confirming "Bỏ dở ván này?" when a game is running. */
+  async function leaveRoom(page) {
+    await page.getByRole('button', { name: '← Rời phòng' }).click();
+    const confirm = page.getByRole('alertdialog');
+    await confirm.waitFor({ timeout: 1000 }).catch(() => {});
+    if (await confirm.count()) {
+      await confirm.getByRole('button', { name: 'Rời phòng', exact: true }).click();
+    }
+  }
 
   // Wrong password is refused with a message; usernames with special characters too.
   await guest.goto(url);
@@ -204,7 +219,7 @@ try {
 
   // Host quits: Lan becomes host. Then Lan quits: no players left, the room is disbanded
   // and the spectator is sent back to the room list.
-  await host.getByRole('button', { name: '← Rời phòng' }).click();
+  await leaveRoom(host);
   await guest.getByText('👑 Lan').waitFor();
   await guest.getByRole('button', { name: 'Bắt đầu' }).waitFor();
   await guest.getByRole('button', { name: '← Rời phòng' }).click();
@@ -253,7 +268,15 @@ try {
   );
   if ((await marks()) !== 2) throw new Error('The computer did not answer');
   await host.screenshot({ path: `${out}/9-bot-game.png` });
+  // Leaving mid-game asks first; "Ở lại chơi tiếp" keeps the game going.
   await host.getByRole('button', { name: '← Rời phòng' }).click();
+  await host.getByRole('alertdialog').waitFor();
+  await host.screenshot({ path: `${out}/9b-leave-confirm.png` });
+  await host.getByRole('button', { name: 'Ở lại chơi tiếp' }).click();
+  if (await host.getByRole('alertdialog').count()) throw new Error('"Ở lại" kept the dialog open');
+  if (!(await host.evaluate(() => window.__phaser.scene.isActive('tic-tac-toe'))))
+    throw new Error('"Ở lại" left the game');
+  await leaveRoom(host);
   await host.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
   if (await host.locator('.room-row', { hasText: 'Phòng của Minh' }).count())
     throw new Error('The computer room stayed open after Minh left');
@@ -285,12 +308,92 @@ try {
   if (leftovers.pieces || leftovers.tinted)
     throw new Error(`"Ván mới" left ${JSON.stringify(leftovers)} on the board`);
 
+  // Tiến Lên: a 3-round match against three computer players, set up in one form. Each round is
+  // dealt and announced, Minh plays his lowest card when he may (or passes), the computers play
+  // on; the round's ranking shows between rounds and the final standings at the end.
+  await host.goto(url);
+  await openRooms(host, 'tien-len');
+  await host.getByRole('button', { name: '+ Tạo phòng' }).click();
+  await clickCanvas(host, 'tien-len:setup', (s) => s.rows[0].chips[3].container);
+  await clickCanvas(host, 'tien-len:setup', (s) => s.rows[1].chips[1].container);
+  await clickCanvas(host, 'tien-len:setup', (s) => s.rows[2].chips[1].container);
+  await host.waitForTimeout(300);
+  await host.screenshot({ path: `${out}/10-tien-len-setup.png` });
+  await clickCanvas(host, 'tien-len:setup', (s) => s.submitButton.container);
+  await host.getByText('🤖 Máy 3').waitFor();
+  await host.getByRole('button', { name: 'Bắt đầu' }).click();
+  await host.waitForFunction(() => window.__phaser.scene.getScene('tien-len')?.hand?.size === 13);
+  await host.screenshot({ path: `${out}/11-tien-len-dealt.png` });
+  const shots = new Set();
+  for (let i = 0; i < 600; i++) {
+    const s = await host.evaluate(() => {
+      const scene = window.__phaser.scene.getScene('tien-len');
+      const { state, me, result } = scene.ctx;
+      // The visible left edge of each card in the fan (the next card covers the rest).
+      const hand = [...scene.hand.entries()].map(([card, sp]) => ({
+        card,
+        x: sp.x - sp.width / 2 + 8,
+        y: sp.y - 25,
+      }));
+      const at = (b) => ({ x: b.container.x, y: b.container.y });
+      return {
+        over: Boolean(result),
+        round: state.round,
+        board: scene.board.visible,
+        played: state.played.length,
+        mine: state.phase === 'play' && state.turn === me.seat && !scene.dealing,
+        table: state.table,
+        mustPlay: state.mustPlay,
+        hand,
+        play: at(scene.playButton),
+        pass: at(scene.passButton),
+      };
+    });
+    if (s.over) break;
+    if (s.mine) {
+      const top = s.table ? Math.max(...s.table.cards) : -1;
+      const pick =
+        s.mustPlay !== null
+          ? s.hand.find((h) => h.card === s.mustPlay)
+          : !s.table
+            ? s.hand[0]
+            : s.table.cards.length === 1
+              ? s.hand.find((h) => h.card > top)
+              : null;
+      if (pick) {
+        await host.mouse.click(pick.x, pick.y);
+        await host.mouse.click(s.play.x, s.play.y);
+      } else await host.mouse.click(s.pass.x, s.pass.y);
+    }
+    if (s.played >= 8 && !shots.has('pile')) {
+      shots.add('pile');
+      await host.screenshot({ path: `${out}/12-tien-len-pile.png` });
+    }
+    if (s.board && !shots.has('round')) {
+      shots.add('round');
+      await host.screenshot({ path: `${out}/13-tien-len-round-over.png` });
+    }
+    await host.waitForTimeout(500);
+  }
+  if (!shots.has('round')) throw new Error('No round ranking was shown between rounds');
+  await host.getByRole('button', { name: 'Chơi ván mới' }).waitFor();
+  await host.waitForFunction(() => window.__phaser.scene.getScene('tien-len')?.board?.visible);
+  await host.waitForTimeout(1500);
+  await host.screenshot({ path: `${out}/14-tien-len-standings.png` });
+
   if (errors.length) throw new Error(`Page errors:\n${errors.join('\n')}`);
   console.log(
-    `OK: Lan came back after closing her browser, Minh won 1–0, 6×6 with swapped colors, host passed to Lan, room disbanded, the computer answered, a new game starts clean. Screenshots in ${out}/`,
+    `OK: Lan came back after closing her browser, Minh won 1–0, 6×6 with swapped colors, host passed to Lan, room disbanded, the computer answered, a new game starts clean, a 3-round Tiến Lên match against three computers played to the end. Screenshots in ${out}/`,
   );
 } catch (err) {
-  console.error('E2E FAILED:', err.message);
+  console.error(
+    'E2E FAILED:',
+    err.message,
+    err.stack
+      ?.split('\n')
+      .filter((l) => l.includes('e2e.mjs'))
+      .join(' ← '),
+  );
   process.exitCode = 1;
 } finally {
   await browser.close();

@@ -31,7 +31,7 @@
   },
   "overrides": [
     {
-      "includes": ["games/**", "scripts/game-template/**"],
+      "includes": ["games/**", "scripts/templates/**"],
       "linter": {
         "rules": {
           "style": {

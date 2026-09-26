@@ -6,7 +6,15 @@
 // The game list is packages/shared/src/generated/games.ts (gitignored): one static import per
 // game, so tsc, Vite and Nest all see it. Adding a game folder is enough; nothing to register.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -24,12 +32,31 @@ const projects = [
   ...ids.map((id) => `games/${id}/tsconfig.build.json`),
   'packages/shared/tsconfig.build.json',
 ];
+for (const project of projects) forgetIfStale(project);
 const watch = args.includes('--watch') ? ['--watch', '--preserveWatchOutput'] : [];
 const res = spawnSync(process.execPath, [tsc, '-b', ...projects, ...watch], {
   cwd: root,
   stdio: 'inherit',
 });
 process.exit(res.status ?? 1);
+
+/**
+ * `tsc -b` decides a project is up to date by its root file only (`src/index.ts`), so a change
+ * in any other file (a game's rules, say) was never rebuilt and the server ran old code. The
+ * build info lists every file the last build used: if one is newer, drop the build info so the
+ * project builds again.
+ */
+function forgetIfStale(project) {
+  const info = join(root, project.replace(/\.json$/, '.tsbuildinfo'));
+  if (!existsSync(info)) return;
+  const builtAt = statSync(info).mtimeMs;
+  const { fileNames = [] } = JSON.parse(readFileSync(info, 'utf8'));
+  const changed = fileNames
+    .filter((name) => !name.includes('node_modules'))
+    .map((name) => resolve(dirname(info), name))
+    .some((file) => !existsSync(file) || statSync(file).mtimeMs > builtAt);
+  if (changed) unlinkSync(info);
+}
 
 /** Game ids (= folder names), checked so mistakes fail here with a clear message. */
 function findGames() {

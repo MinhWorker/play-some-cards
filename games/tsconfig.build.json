@@ -1,5 +1,5 @@
 {
-  "$comment": "Compiles a game's server part (src/index.ts and what it imports) to dist/ for the server.",
+  "$comment": "Compiles a game's server part (src/index.ts and what it imports) to dist/ for the server. incremental: tsc -b then rebuilds when any of those files changes, not only index.ts.",
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "module": "NodeNext",
@@ -7,7 +7,8 @@
     "rootDir": "${configDir}/src",
     "outDir": "${configDir}/dist",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "incremental": true
   },
   "files": ["${configDir}/src/index.ts"]
 }

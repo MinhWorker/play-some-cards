@@ -1,4 +1,4 @@
-/** Helpers for the square grid, shared by the rules, the bot and the board scene. */
+/** Helpers for the square grid, shared by CaroGame, the bot and CaroView. */
 import type { Cell, Mark } from './model.js';
 
 /** Right, down, down-right, down-left. */

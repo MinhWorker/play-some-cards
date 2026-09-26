@@ -71,7 +71,7 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
   const readyCallback = useRef(onReady);
   readyCallback.current = onReady;
 
-  // The room bar's height, kept in the registry so board scenes can leave room for it.
+  // The room bar's height, kept in the registry so game screens can leave room for it.
   const hudTop = useRef<number | undefined>(undefined);
   useEffect(() => {
     const onHudTop = (px: number | undefined) => {

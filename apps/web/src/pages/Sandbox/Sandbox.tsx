@@ -1,8 +1,8 @@
-import { defaultOptions, games } from '@psc/shared';
+import { defaultOptions, type GameResult, games } from '@psc/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SoundControl, Toast } from '@/components/hud';
 import { Button } from '@/components/ui/Button';
-import { useHasSetup } from '@/hooks/useHasSetup';
+import { useGameClient } from '@/hooks/useGameClient';
 import { bridge, type Stage } from '@/phaser/bridge';
 import { PhaserStage } from '@/phaser/PhaserStage';
 import '@/pages/Room/Room.css';
@@ -29,6 +29,7 @@ export function Sandbox({ gameId, players: count }: Props) {
       id: `p${i + 1}`,
       name: seatName(i),
       connected: true,
+      avatar: i % 2 ? 'girl' : 'boy',
     }));
   }, [game, count]);
   const [options, setOptions] = useState<unknown>(() => game && defaultOptions(game));
@@ -39,42 +40,63 @@ export function Sandbox({ gameId, players: count }: Props) {
       options,
     ),
   );
-  const hasSetup = useHasSetup(gameId);
+  const hasSetup = Boolean(useGameClient(gameId)?.setup);
   const [settingUp, setSettingUp] = useState(false);
   const [me, setMe] = useState<string | null>(seats[0]?.id ?? null);
   const [error, setError] = useState('');
   const [score, setScore] = useState({ wins: seats.map(() => 0), draws: 0 });
   const [round, setRound] = useState(1);
   const [last, setLast] = useState<{ seq: number; player: string; move: unknown } | null>(null);
+  const [lastResult, setLastResult] = useState<GameResult | null>(null);
   const bar = useRef<HTMLElement>(null);
   // What the rules get to know about the room, like on the server.
   const room = useMemo(
     () => ({
-      players: seats.map((s) => ({ id: s.id, name: s.name, bot: false })),
+      players: seats.map((s) => ({ id: s.id, name: s.name, bot: false, avatar: s.avatar })),
       hostId: me,
       score,
       options,
+      lastResult,
     }),
-    [seats, me, score, options],
+    [seats, me, score, options, lastResult],
   );
   const result = game && state !== undefined ? game.getResult(state, room) : null;
+
+  // The game's timer (`ctx.setTimer`) runs here like on the server; a new key = a new timer.
+  const timer = game && state !== undefined ? game.timer(state) : null;
+  const timerKey = timer ? `${round}:${timer.id}` : null;
+  const timerMs = timer?.ms ?? 0;
+  const [timerEnd, setTimerEnd] = useState(0);
+  const roomRef = useRef(room);
+  roomRef.current = room;
+  useEffect(() => {
+    if (!game || timerKey === null) return;
+    setTimerEnd(Date.now() + timerMs);
+    const handle = setTimeout(
+      () => setState((s: unknown) => game.fireTimer(s, Math.random, roomRef.current)),
+      timerMs,
+    );
+    return () => clearTimeout(handle);
+  }, [game, timerKey, timerMs]);
 
   const restart = useCallback(
     (next: unknown = options) => {
       if (!game) return;
+      // Like the server: the next game hears how this one ended (e.g. the winner leads).
+      setLastResult(result);
       setState(
         game.setup(
           seats.map((s) => s.id),
           Math.random,
           next,
-          { ...room, options: next },
+          { ...room, options: next, lastResult: result },
         ),
       );
       setRound((r) => r + 1);
       setLast(null);
       setError('');
     },
-    [game, seats, options, room],
+    [game, seats, options, room, result],
   );
 
   // The setup screen's options are checked like on the server, then a new game starts with them.
@@ -148,7 +170,7 @@ export function Sandbox({ gameId, players: count }: Props) {
       gameId,
       view: game.getView(state, me, room),
       me: me ?? 'spectator',
-      players: seats,
+      players: game.seats(state, room).map((s) => ({ ...s, connected: true })),
       // Whoever you look through can use the host's controls.
       hostId: me,
       result,
@@ -156,8 +178,27 @@ export function Sandbox({ gameId, players: count }: Props) {
       options,
       round,
       last,
+      timer: timer && {
+        event: timer.event,
+        ms: timer.ms,
+        left: Math.max(0, timerEnd - Date.now()),
+      },
     };
-  }, [game, gameId, state, me, seats, result, score, options, settingUp, room, round, last]);
+  }, [
+    game,
+    gameId,
+    state,
+    me,
+    result,
+    score,
+    options,
+    settingUp,
+    room,
+    round,
+    last,
+    timer,
+    timerEnd,
+  ]);
 
   return (
     <>

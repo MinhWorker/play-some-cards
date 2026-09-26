@@ -22,12 +22,14 @@ interface Member {
   connected: boolean;
   /** Played by the computer (`game.bot`). Bots don't keep a room alive and are never host. */
   bot?: boolean;
+  avatar?: string;
 }
 
 /** The account entering a room (from the logged-in socket). */
 export interface Account {
   id: string;
   name: string;
+  avatar?: string;
 }
 
 export interface Room {
@@ -41,11 +43,15 @@ export interface Room {
   status: RoomStatus;
   state: unknown;
   result: GameResult | null;
+  /** How the game before the current one ended (`ctx.lastResult`). */
+  lastResult: GameResult | null;
   score: RoomScore;
   /** Games started so far. */
   round: number;
   /** The last move of the current game. */
   last: { seq: number; player: PlayerId; move: unknown } | null;
+  /** The game's pending timer (`ctx.setTimer`), once the gateway has started it. */
+  timer: { key: string; event: string; ms: number; endsAt: number } | null;
   createdAt: number;
 }
 
@@ -81,9 +87,11 @@ export class RoomsService {
       status: 'lobby',
       state: null,
       result: null,
+      lastResult: null,
       score: { wins: Array(game.maxPlayers).fill(0), draws: 0 },
       round: 0,
       last: null,
+      timer: null,
       createdAt: Date.now(),
     };
     this.rooms.set(room.code, room);
@@ -137,11 +145,11 @@ export class RoomsService {
     return undefined;
   }
 
-  /** The account changed its display name: update it in its room (returned, if any). */
-  rename(userId: string, name: string) {
+  /** The account changed its name or picture: update it in its room (returned, if any). */
+  rename(userId: string, { name, avatar }: { name: string; avatar?: string }) {
     const room = this.roomOf(userId);
     const member = room && this.members(room).find((m) => m.id === userId);
-    if (member) member.name = name;
+    if (member) Object.assign(member, { name, avatar });
     return room;
   }
 
@@ -154,21 +162,32 @@ export class RoomsService {
 
   /**
    * A member leaves on purpose (a dropped connection only marks them offline, see
-   * setConnected, so they can rejoin). A player leaving mid-game cancels that game, and after a
-   * game the room goes back to waiting for players (the old board is gone). The next
-   * player becomes host; with no players left the room is disbanded (`closed: true`) and the
-   * caller must send the spectators out.
+   * setConnected, so they can rejoin). A player leaving mid-game loses it in a game with an
+   * `onLeave` hook (the others play on, and a finished board stays up); in any other game it
+   * cancels the game for everyone and the room waits for players again. The next player
+   * becomes host; with no players left the room is
+   * disbanded (`closed: true`) and the caller must send the spectators out.
    */
   leave(code: string, memberId: PlayerId) {
     const room = this.get(code);
-    const isPlayer = room.players.some((p) => p.id === memberId);
+    const seat = room.players.findIndex((p) => p.id === memberId);
     room.players = room.players.filter((p) => p.id !== memberId);
     room.spectators = room.spectators.filter((m) => m.id !== memberId);
-    if (isPlayer && room.status !== 'lobby') {
-      room.status = 'lobby';
-      room.state = null;
-      room.result = null;
-      room.last = null;
+    if (seat >= 0 && room.status !== 'lobby') {
+      room.lastResult = null;
+      if (room.game.leave) {
+        // The others play on (a finished board stays up).
+        if (room.status === 'playing') {
+          room.state = room.game.leave(room.state, memberId, rng, this.context(room));
+          this.settle(room);
+        }
+      } else {
+        room.status = 'lobby';
+        room.state = null;
+        room.result = null;
+        room.last = null;
+        room.timer = null;
+      }
     }
     if (room.hostId === memberId) room.hostId = room.players.find((p) => !p.bot)?.id ?? null;
     // Bots don't play alone.
@@ -199,7 +218,9 @@ export class RoomsService {
       room.status = 'lobby';
       room.state = null;
       room.result = null;
+      room.lastResult = null;
       room.last = null;
+      room.timer = null;
     }
     room.options = options;
     return room;
@@ -213,6 +234,7 @@ export class RoomsService {
     if (count < room.game.minPlayers) {
       throw new RoomError(`Cần ít nhất ${room.game.minPlayers} người chơi`);
     }
+    room.lastResult = room.result;
     room.state = room.game.setup(
       room.players.map((p) => p.id),
       rng,
@@ -223,6 +245,8 @@ export class RoomsService {
     room.result = null;
     room.round++;
     room.last = null;
+    room.timer = null;
+    this.settle(room);
     return room;
   }
 
@@ -239,12 +263,44 @@ export class RoomsService {
     if (error) throw new RoomError(error);
     room.state = room.game.applyMove(room.state, parsed.data, playerId, rng, context);
     room.last = { seq: (room.last?.seq ?? 0) + 1, player: playerId, move: parsed.data };
-    room.result = room.game.getResult(room.state, context);
-    if (room.result) {
+    this.settle(room);
+    return room;
+  }
+
+  /**
+   * The game's timer, if it set a new one since the last call: the gateway waits `ms`, then
+   * calls `fireTimer(code, key)`. Returns `null` when there is nothing new to wait for.
+   */
+  syncTimer(room: Room) {
+    const timer = room.status === 'playing' ? room.game.timer(room.state) : null;
+    if (!timer) {
+      room.timer = null;
+      return null;
+    }
+    const key = `${room.round}:${timer.id}`;
+    if (room.timer?.key === key) return null;
+    room.timer = { key, event: timer.event, ms: timer.ms, endsAt: Date.now() + timer.ms };
+    return { key, ms: timer.ms };
+  }
+
+  /** The timer `key` went off: runs its hook. Returns the room, or `null` if it's outdated. */
+  fireTimer(code: string, key: string) {
+    const room = this.rooms.get(code);
+    if (!room || room.status !== 'playing' || room.timer?.key !== key) return null;
+    room.timer = null;
+    room.state = room.game.fireTimer(room.state, rng, this.context(room));
+    this.settle(room);
+    return room;
+  }
+
+  /** After the game's state changed: is it over? */
+  private settle(room: Room) {
+    room.result = room.game.getResult(room.state, this.context(room));
+    if (room.result && room.status === 'playing') {
       room.status = 'finished';
+      room.timer = null;
       this.addToScore(room, room.result);
     }
-    return room;
   }
 
   /**
@@ -266,11 +322,12 @@ export class RoomsService {
   /** What `memberId` is allowed to see. Never send `room.state` directly. */
   snapshotFor(room: Room, memberId: PlayerId): RoomSnapshot {
     const isPlayer = room.players.some((p) => p.id === memberId);
-    const info = ({ id, name, connected, bot }: Member) => ({
+    const info = ({ id, name, connected, bot, avatar }: Member) => ({
       id,
       name,
       connected,
       ...(bot && { bot }),
+      ...(avatar && { avatar }),
     });
     return {
       code: room.code,
@@ -278,6 +335,17 @@ export class RoomsService {
       hostId: room.hostId,
       players: room.players.map(info),
       spectators: room.spectators.map(info),
+      seats:
+        room.state === null
+          ? null
+          : room.game.seats(room.state, this.context(room)).map((p) => ({
+              id: p.id,
+              name: p.name,
+              connected: p.bot || Boolean(room.players.find((m) => m.id === p.id)?.connected),
+              ...(p.bot && { bot: true }),
+              ...(p.avatar && { avatar: p.avatar }),
+              ...(p.left && { left: true }),
+            })),
       status: room.status,
       view:
         room.state === null
@@ -292,6 +360,11 @@ export class RoomsService {
         move: room.game.moveView
           ? room.game.moveView(room.last.move, room.last.player, isPlayer ? memberId : null)
           : room.last.move,
+      },
+      timer: room.timer && {
+        event: room.timer.event,
+        ms: room.timer.ms,
+        left: Math.max(0, room.timer.endsAt - Date.now()),
       },
     };
   }
@@ -356,10 +429,16 @@ export class RoomsService {
   /** What the rules get to know about the room around the game. */
   private context(room: Room) {
     return {
-      players: room.players.map((p) => ({ id: p.id, name: p.name, bot: Boolean(p.bot) })),
+      players: room.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        bot: Boolean(p.bot),
+        avatar: p.avatar,
+      })),
       hostId: room.hostId,
       score: room.score,
       options: room.options,
+      lastResult: room.lastResult,
     };
   }
 
@@ -383,7 +462,7 @@ export class RoomsService {
   }
 
   private newMember(account: Account): Member {
-    return { id: account.id, name: account.name, connected: true };
+    return { id: account.id, name: account.name, avatar: account.avatar, connected: true };
   }
 
   private newCode() {

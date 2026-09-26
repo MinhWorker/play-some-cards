@@ -68,12 +68,13 @@ describe('RoomsService', () => {
 
   it('renames an account inside its room', () => {
     const { service, room } = setupRoom();
-    expect(service.rename('bob', 'Bobby')).toBe(room);
+    expect(service.rename('bob', { name: 'Bobby', avatar: 'girl' })).toBe(room);
     expect(service.snapshotFor(room, 'alice').players.map((p) => p.name)).toEqual([
       'Alice',
       'Bobby',
     ]);
-    expect(service.rename('nobody', 'X')).toBeUndefined();
+    expect(service.snapshotFor(room, 'alice').players[1]?.avatar).toBe('girl');
+    expect(service.rename('nobody', { name: 'X' })).toBeUndefined();
   });
 
   it('lists only rooms of the requested game', () => {
@@ -271,6 +272,44 @@ describe('RoomsService', () => {
       service.start(room.code, player.id);
       // The computer is X now: it moves first.
       expect(service.botMove(room.code)).toBe(room);
+    });
+  });
+
+  describe('games with timers and onLeave (Tiến Lên)', () => {
+    function tienLen() {
+      const service = new RoomsService();
+      const { room, player: host } = service.create('tien-len', acc('Alice'), { bots: 1 });
+      service.join(room.code, acc('Bob'), 'player');
+      service.start(room.code, host.id);
+      return { service, room };
+    }
+
+    it("starts the game's timer once and runs its hook when it goes off", () => {
+      const { service, room } = tienLen();
+      const timer = service.syncTimer(room);
+      expect(timer?.ms).toBeGreaterThan(1000);
+      expect(service.syncTimer(room)).toBeNull(); // already started
+      expect(service.snapshotFor(room, 'alice').timer?.event).toBe('begin');
+      expect(service.fireTimer(room.code, 'old')).toBeNull();
+      service.fireTimer(room.code, timer?.key as string);
+      expect(caro(room.state).phase).toBe('play');
+      // Two people at the table: the turn clock runs.
+      expect(service.syncTimer(room)).toMatchObject({ ms: 20000 });
+    });
+
+    it('lets the others play on when someone leaves, keeping their seat', () => {
+      const { service, room } = tienLen();
+      const { closed } = service.leave(room.code, 'bob');
+      expect(closed).toBe(false);
+      expect(room.status).toBe('playing');
+      const snapshot = service.snapshotFor(room, 'alice');
+      expect(snapshot.players.map((p) => p.id)).toEqual(['alice', 'bot:1']);
+      expect(snapshot.seats?.map((p) => [p.id, Boolean(p.left)])).toEqual([
+        ['alice', false],
+        ['bot:1', false],
+        ['bob', true],
+      ]);
+      expect(caro(room.state).gone).toEqual([2]);
     });
   });
 });

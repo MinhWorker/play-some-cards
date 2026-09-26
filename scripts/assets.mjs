@@ -1,14 +1,14 @@
-// Makes a game's app-ready files from its originals: games/<id>/sources/ -> games/<id>/assets/.
+// Makes a game's app-ready images from its originals: games/<id>/sources/ -> games/<id>/assets/.
 //   npm run assets               every game
 //   npm run assets -- <id>...    only these games (--force: redo files that look up to date)
 // Images (.png/.jpg/.jpeg/.webp) become trimmed, resized WebP with the same name; options per file
-// come from sources/prompts.json (`transparent`, `maxSize`). Sounds are listed in
-// sources/audio.json ({ "sounds": { "<name>": { "src": "move.wav", "start": 0.1, "format": "wav" } } }).
+// come from sources/prompts.json (`transparent`, `maxSize`). Sounds are not made here: the files
+// in assets/ are the real ones (edit them in place, e.g. with ffmpeg).
 // Files you put straight into assets/ are used as they are; sources/ is optional.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { encodeSound, hasAlpha, toWebp } from './lib/media.mjs';
+import { hasAlpha, toWebp } from './lib/media.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -50,24 +50,6 @@ for (const id of games) {
     });
     console.log(`✓ ${id}/${name}.webp`);
     made++;
-  }
-  const { sounds = {} } = readJson(join(sources, 'audio.json'), {});
-  for (const [name, sound] of Object.entries(sounds)) {
-    const src = join(sources, sound.src);
-    const out = join(assets, `${name}.${sound.format ?? 'mp3'}`);
-    if (!existsSync(src)) {
-      console.error(`✗ ${id}/${name}: missing sources/${sound.src}`);
-      process.exitCode = 1;
-      continue;
-    }
-    if (!newer(src, out) && !newer(join(sources, 'audio.json'), out)) continue;
-    if (encodeSound(src, out, sound)) {
-      console.log(`✓ ${id}/${name}`);
-      made++;
-    } else {
-      console.error(`✗ ${id}/${name}: ffmpeg failed`);
-      process.exitCode = 1;
-    }
   }
 }
 console.log(made ? `${made} file(s) written.` : 'Everything is up to date.');

@@ -1,6 +1,6 @@
 /**
  * A game's screen as a class with lifecycle hooks, the browser half of `Game`
- * (from `@psc/sdk`). The app calls the hooks; you draw with the helpers below or with Phaser
+ * (from `@psc/sdk`). The app calls the hooks; you draw with the helpers from `GameScene` or with Phaser
  * directly (`this.add`, `this.tweens`, … still work).
  *
  *   onCreate(ctx)          once, when the screen opens: make your objects
@@ -12,14 +12,13 @@
  *   onUpdate(ctx, dt)      every frame (browser only; the server has no frames)
  *
  * `ctx` (also `this.ctx`) has everything: the state as you may see it, who you are, the players,
- * host, score, options, result.
+ * host, score, options, result, the game's timer (`ctx.timer`, for a countdown).
  */
-import type Phaser from 'phaser';
 import { hookName } from '../engine.js';
 import type { GameResult, PlayerId } from '../game.js';
-import { BOARD_MOVE, BOARD_OPTIONS, BOARD_PROPS, type BoardProps } from './BoardScene.js';
 import { GameScene } from './GameScene.js';
-import { hudScale, titleStyle } from './text.js';
+import { BOARD_MOVE, BOARD_OPTIONS, BOARD_PROPS, type BoardProps } from './props.js';
+import { hudScale } from './text.js';
 
 /** Someone at the table, as a screen sees them. */
 export interface ViewSeat {
@@ -28,6 +27,10 @@ export interface ViewSeat {
   seat: number;
   bot: boolean;
   connected: boolean;
+  /** Their picture: draw it with `this.avatar(seat)`. */
+  avatar?: string;
+  /** Left the room during this game. */
+  left: boolean;
 }
 
 /** What every view hook gets. */
@@ -45,6 +48,11 @@ export interface ViewContext<View, Options = unknown> {
   /** Set once the game is over. */
   result: GameResult | null;
   /**
+   * The game's timer (`ctx.setTimer` in the `Game`), or `null`: `event` names it, `ms` is its full
+   * length and `endsAt` when it goes off (compare with `Date.now()`, e.g. in `onUpdate`).
+   */
+  timer: { event: string; ms: number; endsAt: number } | null;
+  /**
    * The screen: size, center, `top` = first free pixel below the app's room bar, and the HUD
    * scale (small phones < 1; multiply sizes by it).
    */
@@ -61,24 +69,12 @@ export interface ViewEvent<Payload = unknown> {
   payload: Payload;
 }
 
-/** A button made by `this.button()`: an optional image with a label, reacting to taps. */
-export interface Button {
-  container: Phaser.GameObjects.Container;
-  label: Phaser.GameObjects.Text;
-  image?: Phaser.GameObjects.Image;
-  setPosition(x: number, y: number): Button;
-  /** Width and height (the image is stretched to it; the label shrinks to fit). */
-  setSize(width: number, height: number): Button;
-  /** A disabled button is greyed out and ignores taps. */
-  setEnabled(enabled: boolean): Button;
-  setText(text: string): Button;
-}
-
 export abstract class GameView<View, Options = unknown> extends GameScene {
   /** Everything about the room right now (same object the hooks get). */
   protected ctx!: ViewContext<View, Options>;
   private props!: BoardProps<View, Options>;
   private lastSeq = 0;
+  private timer: ViewContext<View, Options>['timer'] = null;
   /** Options sent with `changeOptions` that the server hasn't sent back yet. */
   private pendingOptions: Options | null = null;
 
@@ -111,84 +107,11 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     this.hook('onState', this.ctx);
   }
 
-  // ── Ready-made objects (Phaser objects underneath; use Phaser for anything else) ────────
-
-  /** Game-style text (white, dark outline, the app's font), centered on its position. */
-  protected label(text: string, { size = 32, color }: { size?: number; color?: string } = {}) {
-    const obj = this.add.text(0, 0, text, titleStyle(size * hudScale())).setOrigin(0.5);
-    if (color) obj.setColor(color);
-    return obj;
-  }
-
-  /** An image from the game's `assets/` by file name, centered on its position. */
-  protected sprite(name: string) {
-    return this.image(0, 0, name);
-  }
-
-  /**
-   * A tappable button: `image` (from `assets/`, stretched to the size) with a label on top, or
-   * just the label. Lights up on hover, plays `sound` (from `assets/`) on tap.
-   */
-  protected button(
-    text: string,
-    onTap: () => void,
-    { image, sound, size = 32 }: { image?: string; sound?: string; size?: number } = {},
-  ): Button {
-    const bg = image ? this.image(0, 0, image) : undefined;
-    const label = this.label(text, { size });
-    const container = this.add.container(0, 0, bg ? [bg, label] : [label]);
-    let enabled = true;
-    let fontSize = size * hudScale();
-    const button: Button = {
-      container,
-      label,
-      image: bg,
-      setPosition: (x, y) => {
-        container.setPosition(x, y);
-        return button;
-      },
-      setSize: (width, height) => {
-        bg?.setDisplaySize(width, height);
-        container.setSize(width, height);
-        fontSize = Math.min(size * hudScale(), height * 0.4);
-        label.setFontSize(fontSize);
-        this.fitText(label, label.text, width * 0.9, fontSize * 0.5);
-        return button;
-      },
-      setEnabled: (value) => {
-        enabled = value;
-        container.setAlpha(value ? 1 : 0.45);
-        return button;
-      },
-      setText: (value) => {
-        label.setFontSize(fontSize);
-        this.fitText(
-          label,
-          value,
-          (container.width || Number.POSITIVE_INFINITY) * 0.9,
-          fontSize * 0.5,
-        );
-        return button;
-      },
-    };
-    const { width, height } = bg ?? label;
-    button.setSize(width, height);
-    container.setInteractive({ useHandCursor: true });
-    container.on('pointerover', () => enabled && bg?.setTint(0xfff1b8));
-    container.on('pointerout', () => bg?.clearTint());
-    container.on('pointerup', () => {
-      if (!enabled) return;
-      bg?.clearTint();
-      if (sound) this.sfx(sound);
-      onTap();
-    });
-    return button;
-  }
-
   // ── Wiring (the app ↔ the hooks); games don't need to read below ────────────────────────
 
   create() {
     this.props = this.registry.get('board') as BoardProps<View, Options>;
+    this.timer = this.timerOf(this.props);
     this.ctx = this.makeContext();
     this.lastSeq = this.props.last?.seq ?? 0;
     this.onCreate(this.ctx);
@@ -220,6 +143,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   private receive(props: BoardProps<View, Options>) {
     const before = this.props;
     this.props = props;
+    this.timer = this.timerOf(props);
     if (JSON.stringify(props.options) === JSON.stringify(this.pendingOptions)) {
       this.pendingOptions = null;
     }
@@ -243,6 +167,17 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     if (props.result && !before.result) this.hook('onEnd', this.ctx);
   }
 
+  /** When the timer ends on this device's clock (the server sends how much is left). */
+  private timerOf(props: BoardProps<View, Options>) {
+    const t = props.timer;
+    if (!t) return null;
+    const same = this.timer?.event === t.event && this.timer.ms === t.ms;
+    const endsAt = Date.now() + t.left;
+    // The same timer sent again (another player's change): keep the clock steady.
+    if (same && this.timer && Math.abs(this.timer.endsAt - endsAt) < 400) return this.timer;
+    return { event: t.event, ms: t.ms, endsAt };
+  }
+
   private makeContext(): ViewContext<View, Options> {
     const { view, me, players, hostId, score, options, result } = this.props;
     const seats = players.map((p, seat) => ({
@@ -251,6 +186,8 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       seat,
       bot: Boolean(p.bot),
       connected: p.connected,
+      avatar: p.avatar,
+      left: Boolean(p.left),
     }));
     const { width, height } = this.scale;
     const hud = hudScale();
@@ -264,6 +201,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       score,
       options: this.pendingOptions ?? options,
       result,
+      timer: this.timer,
       screen: { width, height, cx: width / 2, cy: height / 2, top, hud },
     };
   }

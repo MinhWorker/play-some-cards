@@ -51,6 +51,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @WebSocketServer() server!: AppServer;
   /** Pending computer moves, by room code. */
   private readonly botTimers = new Map<string, NodeJS.Timeout>();
+  /** Pending game timers (`ctx.setTimer`), by room code. */
+  private readonly gameTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly rooms: RoomsService,
@@ -106,7 +108,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.handle(async () => {
       const user = await this.accounts.updateProfile(socket.data.user.id, req);
       for (const s of this.socketsOf(user.id)) s.data.user = user;
-      const room = this.rooms.rename(user.id, user.name);
+      const room = this.rooms.rename(user.id, user);
       if (room) this.broadcast(room);
       return { user };
     });
@@ -268,6 +270,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** Sends each member its own filtered snapshot, and the new room list to browsers. */
   private broadcast(room: Room) {
+    // A timer the game just set goes into the snapshots, so screens can show the countdown.
+    const timer = this.rooms.syncTimer(room);
     for (const socket of this.server.sockets.sockets.values()) {
       const { roomCode, user } = socket.data;
       if (roomCode === room.code && user) {
@@ -276,6 +280,27 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     }
     this.broadcastLobby(room.game.id);
     this.scheduleBot(room);
+    this.scheduleTimer(room, timer);
+  }
+
+  /** Waits for the game's new timer (if any), then runs its hook; drops a cancelled one. */
+  private scheduleTimer(room: Room, timer: { key: string; ms: number } | null) {
+    if (!room.timer) {
+      clearTimeout(this.gameTimers.get(room.code));
+      this.gameTimers.delete(room.code);
+    }
+    if (!timer) return;
+    clearTimeout(this.gameTimers.get(room.code));
+    const handle = setTimeout(() => {
+      this.gameTimers.delete(room.code);
+      try {
+        const changed = this.rooms.fireTimer(room.code, timer.key);
+        if (changed) this.broadcast(changed);
+      } catch (err) {
+        console.error(`Timer ${timer.key} failed in ${room.game.id}:`, err);
+      }
+    }, timer.ms);
+    this.gameTimers.set(room.code, handle);
   }
 
   /** After a change in a game with computer seats, let a bot move after a short pause. */
