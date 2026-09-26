@@ -70,6 +70,11 @@ export function winningLine(board: Cell[], win: number): [number, ...number[]] |
   return null;
 }
 
+/** Someone has `win` in a row, or the board is full. */
+export function isOver(board: Cell[], win: number) {
+  return winningLine(board, win) !== null || board.every((cell) => cell !== null);
+}
+
 /** Indexes of the free cells. */
 export function emptyCells(board: Cell[]) {
   return board.flatMap((cell, i) => (cell === null ? [i] : []));

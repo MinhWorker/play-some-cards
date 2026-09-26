@@ -128,14 +128,18 @@ Extend `BoardScene<View, Move>` from `@psc/sdk/client`:
 - Winner/draw panels, "Chơi ván mới", the room bar and sounds for winning are already done by the
   app.
 
-## Experimental: Game and View classes
+## Game and View classes (the way to write games)
 
-A second way to write a game is being tried out: a `Game` class (logic, server) and a
-`GameView` class (screen, browser) with lifecycle hooks like Unity scripts (`onStart`,
-`onPress`, `onState`, `onUpdate`…), one `ctx` with the whole room, and ready-made `label`,
-`button` and `sprite` objects. `games/counter` ("Bấm Nút") is the prototype; its README shows
-the hooks and what happens when someone presses. It may still change: other games keep the
-rules/board way above for now.
+Games are written as two classes with lifecycle hooks, like Unity scripts: a `Game` (the logic,
+on the server) and a `GameView` (the screen, in the browser). They talk through events, and
+every hook gets one `ctx` with the whole room (state, players and seats, host, score, options).
+
+- `games/counter` ("Bấm Nút"): the smallest example; its README lists every hook.
+- `games/tic-tac-toe` (Caro): the same with room options, a computer player (`bot(ctx)`), a
+  settings screen, host controls (`changeOptions`) and tests written with `testGame`.
+
+The sections above describe the older rules/board way that `npm run new:game` and the other
+games still use; new games should follow Caro and Bấm Nút.
 
 ## Art and sound
 

@@ -1,5 +1,5 @@
 /**
- * EXPERIMENTAL: write a game as a class with lifecycle hooks, like a Unity script.
+ * Write a game as a class with lifecycle hooks, like a Unity script.
  *
  *   class CounterGame extends Game<State> {
  *     events = { press: z.object({}) };                  // what players can do
@@ -52,6 +52,11 @@ export interface EventContext<State, Payload = Record<string, never>, Options = 
   reject(message: string): never;
 }
 
+/** What `bot` gets: the room, and which computer seat is asked. */
+export interface BotContext<State, Options = undefined> extends GameContext<State, Options> {
+  player: Seat;
+}
+
 /** The first state has no `state` yet. */
 export type StartContext<Options = undefined> = Omit<GameContext<never, Options>, 'state'>;
 
@@ -68,13 +73,22 @@ export abstract class Game<State, Options = undefined, View = State> {
   /** A new game begins ("Bắt đầu", "Chơi ván mới"): return the first state. */
   abstract onStart(ctx: StartContext<Options>): State;
 
-  /** After `ctx.finish()`: a last chance to change the state (optional). */
-  onEnd?(ctx: GameContext<State, Options>): State;
+  // Optional hooks: write them in your class and the engine calls them (they aren't declared
+  // here, so no `override` is needed):
+  //
+  //   on<Event>(ctx: EventContext)   one per event in `events`: return the next state
+  //   onEnd(ctx: GameContext)        after ctx.finish(): a last chance to change the state
+  //   bot(ctx: BotContext)           the computer's event for its seat ctx.player, or null
+  //                                  (not its turn); played after a short pause
+  //   view(ctx: GameContext, viewer: Seat | null)   what a player (null = spectator) sees;
+  //                                  hide secrets here. Default: the whole state.
+}
 
-  /** What `viewer` sees (`null` = a spectator). Hide secrets here. Default: the whole state. */
-  view(ctx: GameContext<State, Options>, _viewer: Seat | null): View {
-    return ctx.state as unknown as View;
-  }
+/** The optional hooks, as the engine looks them up. */
+interface OptionalHooks<State, Options, View> {
+  onEnd?(ctx: GameContext<State, Options>): State;
+  bot?(ctx: BotContext<State, Options>): GameEvent | null;
+  view?(ctx: GameContext<State, Options>, viewer: Seat | null): View;
 }
 
 /** `press` → `onPress`, `play-card` → `onPlayCard`. */
@@ -103,6 +117,7 @@ class Rejected extends Error {}
 export function gameRules<State, Options, View>(
   game: Game<State, Options, View>,
 ): GameRules<Stored<State>, GameEvent, View, Options> {
+  const hooks = game as Game<State, Options, View> & OptionalHooks<State, Options, View>;
   const names = Object.keys(game.events);
   for (const name of names) {
     if (typeof (game as unknown as Record<string, unknown>)[hookName(name)] !== 'function') {
@@ -154,7 +169,7 @@ export function gameRules<State, Options, View>(
     if (!seat) reject('Bạn không ngồi ở bàn này');
     const hook = (game as unknown as Record<string, (ctx: unknown) => State>)[hookName(move.event)];
     let state = hook?.call(game, { ...ctx, player: seat, payload: payload?.data, reject }) as State;
-    if (result && game.onEnd) state = game.onEnd({ ...ctx, state });
+    if (result && hooks.onEnd) state = hooks.onEnd({ ...ctx, state });
     return { ...stored, state, result };
   };
 
@@ -187,11 +202,19 @@ export function gameRules<State, Options, View>(
 
     getView(stored, player, room) {
       const ctx = context(stored, seededRng(1), room?.options as Options, room, () => {});
-      return game.view(ctx, ctx.players.find((p) => p.id === player) ?? null);
+      const viewer = ctx.players.find((p) => p.id === player) ?? null;
+      return hooks.view ? hooks.view(ctx, viewer) : (stored.state as unknown as View);
     },
 
     getResult(stored) {
       return stored.result;
+    },
+
+    bot(stored, player, rng, options, room) {
+      if (!hooks.bot || stored.result) return null;
+      const ctx = context(stored, rng, options, room, () => {});
+      const seat = ctx.players.find((p) => p.id === player);
+      return seat ? hooks.bot({ ...ctx, player: seat }) : null;
     },
 
     moveView(move, player, viewer) {

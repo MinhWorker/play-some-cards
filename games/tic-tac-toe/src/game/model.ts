@@ -1,6 +1,6 @@
 /**
- * The game's data: what a room remembers (State), what a player sends (Move) and the room's
- * options (Options). Read this file first; everything else works on these.
+ * The game's data: what a room remembers (State) and the room's options (Options). Read this
+ * file first; everything else works on these.
  */
 import type { PlayerId } from '@psc/sdk';
 import { z } from 'zod';
@@ -25,10 +25,6 @@ export interface State {
   players: [PlayerId, PlayerId];
   turn: PlayerId;
 }
-
-/** A move: the cell a player marks. The server rejects any other shape before the rules run. */
-export const moveSchema = z.object({ cell: z.number().int().min(0).max(80) });
-export type Move = z.infer<typeof moveSchema>;
 
 /**
  * Room options. Picked on the setup screen (scenes/Setup.ts); the host can change `size` and

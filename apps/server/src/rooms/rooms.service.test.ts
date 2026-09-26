@@ -4,6 +4,12 @@ import { RoomsService } from './rooms.service.js';
 /** A logged-in account (id = lowercase name, for readable tests). */
 const acc = (name: string) => ({ id: name.toLowerCase(), name });
 
+/** A Caro move: mark `cell`. */
+const place = (cell: unknown) => ({ event: 'place', payload: { cell } });
+
+/** Caro's own state inside what the room keeps (games written with `Game` wrap it). */
+const caro = (state: unknown) => (state as { state: Record<string, unknown> }).state;
+
 function setupRoom() {
   const service = new RoomsService();
   const { room, player: host } = service.create('tic-tac-toe', acc('Alice'));
@@ -37,7 +43,7 @@ describe('RoomsService', () => {
       [guest, 4],
       [host, 2],
     ] as const) {
-      service.move(room.code, player.id, { cell });
+      service.move(room.code, player.id, place(cell));
     }
     expect(room.status).toBe('finished');
     expect(room.result).toEqual({ winners: [host.id] });
@@ -46,7 +52,7 @@ describe('RoomsService', () => {
   it('rejects malformed moves', () => {
     const { service, room, host } = setupRoom();
     service.start(room.code, host.id);
-    expect(() => service.move(room.code, host.id, { cell: 'x' })).toThrow('Nước đi không hợp lệ');
+    expect(() => service.move(room.code, host.id, place('x'))).toThrow('Nước đi không hợp lệ');
   });
 
   it('puts an account back in its place when it joins its own room again', () => {
@@ -114,8 +120,8 @@ describe('RoomsService', () => {
     const { service, room, host } = setupRoom();
     const { player: fan } = service.join(room.code, acc('Cam'), 'spectator');
     service.start(room.code, host.id);
-    expect(() => service.move(room.code, fan.id, { cell: 0 })).toThrow('Bạn đang xem');
-    expect(service.snapshotFor(room, fan.id).view).toEqual(room.state);
+    expect(() => service.move(room.code, fan.id, place(0))).toThrow('Bạn đang xem');
+    expect(service.snapshotFor(room, fan.id).view).toEqual(caro(room.state));
   });
 
   it('lets a spectator take a free seat', () => {
@@ -136,7 +142,7 @@ describe('RoomsService', () => {
       [guest.id, 4],
       [host.id, 2],
     ] as const) {
-      service.move(room.code, id, { cell });
+      service.move(room.code, id, place(cell));
     }
     const { closed } = service.leave(room.code, host.id);
     expect(closed).toBe(false);
@@ -158,7 +164,7 @@ describe('RoomsService', () => {
     const { service, room, host, guest } = setupRoom();
     const play = (moves: [string, number][]) => {
       service.start(room.code, host.id);
-      for (const [id, cell] of moves) service.move(room.code, id, { cell });
+      for (const [id, cell] of moves) service.move(room.code, id, place(cell));
     };
     // X (host, seat 0) wins the top row.
     play([
@@ -219,9 +225,9 @@ describe('RoomsService', () => {
       const { service, room, player } = botRoom();
       service.start(room.code, player.id);
       expect(service.botMove(room.code)).toBeNull();
-      service.move(room.code, player.id, { cell: 0 });
+      service.move(room.code, player.id, place(0));
       expect(service.botMove(room.code)).toBe(room);
-      expect((room.state as { turn: string }).turn).toBe(player.id);
+      expect(caro(room.state).turn).toBe(player.id);
       expect(service.botMove(room.code)).toBeNull();
     });
 
@@ -239,7 +245,7 @@ describe('RoomsService', () => {
       expect(() => service.setOptions(room.code, guest.id, { size: 9 })).toThrow('Chỉ chủ phòng');
       service.setOptions(room.code, host.id, { size: 9, swap: true });
       service.start(room.code, host.id);
-      expect(room.state).toMatchObject({ size: 9, players: [guest.id, host.id] });
+      expect(caro(room.state)).toMatchObject({ size: 9, players: [guest.id, host.id] });
       expect(() => service.setOptions(room.code, host.id, { size: 3 })).toThrow('hết ván');
     });
 

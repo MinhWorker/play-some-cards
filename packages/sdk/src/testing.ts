@@ -1,3 +1,4 @@
+import type { GameEvent, Stored } from './engine.js';
 import { defaultOptions, type GamePlugin, type GameResult, type PlayerId } from './game.js';
 import { seededRng } from './rng.js';
 
@@ -61,4 +62,56 @@ export function assertHidden<State, View, Options>(
       throw new Error(`${viewer ?? 'A spectator'} can see ${JSON.stringify(secret)}`);
     }
   }
+}
+
+/**
+ * Plays a `Game` the way the server does, one event at a time, so a test reads like a script:
+ *
+ *   const game = testGame(plugin, ['a', 'b'], { options: { size: 6 } });
+ *   game.send('a', 'place', { cell: 4 });                 // throws if the game rejects it
+ *   expect(game.error('a', 'place', { cell: 5 })).toBe('Chưa tới lượt bạn');
+ *   expect(game.state.board[4]).toBe('X');
+ *
+ * `options` are the picks (defaults filled by the plugin's `room.options`).
+ */
+export function testGame<State, View, Options>(
+  plugin: GamePlugin<Stored<State>, GameEvent, View, Options>,
+  players: PlayerId[],
+  { options, seed = 1 }: { options?: Partial<Options>; seed?: number } = {},
+) {
+  const { rules } = plugin;
+  const rng = seededRng(seed);
+  const opts = (plugin.room ? plugin.room.options.parse(options ?? {}) : options) as Options;
+  let stored = rules.setup(players, rng, opts);
+  const move = (event: string, payload?: object): GameEvent => ({ event, payload });
+  const session = {
+    /** The game's state now. */
+    get state(): State {
+      return stored.state;
+    },
+    /** `null` while playing, then the winners. */
+    get result(): GameResult | null {
+      return rules.getResult(stored);
+    },
+    /** What `player` sees (`null` = a spectator). */
+    view(player: PlayerId | null): View {
+      return rules.getView(stored, player);
+    },
+    /** Plays an event; throws with the game's message if it is rejected. */
+    send(player: PlayerId, event: string, payload?: object) {
+      const error = rules.validateMove(stored, move(event, payload), player);
+      if (error) throw new Error(`${player} ${event} was rejected: ${error}`);
+      stored = rules.applyMove(stored, move(event, payload), player, rng);
+      return session;
+    },
+    /** The message the game would reject this event with, or `null` if it is fine. */
+    error(player: PlayerId, event: string, payload?: object) {
+      return rules.validateMove(stored, move(event, payload), player);
+    },
+    /** What the computer would play for `player` now (`null` = nothing). */
+    bot(player: PlayerId) {
+      return rules.bot?.(stored, player, rng, opts) ?? null;
+    },
+  };
+  return session;
 }

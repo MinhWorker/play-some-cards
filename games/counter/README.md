@@ -2,8 +2,8 @@
 
 One or two players, a button each, one shared number: every press adds 1. No winner.
 
-A prototype of the **experimental** way to write a game: two classes with lifecycle hooks,
-like Unity scripts. `Game` (the logic) runs on the server, which decides everything; `GameView`
+The smallest example of how games are written: two classes with lifecycle hooks, like Unity
+scripts. `Game` (the logic) runs on the server, which decides everything; `GameView`
 (the screen) runs in each player's browser. They talk through events.
 
 ```

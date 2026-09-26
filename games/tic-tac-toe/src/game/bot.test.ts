@@ -1,39 +1,33 @@
-import { playMoves, seededRng } from '@psc/sdk';
+import { seededRng, testGame } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { botMove } from './bot.js';
-import { type BotLevel, type Options, optionsSchema, type State } from './model.js';
+import type { BotLevel, Options, State } from './model.js';
 
-const options = (picked: Partial<Options> = {}) => optionsSchema.parse(picked);
-
-/** Players alternate, starting with a (X). */
-const play = (cells: number[], size: Options['size'] = 3) =>
-  playMoves(
-    plugin,
-    ['a', 'b'],
-    cells.map((cell, i) => ({ player: i % 2 ? 'b' : 'a', move: { cell } })),
-    1,
-    options({ size }),
-  ).state;
+/** The state after a (X) and b take `cells` in turn. */
+const play = (cells: number[], size: Options['size'] = 3) => {
+  const game = testGame(plugin, ['a', 'b'], { options: { size } });
+  for (const cell of cells) game.send(game.state.turn, 'place', { cell });
+  return game.state;
+};
 
 const move = (state: State, player: string, level: BotLevel, seed = 1) =>
-  botMove(state, player, seededRng(seed), level)?.cell;
+  botMove(state, player, seededRng(seed), level) ?? undefined;
 
-/** Plays a whole game between two bots; returns the winners. */
+/** Plays a whole game between two computers; returns the winners. */
 function botGame(x: BotLevel, o: BotLevel, seed: number, size: Options['size'] = 3) {
+  const game = testGame(plugin, ['a', 'b'], { options: { size }, seed });
   const rng = seededRng(seed);
-  let state = plugin.rules.setup(['a', 'b'], rng, options({ size }));
-  while (!plugin.rules.getResult(state)) {
-    const player = state.turn;
-    const next = botMove(state, player, rng, player === 'a' ? x : o);
-    if (!next) throw new Error('bot passed on its turn');
-    expect(plugin.rules.validateMove(state, next, player)).toBeNull();
-    state = plugin.rules.applyMove(state, next, player, rng);
+  while (!game.result) {
+    const player = game.state.turn;
+    const cell = botMove(game.state, player, rng, player === 'a' ? x : o);
+    if (cell === null) throw new Error('bot passed on its turn');
+    game.send(player, 'place', { cell });
   }
-  return plugin.rules.getResult(state)?.winners;
+  return game.result.winners;
 }
 
-describe('tic-tac-toe bot', () => {
+describe('caro bot', () => {
   it('waits for its turn and for a running game', () => {
     expect(move(play([]), 'b', 'hard')).toBeUndefined();
     expect(move(play([0, 3, 1, 4, 2]), 'b', 'hard')).toBeUndefined();
@@ -80,12 +74,5 @@ describe('tic-tac-toe bot', () => {
         botGame('normal', 'hard', seed, size);
       }
     }
-  });
-
-  it('only plays when the room is against the computer', () => {
-    const state = play([]);
-    const bot = plugin.rules.bot;
-    expect(bot?.(state, 'a', Math.random, options({ level: 'hard' }))).toBeNull();
-    expect(bot?.(state, 'a', Math.random, options({ opponent: 'bot' }))).not.toBeNull();
   });
 });

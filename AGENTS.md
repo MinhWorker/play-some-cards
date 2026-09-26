@@ -91,12 +91,14 @@ never open a visible browser window.
   boards read `props.options`; the host may replace it between games ("Tuỳ chỉnh" or a board's
   `changeOptions` → `room:options`; bots join/leave to match). `room.bots` seats the computer (moves from `rules.bot`, played by
   the gateway after a short pause); bots never host or keep a room alive. Example: Caro (games/tic-tac-toe).
-- Experimental: `Game` (`@psc/sdk`, engine.ts: class with `onStart`/`on<Event>` hooks, turned
-  into rules by `gameRules()`) and `GameView` (`@psc/sdk/client`: `onCreate`/`onLayout`/
-  `onState`/`on<Event>`/`onUpdate` hooks, `label`/`button`/`sprite`). Rules get a `RoomContext`
-  (players, host, score, options) as their last argument; snapshots carry `round` and `last`
-  (the last move, filtered by `moveView`) so screens can animate events. Prototype:
-  games/counter.
+- Games are written with `Game` (`@psc/sdk`, engine.ts: `events` + `onStart`/`on<Event>`/`bot`/
+  `view` hooks returning new state, turned into rules by `gameRules()`) and `GameView`
+  (`@psc/sdk/client`: `onCreate`/`onLayout`/`onStart`/`on<Event>`/`onState`/`onEnd`/`onUpdate`,
+  `label`/`button`/`sprite`, `send`, `changeOptions`). Test with `testGame`. Rules get a
+  `RoomContext` (players, host, score, options) as their last argument; snapshots carry `round`
+  and `last` (the last move, filtered by `moveView`) so screens hear events. Examples:
+  games/counter (smallest), games/tic-tac-toe. When a mechanic or data would help other games
+  (a system event, a ctx property, a view helper), add it to the SDK rather than the game.
 - Everyone plays logged in (username + password, no email). The socket connects with
   `auth: { token, protocol }`. Being in a room belongs to the account: after every connect the
   client sends `session:resume` to get back to its seat from any tab or device.

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { clientHost } from './host.js';
+import { hudScale } from './text.js';
 
 /**
  * What every scene a game ships shares: its own `assets/` by file name and text helpers.
@@ -43,6 +44,28 @@ export abstract class GameScene extends Phaser.Scene {
     const url = clientHost().assets(this.gameId).sounds[name];
     if (url) clientHost().playSound(url);
     else this.warnOnce(`No sound "${name}" in games/${this.gameId}/assets/`);
+  }
+
+  /**
+   * Where the board may draw, leaving room for the room bar (top, its real height comes from
+   * the registry key 'hudTop') and the result panel (bottom), plus a score row and a status
+   * line above the board. Phones held sideways show the result panel on the right instead, so
+   * the board keeps the full height.
+   */
+  protected boardArea() {
+    const { width, height } = this.scale;
+    const hud = hudScale();
+    const sideways = width > height && height < 500;
+    const top = ((this.registry.get('hudTop') as number | undefined) ?? 110 * hud) + 8 * hud;
+    const bottom = sideways ? 12 : 140 * hud;
+    const score = 50 * hud;
+    const status = 56 * hud;
+    const above = score + status;
+    const size = Math.max(120, Math.min(width * 0.92, height - top - bottom - above));
+    const cx = width / 2;
+    const cy = top + above + (height - top - bottom - above) / 2;
+    const statusY = cy - size / 2 - status / 2;
+    return { size, cx, cy, hud, statusY, scoreY: statusY - status / 2 - score / 2 };
   }
 
   /**

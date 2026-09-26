@@ -191,8 +191,13 @@ try {
   await host.screenshot({ path: `${out}/6b-next-game-options.png` });
   await host.getByRole('button', { name: 'Chơi ván mới' }).click();
   await guest.waitForFunction(() => {
-    const { view, me } = window.__phaser.scene.getScene('tic-tac-toe').props;
-    return view.board.length === 36 && view.win === 4 && view.players[0] === me && view.turn === me;
+    const { state, me } = window.__phaser.scene.getScene('tic-tac-toe').ctx;
+    return (
+      state.board.length === 36 &&
+      state.win === 4 &&
+      state.players[0] === me.id &&
+      state.turn === me.id
+    );
   });
   await play(guest, 14);
   await guest.screenshot({ path: `${out}/6c-6x6-phone.png` });
@@ -239,12 +244,12 @@ try {
   await host.getByRole('button', { name: 'Bắt đầu' }).click();
   const marks = () =>
     host.evaluate(
-      () => window.__phaser.scene.getScene('tic-tac-toe').props.view.board.filter(Boolean).length,
+      () => window.__phaser.scene.getScene('tic-tac-toe').ctx.state.board.filter(Boolean).length,
     );
   await play(host, 4);
   await host.waitForFunction(
     () =>
-      window.__phaser.scene.getScene('tic-tac-toe').props.view.board.filter(Boolean).length === 2,
+      window.__phaser.scene.getScene('tic-tac-toe').ctx.state.board.filter(Boolean).length === 2,
   );
   if ((await marks()) !== 2) throw new Error('The computer did not answer');
   await host.screenshot({ path: `${out}/9-bot-game.png` });
@@ -253,9 +258,36 @@ try {
   if (await host.locator('.room-row', { hasText: 'Phòng của Minh' }).count())
     throw new Error('The computer room stayed open after Minh left');
 
+  // Sandbox: a win, then "Ván mới" on the same board size leaves a clean board (no pieces, no
+  // gold tiles from the old winning line).
+  const sandbox = await (await phone()).newPage();
+  watchErrors(sandbox);
+  await sandbox.goto(`${url}/?play=tic-tac-toe`);
+  for (const [seat, cell] of [
+    ['Người 1', 0],
+    ['Người 2', 3],
+    ['Người 1', 1],
+    ['Người 2', 4],
+    ['Người 1', 2],
+  ]) {
+    await sandbox.getByRole('button', { name: seat, exact: true }).click();
+    await play(sandbox, cell);
+  }
+  await sandbox.getByRole('button', { name: 'Ván mới' }).click();
+  await sandbox.waitForTimeout(400);
+  const leftovers = await sandbox.evaluate(() => {
+    const s = window.__phaser.scene.getScene('tic-tac-toe');
+    return {
+      pieces: s.pieces.filter(Boolean).length,
+      tinted: s.tiles.filter((t) => t.isTinted).length,
+    };
+  });
+  if (leftovers.pieces || leftovers.tinted)
+    throw new Error(`"Ván mới" left ${JSON.stringify(leftovers)} on the board`);
+
   if (errors.length) throw new Error(`Page errors:\n${errors.join('\n')}`);
   console.log(
-    `OK: Lan came back after closing her browser, Minh won 1–0, 6×6 with swapped colors, host passed to Lan, room disbanded, the computer answered. Screenshots in ${out}/`,
+    `OK: Lan came back after closing her browser, Minh won 1–0, 6×6 with swapped colors, host passed to Lan, room disbanded, the computer answered, a new game starts clean. Screenshots in ${out}/`,
   );
 } catch (err) {
   console.error('E2E FAILED:', err.message);

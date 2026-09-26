@@ -1,16 +1,19 @@
 /**
- * The computer player, for rooms whose options say `opponent: 'bot'`. The server asks it after
- * every change and plays its move after a short pause; `null` means "not my turn".
+ * The computer player's brain: which cell to mark. CaroGame.bot calls it in rooms against the
+ * computer.
  */
 import { type PlayerId, pick } from '@psc/sdk';
-import { DIRECTIONS, emptyCells, otherMark, place, runAt, sideOf, winningLine } from './board.js';
-import type { BotLevel, Cell, Mark, Move, Options, State } from './model.js';
-import { rules } from './rules.js';
-
-export function bot(state: State, player: PlayerId, rng: () => number, options: Options) {
-  if (options.opponent !== 'bot') return null;
-  return botMove(state, player, rng, options.level);
-}
+import {
+  DIRECTIONS,
+  emptyCells,
+  isOver,
+  otherMark,
+  place,
+  runAt,
+  sideOf,
+  winningLine,
+} from './board.js';
+import type { BotLevel, Cell, Mark, State } from './model.js';
 
 /**
  * `easy` plays near the pieces at random but never misses a win, `normal` also blocks your
@@ -22,18 +25,18 @@ export function botMove(
   player: PlayerId,
   rng: () => number,
   level: BotLevel,
-): Move | null {
-  if (rules.getResult(state) || state.turn !== player) return null;
+): number | null {
+  if (isOver(state.board, state.win) || state.turn !== player) return null;
   const { board, win } = state;
   const me: Mark = player === state.players[0] ? 'X' : 'O';
 
   const winNow = finishingCell(board, me, win);
-  if (winNow !== undefined) return { cell: winNow };
-  if (level === 'easy') return { cell: pick(rng, candidates(board, 1)) };
+  if (winNow !== undefined) return winNow;
+  if (level === 'easy') return pick(rng, candidates(board, 1));
 
   const block = finishingCell(board, otherMark(me), win);
-  if (block !== undefined) return { cell: block };
-  if (level === 'hard' && state.size === 3) return { cell: perfectCell(board, me, rng) };
+  if (block !== undefined) return block;
+  if (level === 'hard' && state.size === 3) return perfectCell(board, me, rng);
 
   // Score every candidate: my attack plus how much it spoils the opponent's lines.
   const scored = candidates(board, 2).map((cell) => ({
@@ -44,7 +47,7 @@ export function botMove(
   // `normal` sometimes takes the second or third best move.
   const top =
     level === 'hard' ? scored.filter((s) => s.score === scored[0]?.score) : scored.slice(0, 3);
-  return { cell: pick(rng, top).cell };
+  return pick(rng, top).cell;
 }
 
 /** A free cell that completes `win` in a row for `mark`, if any. */

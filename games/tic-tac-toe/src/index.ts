@@ -1,13 +1,12 @@
 /**
  * Caro, the example game: copy its layout for your own. Tour and life cycle: README.md.
  *
- * Server entry: what the app needs to know about the game. It loads on the server, so it only
- * imports pure code from game/ (scenes are in client.ts).
+ * Server entry: what the app needs to know about the game: its meta, its logic (a `Game` turned
+ * into rules) and its room options. It loads on the server, so it only imports game/.
  */
-import { definePlugin } from '@psc/sdk';
-import { bot } from './game/bot.js';
+import { definePlugin, gameRules } from '@psc/sdk';
+import { CaroGame } from './game/CaroGame.js';
 import { optionsSchema } from './game/model.js';
-import { rules } from './game/rules.js';
 
 export default definePlugin({
   meta: {
@@ -19,7 +18,7 @@ export default definePlugin({
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },
-  rules: { ...rules, bot },
+  rules: gameRules(new CaroGame()),
   room: {
     options: optionsSchema,
     // Against the computer you are X (you start) and the computer takes the other seat.

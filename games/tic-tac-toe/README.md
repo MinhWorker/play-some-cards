@@ -4,42 +4,43 @@ Marks in a row on a square board, against a friend or the computer (Dễ / Vừa
 3 in a row on 3×3, 4 on 6×6, 5 on 9×9. Between games the host can change the size or swap
 colors (red X always starts).
 
-This is the example game: its layout is a good way to organize yours (`npm run new:game` starts
-from the same layout). Nothing forces it; the app only needs `src/index.ts` and `src/client.ts`.
+Written with the `Game` (server) and `GameView` (browser) classes: lifecycle hooks, one `ctx`
+with the whole room, events between them. `games/counter` is the smallest example; this one
+adds room options, a computer player and a settings screen.
 
 ## Start here
 
 ```
 src/
-  index.ts          server entry: meta (name, players, island), rules, room options
-  client.ts         browser entry: which scenes to show
-  game/             the game itself: pure TypeScript, no Phaser (runs on the server)
-    model.ts          ★ read first: State, Move, Options
-    rules.ts          setup, validateMove, applyMove, getView, getResult
+  index.ts          server entry: meta, gameRules(new CaroGame()), room options
+  client.ts         browser entry: the settings screen and the game's screen
+  game/             the logic: no Phaser (runs on the server)
+    model.ts          ★ read first: State and Options
+    CaroGame.ts       events and hooks: onStart, onPlace, bot
     board.ts          grid helpers (winning line, runs, free cells)
-    bot.ts            the computer player
-    *.test.ts         tests, next to what they test (npm run check)
-  scenes/           what players see: Phaser, browser only
+    bot.ts            the computer's brain: which cell to mark
+    *.test.ts         tests, written with testGame (npm run check)
+  scenes/           what players see (browser only)
+    CaroView.ts       the game's screen: onCreate, onLayout, onPlace, onState, onEnd
     Setup.ts          settings screen: "Tạo phòng", and "Tuỳ chỉnh" inside the room
-    Board.ts          the board, while a game runs
     theme.ts          pieces, colors and tints the scenes share
-assets/             images and sounds, used by file name (this.image(x, y, 'tile'), this.sfx('mark-drop'))
+assets/             images and sounds, used by file name (this.sprite('tile'), this.sfx('mark-drop'))
 sources/            originals of the art (Git LFS) and prompts.json
 ```
 
-## Life cycle
+## What happens
 
-There is no game loop on the server: it waits for events, and each one turns the state into a
-new state with the rules. (Phaser runs a frame loop in the browser, only to animate.)
+The server has no game loop: it waits for events, and each one runs a hook that returns the
+next state. (The browser runs a frame loop, only to animate.)
 
-| Event | Handled in | What happens |
+| When | Server (`CaroGame`) | Every screen (`CaroView`) |
 | --- | --- | --- |
-| "Tạo phòng", or "Tuỳ chỉnh" in the room | `scenes/Setup.ts` | `submit(options)`; the server checks them with `optionsSchema` and the room keeps them (the computer joins or leaves if needed) |
-| "Bắt đầu", "Chơi ván mới" | `game/rules.ts` | `setup(players, rng, options)` → a new `State` |
-| A tap on a free cell | `scenes/Board.ts` → `game/rules.ts` | `sendMove({ cell })` → `validateMove` → `applyMove` → new `State` |
-| The computer's turn | `game/bot.ts` | after a short pause it picks a move, checked and applied like any other |
-| Every new `State` | `game/rules.ts` → `scenes/Board.ts` | `getResult` (over?), `getView` for each player, then `Board.draw()` |
-| The host taps a size or ⇄ after a game | `scenes/Board.ts` | `changeOptions(...)`, a shortcut to the same options; the next `setup` uses them |
+| "Tạo phòng" / "Tuỳ chỉnh" | options checked by `optionsSchema`, kept by the room | `Setup.ts` calls `submit(options)` |
+| "Bắt đầu", "Chơi ván mới" | `onStart(ctx)` → first state | `onStart` (start sound), `onState` |
+| A tap on a free cell | `send('place', { cell })` → `onPlace(ctx)`: checks, then the new state (or `reject`) | `onPlace` (piece pops in), `onState` |
+| The computer's turn | `bot(ctx)` → `place` event, after a short pause | same as a tap |
+| Three (four, five) in a row / full board | `ctx.finish(winners)` in `onPlace` | `onEnd` (line glows, sound), result panel |
+| Host taps a size or ⇄ after a game | next `onStart` uses the new options | `changeOptions(...)` |
 
 Try it alone: http://localhost:5033/?play=tic-tac-toe (with `npm run dev`). "Tuỳ chỉnh" in the
 sandbox opens the setup screen; the seat buttons switch whose eyes you see the board with.

@@ -1,6 +1,6 @@
 /**
- * Bấm Nút: a prototype of the EXPERIMENTAL Game/View classes (see README.md). One or two
- * players, a button each, one shared number. No winner.
+ * Bấm Nút: the smallest example of the Game/View classes (see README.md). One or two players,
+ * a button each, one shared number. No winner.
  *
  * Server entry: the game's meta and its logic (a `Game` turned into rules).
  */

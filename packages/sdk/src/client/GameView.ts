@@ -1,5 +1,5 @@
 /**
- * EXPERIMENTAL: a game's screen as a class with lifecycle hooks, the browser half of `Game`
+ * A game's screen as a class with lifecycle hooks, the browser half of `Game`
  * (from `@psc/sdk`). The app calls the hooks; you draw with the helpers below or with Phaser
  * directly (`this.add`, `this.tweens`, … still work).
  *
@@ -17,7 +17,7 @@
 import type Phaser from 'phaser';
 import { hookName } from '../engine.js';
 import type { GameResult, PlayerId } from '../game.js';
-import { BOARD_MOVE, BOARD_PROPS, type BoardProps } from './BoardScene.js';
+import { BOARD_MOVE, BOARD_OPTIONS, BOARD_PROPS, type BoardProps } from './BoardScene.js';
 import { GameScene } from './GameScene.js';
 import { hudScale, titleStyle } from './text.js';
 
@@ -79,6 +79,8 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   protected ctx!: ViewContext<View, Options>;
   private props!: BoardProps<View, Options>;
   private lastSeq = 0;
+  /** Options sent with `changeOptions` that the server hasn't sent back yet. */
+  private pendingOptions: Options | null = null;
 
   // ── Hooks: `onCreate` is required; write any of the others (see the top of this file) and
   // the app calls them. They aren't declared here, so no `override` is needed.
@@ -96,6 +98,17 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   /** Plays an event (the server checks it and runs the game's `on<Event>` hook). */
   protected send(event: string, payload: object = {}) {
     this.game.events.emit(BOARD_MOVE, { event, payload });
+  }
+
+  /**
+   * Host only, between games: new room options for the next game (checked by the plugin's
+   * `room.options`). `ctx.options` shows them at once, so quick taps build on each other.
+   */
+  protected changeOptions(options: Options) {
+    this.pendingOptions = options;
+    this.game.events.emit(BOARD_OPTIONS, options);
+    this.ctx = this.makeContext();
+    this.hook('onState', this.ctx);
   }
 
   // ── Ready-made objects (Phaser objects underneath; use Phaser for anything else) ────────
@@ -207,6 +220,9 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   private receive(props: BoardProps<View, Options>) {
     const before = this.props;
     this.props = props;
+    if (JSON.stringify(props.options) === JSON.stringify(this.pendingOptions)) {
+      this.pendingOptions = null;
+    }
     this.ctx = this.makeContext();
     if (props.round !== before.round) {
       this.lastSeq = 0;
@@ -246,7 +262,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       hostId,
       isHost: hostId === me,
       score,
-      options,
+      options: this.pendingOptions ?? options,
       result,
       screen: { width, height, cx: width / 2, cy: height / 2, top, hud },
     };
