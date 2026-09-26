@@ -4,6 +4,7 @@ import { titleStyle } from '@/phaser/assets';
 const WORDS = ['Chơi', 'Chút', 'Bài'];
 const TEXT_SIZE = 84;
 const ROPE = 70;
+const BIRD_FRAMES = ['bird', 'bird-mid', 'bird-down', 'bird-mid'] as const;
 
 /**
  * The game's name, one word at a time, each floating up and down on its own and pulled up by
@@ -49,17 +50,30 @@ export class Title extends Phaser.GameObjects.Container {
       bird.setScale(80 / bird.width);
       // The feet sit near the bottom of the image; hang the rope from them.
       bird.y -= bird.displayHeight * 0.4;
+      const birdY = bird.y;
       birdTop = Math.min(birdTop, bird.y - bird.displayHeight / 2);
       // A magic light orb hides the knot where the rope meets the word.
       const orb = scene.add.image(knotX, textTop, 'orb').setDisplaySize(46, 46);
       word.add([vine, bird, text, orb]);
-      // Wings flap: a quick squash.
-      scene.tweens.add({
-        targets: bird,
-        scaleY: bird.scaleY * 0.82,
-        duration: 140 + i * 10,
-        yoyo: true,
-        repeat: -1,
+      // Change wing poses while the body stays at one size. Blink briefly at the top of a flap.
+      let flap = 0;
+      let nextBlink = scene.time.now + 2400 + i * 1100;
+      scene.time.delayedCall(i * 60, () => {
+        scene.time.addEvent({
+          delay: 90,
+          loop: true,
+          callback: () => {
+            flap = (flap + 1) % BIRD_FRAMES.length;
+            if (flap === 0 && scene.time.now >= nextBlink) {
+              bird.setTexture('bird-blink');
+              nextBlink = scene.time.now + Phaser.Math.Between(3200, 5700);
+            } else {
+              bird.setTexture(BIRD_FRAMES[flap] ?? 'bird');
+            }
+            // The generated down pose sits slightly higher in its canvas; line up the face/feet.
+            bird.y = birdY + (flap === 2 ? 2.5 : 0);
+          },
+        });
       });
       scene.tweens.add({
         targets: orb,

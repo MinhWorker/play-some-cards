@@ -21,27 +21,36 @@ If `package-lock.json` conflicts when you merge `main` into your branch, run `np
 
 ## The folder
 
+`games/tic-tac-toe` is the example game: open its README for a tour and the life cycle of a
+game. New games start with the same layout:
+
 ```
 games/<id>/
-  src/index.ts        meta (name, players, status) + rules. Runs on the server.
-  src/rules.ts        the rules: pure functions, no Phaser, no DOM
-  src/rules.test.ts   tests (npm run check runs them)
-  src/client.ts       export default defineClient({ scene: MyScene })
-  src/<Name>Scene.ts  the board, drawn with Phaser
+  src/index.ts        server entry: meta (name, players, status) + rules (+ room options)
+  src/client.ts       browser entry: defineClient({ scene: Board, setup?: Setup })
+  src/game/           the game itself: pure TypeScript, no Phaser, no DOM (runs on the server)
+    model.ts            State, Move (and Options): read this first
+    rules.ts            the rules
+    rules.test.ts       tests (npm run check runs them)
+  src/scenes/         what players see, drawn with Phaser (browser only)
+    Board.ts            the board
   assets/             images (.webp/.png) and sounds (.wav/.mp3), used by file name
   sources/            optional originals (big PNGs, .psd/.kra, raw audio); see below
   README.md           rules and credits
 ```
 
+Only `src/index.ts` and `src/client.ts` are required; organize the rest as you like. Keep
+`game/` free of Phaser: the server loads it.
+
 A game may import only `@psc/sdk`, `@psc/sdk/client`, `phaser`, `zod` and its own files; lint
 checks it. Relative imports end in `.js` (`./rules.js`), because the server runs compiled JS.
 
-## Rules (`src/rules.ts`)
+## Rules (`src/game/rules.ts`)
 
 ```ts
 export const rules = defineGame<State, Move, View>({
   moveSchema,                              // zod schema; bad shapes never reach your code
-  setup(players, rng) { ... },             // the starting state
+  setup(players, rng, options) { ... },    // the starting state (options: see room settings)
   validateMove(state, move, player) { },   // null, or a Vietnamese message for the player
   applyMove(state, move, player, rng) { }, // return a NEW state, never mutate
   getView(state, player) { ... },          // what this player may see
@@ -56,7 +65,54 @@ export const rules = defineGame<State, Move, View>({
 - Test with `playMoves(plugin, players, moves)`, `moveError(...)` and
   `assertHidden(plugin, state, viewer, secret)` from `@psc/sdk`.
 
-## Board (`src/<Name>Scene.ts`)
+## Room options and the computer (optional)
+
+A game can show its own settings screen (e.g. "play a friend or the computer?") when someone
+taps "Tạo phòng", and again when the host taps "Tuỳ chỉnh" inside the room between games.
+Design it however you like in Phaser, then hand over one object: that object is the room's
+options. Without a setup screen the room is created right away.
+
+```ts
+// src/client.ts
+export default defineClient({ scene: Board, setup: Setup });
+
+// src/scenes/Setup.ts: build() / draw() like a board; draw() runs again on resize
+export class Setup extends RoomSetupScene<Options> {
+  protected build() { /* your buttons, art, sounds */ }
+  protected draw() { /* place them; this.safeTop() leaves room for the app's top bar */ }
+  // on a tap: this.submit({ opponent: 'bot', level: 'hard' })   (or this.cancel())
+  // this.current: the room's options when opened with "Tuỳ chỉnh", null for a new room
+}
+
+// src/index.ts
+export default definePlugin({
+  meta,
+  rules: { ...rules, bot: (state, player, rng, options) => ... }, // optional computer player
+  room: {
+    options: optionsSchema,                                  // zod; the server checks the object
+    bots: (options) => (options.opponent === 'bot' ? 1 : 0), // optional: seats for the computer
+  },
+});
+```
+
+Where the options go:
+
+- `setup(players, rng, options)`: copy into the state what the other rules need.
+- `bot(state, player, rng, options)`: the computer's move for its seat, or `null` when it has
+  nothing to do (not its turn). Pure like the rest of the rules; the server plays it after a
+  short pause and checks it like any move. Test it like the rules (Caro: `src/game/bot.test.ts`).
+- The board: `this.props.options` (type it with `BoardScene<View, Move, Options>`). Between
+  games the host can also change them right on the board with `this.changeOptions({...})`
+  (check `this.isHost`; read `this.options`, which includes a change still on its way). The next
+  `setup` gets the new ones. Caro uses this for quick board size and color buttons.
+
+`optionsSchema.parse({})` must work: those defaults are used for a room created without the
+screen. The computer's seats come after the people. When new options need more or fewer of
+them, the computer joins (if a seat is free) or leaves, and the score starts over. The room
+closes when its last person leaves. In the sandbox, the "Tuỳ chỉnh" button opens your setup screen and
+starts over with its options. Caro (games/tic-tac-toe) is the example (`src/scenes/Setup.ts`, `src/game/bot.ts`).
+
+## Board (`src/scenes/Board.ts`)
 
 Extend `BoardScene<View, Move>` from `@psc/sdk/client`:
 
@@ -71,6 +127,19 @@ Extend `BoardScene<View, Move>` from `@psc/sdk/client`:
   and fit small phones. A spectator's `me` is not in `players`.
 - Winner/draw panels, "Chơi ván mới", the room bar and sounds for winning are already done by the
   app.
+
+## Game and View classes (the way to write games)
+
+Games are written as two classes with lifecycle hooks, like Unity scripts: a `Game` (the logic,
+on the server) and a `GameView` (the screen, in the browser). They talk through events, and
+every hook gets one `ctx` with the whole room (state, players and seats, host, score, options).
+
+- `games/counter` ("Bấm Nút"): the smallest example; its README lists every hook.
+- `games/tic-tac-toe` (Caro): the same with room options, a computer player (`bot(ctx)`), a
+  settings screen, host controls (`changeOptions`) and tests written with `testGame`.
+
+The sections above describe the older rules/board way that `npm run new:game` and the other
+games still use; new games should follow Caro and Bấm Nút.
 
 ## Art and sound
 

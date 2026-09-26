@@ -8,16 +8,20 @@ conventions.
 
 ```
 games/<id>/        @psc/game-<id>  One game = one folder; adding or changing a game edits nothing
-                   else. How to build one: docs/making-a-game.md
-  src/index.ts       export default definePlugin({ meta, rules }); runs on the server
-  src/rules.ts       Pure rules + src/rules.test.ts
-  src/client.ts      export default defineClient({ scene }); browser only, loaded lazily
-  src/<Name>Scene.ts Board, extends BoardScene from @psc/sdk/client
+                   else. How to build one: docs/making-a-game.md. games/tic-tac-toe is the example
+                   layout (and scripts/game-template); only index.ts + client.ts are required
+  src/index.ts       export default definePlugin({ meta, rules, room? }); runs on the server
+  src/client.ts      export default defineClient({ scene, setup? }); browser only, loaded lazily
+  src/game/          Pure logic, no Phaser: model.ts (State/Move/Options), rules.ts + tests,
+                     bot.ts (optional computer player)
+  src/scenes/        Phaser: Board.ts (extends BoardScene), Setup.ts (optional "Tạo phòng"
+                     screen, extends RoomSetupScene)
   assets/            App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'))
   sources/           Optional originals (Git LFS), prompts.json (Codex), audio.json (cuts)
-packages/sdk/      @psc/sdk     The only API games use. `.`: defineGame/definePlugin, types, rng
+packages/sdk/      @psc/sdk     The only API games use. `.`: defineGame/definePlugin (optional `room`
+                                options + `rules.bot`), types, rng
                                 (shuffle/pick/int/seededRng), test helpers (playMoves, moveError,
-                                assertHidden). `/client`: defineClient, BoardScene, titleStyle,
+                                assertHidden). `/client`: defineClient, BoardScene, RoomSetupScene, titleStyle,
                                 hudScale, setClientHost (the app gives scenes asset URLs + sound)
 packages/shared/   @psc/shared  Core only, never imported by games: protocol.ts (socket events +
                                 PROTOCOL_VERSION), account.ts, registry.ts (`games`/`getGame` from the
@@ -53,6 +57,7 @@ docs/              making-a-game, deploy (CI, versions, hosting), generating-mus
 | `npm run build` | Build sdk, games, shared, server, web |
 | `npm run new:game -- <id> "Tên"` | Create `games/<id>/` from the starter game (status `wip`) |
 | `/?play=<id>&players=2` | Sandbox: a game's rules + board alone in the browser (dev and PR previews) |
+| DEV button (bottom-left) | Dev tools panel outside production (dev and PR previews). Add a toggle/input as one entry in `DEV_SETTINGS` (`apps/web/src/lib/devTools.ts`), read it with `devSetting(key)` |
 | `npm run assets [-- <id>]` | Make a game's `assets/` from its `sources/` |
 | `npm run smoke [url]` | Bots register and play Caro (one reconnects, one watches) against a running server (default :8033) |
 | `npm run e2e [url]` | Headless Chromium plays Caro through the real UI (needs `npm run dev`). Screenshots in `.e2e/` |
@@ -79,6 +84,21 @@ never open a visible browser window.
 - Rooms belong to one game and live in memory (a restart wipes them). From a game's room list you
   create a room, join as a player (free seat, no game running) or watch; leaving means quitting
   (the next player becomes host, an empty room is disbanded). Rooms keep a score.
+- Room options: a game may ship its own settings screen (a `RoomSetupScene`, shown as the
+  `setup` stage for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room; `pages/RoomSetup`
+  forwards what it passes to `submit`). The server checks
+  the object with `room.options` (zod) and keeps it for the room's life: `setup` and `bot` get it,
+  boards read `props.options`; the host may replace it between games ("Tuỳ chỉnh" or a board's
+  `changeOptions` → `room:options`; bots join/leave to match). `room.bots` seats the computer (moves from `rules.bot`, played by
+  the gateway after a short pause); bots never host or keep a room alive. Example: Caro (games/tic-tac-toe).
+- Games are written with `Game` (`@psc/sdk`, engine.ts: `events` + `onStart`/`on<Event>`/`bot`/
+  `view` hooks returning new state, turned into rules by `gameRules()`) and `GameView`
+  (`@psc/sdk/client`: `onCreate`/`onLayout`/`onStart`/`on<Event>`/`onState`/`onEnd`/`onUpdate`,
+  `label`/`button`/`sprite`, `send`, `changeOptions`). Test with `testGame`. Rules get a
+  `RoomContext` (players, host, score, options) as their last argument; snapshots carry `round`
+  and `last` (the last move, filtered by `moveView`) so screens hear events. Examples:
+  games/counter (smallest), games/tic-tac-toe. When a mechanic or data would help other games
+  (a system event, a ctx property, a view helper), add it to the SDK rather than the game.
 - Everyone plays logged in (username + password, no email). The socket connects with
   `auth: { token, protocol }`. Being in a room belongs to the account: after every connect the
   client sends `session:resume` to get back to its seat from any tab or device.
@@ -100,7 +120,7 @@ never open a visible browser window.
 - Server: no `import type` for classes Nest injects (DI needs the runtime value).
 - The server typechecks against built packages: root scripts run `npm run build -w @psc/shared`
   (= scripts/libs.mjs) first. After adding a game folder: `npm install`, restart `npm run dev`.
-- Game rules need tests (`games/<id>/src/rules.test.ts`). New socket events go in `protocol.ts`
+- Game rules need tests (e.g. `games/<id>/src/game/rules.test.ts`). New socket events go in `protocol.ts`
   first; bump `PROTOCOL_VERSION` when old clients/servers would break.
 - **Players see Vietnamese** (UI copy and server/game error messages); code, comments, docs and
   identifiers are English. No instructional subtext ("tap an island to…"); status text is fine.
@@ -123,6 +143,7 @@ never open a visible browser window.
   (game; its home-map image is `island`), run `npm run gen:asset`, and look at the result.
   `transparent: true` for objects. Prefer `--edit` to tweak an image. Codex sometimes paints a
   fake checkerboard instead of transparency: check alpha. ~1.5 min per image.
+  Animation frames sharing one anchor set `preserveCanvas: true` to keep transparent margins.
 - `avatar-long.webp` is a real photo (`assets/shared/images/Long-look-at-u.jpg`) in the generated
   `avatar-frame`, not generated art.
 - Music: image-guided Google Cloud Lyria (docs/generating-music.md). Effects: Google Cloud Veo

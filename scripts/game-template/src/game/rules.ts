@@ -1,28 +1,22 @@
+/**
+ * The rules, in the order the server calls them during a game:
+ *
+ *   setup ─► (validateMove ─► applyMove ─► getView ─► getResult) on every move ─► result
+ *
+ * Pure functions: no Phaser, no DOM, no Math.random (use `rng`), never mutate the state.
+ */
 import { defineGame, type PlayerId } from '@psc/sdk';
-import { z } from 'zod';
-
-// Starter rules ("race to 21"): players take turns adding 1, 2 or 3 to a shared total; whoever
-// reaches exactly 21 wins. Replace them with your game.
-
-export const TARGET = 21;
-
-export interface State {
-  players: PlayerId[];
-  total: number;
-  turn: PlayerId;
-  winner: PlayerId | null;
-}
-
-const moveSchema = z.object({ add: z.number().int().min(1).max(3) });
-export type Move = z.infer<typeof moveSchema>;
+import { type Move, moveSchema, type State, TARGET } from './model.js';
 
 export const rules = defineGame<State, Move>({
   moveSchema,
 
+  /** A new game (also after "Chơi ván mới"). */
   setup(players) {
     return { players, total: 0, turn: players[0] as PlayerId, winner: null };
   },
 
+  /** `null` if the move is legal, otherwise the message shown to the player (Vietnamese). */
   validateMove(state, move, player) {
     if (state.winner) return 'Ván đã kết thúc';
     if (state.turn !== player) return 'Chưa tới lượt bạn';
@@ -30,6 +24,7 @@ export const rules = defineGame<State, Move>({
     return null;
   },
 
+  /** The state after a legal move. */
   applyMove(state, move, player) {
     const total = state.total + move.add;
     const next = state.players[(state.players.indexOf(player) + 1) % state.players.length];
@@ -41,11 +36,12 @@ export const rules = defineGame<State, Move>({
     };
   },
 
-  // Nothing is hidden in this game. Hide other players' cards here in yours.
+  /** What `player` sees (`null` = spectator). Nothing is hidden here; hide other players' cards in yours. */
   getView(state) {
     return state;
   },
 
+  /** `null` while playing, then the winners (`[]` = draw). */
   getResult(state) {
     return state.winner ? { winners: [state.winner] } : null;
   },

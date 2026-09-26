@@ -1,6 +1,7 @@
 import { games, type JoinedRoom, type RoomRole, type RoomSummary } from '@psc/shared';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { loadClient } from '@/games';
 import { request, socket } from '@/lib/socket';
 import { RoomRow } from './RoomRow';
 import './GameRooms.css';
@@ -9,10 +10,15 @@ interface Props {
   gameId: string;
   onBack: () => void;
   onEnter: (joined: JoinedRoom) => void;
+  /** Opens the game's own "Tạo phòng" screen (games whose client.ts has `setup`). */
+  onSetup: () => void;
 }
 
-/** A game's live room list: create a room, join one as a player, or watch. */
-export function GameRooms({ gameId, onBack, onEnter }: Props) {
+/**
+ * A game's live room list: create a room, join one as a player, or watch. A game with its own
+ * setup screen shows it first; others create the room right away.
+ */
+export function GameRooms({ gameId, onBack, onEnter, onSetup }: Props) {
   const game = games[gameId];
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState('');
@@ -47,6 +53,12 @@ export function GameRooms({ gameId, onBack, onEnter }: Props) {
     }
   }
 
+  async function create() {
+    const client = await loadClient(gameId);
+    if (client.setup) onSetup();
+    else void run(() => request('room:create', { gameId }));
+  }
+
   const join = (roomCode: string, role: RoomRole) =>
     run(() => request('room:join', { roomCode, role }));
 
@@ -57,7 +69,7 @@ export function GameRooms({ gameId, onBack, onEnter }: Props) {
           ←
         </Button>
         <h2>{game?.name}</h2>
-        <Button onClick={() => run(() => request('room:create', { gameId }))}>+ Tạo phòng</Button>
+        <Button onClick={create}>+ Tạo phòng</Button>
       </div>
       {error && <p className="error">{error}</p>}
 

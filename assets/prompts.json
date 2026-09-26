@@ -85,8 +85,27 @@
     },
     "bird": {
       "transparent": true,
+      "preserveCanvas": true,
       "maxSize": 256,
       "prompt": "A small cute round chubby cartoon bird flying, seen from the front, both wings raised high mid-flap, little orange feet dangling straight down below its body, light blue feathers with a white belly, happy face."
+    },
+    "bird-mid": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Animation frame of the bird: same face, body, feet, scale and centered position as bird.png; both wings extended horizontally, eyes open. Use a real transparent alpha background."
+    },
+    "bird-down": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Animation frame of the bird: same face, body, feet, scale and centered position as bird.png; both wings swept diagonally downward, eyes open. Use a real transparent alpha background."
+    },
+    "bird-blink": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Animation frame of the bird: same raised wings, body, feet, scale and centered position as bird.png; both eyes closed in a happy natural blink. Use a real transparent alpha background."
     },
     "vine": {
       "transparent": true,

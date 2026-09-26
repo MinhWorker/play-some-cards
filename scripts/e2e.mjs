@@ -1,7 +1,7 @@
 // Headless browser test of the real app: three people create accounts, two (desktop + phone)
 // pick Caro on the island map, create/join a room from the room list and play to a win while a
 // third person watches. Mid-game the phone player closes the browser and logs in again on a new
-// one: they must land back in their seat. Screenshots go to .e2e/ so you can look at them.
+// one: they must land back in their seat. Then the host plays a room against the computer. Screenshots go to .e2e/ so you can look at them.
 // Needs `npm run dev` running (the owner usually has it open). Never opens a visible window.
 //   npm run e2e [webUrl]      default http://localhost:5033
 import { mkdirSync } from 'node:fs';
@@ -117,6 +117,13 @@ try {
   await host.screenshot({ path: `${out}/1-hub.png` });
   await openCaroRooms(host);
   await host.getByRole('button', { name: '+ Tạo phòng' }).click();
+  // Caro has its own setup screen (a Phaser scene): "Bạn bè" creates a room for people.
+  const pickSetup = async (page, pick) => {
+    await page.waitForTimeout(500);
+    await clickCanvas(page, 'tic-tac-toe:setup', new Function(`return (s) => s.${pick}.tile`)());
+  };
+  await pickSetup(host, 'opponents[0]');
+  await pickSetup(host, 'sizes[0]');
   await host.getByText('Phòng của Minh').waitFor();
 
   // The guest finds Minh's room in the live list and takes the free seat.
@@ -176,6 +183,25 @@ try {
   );
   if (score !== '1 – 0') throw new Error(`Scoreboard shows "${score}", expected "1 – 0"`);
 
+  // Between games the host picks a 6×6 board (4 in a row) and swaps colors: Lan is red X now.
+  await clickCanvas(host, 'tic-tac-toe', (s) => s.next.sizes[1]);
+  await host.waitForTimeout(300);
+  await clickCanvas(host, 'tic-tac-toe', (s) => s.next.swap);
+  await host.waitForTimeout(300);
+  await host.screenshot({ path: `${out}/6b-next-game-options.png` });
+  await host.getByRole('button', { name: 'Chơi ván mới' }).click();
+  await guest.waitForFunction(() => {
+    const { state, me } = window.__phaser.scene.getScene('tic-tac-toe').ctx;
+    return (
+      state.board.length === 36 &&
+      state.win === 4 &&
+      state.players[0] === me.id &&
+      state.turn === me.id
+    );
+  });
+  await play(guest, 14);
+  await guest.screenshot({ path: `${out}/6c-6x6-phone.png` });
+
   // Host quits: Lan becomes host. Then Lan quits: no players left, the room is disbanded
   // and the spectator is sent back to the room list.
   await host.getByRole('button', { name: '← Rời phòng' }).click();
@@ -186,9 +212,82 @@ try {
   await fan.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
   await fan.screenshot({ path: `${out}/7-disbanded-spectator.png` });
 
+  // Against the computer: Minh picks "Máy", then "Khó" on the setup screen, starts, and the
+  // computer answers each move on its own.
+  await host.goto(url);
+  await openCaroRooms(host);
+  await host.getByRole('button', { name: '+ Tạo phòng' }).click();
+  await pickSetup(host, 'opponents[1]');
+  await host.waitForTimeout(300);
+  await host.screenshot({ path: `${out}/8-create-bot-room.png` });
+  await pickSetup(host, 'levels[2]');
+  await pickSetup(host, 'sizes[0]');
+  await host.getByText('🤖 Máy').waitFor();
+
+  // "Tuỳ chỉnh" reopens the settings screen inside the room: switching to "Bạn bè" sends the
+  // computer away (a seat opens), and back to "Máy" brings it back. No new room.
+  const roomCode = await host.evaluate(() => new URLSearchParams(location.search).toString());
+  await host.getByRole('button', { name: 'Tuỳ chỉnh' }).click();
+  await host.waitForTimeout(300);
+  await host.screenshot({ path: `${out}/8b-customize-in-room.png` });
+  await pickSetup(host, 'opponents[0]');
+  await pickSetup(host, 'sizes[1]');
+  await host.getByText('👤 1/2').waitFor();
+  if (await host.getByText('🤖 Máy').count()) throw new Error('The computer stayed in the room');
+  await host.getByRole('button', { name: 'Tuỳ chỉnh' }).click();
+  await pickSetup(host, 'opponents[1]');
+  await pickSetup(host, 'levels[2]');
+  await pickSetup(host, 'sizes[0]');
+  await host.getByText('🤖 Máy').waitFor();
+  if ((await host.evaluate(() => new URLSearchParams(location.search).toString())) !== roomCode)
+    throw new Error('Customizing left the room');
+  await host.getByRole('button', { name: 'Bắt đầu' }).click();
+  const marks = () =>
+    host.evaluate(
+      () => window.__phaser.scene.getScene('tic-tac-toe').ctx.state.board.filter(Boolean).length,
+    );
+  await play(host, 4);
+  await host.waitForFunction(
+    () =>
+      window.__phaser.scene.getScene('tic-tac-toe').ctx.state.board.filter(Boolean).length === 2,
+  );
+  if ((await marks()) !== 2) throw new Error('The computer did not answer');
+  await host.screenshot({ path: `${out}/9-bot-game.png` });
+  await host.getByRole('button', { name: '← Rời phòng' }).click();
+  await host.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
+  if (await host.locator('.room-row', { hasText: 'Phòng của Minh' }).count())
+    throw new Error('The computer room stayed open after Minh left');
+
+  // Sandbox: a win, then "Ván mới" on the same board size leaves a clean board (no pieces, no
+  // gold tiles from the old winning line).
+  const sandbox = await (await phone()).newPage();
+  watchErrors(sandbox);
+  await sandbox.goto(`${url}/?play=tic-tac-toe`);
+  for (const [seat, cell] of [
+    ['Người 1', 0],
+    ['Người 2', 3],
+    ['Người 1', 1],
+    ['Người 2', 4],
+    ['Người 1', 2],
+  ]) {
+    await sandbox.getByRole('button', { name: seat, exact: true }).click();
+    await play(sandbox, cell);
+  }
+  await sandbox.getByRole('button', { name: 'Ván mới' }).click();
+  await sandbox.waitForTimeout(400);
+  const leftovers = await sandbox.evaluate(() => {
+    const s = window.__phaser.scene.getScene('tic-tac-toe');
+    return {
+      pieces: s.pieces.filter(Boolean).length,
+      tinted: s.tiles.filter((t) => t.isTinted).length,
+    };
+  });
+  if (leftovers.pieces || leftovers.tinted)
+    throw new Error(`"Ván mới" left ${JSON.stringify(leftovers)} on the board`);
+
   if (errors.length) throw new Error(`Page errors:\n${errors.join('\n')}`);
   console.log(
-    `OK: Lan came back after closing her browser, Minh won 1–0, host passed to Lan, room disbanded. Screenshots in ${out}/`,
+    `OK: Lan came back after closing her browser, Minh won 1–0, 6×6 with swapped colors, host passed to Lan, room disbanded, the computer answered, a new game starts clean. Screenshots in ${out}/`,
   );
 } catch (err) {
   console.error('E2E FAILED:', err.message);

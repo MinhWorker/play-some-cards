@@ -32,6 +32,8 @@ type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, Sock
 type Result = { ok: true; [key: string]: unknown } | { ok: false; error: string };
 
 const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+/** The computer "thinks" this long before its move, so players can follow the game. */
+const BOT_DELAY_MS = 700;
 
 const lobbyChannel = (gameId: string) => `lobby:${gameId}`;
 
@@ -47,6 +49,8 @@ const lobbyChannel = (gameId: string) => `lobby:${gameId}`;
 @WebSocketGateway({ cors: { origin: true } })
 export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @WebSocketServer() server!: AppServer;
+  /** Pending computer moves, by room code. */
+  private readonly botTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly rooms: RoomsService,
@@ -127,10 +131,10 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:create')
-  create(socket: AppSocket, req: { gameId: string }) {
+  create(socket: AppSocket, req: { gameId: string; options?: unknown }) {
     return this.handle(() => {
       this.leaveCurrentRoom(socket);
-      const { room } = this.rooms.create(req.gameId, socket.data.user);
+      const { room } = this.rooms.create(req.gameId, socket.data.user, req.options);
       return this.enter(socket, room);
     });
   }
@@ -159,6 +163,15 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
       this.broadcast(this.rooms.sit(roomCode, playerId));
+      return {};
+    });
+  }
+
+  @SubscribeMessage('room:options')
+  setOptions(socket: AppSocket, req: { options: unknown }) {
+    return this.handle(() => {
+      const { roomCode, playerId } = this.requireSeat(socket);
+      this.broadcast(this.rooms.setOptions(roomCode, playerId, req?.options));
       return {};
     });
   }
@@ -262,6 +275,23 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       }
     }
     this.broadcastLobby(room.game.id);
+    this.scheduleBot(room);
+  }
+
+  /** After a change in a game with computer seats, let a bot move after a short pause. */
+  private scheduleBot(room: Room) {
+    if (room.status !== 'playing' || !room.players.some((p) => p.bot)) return;
+    clearTimeout(this.botTimers.get(room.code));
+    const timer = setTimeout(() => {
+      this.botTimers.delete(room.code);
+      try {
+        const moved = this.rooms.botMove(room.code);
+        if (moved) this.broadcast(moved);
+      } catch (err) {
+        console.error(`Bot move failed in ${room.game.id}:`, err);
+      }
+    }, BOT_DELAY_MS);
+    this.botTimers.set(room.code, timer);
   }
 
   private async handle(fn: () => object | Promise<object>): Promise<Result> {

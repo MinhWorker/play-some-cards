@@ -16,10 +16,12 @@ src/
   pages/              One folder per screen (component + its CSS + its sub-components)
     Home/             Island map (the islands themselves are drawn by Phaser)
     GameRooms/        One game's live room list
+    RoomSetup/        Back button + room creation while a game's own setup scene runs
     Room/             Inside a room: room bar, "waiting" panel, result panel
   components/
     hud/              UI shown on every screen: profile badge, sound button,
-                      cloud transition, toasts. Import from '@/components/hud'
+                      cloud transition, toasts, version label, dev tools.
+                      Import from '@/components/hud'
     ui/               Small building blocks (Button)
   hooks/              React hooks: login, room connection, sounds, URL state
   lib/                Plain TypeScript (no React): socket, login, sound, asset URLs
@@ -40,12 +42,13 @@ Imports that leave the current folder use `@/`, which means `src/`: `import { re
 | A screen's layout or text | `src/pages/<Page>/` |
 | The profile badge, speaker button, cloud transition, toasts | `src/components/hud/` |
 | Colors, font, button and panel styles | `src/styles/` |
-| How a board looks or reacts to taps | `games/<id>/src/<Name>Scene.ts` (repo root) |
+| How a board looks or reacts to taps | `games/<id>/src/scenes/` (repo root; older games: `src/<Name>Scene.ts`) |
 | The island map or the sky | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |
 | Talking to the server | `src/lib/socket.ts`, `src/hooks/useRoom.ts` |
 | Login and accounts | `src/pages/Login/`, `src/lib/auth.ts`, `src/hooks/useAccount.ts` |
 | Music and sound effects | `src/lib/sound.ts` + `assets/audio.json` |
 | The app's images | `assets/prompts.json` (generated) + `src/phaser/assets.ts` |
-| Game rules | `games/<id>/src/rules.ts` (repo root) |
+| Game rules | `games/<id>/src/game/rules.ts` (repo root; older games: `src/rules.ts`) |
+| Dev tools (toggles, inputs; not in production) | `src/lib/devTools.ts` (`DEV_SETTINGS`), panel in `src/components/hud/DevTools.tsx` |
 
 See `AGENTS.md` at the repo root for conventions and `docs/making-a-game.md` to make a game.

@@ -1,13 +1,16 @@
+/**
+ * The board, while a game runs. `build()` creates the objects once; `draw()` updates them from
+ * `this.props` (view, me, players, result, score) after every move and on resize. A tap sends a
+ * move with `this.sendMove()`; the server checks it with the rules.
+ *
+ * Starter board: the running total and three "+1 / +2 / +3" buttons. Replace it with your game.
+ * Images and sounds in assets/ are used by file name: this.image(x, y, 'card'), this.sfx('deal').
+ */
 import { BoardScene, titleStyle } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import { type Move, type State, TARGET } from './rules.js';
+import { type Move, type State, TARGET } from '../game/model.js';
 
-/**
- * Starter board: the running total and three "+1 / +2 / +3" buttons. Replace it with your game.
- * Put images and sounds in ../assets/ and use them by file name: this.image(x, y, 'card'),
- * this.sfx('deal').
- */
-export class __Name__Scene extends BoardScene<State, Move> {
+export class Board extends BoardScene<State, Move> {
   private status!: Phaser.GameObjects.Text;
   private total!: Phaser.GameObjects.Text;
   private buttons: Phaser.GameObjects.Text[] = [];

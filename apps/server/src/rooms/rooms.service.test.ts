@@ -4,6 +4,12 @@ import { RoomsService } from './rooms.service.js';
 /** A logged-in account (id = lowercase name, for readable tests). */
 const acc = (name: string) => ({ id: name.toLowerCase(), name });
 
+/** A Caro move: mark `cell`. */
+const place = (cell: unknown) => ({ event: 'place', payload: { cell } });
+
+/** Caro's own state inside what the room keeps (games written with `Game` wrap it). */
+const caro = (state: unknown) => (state as { state: Record<string, unknown> }).state;
+
 function setupRoom() {
   const service = new RoomsService();
   const { room, player: host } = service.create('tic-tac-toe', acc('Alice'));
@@ -37,7 +43,7 @@ describe('RoomsService', () => {
       [guest, 4],
       [host, 2],
     ] as const) {
-      service.move(room.code, player.id, { cell });
+      service.move(room.code, player.id, place(cell));
     }
     expect(room.status).toBe('finished');
     expect(room.result).toEqual({ winners: [host.id] });
@@ -46,7 +52,7 @@ describe('RoomsService', () => {
   it('rejects malformed moves', () => {
     const { service, room, host } = setupRoom();
     service.start(room.code, host.id);
-    expect(() => service.move(room.code, host.id, { cell: 'x' })).toThrow('Nước đi không hợp lệ');
+    expect(() => service.move(room.code, host.id, place('x'))).toThrow('Nước đi không hợp lệ');
   });
 
   it('puts an account back in its place when it joins its own room again', () => {
@@ -114,8 +120,8 @@ describe('RoomsService', () => {
     const { service, room, host } = setupRoom();
     const { player: fan } = service.join(room.code, acc('Cam'), 'spectator');
     service.start(room.code, host.id);
-    expect(() => service.move(room.code, fan.id, { cell: 0 })).toThrow('Bạn đang xem');
-    expect(service.snapshotFor(room, fan.id).view).toEqual(room.state);
+    expect(() => service.move(room.code, fan.id, place(0))).toThrow('Bạn đang xem');
+    expect(service.snapshotFor(room, fan.id).view).toEqual(caro(room.state));
   });
 
   it('lets a spectator take a free seat', () => {
@@ -136,7 +142,7 @@ describe('RoomsService', () => {
       [guest.id, 4],
       [host.id, 2],
     ] as const) {
-      service.move(room.code, id, { cell });
+      service.move(room.code, id, place(cell));
     }
     const { closed } = service.leave(room.code, host.id);
     expect(closed).toBe(false);
@@ -158,7 +164,7 @@ describe('RoomsService', () => {
     const { service, room, host, guest } = setupRoom();
     const play = (moves: [string, number][]) => {
       service.start(room.code, host.id);
-      for (const [id, cell] of moves) service.move(room.code, id, { cell });
+      for (const [id, cell] of moves) service.move(room.code, id, place(cell));
     };
     // X (host, seat 0) wins the top row.
     play([
@@ -181,5 +187,90 @@ describe('RoomsService', () => {
       [host.id, 8],
     ]);
     expect(service.snapshotFor(room, guest.id).score).toEqual({ wins: [1, 0], draws: 1 });
+  });
+
+  describe('against the computer', () => {
+    const botRoom = (level = 'hard') => {
+      const service = new RoomsService();
+      const { room, player } = service.create('tic-tac-toe', acc('Alice'), {
+        opponent: 'bot',
+        level,
+      });
+      return { service, room, player };
+    };
+
+    it('seats the computer when the options ask for it', () => {
+      const { service, room, player } = botRoom();
+      expect(service.snapshotFor(room, player.id).players).toEqual([
+        { id: 'alice', name: 'Alice', connected: true },
+        { id: 'bot:1', name: 'Máy', connected: true, bot: true },
+      ]);
+      expect(service.list('tic-tac-toe')[0]?.canJoin).toBe(false);
+    });
+
+    it('creates a normal room without options', () => {
+      const service = new RoomsService();
+      const { room } = service.create('tic-tac-toe', acc('Alice'));
+      expect(room.players).toHaveLength(1);
+      expect(room.options).toEqual({ opponent: 'human', level: 'easy', size: 3, swap: false });
+    });
+
+    it('rejects options the game does not know', () => {
+      expect(() =>
+        new RoomsService().create('tic-tac-toe', acc('Alice'), { opponent: 'robot' }),
+      ).toThrow('Tuỳ chọn phòng không hợp lệ');
+    });
+
+    it('moves only on its turn', () => {
+      const { service, room, player } = botRoom();
+      service.start(room.code, player.id);
+      expect(service.botMove(room.code)).toBeNull();
+      service.move(room.code, player.id, place(0));
+      expect(service.botMove(room.code)).toBe(room);
+      expect(caro(room.state).turn).toBe(player.id);
+      expect(service.botMove(room.code)).toBeNull();
+    });
+
+    it('closes the room when the last person leaves', () => {
+      const { service, room, player } = botRoom();
+      expect(service.leave(room.code, player.id).closed).toBe(true);
+      expect(service.list('tic-tac-toe')).toEqual([]);
+      expect(service.botMove(room.code)).toBeNull();
+    });
+  });
+
+  describe('changing options between games', () => {
+    it('lets the host change them before the next game', () => {
+      const { service, room, host, guest } = setupRoom();
+      expect(() => service.setOptions(room.code, guest.id, { size: 9 })).toThrow('Chỉ chủ phòng');
+      service.setOptions(room.code, host.id, { size: 9, swap: true });
+      service.start(room.code, host.id);
+      expect(caro(room.state)).toMatchObject({ size: 9, players: [guest.id, host.id] });
+      expect(() => service.setOptions(room.code, host.id, { size: 3 })).toThrow('hết ván');
+    });
+
+    it('lets the computer leave or join the room', () => {
+      const service = new RoomsService();
+      const { room, player } = service.create('tic-tac-toe', acc('Alice'), { opponent: 'bot' });
+      // A finished game Alice won (the computer plays at random, so set it up directly).
+      service.start(room.code, player.id);
+      room.status = 'finished';
+      room.score.wins = [1, 0];
+      // Now play people: the computer leaves, a seat opens, the tally starts over.
+      service.setOptions(room.code, player.id, { opponent: 'human' });
+      expect(room.players.map((p) => p.id)).toEqual(['alice']);
+      expect(room).toMatchObject({ status: 'lobby', state: null, score: { wins: [0, 0] } });
+      expect(service.list('tic-tac-toe')[0]?.canJoin).toBe(true);
+      // Someone takes the seat: no room for the computer any more.
+      service.join(room.code, acc('Bob'), 'player');
+      expect(() => service.setOptions(room.code, player.id, { opponent: 'bot' })).toThrow(
+        'Phòng đủ người',
+      );
+      service.leave(room.code, 'bob');
+      service.setOptions(room.code, player.id, { opponent: 'bot', swap: true });
+      service.start(room.code, player.id);
+      // The computer is X now: it moves first.
+      expect(service.botMove(room.code)).toBe(room);
+    });
   });
 });

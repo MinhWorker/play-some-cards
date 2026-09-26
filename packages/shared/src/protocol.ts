@@ -15,7 +15,7 @@ import type { GameResult, PlayerId } from './game.js';
  * `PROTOCOL_MISMATCH` (the error's `data.protocol` is the server's version). CI fails when this
  * file changes without a bump, unless the PR has the `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** `connect_error` message when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -30,6 +30,8 @@ export interface PlayerInfo {
   id: PlayerId;
   name: string;
   connected: boolean;
+  /** A seat the computer plays (never a host, always connected). */
+  bot?: boolean;
 }
 
 export type RoomStatus = 'lobby' | 'playing' | 'finished';
@@ -58,6 +60,15 @@ export interface RoomSnapshot {
   view: unknown;
   result: GameResult | null;
   score: RoomScore;
+  /** Chosen on the game's setup screen when the room was created (see `RoomSetup`). */
+  options: unknown;
+  /** Counts games started in this room: a new number means a new game began. */
+  round: number;
+  /**
+   * The last move of this game, for boards to animate "who just did what" (`move` as the game's
+   * `moveView` lets this member see it). `null` before the first move. `seq` goes up by one each.
+   */
+  last: { seq: number; player: PlayerId; move: unknown } | null;
 }
 
 /** One row in a game's room list. */
@@ -97,8 +108,11 @@ export interface ClientToServerEvents {
   /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
   'lobby:watch': (req: { gameId: string }, ack: Ack<{ rooms: RoomSummary[] }>) => void;
   'lobby:unwatch': (req: Record<string, never>, ack: Ack) => void;
-  /** Creating or joining a room first leaves the room you were in (if it is another one). */
-  'room:create': (req: { gameId: string }, ack: Ack<JoinedRoom>) => void;
+  /**
+   * Creating or joining a room first leaves the room you were in (if it is another one).
+   * `options` come from the game's own setup screen, if it has one (checked by `room.options`).
+   */
+  'room:create': (req: { gameId: string; options?: unknown }, ack: Ack<JoinedRoom>) => void;
   'room:join': (req: { roomCode: string; role: RoomRole }, ack: Ack<JoinedRoom>) => void;
   /**
    * A player leaving mid-game cancels that game; during or after a game the room goes back
@@ -108,6 +122,11 @@ export interface ClientToServerEvents {
   'room:leave': (req: Record<string, never>, ack: Ack) => void;
   /** A spectator takes a free seat (only before the game starts or after it ends). */
   'room:sit': (req: Record<string, never>, ack: Ack) => void;
+  /**
+   * Host only, not during a game: replace the room's options (a board's `changeOptions`). The
+   * next game starts with them. Can't change how many seats the computer has.
+   */
+  'room:options': (req: { options: unknown }, ack: Ack) => void;
   'game:start': (req: Record<string, never>, ack: Ack) => void;
   'game:move': (req: { move: unknown }, ack: Ack) => void;
   'game:restart': (req: Record<string, never>, ack: Ack) => void;

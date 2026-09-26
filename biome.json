@@ -48,9 +48,14 @@
                       "!zod",
                       "!vitest",
                       "!./**",
-                      "!../*"
+                      "!../*",
+                      "!../*/**"
                     ],
-                    "message": "A game may import only @psc/sdk, @psc/sdk/client, phaser, zod, vitest (tests) and its own files (./...)."
+                    "message": "A game may import only @psc/sdk, @psc/sdk/client, phaser, zod, vitest (tests) and its own files (./..., ../game/...)."
+                  },
+                  {
+                    "group": ["../../**"],
+                    "message": "Stay inside your game's src/ (folders one level deep, e.g. src/game/ and src/scenes/)."
                   }
                 ]
               }

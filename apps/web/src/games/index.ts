@@ -1,5 +1,6 @@
 import type { GameAssets, GameClient } from '@psc/sdk/client';
 import { type AnyGameDefinition, games } from '@psc/shared';
+import { devSetting } from '@/lib/devTools';
 
 /**
  * The web side of the game plugins in games/<id>/. Nothing here names a game: rules and meta
@@ -47,10 +48,10 @@ export async function loadClient(gameId: string): Promise<GameClient> {
 
 /**
  * Work-in-progress games are playable in dev and PR previews and locked in production
- * (set in vite.config.ts from Vercel's VERCEL_ENV).
+ * (set in vite.config.ts from Vercel's VERCEL_ENV). The dev tools can lock them like production.
  */
 declare const __SHOW_WIP__: boolean;
-export const showWip = __SHOW_WIP__;
+export const showWip = __SHOW_WIP__ && !devSetting('prodLocks');
 
 /** Whether a game can be opened here (it exists and is not a locked work in progress). */
 export function isPlayable(game: AnyGameDefinition | undefined): game is AnyGameDefinition {

@@ -49,11 +49,13 @@ try {
   await bob.send('room:join', { roomCode: room.roomCode, role: 'player' });
   await cam.send('room:join', { roomCode: room.roomCode, role: 'spectator' });
   await alice.send('game:start', {});
-  const refused = await cam.send('game:move', { move: { cell: 0 } }).catch((e) => e.message);
+  const refused = await cam
+    .send('game:move', { move: { event: 'place', payload: { cell: 0 } } })
+    .catch((e) => e.message);
   if (refused !== 'Bạn đang xem, không đi được')
     throw new Error(`Spectator move was not refused: ${refused}`);
-  await alice.send('game:move', { move: { cell: 0 } });
-  await bob.send('game:move', { move: { cell: 3 } });
+  await alice.send('game:move', { move: { event: 'place', payload: { cell: 0 } } });
+  await bob.send('game:move', { move: { event: 'place', payload: { cell: 3 } } });
 
   // Bob closes the browser without leaving, then logs in elsewhere: same seat, same game.
   bob.socket.close();
@@ -70,7 +72,7 @@ try {
     [bob, 4],
     [alice, 2],
   ]) {
-    await who.send('game:move', { move: { cell } });
+    await who.send('game:move', { move: { event: 'place', payload: { cell } } });
   }
   await new Promise((r) => setTimeout(r, 200));
   const result = cam.state()?.result;
