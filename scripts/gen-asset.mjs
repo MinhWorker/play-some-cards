@@ -110,6 +110,7 @@ async function generate(name) {
   rmSync(work, { recursive: true, force: true });
   await toWebp(asset.raw, asset.out, {
     transparent: asset.transparent,
+    preserveCanvas: asset.preserveCanvas,
     maxSize: asset.maxSize,
     label: name,
   });

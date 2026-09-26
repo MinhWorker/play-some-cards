@@ -6,17 +6,22 @@ import { dirname } from 'node:path';
 import sharp from 'sharp';
 
 /**
- * Image -> WebP. `transparent` trims empty edges (and warns when the "transparent" background
- * isn't); `maxSize` caps the longest side (default 1024).
+ * Image -> WebP. `transparent` warns if the background isn't transparent and normally trims
+ * empty edges; `preserveCanvas` keeps those edges for animation frames that share an anchor.
+ * `maxSize` caps the longest side (default 1024).
  */
-export async function toWebp(src, out, { transparent = false, maxSize = 1024, label = out } = {}) {
+export async function toWebp(
+  src,
+  out,
+  { transparent = false, preserveCanvas = false, maxSize = 1024, label = out } = {},
+) {
   mkdirSync(dirname(out), { recursive: true });
   let img = sharp(src);
   if (transparent) {
     const { channels } = await img.metadata();
     const alpha = channels === 4 ? (await img.stats()).channels[3] : null;
     if (!alpha || alpha.min > 10) console.warn(`! ${label}: background is not transparent`);
-    img = sharp(await img.trim().toBuffer());
+    if (!preserveCanvas) img = sharp(await img.trim().toBuffer());
   }
   await img
     .resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true })
