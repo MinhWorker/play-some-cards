@@ -1,5 +1,5 @@
 /**
- * Randomness helpers. Games get `rng` (a float in [0, 1)) from `setup` / `applyMove`; never use
+ * Randomness helpers. Hooks get `ctx.rng` (a float in [0, 1)); never use
  * Math.random(), so tests can replay a game exactly.
  */
 export type Rng = () => number;

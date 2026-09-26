@@ -27,7 +27,8 @@
     "gen:asset": "node scripts/gen-asset.mjs",
     "audio": "node scripts/build-audio.mjs",
     "e2e": "node scripts/e2e.mjs",
-    "new:game": "node scripts/new-game.mjs",
+    "new": "node scripts/new.mjs",
+    "new:game": "node scripts/new.mjs game",
     "assets": "node scripts/assets.mjs"
   },
   "devDependencies": {

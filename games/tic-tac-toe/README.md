@@ -1,51 +1,50 @@
 # Caro
 
-Marks in a row on a square board, against a friend or the computer (Dễ / Vừa / Khó):
-3 in a row on 3×3, 4 on 6×6, 5 on 9×9. Between games the host can change the size or swap
-colors (red X always starts).
+Xếp quân thành hàng trên bàn cờ vuông, chơi với bạn hoặc với máy (Dễ / Vừa / Khó): 3 quân liền
+trên bàn 3×3, 4 quân trên 6×6, 5 quân trên 9×9. Giữa các ván, chủ phòng có thể đổi cỡ bàn hoặc
+đổi màu (X đỏ luôn đi trước).
 
-Written with the `Game` (server) and `GameView` (browser) classes: lifecycle hooks, one `ctx`
-with the whole room, events between them. `games/counter` is the smallest example; this one
-adds room options, a computer player and a settings screen.
+Viết bằng hai lớp `Game` (server) và `GameView` (trình duyệt): các hook vòng đời, một `ctx` chứa
+cả phòng, sự kiện đi giữa hai bên. `games/counter` là ví dụ nhỏ nhất; game này thêm tuỳ chọn
+phòng, người chơi máy và màn cài đặt.
 
-## Start here
+## Bắt đầu từ đây
 
 ```
 src/
-  index.ts          server entry: meta, gameRules(new CaroGame()), room options
-  client.ts         browser entry: the settings screen and the game's screen
-  game/             the logic: no Phaser (runs on the server)
-    model.ts          ★ read first: State and Options
-    CaroGame.ts       events and hooks: onStart, onPlace, bot
-    board.ts          grid helpers (winning line, runs, free cells)
-    bot.ts            the computer's brain: which cell to mark
-    *.test.ts         tests, written with testGame (npm run check)
-  scenes/           what players see (browser only)
-    CaroView.ts       the game's screen: onCreate, onLayout, onPlace, onState, onEnd
-    Setup.ts          settings screen: "Tạo phòng", and "Tuỳ chỉnh" inside the room
-    theme.ts          pieces, colors and tints the scenes share
-assets/             images and sounds, used by file name (this.sprite('tile'), this.sfx('mark-drop'))
-sources/            originals of the art (Git LFS) and prompts.json
+  index.ts          đầu vào phía server: meta, game: new CaroGame(), tuỳ chọn phòng
+  client.ts         đầu vào phía trình duyệt: màn cài đặt và màn hình game
+  game/             phần logic: không Phaser (chạy trên server)
+    model.ts          ★ đọc trước: State và Options
+    CaroGame.ts       sự kiện và hook: onStart, onPlace, bot
+    board.ts          hàm tiện ích cho lưới (hàng thắng, chuỗi quân, ô trống)
+    bot.ts            bộ não của máy: đánh vào ô nào
+    *.test.ts         test, viết bằng testGame (npm run check)
+  scenes/           những gì người chơi thấy (chỉ trên trình duyệt)
+    CaroView.ts       màn hình game: onCreate, onLayout, onPlace, onState, onEnd
+    Setup.ts          màn cài đặt: "Tạo phòng", và "Tuỳ chỉnh" trong phòng
+    theme.ts          quân cờ, màu và sắc độ dùng chung giữa các màn
+assets/             hình và âm thanh, dùng theo tên file (this.sprite('tile'), this.sfx('mark-drop'))
+sources/            ảnh gốc (Git LFS) và prompts.json
 ```
 
-## What happens
+## Chuyện gì xảy ra
 
-The server has no game loop: it waits for events, and each one runs a hook that returns the
-next state. (The browser runs a frame loop, only to animate.)
+Server không có vòng lặp game: nó chờ sự kiện, mỗi sự kiện chạy một hook trả về state kế tiếp.
+(Trình duyệt có vòng lặp khung hình, chỉ để làm hiệu ứng.)
 
-| When | Server (`CaroGame`) | Every screen (`CaroView`) |
+| Khi | Server (`CaroGame`) | Mọi màn hình (`CaroView`) |
 | --- | --- | --- |
-| "Tạo phòng" / "Tuỳ chỉnh" | options checked by `optionsSchema`, kept by the room | `Setup.ts` calls `submit(options)` |
-| "Bắt đầu", "Chơi ván mới" | `onStart(ctx)` → first state | `onStart` (start sound), `onState` |
-| A tap on a free cell | `send('place', { cell })` → `onPlace(ctx)`: checks, then the new state (or `reject`) | `onPlace` (piece pops in), `onState` |
-| The computer's turn | `bot(ctx)` → `place` event, after a short pause | same as a tap |
-| Three (four, five) in a row / full board | `ctx.finish(winners)` in `onPlace` | `onEnd` (line glows, sound), result panel |
-| Host taps a size or ⇄ after a game | next `onStart` uses the new options | `changeOptions(...)` |
+| "Tạo phòng" / "Tuỳ chỉnh" | tuỳ chọn được `optionsSchema` kiểm tra, phòng giữ lại | `Setup.ts` gọi `submit(options)` |
+| "Bắt đầu", "Chơi ván mới" | `onStart(ctx)` → state đầu tiên | `onStart` (âm thanh bắt đầu), `onState` |
+| Bấm vào một ô trống | `send('place', { cell })` → `onPlace(ctx)`: kiểm tra, rồi trả state mới (hoặc `reject`) | `onPlace` (quân hiện ra), `onState` |
+| Tới lượt máy | `bot(ctx)` → sự kiện `place`, sau một khoảng dừng ngắn | như khi người bấm |
+| Ba (bốn, năm) quân liền / hết ô | `ctx.finish(winners)` trong `onPlace` | `onEnd` (hàng thắng sáng lên, âm thanh), bảng kết quả |
+| Chủ phòng bấm cỡ bàn hoặc ⇄ sau một ván | `onStart` kế tiếp dùng tuỳ chọn mới | `changeOptions(...)` |
 
-Try it alone: http://localhost:5033/?play=tic-tac-toe (with `npm run dev`). "Tuỳ chỉnh" in the
-sandbox opens the setup screen; the seat buttons switch whose eyes you see the board with.
+Chơi thử một mình: http://localhost:5033/?play=tic-tac-toe (khi đang chạy `npm run dev`). Nút
+"Tuỳ chỉnh" trong sandbox mở màn cài đặt; các nút ghế đổi góc nhìn sang người chơi khác.
 
-## Credits
+## Ghi công
 
-Art generated with Codex (`sources/prompts.json`). Sounds: see `assets/audio.json` in the repo
-root.
+Hình tạo bằng Codex (`sources/prompts.json`). Âm thanh: xem `assets/audio.json` ở thư mục gốc repo.

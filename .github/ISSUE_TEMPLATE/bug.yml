@@ -1,29 +1,29 @@
-name: Bug
-description: Something is broken or looks wrong
+name: Lỗi
+description: Có gì đó hỏng hoặc trông sai
 labels: [bug, needs-triage]
 body:
   - type: textarea
     id: what
     attributes:
-      label: What happened
-      description: And what you expected instead. Screenshots help.
+      label: Chuyện gì đã xảy ra
+      description: Và bạn mong đợi điều gì. Có ảnh chụp càng tốt.
     validations:
       required: true
   - type: textarea
     id: steps
     attributes:
-      label: How to make it happen again
+      label: Cách để lỗi xảy ra lại
       placeholder: |
-        1. Open Caro, create a room
+        1. Mở Caro, tạo phòng
         2. ...
   - type: input
     id: device
     attributes:
-      label: Device and browser
+      label: Thiết bị và trình duyệt
       placeholder: iPhone 13, Safari
   - type: input
     id: version
     attributes:
-      label: Version
-      description: Shown at the bottom of the sound panel (speaker button, top right).
+      label: Phiên bản
+      description: Hiện ở cuối bảng âm thanh (nút loa, góc trên bên phải).
       placeholder: v0.1.0 · 1a2b3c4

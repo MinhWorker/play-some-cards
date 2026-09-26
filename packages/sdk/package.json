@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Everything a game plugin may use: rules contract, rng helpers, test helpers, and (in /client) the board scene base class.",
+  "description": "Everything a game plugin may use: the Game class, rng helpers, testGame, and (in /client) GameView and RoomSetupScene.",
   "exports": {
     ".": {
       "psc-source": "./src/index.ts",

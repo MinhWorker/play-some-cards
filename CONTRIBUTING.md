@@ -1,54 +1,55 @@
-# Contributing
+# Đóng góp
 
-Thanks for helping! Use whatever editor, art tool or AI assistant you like. You own your PR:
-make sure it works and that you understand it.
+Cảm ơn bạn đã giúp! Dùng trình soạn thảo, công cụ vẽ hay trợ lý AI nào cũng được. PR là của bạn:
+hãy chắc rằng nó chạy và bạn hiểu nó.
 
-## The flow
+## Quy trình
 
-1. **Pick or open an issue** so nobody does the same thing twice. Small first tasks are labelled
+1. **Chọn hoặc mở một issue** để không ai làm trùng việc. Việc nhỏ cho người mới có nhãn
    `good first issue`.
-2. **Branch** from `main` (`feat/xiangqi-board`, `fix/room-list`, anything readable).
-3. **Open a PR** early if you like. Its **title** is a
-   [Conventional Commit](https://www.conventionalcommits.org), because it becomes the commit on
-   `main` and the changelog line:
-   - `feat: …` something players notice, `fix: …` a bug fix
-   - `docs:`, `refactor:`, `test:`, `chore:`, `ci:` for the rest
-   - optional scope for one game: `feat(xiangqi): cannon captures`
+2. **Tạo nhánh** từ `main` (`feat/xiangqi-board`, `fix/room-list`, tên gì dễ đọc là được).
+3. **Mở PR** sớm cũng được. **Tiêu đề** PR theo
+   [Conventional Commit](https://www.conventionalcommits.org) (viết tiếng Anh), vì nó thành commit
+   trên `main` và một dòng trong changelog:
+   - `feat: …` thứ người chơi thấy được, `fix: …` sửa lỗi
+   - `docs:`, `refactor:`, `test:`, `chore:`, `ci:` cho phần còn lại
+   - phạm vi tuỳ chọn cho một game: `feat(xiangqi): cannon captures`
 
-   Commits inside the branch can be anything; they are squashed.
-4. **CI** runs lint, type checks, unit tests, the build and a headless browser test. Vercel posts
-   a preview link where you can play your branch. For UI changes, add screenshots at phone and
-   desktop size.
-5. **Review, then squash merge.** Merging to `main` deploys to production.
+   Commit bên trong nhánh viết sao cũng được; khi merge chúng được gộp lại (squash).
+4. **CI** chạy lint, kiểm tra kiểu, unit test, build và một bài test trình duyệt không giao diện
+   (headless). Vercel gửi link xem trước để chơi thử nhánh của bạn. Nếu đổi giao diện, đính kèm
+   ảnh chụp cỡ điện thoại và cỡ máy tính.
+5. **Review, rồi squash merge.** Merge vào `main` là triển khai lên bản thật.
 
-Before pushing, `npm run check` runs the same checks locally.
+Trước khi push, `npm run check` chạy đúng các bước kiểm tra đó trên máy bạn.
 
-## Versions
+## Phiên bản
 
-Nobody edits version numbers. A bot keeps a "release" PR open listing everything merged since the
-last release. Merging it bumps the version, updates `CHANGELOG.md` and tags `vX.Y.Z`. The running
-version shows at the bottom of the sound panel.
+Không ai tự sửa số phiên bản. Một bot giữ sẵn PR "release" liệt kê mọi thứ đã merge từ lần phát
+hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.md` và gắn tag `vX.Y.Z`. Phiên bản
+đang chạy hiện ở cuối bảng âm thanh.
 
-## Rules that CI can't check
+## Quy tắc CI không kiểm được
 
-- Players see Vietnamese; code, comments and docs are English.
-- The server is authoritative, and hidden information (other players' cards) never leaves it:
-  filter it in the game's `getView`.
-- Art is generated or drawn by people, never drawn with code (SVG/CSS/Phaser graphics). Don't put
-  text inside images.
-- Test UI on a phone size (390×844) and a desktop size.
-- Database migrations must keep working with the previous web build (add first, remove later).
-- A change to the socket protocol that breaks old clients bumps `PROTOCOL_VERSION`
-  (`packages/shared/src/protocol.ts`); CI reminds you.
+- Người chơi thấy tiếng Việt. Mã, chú thích trong mã và `AGENTS.md` viết tiếng Anh; tài liệu cho
+  người đọc (README, CONTRIBUTING, `docs/`, README của game, mẫu issue/PR) viết tiếng Việt.
+- Server là bên quyết định, và thông tin ẩn (bài của người khác) không bao giờ rời server: lọc nó
+  trong hook `view` của game.
+- Hình do AI tạo hoặc người vẽ, không bao giờ vẽ bằng code (SVG/CSS/Phaser graphics). Không đặt chữ
+  vào trong hình.
+- Thử giao diện ở cỡ điện thoại (390×844) và cỡ máy tính.
+- Migration database phải chạy được với bản web trước đó (thêm trước, xoá sau).
+- Thay đổi giao thức socket làm hỏng client cũ thì tăng `PROTOCOL_VERSION`
+  (`packages/shared/src/protocol.ts`); CI sẽ nhắc bạn.
 
-## License
+## Giấy phép
 
-Your code is shared under MIT and your art/audio under CC BY-NC 4.0
-([LICENSE-ASSETS.md](LICENSE-ASSETS.md)). Only add art or sounds you have the right to share.
+Mã của bạn được chia sẻ theo MIT, hình và âm thanh theo CC BY-NC 4.0
+([LICENSE-ASSETS.md](LICENSE-ASSETS.md)). Chỉ thêm hình hay âm thanh mà bạn có quyền chia sẻ.
 
-## Making a game
+## Làm một game
 
-`npm run new:game -- <id> "Tên"` creates a small working game in `games/<id>/`; everything about
-your game stays in that folder, so several people can build games at once without conflicts.
-Try it alone at `http://localhost:5033/?play=<id>&players=2` (no server or account needed).
-See [docs/making-a-game.md](docs/making-a-game.md).
+`npm run new:game -- <id> "Tên"` tạo một game nhỏ chạy được trong `games/<id>/` (`npm run new`
+thêm từng file từ mẫu). Mọi thứ về game nằm trong thư mục đó, nên nhiều người có thể làm game cùng
+lúc mà không đụng nhau. Chơi thử một mình ở `http://localhost:5033/?play=<id>&players=2` (không
+cần server hay tài khoản). Xem [docs/making-a-game.md](docs/making-a-game.md).

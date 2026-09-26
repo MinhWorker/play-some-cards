@@ -1,5 +1,5 @@
 {
-  "$comment": "Type checking for a game folder (rules + board scene). Each game's tsconfig.json extends this.",
+  "$comment": "Type checking for a game folder (its Game + GameView). Each game's tsconfig.json extends this.",
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
     "module": "ESNext",

@@ -1,54 +1,54 @@
 # @psc/web
 
-The game's web app: React for the UI, Phaser 4 for the game world, Vite to build it.
-Run it from the repo root with `npm run dev` (web on http://localhost:5033).
+Ứng dụng web của game: React cho giao diện, Phaser 4 cho thế giới game, Vite để build.
+Chạy từ thư mục gốc repo bằng `npm run dev` (web ở http://localhost:5033).
 
-The screen has two layers. Phaser draws the world on a full-screen canvas: the sky, the island
-map and the game boards. React draws the UI on top of it: panels, buttons and forms.
-`src/phaser/bridge.ts` is the only link between the two.
+Màn hình có hai lớp. Phaser vẽ thế giới trên một canvas toàn màn hình: bầu trời, bản đồ đảo và bàn
+chơi. React vẽ giao diện đè lên trên: bảng, nút và form. `src/phaser/bridge.ts` là cầu nối duy nhất
+giữa hai bên.
 
-## Folders
+## Thư mục
 
 ```
 src/
-  main.tsx            Entry point: global styles, then <App />
-  App.tsx             Picks the page and tells Phaser what to draw
-  pages/              One folder per screen (component + its CSS + its sub-components)
-    Home/             Island map (the islands themselves are drawn by Phaser)
-    GameRooms/        One game's live room list
-    RoomSetup/        Back button + room creation while a game's own setup scene runs
-    Room/             Inside a room: room bar, "waiting" panel, result panel
+  main.tsx            Điểm vào: style chung, rồi <App />
+  App.tsx             Chọn trang và bảo Phaser vẽ gì
+  pages/              Mỗi màn hình một thư mục (component + CSS + component con)
+    Home/             Bản đồ đảo (bản thân các đảo do Phaser vẽ)
+    GameRooms/        Danh sách phòng đang mở của một game
+    RoomSetup/        Nút quay lại + tạo phòng trong lúc màn cài đặt của game chạy
+    Room/             Trong phòng: thanh phòng, bảng "đang chờ", bảng kết quả
   components/
-    hud/              UI shown on every screen: profile badge, sound button,
-                      cloud transition, toasts, version label, dev tools.
-                      Import from '@/components/hud'
-    ui/               Small building blocks (Button)
-  hooks/              React hooks: login, room connection, sounds, URL state
-  lib/                Plain TypeScript (no React): socket, login, sound, asset URLs
-  styles/             theme.css (colors, font) and base.css (panels, buttons, modals)
-  phaser/             The Phaser side: stage, bridge, scenes/ (boot, sky, hub), objects/
-  games/index.ts      Finds every game in the repo's games/ folder (assets, board code)
+    hud/              Giao diện có ở mọi màn hình: huy hiệu hồ sơ, nút âm thanh,
+                      hiệu ứng mây chuyển cảnh, thông báo, nhãn phiên bản, công cụ dev.
+                      Import từ '@/components/hud'
+    ui/               Khối xây dựng nhỏ (Button)
+  hooks/              React hook: đăng nhập, kết nối phòng, âm thanh, trạng thái URL
+  lib/                TypeScript thuần (không React): socket, đăng nhập, âm thanh, URL tài nguyên
+  styles/             theme.css (màu, font) và base.css (bảng, nút, hộp thoại)
+  phaser/             Phía Phaser: stage, bridge, scenes/ (boot, sky, hub), objects/
+  games/index.ts      Tìm mọi game trong thư mục games/ của repo (tài nguyên, code bàn chơi)
 public/
-  shared/             Images and sounds used across the app
-  audio/              Sounds not sorted yet (experiments)
+  shared/             Hình và âm thanh dùng khắp ứng dụng
+  audio/              Âm thanh chưa sắp xếp (thử nghiệm)
 ```
 
-Imports that leave the current folder use `@/`, which means `src/`: `import { request } from '@/lib/socket'`.
+Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import { request } from '@/lib/socket'`.
 
-## Where do I find…
+## Tìm … ở đâu
 
-| I want to change… | Look in |
+| Mình muốn đổi… | Xem ở |
 | --- | --- |
-| A screen's layout or text | `src/pages/<Page>/` |
-| The profile badge, speaker button, cloud transition, toasts | `src/components/hud/` |
-| Colors, font, button and panel styles | `src/styles/` |
-| How a board looks or reacts to taps | `games/<id>/src/scenes/` (repo root; older games: `src/<Name>Scene.ts`) |
-| The island map or the sky | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |
-| Talking to the server | `src/lib/socket.ts`, `src/hooks/useRoom.ts` |
-| Login and accounts | `src/pages/Login/`, `src/lib/auth.ts`, `src/hooks/useAccount.ts` |
-| Music and sound effects | `src/lib/sound.ts` + `assets/audio.json` |
-| The app's images | `assets/prompts.json` (generated) + `src/phaser/assets.ts` |
-| Game rules | `games/<id>/src/game/rules.ts` (repo root; older games: `src/rules.ts`) |
-| Dev tools (toggles, inputs; not in production) | `src/lib/devTools.ts` (`DEV_SETTINGS`), panel in `src/components/hud/DevTools.tsx` |
+| Bố cục hoặc chữ của một màn hình | `src/pages/<Page>/` |
+| Huy hiệu hồ sơ, nút loa, mây chuyển cảnh, thông báo | `src/components/hud/` |
+| Màu, font, kiểu nút và bảng | `src/styles/` |
+| Bàn chơi trông ra sao hay phản ứng khi bấm | `games/<id>/src/scenes/` (ở gốc repo) |
+| Bản đồ đảo hoặc bầu trời | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |
+| Nói chuyện với server | `src/lib/socket.ts`, `src/hooks/useRoom.ts` |
+| Đăng nhập và tài khoản | `src/pages/Login/`, `src/lib/auth.ts`, `src/hooks/useAccount.ts` |
+| Nhạc và hiệu ứng âm thanh | `src/lib/sound.ts` + `assets/audio.json` |
+| Hình của ứng dụng | `assets/prompts.json` (tạo bằng AI) + `src/phaser/assets.ts` |
+| Luật game | `games/<id>/src/game/<Tên>Game.ts` (ở gốc repo) |
+| Công cụ dev (công tắc, ô nhập; không có trên bản thật) | `src/lib/devTools.ts` (`DEV_SETTINGS`), bảng ở `src/components/hud/DevTools.tsx` |
 
-See `AGENTS.md` at the repo root for conventions and `docs/making-a-game.md` to make a game.
+Xem `AGENTS.md` ở gốc repo cho các quy ước và `docs/making-a-game.md` để làm game.

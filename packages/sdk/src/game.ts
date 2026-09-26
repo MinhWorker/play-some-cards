@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { type Game, type GameEvent, gameRules, type Stored } from './engine.js';
 
 /** A player's id inside a room (their account id). */
 export type PlayerId = string;
@@ -10,7 +11,7 @@ export interface GameResult {
 }
 
 /**
- * The room around a game, passed as the last argument of every rule (older games ignore it):
+ * The room around a game, passed as the last argument of every rule:
  * who sits where, the host, the score and the options. `undefined` in tests that don't set it.
  */
 export interface RoomContext<Options = unknown> {
@@ -23,8 +24,8 @@ export interface RoomContext<Options = unknown> {
 }
 
 /**
- * A game's rules. They are PURE: no I/O, no randomness except through `rng`, no mutation of
- * the input state. Only the server calls `applyMove`; clients only draw `getView` output.
+ * What the server and the sandbox run: a `Game` turned into plain functions by `gameRules`
+ * (`definePlugin` does it). Games don't write these; they write a `Game`.
  */
 export interface GameRules<State, Move, View = State, Options = undefined> {
   /** Validates the shape of an incoming move before any game logic runs. */
@@ -124,18 +125,21 @@ export interface GamePlugin<State = unknown, Move = unknown, View = State, Optio
 // biome-ignore lint/suspicious/noExplicitAny: a list of plugins holds games of different types
 export type AnyGamePlugin = GamePlugin<any, any, any, any>;
 
-/** Declares a game's rules with full type inference. */
-export function defineGame<State, Move, View = State, Options = undefined>(
-  rules: GameRules<State, Move, View, Options>,
-): GameRules<State, Move, View, Options> {
-  return rules;
-}
-
-/** Declares a game plugin: `export default definePlugin({ meta, rules, room? })`. */
-export function definePlugin<State, Move, View, Options>(
-  plugin: GamePlugin<State, Move, View, Options>,
-): GamePlugin<State, Move, View, Options> {
-  return plugin;
+/**
+ * Declares a game: `export default definePlugin({ meta, game: new MyGame(), room? })`. The server
+ * runs the `Game` through `gameRules`.
+ */
+export function definePlugin<State, Options, View>({
+  meta,
+  game,
+  room,
+}: {
+  meta: GameMeta;
+  game: Game<State, Options, View>;
+  /** Optional room options, picked on the game's own setup screen. */
+  room?: RoomSetup<Options>;
+}): GamePlugin<Stored<State>, GameEvent, View, Options> {
+  return { meta, rules: gameRules(game), room };
 }
 
 /** A room's options when nothing was picked (`undefined` for a game without `room`). */

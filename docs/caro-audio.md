@@ -1,16 +1,19 @@
-# Caro audio plan
+# Kế hoạch âm thanh Caro
 
-The current 3×3 Caro scene uses a distinct wood-and-glass cue for each interaction. The sounds live in `games/tic-tac-toe/assets/` and the board plays them with `this.sfx(name)`; build them from the selected Google Cloud sources with the workflow in [generating-sfx.md](generating-sfx.md).
+Màn Caro dùng một âm thanh gỗ-và-thuỷ-tinh riêng cho mỗi thao tác. Âm thanh nằm trong
+`games/tic-tac-toe/assets/` và bàn chơi phát chúng bằng `this.sfx(name)`; `npm run audio` build lại
+chúng từ bản gốc khai báo trong `assets/audio.json`.
 
-| Moment | Sound | Trigger |
+| Khoảnh khắc | Âm thanh | Khi nào phát |
 | --- | --- | --- |
-| Empty board appears for a new round | `caro-start` | Once on the first empty-board draw. |
-| Player selects a cell | `caro-select` | On a selection change, if the scene adds selection before sending a move. |
-| X is accepted | `mark-drop` | When the authoritative board gains an X. |
-| O is accepted | `caro-o-place` | When the authoritative board gains an O. |
-| A winning line appears | `caro-line-complete` | Once on the transition from no line to a line. |
-| Round ends in a win | shared `game-win` / `game-lose` | Use the existing result hook; avoid overlapping it with `caro-win`. |
-| Round ends in a draw | `caro-draw` | Once when a full board has no winning line. |
-| A move is rejected | `caro-invalid` | Once if the scene exposes rejected-move feedback. |
+| Bàn trống hiện ra cho ván mới | `caro-start` | Một lần khi bàn trống được vẽ lần đầu. |
+| Người chơi chọn một ô | `caro-select` | Khi đổi ô đang chọn, nếu màn có bước chọn trước khi gửi nước đi. |
+| X được chấp nhận | `mark-drop` | Khi bàn cờ do server quyết định có thêm một X. |
+| O được chấp nhận | `caro-o-place` | Khi bàn cờ do server quyết định có thêm một O. |
+| Hàng thắng xuất hiện | `caro-line-complete` | Một lần khi chuyển từ chưa có hàng sang có hàng. |
+| Ván kết thúc có người thắng | `game-win` / `game-lose` dùng chung | Dùng hook kết quả sẵn có; tránh chồng lên `caro-win`. |
+| Ván hoà | `caro-draw` | Một lần khi bàn đầy mà không có hàng thắng. |
+| Nước đi bị từ chối | `caro-invalid` | Một lần, nếu màn có phản hồi cho nước đi bị từ chối. |
 
-The scene currently uses `caro-start`, `mark-drop`, `caro-o-place`, `caro-line-complete`, and `caro-draw`. `caro-select` and `caro-invalid` are ready if the interaction flow needs them later.
+Màn hiện dùng `caro-start`, `mark-drop`, `caro-o-place`, `caro-line-complete` và `caro-draw`.
+`caro-select` và `caro-invalid` để sẵn nếu sau này cách chơi cần tới.

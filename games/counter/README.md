@@ -1,53 +1,54 @@
 # Bấm Nút
 
-One or two players, a button each, one shared number: every press adds 1. No winner.
+Một hoặc hai người chơi, mỗi người một nút, chung một con số: mỗi lần bấm cộng thêm 1. Không có
+thắng thua.
 
-The smallest example of how games are written: two classes with lifecycle hooks, like Unity
-scripts. `Game` (the logic) runs on the server, which decides everything; `GameView`
-(the screen) runs in each player's browser. They talk through events.
+Ví dụ nhỏ nhất về cách viết game: hai lớp có các hook vòng đời, giống script trong Unity. `Game`
+(phần logic) chạy trên server, nơi quyết định mọi thứ; `GameView` (màn hình) chạy trên trình duyệt
+của từng người chơi. Hai bên nói chuyện qua sự kiện.
 
 ```
 src/
-  index.ts                server entry: meta + gameRules(new CounterGame())
-  client.ts               browser entry: defineClient({ scene: CounterView })
-  game/CounterGame.ts     the logic: State, events, hooks (server)
+  index.ts                đầu vào phía server: meta + game: new CounterGame()
+  client.ts               đầu vào phía trình duyệt: defineClient({ scene: CounterView })
+  game/CounterGame.ts     phần logic: State, sự kiện, hook (server)
   game/CounterGame.test.ts
-  scenes/CounterView.ts   the screen: hooks and objects (browser)
+  scenes/CounterView.ts   màn hình: hook và đối tượng (trình duyệt)
 assets/                   button.webp, press.wav, island.webp
 ```
 
-## What happens when someone presses
+## Chuyện gì xảy ra khi ai đó bấm
 
 ```
- Lan's browser                     server                           everyone's browser
- ─────────────                     ──────                           ──────────────────
- button tap
-   └ this.send('press') ─────────► events.press checks the data
-                                   onPress(ctx) → new State ──────► onPress(ctx, event)  bounce
-                                                                    onState(ctx)          show
+ trình duyệt của Lan               server                           trình duyệt của mọi người
+ ───────────────────               ──────                           ─────────────────────────
+ bấm nút
+   └ this.send('press') ─────────► events.press kiểm tra dữ liệu
+                                   onPress(ctx) → State mới ──────► onPress(ctx, event)  nảy nút
+                                                                    onState(ctx)          hiện số
 ```
 
-## Hooks
+## Các hook
 
-| `CounterGame` (server) | when |
+| `CounterGame` (server) | khi nào |
 | --- | --- |
-| `onStart(ctx)` | "Bắt đầu" / "Chơi ván mới": return the first state |
-| `on<Event>(ctx)` | a player sent that event (`press` → `onPress`): return the next state, or `ctx.reject('…')` |
-| `onEnd(ctx)` | after `ctx.finish(winners)` (optional) |
-| `view(ctx, viewer)` | what each player may see (optional; hide cards here) |
+| `onStart(ctx)` | "Bắt đầu" / "Chơi ván mới": trả về state đầu tiên |
+| `on<Event>(ctx)` | một người chơi gửi sự kiện đó (`press` → `onPress`): trả về state kế tiếp, hoặc `ctx.reject('…')` |
+| `onEnd(ctx)` | sau `ctx.finish(winners)` (tuỳ chọn) |
+| `view(ctx, viewer)` | mỗi người chơi được thấy gì (tuỳ chọn; giấu bài ở đây) |
 
-| `CounterView` (browser) | when |
+| `CounterView` (trình duyệt) | khi nào |
 | --- | --- |
-| `onCreate(ctx)` | the screen opens: make objects (`this.label`, `this.button`, `this.sprite`, or Phaser) |
-| `onLayout(ctx)` | after onCreate and on resize: place them (`ctx.screen`) |
-| `onStart(ctx)` | a new game began |
-| `on<Event>(ctx, event)` | someone's event was played: animate it (`event.player`, `event.isMe`) |
-| `onState(ctx)` | after any change: show the state |
-| `onEnd(ctx)` | the game is over (`ctx.result`) |
-| `onUpdate(ctx, dt)` | every frame (browser only) |
+| `onCreate(ctx)` | màn hình mở ra: tạo đối tượng (`this.label`, `this.button`, `this.sprite`, hoặc Phaser) |
+| `onLayout(ctx)` | sau onCreate và khi đổi cỡ màn hình: đặt vị trí (`ctx.screen`) |
+| `onStart(ctx)` | một ván mới bắt đầu |
+| `on<Event>(ctx, event)` | sự kiện của ai đó vừa được chơi: làm hiệu ứng (`event.player`, `event.isMe`) |
+| `onState(ctx)` | sau mọi thay đổi: hiện state |
+| `onEnd(ctx)` | ván kết thúc (`ctx.result`) |
+| `onUpdate(ctx, dt)` | mỗi khung hình (chỉ trên trình duyệt) |
 
-`ctx` always has the whole room: `state`, `players` (seat, name, bot), `hostId`, `score`,
-`options`; on the server also `rng`, `finish()` and, in event hooks, `player`, `payload`,
-`reject()`; in the browser `me`, `isHost`, `result` and `screen`.
+`ctx` luôn chứa cả phòng: `state`, `players` (ghế, tên, có phải máy không), `hostId`, `score`,
+`options`; trên server có thêm `rng`, `finish()` và, trong hook sự kiện, `player`, `payload`,
+`reject()`; trên trình duyệt có `me`, `isHost`, `result` và `screen`.
 
-Try it alone: http://localhost:5033/?play=counter&players=2 (with `npm run dev`).
+Chơi thử một mình: http://localhost:5033/?play=counter&players=2 (khi đang chạy `npm run dev`).

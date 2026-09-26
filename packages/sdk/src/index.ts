@@ -1,6 +1,6 @@
 /**
- * @psc/sdk: what a game plugin's rules may use. Pure and safe for the server.
- * Board scenes (Phaser, browser only) use `@psc/sdk/client`.
+ * @psc/sdk: what a game's logic (a `Game`) may use. Pure and safe for the server.
+ * Its screens (Phaser, browser only) use `@psc/sdk/client`.
  */
 export * from './engine.js';
 export * from './game.js';

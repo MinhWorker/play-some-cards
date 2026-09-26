@@ -48,7 +48,7 @@ export function loadSound(): SoundSettings {
 /**
  * The app's own short effects (public/shared/audio/<name>.wav). WAV: no MP3 start padding, so
  * they play instantly. Add a name here after adding it to assets/audio.json. A game's effects
- * are files in games/<id>/assets/, played by its board scene with `this.sfx(name)`.
+ * are files in games/<id>/assets/, played by its game screen with `this.sfx(name)`.
  */
 const SFX = {
   'button-click': 'shared',

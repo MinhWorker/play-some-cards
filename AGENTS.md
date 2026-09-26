@@ -8,21 +8,23 @@ conventions.
 
 ```
 games/<id>/        @psc/game-<id>  One game = one folder; adding or changing a game edits nothing
-                   else. How to build one: docs/making-a-game.md. games/tic-tac-toe is the example
-                   layout (and scripts/game-template); only index.ts + client.ts are required
+                   else. How to build one: docs/making-a-game.md. games/counter and
+                   games/tic-tac-toe are the example layout (and scripts/templates/game); only
+                   index.ts + client.ts are required
   src/index.ts       export default definePlugin({ meta, rules, room? }); runs on the server
   src/client.ts      export default defineClient({ scene, setup? }); browser only, loaded lazily
-  src/game/          Pure logic, no Phaser: model.ts (State/Move/Options), rules.ts + tests,
-                     bot.ts (optional computer player)
-  src/scenes/        Phaser: Board.ts (extends BoardScene), Setup.ts (optional "Tạo phòng"
+  src/game/          Pure logic, no Phaser: <Name>Game.ts (a Game) + tests, model.ts,
+                     options.ts, bot.ts as needed
+  src/scenes/        Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (optional "Tạo phòng"
                      screen, extends RoomSetupScene)
   assets/            App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'))
   sources/           Optional originals (Git LFS), prompts.json (Codex), audio.json (cuts)
-packages/sdk/      @psc/sdk     The only API games use. `.`: defineGame/definePlugin (optional `room`
-                                options + `rules.bot`), types, rng
-                                (shuffle/pick/int/seededRng), test helpers (playMoves, moveError,
-                                assertHidden). `/client`: defineClient, BoardScene, RoomSetupScene, titleStyle,
-                                hudScale, setClientHost (the app gives scenes asset URLs + sound)
+packages/sdk/      @psc/sdk     The only API games use. `.`: Game (engine.ts), definePlugin
+                                ({ meta, game, room? }), types, rng (shuffle/pick/int/seededRng),
+                                testGame. `/client`: defineClient, GameView, GameScene (assets,
+                                label/button/sprite, fitText, boardArea), RoomSetupScene,
+                                titleStyle, hudScale, props.ts (what the app hands a screen),
+                                setClientHost (the app gives scenes asset URLs + sound)
 packages/shared/   @psc/shared  Core only, never imported by games: protocol.ts (socket events +
                                 PROTOCOL_VERSION), account.ts, registry.ts (`games`/`getGame` from the
                                 generated, gitignored src/generated/games.ts)
@@ -36,12 +38,10 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide: apps/web/
 assets/            Originals of the app's own art/audio (Git LFS): prompts.json (style + app
                    prompts), audio.json (sound cuts), shared/, games/<id>/audio/ (older game audio),
                    audio/ (unsorted experiments)
-scripts/           libs.mjs (find games, build sdk + games + shared), new-game.mjs + game-template/,
+scripts/           libs.mjs (find games, build sdk + games + shared), new.mjs + templates/,
                    gen-asset.mjs (Codex), assets.mjs, build-audio.mjs, lib/media.mjs, smoke.mjs,
-                   e2e.mjs, generate-game-music.py (Lyria), generate-game-sfx.py +
-                   prepare-game-sfx.py (Veo effects), older generate-*-sfx.py experiments
-docs/              making-a-game, deploy (CI, versions, hosting), generating-music, generating-sfx,
-                   <game>-audio notes
+                   e2e.mjs
+docs/              making-a-game, deploy (CI, versions, hosting), <game>-audio notes (which sound when)
 .github/           CI, PR checks, release-please, Dependabot, CODEOWNERS, templates,
                    rulesets/main.json (branch rules, applied by the owner)
 ```
@@ -56,6 +56,7 @@ docs/              making-a-game, deploy (CI, versions, hosting), generating-mus
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run build` | Build sdk, games, shared, server, web |
 | `npm run new:game -- <id> "Tên"` | Create `games/<id>/` from the starter game (status `wip`) |
+| `npm run new -- logic\|view\|setup <id> [Name]` | Write a `Game` (+ test), `GameView` or setup screen from `scripts/templates/` (inside `games/<id>/`, leave out `<id>`) |
 | `/?play=<id>&players=2` | Sandbox: a game's rules + board alone in the browser (dev and PR previews) |
 | DEV button (bottom-left) | Dev tools panel outside production (dev and PR previews). Add a toggle/input as one entry in `DEV_SETTINGS` (`apps/web/src/lib/devTools.ts`), read it with `devSetting(key)` |
 | `npm run assets [-- <id>]` | Make a game's `assets/` from its `sources/` |
@@ -72,11 +73,15 @@ never open a visible browser window.
 
 ## How it works
 
-- The server is authoritative. Clients send `game:move`; the server checks the game's
-  `moveSchema` and `validateMove`, applies `applyMove`, and sends each member their own
-  `room:state` built from `getView(state, playerId)`. **Never send raw state**: hide other
-  players' cards and the deck in `getView`; spectators get `getView(state, null)`.
-- Games are pure functions; randomness only through the `rng` argument.
+- There is one way to write a game: a `Game` (logic, server) and a `GameView` (screen, browser),
+  plus an optional `RoomSetupScene`. `definePlugin({ meta, game })` turns the `Game` into
+  `GameRules` with `gameRules()` (engine.ts); those plain functions are what the server and the
+  sandbox run, never written by games.
+- The server is authoritative. A `GameView` calls `send(event, payload)` (`game:move`); the server
+  checks the payload against `events`, runs the `on<Event>` hook, and sends each member their own
+  `room:state` built from the game's `view(ctx, viewer)`. **Never send raw state**: hide other
+  players' cards and the deck in `view`; spectators get `viewer = null`.
+- Hooks are pure and return a new state; randomness only through `ctx.rng`.
 - Games are plugins. `scripts/libs.mjs` lists `games/*` for the server (through @psc/shared,
   which runs compiled `dist/`); the web and type checks use their TypeScript source (export
   condition `psc-source`). `meta.status: 'wip'` is locked on the production site only
@@ -87,16 +92,18 @@ never open a visible browser window.
 - Room options: a game may ship its own settings screen (a `RoomSetupScene`, shown as the
   `setup` stage for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room; `pages/RoomSetup`
   forwards what it passes to `submit`). The server checks
-  the object with `room.options` (zod) and keeps it for the room's life: `setup` and `bot` get it,
-  boards read `props.options`; the host may replace it between games ("Tuỳ chỉnh" or a board's
-  `changeOptions` → `room:options`; bots join/leave to match). `room.bots` seats the computer (moves from `rules.bot`, played by
-  the gateway after a short pause); bots never host or keep a room alive. Example: Caro (games/tic-tac-toe).
-- Games are written with `Game` (`@psc/sdk`, engine.ts: `events` + `onStart`/`on<Event>`/`bot`/
-  `view` hooks returning new state, turned into rules by `gameRules()`) and `GameView`
+  the object with `room.options` (zod) and keeps it for the room's life: `ctx.options` in the
+  `Game` and the `GameView`; the host may replace it between games ("Tuỳ chỉnh" or the view's
+  `changeOptions` → `room:options`; bots join/leave to match). `room.bots` seats the computer
+  (its events come from the `Game`'s `bot(ctx)`, played by the gateway after a short pause);
+  bots never host or keep a room alive. Example: Caro (games/tic-tac-toe).
+- `Game` (`@psc/sdk`, engine.ts): `events` + `onStart`/`on<Event>`/`onEnd`/`bot`/`view` hooks
+  returning new state. `GameView`
   (`@psc/sdk/client`: `onCreate`/`onLayout`/`onStart`/`on<Event>`/`onState`/`onEnd`/`onUpdate`,
-  `label`/`button`/`sprite`, `send`, `changeOptions`). Test with `testGame`. Rules get a
-  `RoomContext` (players, host, score, options) as their last argument; snapshots carry `round`
-  and `last` (the last move, filtered by `moveView`) so screens hear events. Examples:
+  `send`, `changeOptions`; `label`/`button`/`sprite` come from `GameScene`, so setup screens
+  have them too). Test with `testGame` (a plugin or a `Game`; `send`, `error`, `view`,
+  `assertHidden`, `bot`). New files: `npm run new`. Snapshots carry `round` and `last` (the last
+  event, hidden from others for `secretEvents`) so screens hear events. Examples:
   games/counter (smallest), games/tic-tac-toe. When a mechanic or data would help other games
   (a system event, a ctx property, a view helper), add it to the SDK rather than the game.
 - Everyone plays logged in (username + password, no email). The socket connects with
@@ -120,10 +127,15 @@ never open a visible browser window.
 - Server: no `import type` for classes Nest injects (DI needs the runtime value).
 - The server typechecks against built packages: root scripts run `npm run build -w @psc/shared`
   (= scripts/libs.mjs) first. After adding a game folder: `npm install`, restart `npm run dev`.
-- Game rules need tests (e.g. `games/<id>/src/game/rules.test.ts`). New socket events go in `protocol.ts`
-  first; bump `PROTOCOL_VERSION` when old clients/servers would break.
-- **Players see Vietnamese** (UI copy and server/game error messages); code, comments, docs and
-  identifiers are English. No instructional subtext ("tap an island to…"); status text is fine.
+- New socket events go in `protocol.ts` first; bump `PROTOCOL_VERSION` when old clients/servers would break.
+- **Players see Vietnamese** (UI copy and server/game error messages). No instructional subtext
+  ("tap an island to…"); status text is fine.
+- **Docs for people are Vietnamese**: README.md, CONTRIBUTING.md, LICENSE-ASSETS.md, `docs/`,
+  every README (games, apps, `scripts/templates/game`), `.github` issue/PR templates. Keep code,
+  commands, paths and identifiers as they are inside them. **English**: code, comments,
+  identifiers, commit messages and PR titles (Conventional Commits), and files for agents
+  (AGENTS.md, CLAUDE.md). When you change behavior, update the Vietnamese docs in the same change.
+- Every `Game` needs tests with `testGame` (e.g. `games/<id>/src/game/<Name>Game.test.ts`).
 - Mobile first: test a phone (390×844) and a desktop size, ideally also 360×640 and 844×390.
   Floating React panels get the `hud` class; boards use `hudScale()`, `fitText` and `boardArea()`.
 - Web files: a component's CSS sits next to it. New screen → `pages/<Name>/`; UI on every screen →
@@ -146,10 +158,9 @@ never open a visible browser window.
   Animation frames sharing one anchor set `preserveCanvas: true` to keep transparent margins.
 - `avatar-long.webp` is a real photo (`assets/shared/images/Long-look-at-u.jpg`) in the generated
   `avatar-frame`, not generated art.
-- Music: image-guided Google Cloud Lyria (docs/generating-music.md). Effects: Google Cloud Veo
-  short videos with synced sound; pick and trim the audio (docs/generating-sfx.md). No procedural
-  substitutes. Picked clips are in `assets/**/sfx-selected/` (Git LFS); other takes in
-  `sfx-candidates/` stay local (gitignored). A game's music = every `music*` file in its
+- Music and effects are made by people or AI tools, never synthesized in code (no procedural
+  substitutes). The originals of the current effects are the clips in `assets/**/sfx-selected/`
+  (Git LFS). A game's music = every `music*` file in its
   `assets/` (a random one plays on its board); the app's is `APP_MUSIC` in `src/lib/sound.ts`.
   `assets/audio.json` maps each
   app sound to an original with optional `start`/`duration`/`speed`, `game` (output in

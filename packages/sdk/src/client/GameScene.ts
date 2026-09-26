@@ -1,10 +1,24 @@
 import Phaser from 'phaser';
 import { clientHost } from './host.js';
-import { hudScale } from './text.js';
+import { hudScale, titleStyle } from './text.js';
+
+/** A button made by `this.button()`: an optional image with a label, reacting to taps. */
+export interface Button {
+  container: Phaser.GameObjects.Container;
+  label: Phaser.GameObjects.Text;
+  image?: Phaser.GameObjects.Image;
+  setPosition(x: number, y: number): Button;
+  /** Width and height (the image is stretched to it; the label shrinks to fit). */
+  setSize(width: number, height: number): Button;
+  /** A disabled button is greyed out and ignores taps. */
+  setEnabled(enabled: boolean): Button;
+  setText(text: string): Button;
+}
 
 /**
- * What every scene a game ships shares: its own `assets/` by file name and text helpers.
- * Games extend `BoardScene` (the board) or `RoomSetupScene` (its "Tạo phòng" screen).
+ * What every scene a game ships shares: its own `assets/` by file name, text helpers and a few
+ * ready-made objects (`label`, `button`, `sprite`). Games extend `GameView` (the screen),
+ * or `RoomSetupScene` (its "Tạo phòng" screen).
  */
 export abstract class GameScene extends Phaser.Scene {
   private warned = new Set<string>();
@@ -44,6 +58,81 @@ export abstract class GameScene extends Phaser.Scene {
     const url = clientHost().assets(this.gameId).sounds[name];
     if (url) clientHost().playSound(url);
     else this.warnOnce(`No sound "${name}" in games/${this.gameId}/assets/`);
+  }
+
+  // ── Ready-made objects (Phaser objects underneath; use Phaser for anything else) ────────
+
+  /** Game-style text (white, dark outline, the app's font), centered on its position. */
+  protected label(text: string, { size = 32, color }: { size?: number; color?: string } = {}) {
+    const obj = this.add.text(0, 0, text, titleStyle(size * hudScale())).setOrigin(0.5);
+    if (color) obj.setColor(color);
+    return obj;
+  }
+
+  /** An image from the game's `assets/` by file name, centered on its position. */
+  protected sprite(name: string) {
+    return this.image(0, 0, name);
+  }
+
+  /**
+   * A tappable button: `image` (from `assets/`, stretched to the size) with a label on top, or
+   * just the label. Lights up on hover, plays `sound` (from `assets/`) on tap.
+   */
+  protected button(
+    text: string,
+    onTap: () => void,
+    { image, sound, size = 32 }: { image?: string; sound?: string; size?: number } = {},
+  ): Button {
+    const bg = image ? this.image(0, 0, image) : undefined;
+    const label = this.label(text, { size });
+    const container = this.add.container(0, 0, bg ? [bg, label] : [label]);
+    let enabled = true;
+    let fontSize = size * hudScale();
+    const button: Button = {
+      container,
+      label,
+      image: bg,
+      setPosition: (x, y) => {
+        container.setPosition(x, y);
+        return button;
+      },
+      setSize: (width, height) => {
+        bg?.setDisplaySize(width, height);
+        container.setSize(width, height);
+        // Text on an image fills 40% of its height; a text-only button keeps its size.
+        fontSize = bg ? Math.min(size * hudScale(), height * 0.4) : size * hudScale();
+        label.setFontSize(fontSize);
+        this.fitText(label, label.text, width * 0.9, fontSize * 0.5);
+        return button;
+      },
+      setEnabled: (value) => {
+        enabled = value;
+        container.setAlpha(value ? 1 : 0.45);
+        return button;
+      },
+      setText: (value) => {
+        label.setFontSize(fontSize);
+        this.fitText(
+          label,
+          value,
+          (container.width || Number.POSITIVE_INFINITY) * 0.9,
+          fontSize * 0.5,
+        );
+        return button;
+      },
+    };
+    const { width, height } = bg ?? label;
+    button.setSize(width, height);
+    container.setInteractive({ useHandCursor: true });
+    container.on('pointerover', () => enabled && bg?.setTint(0xfff1b8));
+    container.on('pointerout', () => bg?.clearTint());
+    container.on('pointerup', () => {
+      if (!enabled) return;
+      bg?.clearTint();
+      if (sound) this.sfx(sound);
+      onTap();
+    });
+    return button;
   }
 
   /**

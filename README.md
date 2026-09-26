@@ -1,43 +1,43 @@
 # Chơi Chút Bài (Play Some Cards)
 
-Board and card games to play with friends in the browser, on floating sky islands. Pick a game,
-open a room, and your friends join from the room list, as players or to watch.
+Game bàn cờ và bài để chơi với bạn bè ngay trên trình duyệt, giữa những hòn đảo bay trên trời.
+Chọn một game, mở phòng, bạn bè vào từ danh sách phòng để chơi hoặc xem.
 
-**Play:** https://play-some-cards.vercel.app
+**Chơi:** https://play-some-cards.vercel.app
 
-![Caro on the sky islands](docs/images/screenshot.webp)
+![Caro trên các đảo bay](docs/images/screenshot.webp)
 
-## Run it locally (5 minutes)
+## Chạy trên máy (5 phút)
 
-You need Node 22 and [Git LFS](https://git-lfs.com) (for the source art in `assets/`).
+Cần Node 22 và [Git LFS](https://git-lfs.com) (cho ảnh gốc trong `assets/`).
 
 ```
 git lfs install
 git clone https://github.com/MinhWorker/play-some-cards.git
 cd play-some-cards
 npm install
-npm run dev        # open http://localhost:5033
+npm run dev        # mở http://localhost:5033
 ```
 
-No accounts or secrets needed: without a database the server keeps accounts in memory. Open a
-second browser window (or a private one) to play against yourself.
+Không cần tài khoản hay khoá bí mật nào: không có database thì server giữ tài khoản trong bộ nhớ.
+Mở thêm một cửa sổ trình duyệt (hoặc cửa sổ ẩn danh) để tự chơi với chính mình.
 
-## What's inside
+## Bên trong có gì
 
-- `games/<id>`: one folder per game (rules, board, art, sounds). Make your own with
-  `npm run new:game`, see [docs/making-a-game.md](docs/making-a-game.md)
-- `packages/sdk`: the small API games are written against
-- `apps/web`: React + Vite for the UI, Phaser 4 for the world and the game boards
-- `apps/server`: NestJS + Socket.IO; the server owns the rooms and checks every move
+- `games/<id>`: mỗi game một thư mục (luật, màn chơi, hình, âm thanh). Tự làm game với
+  `npm run new:game` (và từng file với `npm run new`), xem [docs/making-a-game.md](docs/making-a-game.md)
+- `packages/sdk`: bộ API nhỏ mà các game dùng
+- `apps/web`: React + Vite cho giao diện, Phaser 4 cho thế giới và bàn chơi
+- `apps/server`: NestJS + Socket.IO; server giữ các phòng và kiểm tra mọi nước đi
 
-`npm run check` runs lint, type checks and tests. More commands and the full map: `AGENTS.md`.
+`npm run check` chạy lint, kiểm tra kiểu và test. Các lệnh khác và bản đồ đầy đủ: `AGENTS.md`.
 
-## Contributing
+## Đóng góp
 
-Anyone is welcome, with whatever tools you like. See [CONTRIBUTING.md](CONTRIBUTING.md).
-Deploying: [docs/deploy.md](docs/deploy.md).
+Ai cũng được chào đón, dùng công cụ nào cũng được. Xem [CONTRIBUTING.md](CONTRIBUTING.md).
+Triển khai: [docs/deploy.md](docs/deploy.md).
 
-## License
+## Giấy phép
 
-Code: [MIT](LICENSE). Art and audio: [CC BY-NC 4.0](LICENSE-ASSETS.md) (free to use and change,
-not for making money), with a few listed exceptions.
+Mã nguồn: [MIT](LICENSE). Hình và âm thanh: [CC BY-NC 4.0](LICENSE-ASSETS.md) (tự do dùng và
+sửa, không dùng để kiếm tiền), trừ vài ngoại lệ được liệt kê.

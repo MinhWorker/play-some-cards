@@ -18,7 +18,7 @@ interface Props {
 }
 
 /**
- * Inside a room. The board itself is drawn by Phaser (the game's board scene); React shows
+ * Inside a room. The board itself is drawn by Phaser (the game's `GameView`); React shows
  * the room bar, the "waiting for players" panel before a game and the result panel after it.
  */
 export function Room({ session, snapshot, onLeave, onCustomize, error: moveError }: Props) {

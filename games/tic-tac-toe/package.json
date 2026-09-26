@@ -12,6 +12,7 @@
     "./client": "./src/client.ts"
   },
   "scripts": {
+    "new": "node ../../scripts/new.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
