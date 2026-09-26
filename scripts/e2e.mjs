@@ -344,6 +344,7 @@ try {
         mine: state.phase === 'play' && state.turn === me.seat && !scene.dealing,
         table: state.table,
         mustPlay: state.mustPlay,
+        selected: [...scene.selected],
         hand,
         play: at(scene.playButton),
         pass: at(scene.passButton),
@@ -360,10 +361,28 @@ try {
             : s.table.cards.length === 1
               ? s.hand.find((h) => h.card > top)
               : null;
+      // A click that landed on a card while the hand was moving leaves it picked: put it back
+      // first, or the picked cards never make a combination and Minh (no clock with one
+      // person at the table) holds the game forever.
+      for (const card of s.selected) {
+        const h = s.hand.find((c) => c.card === card);
+        if (h && card !== pick?.card) await host.mouse.click(h.x, h.y);
+      }
       if (pick) {
-        await host.mouse.click(pick.x, pick.y);
+        if (!s.selected.includes(pick.card)) await host.mouse.click(pick.x, pick.y);
         await host.mouse.click(s.play.x, s.play.y);
       } else await host.mouse.click(s.pass.x, s.pass.y);
+      // Wait for the move to land before reading the hand again (its cards shift once it does).
+      await host
+        .waitForFunction(
+          () => {
+            const { state, me } = window.__phaser.scene.getScene('tien-len').ctx;
+            return state.phase !== 'play' || state.turn !== me.seat;
+          },
+          null,
+          { timeout: 3000 },
+        )
+        .catch(() => {});
     }
     if (s.played >= 8 && !shots.has('pile')) {
       shots.add('pile');
