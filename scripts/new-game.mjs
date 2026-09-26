@@ -49,5 +49,5 @@ Created games/${id}/ (status: 'wip', locked on the production site until you set
   npm run dev     (restart it if it was running), then open
                   http://localhost:5033/?play=${id}&players=2   to try the board alone, or
                   http://localhost:5033                        to play it for real.
-  npm run check   lint, type checks and tests (src/rules.test.ts)
+  npm run check   lint, type checks and tests (src/game/rules.test.ts)
 `);

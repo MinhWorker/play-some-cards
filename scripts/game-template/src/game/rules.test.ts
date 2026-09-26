@@ -1,6 +1,6 @@
 import { moveError, playMoves } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
-import plugin from './index.js';
+import plugin from '../index.js';
 
 const adds = (...values: number[]) =>
   values.map((add, i) => ({ player: i % 2 ? 'b' : 'a', move: { add } }));

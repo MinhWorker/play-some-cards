@@ -2,6 +2,7 @@ import { games, type JoinedRoom, type RoomSnapshot } from '@psc/shared';
 import { useState } from 'react';
 import { Toast } from '@/components/hud';
 import { Button } from '@/components/ui/Button';
+import { useHasSetup } from '@/hooks/useHasSetup';
 import { request } from '@/lib/socket';
 import { RoomBar } from './RoomBar';
 import './Room.css';
@@ -10,16 +11,19 @@ interface Props {
   session: JoinedRoom;
   snapshot: RoomSnapshot | null;
   onLeave: () => void;
+  /** Host, between games: open the game's settings screen to change the room's options. */
+  onCustomize: () => void;
   /** Error from the last move (moves are sent from the Phaser board). */
   error: string;
 }
 
 /**
- * Inside a room. The board itself is drawn by Phaser (games/<id>/<Name>Scene.ts); React shows
+ * Inside a room. The board itself is drawn by Phaser (the game's board scene); React shows
  * the room bar, the "waiting for players" panel before a game and the result panel after it.
  */
-export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
+export function Room({ session, snapshot, onLeave, onCustomize, error: moveError }: Props) {
   const [error, setError] = useState('');
+  const hasSetup = useHasSetup(snapshot?.gameId ?? '');
 
   if (!snapshot) return <Toast>Đang vào phòng…</Toast>;
 
@@ -42,6 +46,11 @@ export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
     <Button onClick={() => send('room:sit')}>Vào chơi</Button>
   );
   const shownError = error || moveError;
+  const customize = isHost && hasSetup && (
+    <Button variant="secondary" onClick={onCustomize}>
+      Tuỳ chỉnh
+    </Button>
+  );
 
   return (
     <>
@@ -60,7 +69,10 @@ export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
             👤 {snapshot.players.length}/{game?.maxPlayers}
           </p>
           {isHost ? (
-            <Button onClick={() => send('game:start')}>Bắt đầu</Button>
+            <>
+              <Button onClick={() => send('game:start')}>Bắt đầu</Button>
+              {customize}
+            </>
           ) : isPlayer ? (
             <p className="muted">Đang chờ chủ phòng bắt đầu…</p>
           ) : (
@@ -80,7 +92,10 @@ export function Room({ session, snapshot, onLeave, error: moveError }: Props) {
                 : `${snapshot.result.winners.map(nameOf).join(', ')} thắng!`}
           </h2>
           {isHost ? (
-            <Button onClick={() => send('game:restart')}>Chơi ván mới</Button>
+            <>
+              <Button onClick={() => send('game:restart')}>Chơi ván mới</Button>
+              {customize}
+            </>
           ) : isPlayer ? (
             <p className="muted">Chờ chủ phòng mở ván mới…</p>
           ) : (

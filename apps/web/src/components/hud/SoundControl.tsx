@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { applySound, type Channel, isSilent, loadSound, type SoundSettings } from '@/lib/sound';
 import './SoundControl.css';
 import { imageUrl } from '@/lib/assetUrl';
-import { versionLabel } from '@/lib/version';
 
 const CHANNELS: { id: Channel; label: string }[] = [
   { id: 'music', label: 'Nhạc' },
@@ -93,7 +92,6 @@ export function SoundControl() {
               </div>
             );
           })}
-          <p className="sound-version">{versionLabel}</p>
         </div>
       )}
     </div>

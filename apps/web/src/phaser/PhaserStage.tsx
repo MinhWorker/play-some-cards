@@ -1,4 +1,11 @@
-import { BOARD_MOVE, BOARD_PROPS } from '@psc/sdk/client';
+import {
+  BOARD_MOVE,
+  BOARD_OPTIONS,
+  BOARD_PROPS,
+  SETUP_CANCEL,
+  SETUP_CURRENT,
+  SETUP_SUBMIT,
+} from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { useEffect, useRef } from 'react';
 import { loadClient } from '@/games';
@@ -7,7 +14,7 @@ import { BootScene } from './scenes/BootScene';
 import { HubScene } from './scenes/HubScene';
 import { SkyScene } from './scenes/SkyScene';
 
-/** Scenes that stay on behind everything; any other one (hub, a board) is the foreground. */
+/** Scenes that stay on behind everything; any other one (hub, a board, a setup screen) is the foreground. */
 const BACKGROUND = new Set(['boot', 'sky']);
 
 /** Started and not yet shut down (includes loading its images). */
@@ -16,21 +23,33 @@ function isStarted(game: Phaser.Game, key: string) {
   return status >= Phaser.Scenes.START && status <= Phaser.Scenes.SLEEPING;
 }
 
+/** Scene key for a stage: 'hub', a board (`<gameId>`), a setup screen (`<gameId>:setup`). */
+function sceneKey(stage: Stage) {
+  if (stage.mode === 'hub') return 'hub';
+  if (stage.mode === 'board') return stage.gameId;
+  if (stage.mode === 'setup') return `${stage.gameId}:setup`;
+  return null;
+}
+
 /**
- * Applies a Stage: runs the right foreground scene and pushes fresh board props. A game's board
- * scene is downloaded and added the first time it is needed; `latest` is read again after that,
+ * Applies a Stage: runs the right foreground scene and pushes fresh board props. A game's scenes
+ * are downloaded and added the first time they are needed; `latest` is read again after that,
  * since the stage may have changed meanwhile.
  */
 function applyStage(game: Phaser.Game, latest: () => Stage) {
   const stage = latest();
-  const target = stage.mode === 'hub' ? 'hub' : stage.mode === 'board' ? stage.gameId : null;
+  const target = sceneKey(stage);
   if (stage.mode === 'board') game.registry.set('board', stage);
+  if (stage.mode === 'setup') game.registry.set(SETUP_CURRENT, stage.current);
   for (const key of Object.keys(game.scene.keys)) {
     if (key !== target && !BACKGROUND.has(key) && isStarted(game, key)) game.scene.stop(key);
   }
   if (!target) return;
   if (!game.scene.keys[target]) {
-    void loadClient(target).then(({ scene }) => {
+    if (stage.mode !== 'board' && stage.mode !== 'setup') return;
+    void loadClient(stage.gameId).then((client) => {
+      const scene = stage.mode === 'setup' ? client.setup : client.scene;
+      if (!scene) return;
       if (!game.scene.keys[target]) game.scene.add(target, scene);
       applyStage(game, latest);
     });
@@ -82,6 +101,10 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       });
       // Moves made on a game's board go to React (useBoardMoves), which sends them.
       g.events.on(BOARD_MOVE, (move: unknown) => bridge.emit('board:move', move));
+      g.events.on(BOARD_OPTIONS, (options: unknown) => bridge.emit('board:options', options));
+      // A game's setup screen hands its room options to React (RoomSetup), which creates the room.
+      g.events.on(SETUP_SUBMIT, (options: unknown) => bridge.emit('setup:submit', options));
+      g.events.on(SETUP_CANCEL, () => bridge.emit('setup:cancel'));
       g.events.once('booted', () => {
         ready.current = true;
         g.registry.set('hudTop', hudTop.current);

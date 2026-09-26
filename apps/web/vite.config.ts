@@ -9,7 +9,7 @@ import { defaultClientConditions, defineConfig } from 'vite';
 const webPort = Number(process.env.WEB_PORT ?? 5033);
 const api = `http://localhost:${process.env.PORT ?? 8033}`;
 
-// Shown small in the sound panel. The version is bumped by release-please in the root package.json.
+// Shown small in the bottom-left corner (VersionTag). The version is bumped by release-please in the root package.json.
 const version = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8'))
   .version as string;
 function commit() {
@@ -30,6 +30,8 @@ export default defineConfig({
     __APP_COMMIT__: JSON.stringify(commit()),
     // Work-in-progress games are locked on the production site only (not in dev or PR previews).
     __SHOW_WIP__: JSON.stringify(process.env.VERCEL_ENV !== 'production'),
+    // The dev tools panel (lib/devTools.ts), also outside production only.
+    __DEV_TOOLS__: JSON.stringify(process.env.VERCEL_ENV !== 'production'),
   },
   // `@/…` means `src/…` (also set in tsconfig.json), so imports don't need ../../
   resolve: {

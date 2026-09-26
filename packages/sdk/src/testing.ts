@@ -1,4 +1,4 @@
-import type { GamePlugin, GameResult, PlayerId } from './game.js';
+import { defaultOptions, type GamePlugin, type GameResult, type PlayerId } from './game.js';
 import { seededRng } from './rng.js';
 
 export interface Play<Move> {
@@ -13,15 +13,16 @@ export interface Play<Move> {
  *
  *   const { state, result } = playMoves(plugin, ['a', 'b'], [{ player: 'a', move: { cell: 4 } }]);
  */
-export function playMoves<State, Move, View>(
-  plugin: GamePlugin<State, Move, View>,
+export function playMoves<State, Move, View, Options>(
+  plugin: GamePlugin<State, Move, View, Options>,
   players: PlayerId[],
   plays: Play<Move>[],
   seed = 1,
+  options: Options = defaultOptions(plugin),
 ): { state: State; result: GameResult | null } {
   const { rules } = plugin;
   const rng = seededRng(seed);
-  let state = rules.setup(players, rng);
+  let state = rules.setup(players, rng, options);
   plays.forEach(({ player, move }, i) => {
     const parsed = rules.moveSchema.safeParse(move);
     if (!parsed.success) throw new Error(`Move ${i + 1} has the wrong shape: ${parsed.error}`);
@@ -33,8 +34,8 @@ export function playMoves<State, Move, View>(
 }
 
 /** The error message for a move, or `null` if it is legal (schema check included). */
-export function moveError<State, Move, View>(
-  plugin: GamePlugin<State, Move, View>,
+export function moveError<State, Move, View, Options>(
+  plugin: GamePlugin<State, Move, View, Options>,
   state: State,
   player: PlayerId,
   move: unknown,
@@ -48,8 +49,8 @@ export function moveError<State, Move, View>(
  * Throws if any of `secrets` (a card, a hand, a deck order…) appears anywhere in what `viewer`
  * sees. Check every player and `null` (spectators) for anything that must stay hidden.
  */
-export function assertHidden<State, View>(
-  plugin: GamePlugin<State, unknown, View>,
+export function assertHidden<State, View, Options>(
+  plugin: GamePlugin<State, unknown, View, Options>,
   state: State,
   viewer: PlayerId | null,
   ...secrets: unknown[]

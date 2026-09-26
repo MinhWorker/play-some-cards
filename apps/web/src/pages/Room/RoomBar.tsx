@@ -51,6 +51,7 @@ export function RoomBar({
         {snapshot.players.map((p) => (
           <li key={p.id} className={p.connected ? '' : 'offline'}>
             {p.id === snapshot.hostId && '👑 '}
+            {p.bot && '🤖 '}
             {p.name}
             {p.id === me && ' (bạn)'}
           </li>

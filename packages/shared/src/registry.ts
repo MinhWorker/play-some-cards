@@ -6,7 +6,7 @@ import { plugins } from './generated/games.js';
  * install and before every build). There is nothing to register by hand.
  */
 export const games: Record<string, AnyGameDefinition> = Object.fromEntries(
-  plugins.map(({ meta, rules }) => [meta.id, { ...rules, ...meta }]),
+  plugins.map(({ meta, rules, room }) => [meta.id, { ...rules, ...meta, room }]),
 );
 
 export function getGame(id: string): AnyGameDefinition | undefined {

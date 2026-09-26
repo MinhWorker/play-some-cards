@@ -7,12 +7,15 @@ export type { BoardProps };
 export type Stage =
   | { mode: 'hub' }
   | { mode: 'sky' }
+  /** The game's own settings screen (`setup` in its client.ts); `current` when editing a room. */
+  | { mode: 'setup'; gameId: string; current: unknown }
   | ({ mode: 'board'; gameId: string } & BoardProps);
 
 /**
  * The only link between React and Phaser.
  * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px).
- * Phaser -> React: 'hub:select' (gameId), 'hub:locked', 'board:move' (move).
- * Board scenes (from games/) don't see this: PhaserStage passes their props and moves along.
+ * Phaser -> React: 'hub:select' (gameId), 'hub:locked', 'board:move' (move), 'board:options',
+ * 'setup:submit' (room options), 'setup:cancel'.
+ * Game scenes (from games/) don't see this: PhaserStage passes their props and events along.
  */
 export const bridge = new Phaser.Events.EventEmitter();
