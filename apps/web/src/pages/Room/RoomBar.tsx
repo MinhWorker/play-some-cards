@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/Button';
 import { bridge } from '@/phaser/bridge';
 
 /**
- * The bar across the top of a room: leave button, room name, players and spectators.
+ * The bar across the top of a room: leave button, room name, players (unless the board lists
+ * them) and spectators.
  * It wraps onto several rows on narrow screens, so it tells the board how tall it is.
  */
 export function RoomBar({
@@ -12,12 +13,15 @@ export function RoomBar({
   me,
   gameName,
   hostName,
+  hidePlayers,
   onLeave,
 }: {
   snapshot: RoomSnapshot;
   me: string;
   gameName: string | undefined;
   hostName: string | null;
+  /** The board lists the players itself. */
+  hidePlayers?: boolean;
   onLeave: () => void;
 }) {
   const bar = useRef<HTMLElement>(null);
@@ -48,14 +52,15 @@ export function RoomBar({
         <div className="room-code">{hostName ? `Phòng của ${hostName}` : 'Phòng trống'}</div>
       </div>
       <ul className="players">
-        {snapshot.players.map((p) => (
-          <li key={p.id} className={p.connected ? '' : 'offline'}>
-            {p.id === snapshot.hostId && '👑 '}
-            {p.bot && '🤖 '}
-            {p.name}
-            {p.id === me && ' (bạn)'}
-          </li>
-        ))}
+        {!hidePlayers &&
+          snapshot.players.map((p) => (
+            <li key={p.id} className={p.connected ? '' : 'offline'}>
+              {p.id === snapshot.hostId && '👑 '}
+              {p.bot && '🤖 '}
+              {p.name}
+              {p.id === me && ' (bạn)'}
+            </li>
+          ))}
         {watching > 0 && <li className="watchers">👀 {watching} đang xem</li>}
       </ul>
     </header>

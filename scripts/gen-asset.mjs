@@ -89,7 +89,7 @@ async function generate(name) {
   const prompt = [config.style, asset.prompt, asset.transparent ? config.transparentSuffix : '']
     .filter(Boolean)
     .join(' ');
-  const work = mkdtempSync(join(tmpdir(), `asset-${name}-`));
+  const work = mkdtempSync(join(tmpdir(), `asset-${name.replace('/', '-')}-`));
   const background = asset.transparent ? ' with a transparent background' : '';
   const save =
     'then copy the generated PNG to ./out.png in the current directory. Do nothing else.';

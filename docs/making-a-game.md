@@ -94,19 +94,30 @@ export class MyGame extends Game<State, Options> {
     if (thắng) ctx.finish([ctx.player.id]);                    // [] = hoà
     return { ...ctx.state, ... };                              // trả về state MỚI
   }
-  // tuỳ chọn: onEnd(ctx), bot(ctx), view(ctx, viewer)
+  // tuỳ chọn: onEnd(ctx), bot(ctx), view(ctx, viewer), onLeave(ctx), hook của hẹn giờ
 }
 ```
 
 - Hook không bao giờ sửa `ctx.state`: trả về một state mới.
+- `ctx.lastResult` là kết quả ván trước trong phòng (ví dụ để người thắng đi trước ở ván sau);
+  `null` ở ván đầu hoặc khi người ngồi bàn thay đổi.
 - **Giấu bí mật trong `view(ctx, viewer)`**: bài của người khác, thứ tự bộ bài. `viewer` là `null`
   với khán giả: chỉ thông tin công khai. Không viết `view` thì ai cũng thấy cả state. Sự kiện mà
   người khác không được thấy dữ liệu (ví dụ úp một lá bài) thì ghi vào `secretEvents`.
 - Chỉ lấy ngẫu nhiên qua `ctx.rng` (`shuffle(ctx.rng, deck)`, `pick`, `int` từ `@psc/sdk`), không
   bao giờ dùng `Math.random()`, để test có thể chơi lại đúng một ván.
+- **Hẹn giờ**: `ctx.setTimer(ms, 'turn-over')` hẹn server gọi `onTurnOver(ctx)` sau `ms` mili
+  giây (ví dụ đồng hồ mỗi lượt, khoảng nghỉ giữa các vòng, chờ hoạt ảnh chia bài xong). Mỗi game
+  có một hẹn giờ: đặt lại là thay cái cũ, `ctx.clearTimer()` để huỷ, ván kết thúc thì tự dừng.
+  Người chơi không gửi được sự kiện hẹn giờ. Màn hình thấy nó qua `ctx.timer` để vẽ đồng hồ.
+- **Người rời bàn giữa ván**: mặc định ván dừng cho cả bàn. Viết `onLeave(ctx)` (`ctx.player` là
+  người vừa rời) thì ván chơi tiếp không có họ, ví dụ xử thua. Ghế không bao giờ đổi trong một
+  ván: người đã rời vẫn nằm trong `ctx.players` với `left: true`.
 - Test bằng `testGame(plugin, ['a', 'b'])` (hoặc `testGame(new MyGame(), …)`):
   `.send('a', 'place', { cell: 4 })`, `.error(...)`, `.state`, `.result`, `.view(player)`,
-  `.assertHidden(viewer, secret)`, `.bot(player)`.
+  `.assertHidden(viewer, secret)`, `.bot(player)`, `.newGame()` (ván kế tiếp trong cùng phòng),
+  `.timer` và `.fireTimer()` (cho hẹn giờ nổ ngay), `.leave(player)`. Tuỳ chọn
+  `{ bots: ['b'] }` đánh dấu người chơi máy.
 
 ## Màn hình (`GameView`)
 
@@ -122,13 +133,22 @@ export class MyView extends GameView<State, Options> {
 - Khi người chơi thao tác, gọi `this.send('place', { cell })`. Server quyết định có hợp lệ không,
   và lỗi được hiện sẵn cho bạn.
 - `ctx` có `state` (những gì người này được thấy), `me` (`null` với khán giả), `players`, `hostId`,
-  `isHost`, `score`, `options`, `result` và `screen` (cỡ, tâm, `top` = chỗ trống đầu tiên dưới
-  thanh phòng, `hud` = tỉ lệ cho điện thoại nhỏ).
+  `isHost`, `score`, `options`, `result`, `timer` (`endsAt`, `ms`: vẽ đồng hồ đếm ngược) và `screen`
+  (cỡ, tâm, `top` = chỗ trống đầu tiên dưới thanh phòng, `hud` = tỉ lệ cho điện thoại nhỏ).
+- `this.avatar(player)` cho ảnh đại diện của người chơi (máy có ảnh robot), dùng với
+  `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
   `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi.
 - `titleStyle(size)`, `hudScale()`, `this.fitText(...)` và `this.boardArea()` giữ đúng phong cách
   của ứng dụng và vừa điện thoại nhỏ.
 - Bảng thắng/hoà, nút "Chơi ván mới", thanh phòng và âm thanh khi thắng đã được ứng dụng làm sẵn.
+  Game tự vẽ bảng xếp hạng thì đặt `defineClient({ showsResult: true })`: bảng của ứng dụng chỉ
+  còn các nút. Game tự vẽ danh sách người chơi thì đặt `showsPlayers: true` để thanh phòng ẩn
+  danh sách của nó trong lúc chơi.
+- Người chơi bấm "Rời phòng" giữa ván sẽ được hỏi lại "Bỏ dở ván này?" (rời đi là dừng ván cho
+  cả bàn). Đổi chữ trong `client.ts`:
+  `defineClient({ scene, leaveConfirm: { title, message, stay, leave } })` (chỗ nào không ghi thì
+  giữ chữ mặc định), hoặc `leaveConfirm: false` để tắt, như Bấm Nút.
 
 ## Tuỳ chọn phòng và chơi với máy (tuỳ chọn)
 
@@ -176,21 +196,19 @@ vào (nếu còn ghế) hoặc rời đi, và tỉ số tính lại từ đầu.
 
 ## Hình và âm thanh
 
-Đặt file hoàn chỉnh vào `assets/` là được dùng nguyên như vậy. Tự vẽ, tạo bằng AI, hay nhờ người
-giúp đều được; chỉ là không bao giờ vẽ hình bằng code (SVG/CSS/Phaser graphics) và không bao giờ
-đặt chữ vào trong hình (viết chữ bằng Phaser). `assets/island.webp` là hòn đảo của game trên bản đồ
+Đặt file hoàn chỉnh vào `assets/` là được dùng nguyên như vậy. Làm bằng cách nào cũng được: tự vẽ,
+tạo bằng AI, render bằng Blender, vẽ bằng code (Phaser graphics), tài nguyên miễn phí trên mạng; chọn
+cái trông và nghe hợp với game nhất, ghi nguồn khi tiện. Chỉ đừng đặt chữ vào trong hình (viết chữ
+bằng Phaser, để nó là tiếng Việt và vừa mọi cỡ màn hình). `assets/island.webp` là hòn đảo của game trên bản đồ
 trang chủ (`meta.portal.image`).
 
-File gốc lớn có thể để trong `sources/` (lưu bằng Git LFS), rồi `npm run assets -- <id>` tạo file
+Hình gốc lớn có thể để trong `sources/` (lưu bằng Git LFS), rồi `npm run assets -- <id>` tạo file
 sẵn dùng: mỗi hình trong `sources/` thành một `assets/<cùng tên>.webp` đã cắt viền và thu nhỏ (tuỳ
-chọn cho từng hình trong `sources/prompts.json`: `transparent`, `maxSize`), và các âm thanh liệt
-kê trong `sources/audio.json` được cắt và mã hoá:
+chọn cho từng hình trong `sources/prompts.json`: `transparent`, `maxSize`).
 
-```json
-{ "sounds": { "move": { "src": "wood-knock.wav", "start": 0.05, "duration": 0.4, "format": "wav" } } }
-```
-
-Dùng `"format": "wav"` cho hiệu ứng ngắn (MP3 thêm một chút trễ ở đầu).
+Âm thanh thì không có bước build: file trong `assets/` chính là bản dùng. Muốn cắt, đổi tốc độ hay
+chỉnh âm lượng, sửa thẳng file đó (ví dụ bằng `ffmpeg`, hoặc nhờ Claude sửa giúp). Hiệu ứng ngắn
+dùng WAV mono 16-bit (MP3 thêm một chút trễ ở đầu), nhạc dùng MP3.
 Các file tên `music-*.mp3` trong `assets/` là nhạc nền của game: mỗi lần vào bàn chơi phát ngẫu
 nhiên một bài.
 

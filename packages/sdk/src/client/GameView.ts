@@ -12,7 +12,7 @@
  *   onUpdate(ctx, dt)      every frame (browser only; the server has no frames)
  *
  * `ctx` (also `this.ctx`) has everything: the state as you may see it, who you are, the players,
- * host, score, options, result.
+ * host, score, options, result, the game's timer (`ctx.timer`, for a countdown).
  */
 import { hookName } from '../engine.js';
 import type { GameResult, PlayerId } from '../game.js';
@@ -27,6 +27,10 @@ export interface ViewSeat {
   seat: number;
   bot: boolean;
   connected: boolean;
+  /** Their picture: draw it with `this.avatar(seat)`. */
+  avatar?: string;
+  /** Left the room during this game. */
+  left: boolean;
 }
 
 /** What every view hook gets. */
@@ -43,6 +47,11 @@ export interface ViewContext<View, Options = unknown> {
   options: Options;
   /** Set once the game is over. */
   result: GameResult | null;
+  /**
+   * The game's timer (`ctx.setTimer` in the `Game`), or `null`: `event` names it, `ms` is its full
+   * length and `endsAt` when it goes off (compare with `Date.now()`, e.g. in `onUpdate`).
+   */
+  timer: { event: string; ms: number; endsAt: number } | null;
   /**
    * The screen: size, center, `top` = first free pixel below the app's room bar, and the HUD
    * scale (small phones < 1; multiply sizes by it).
@@ -65,6 +74,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   protected ctx!: ViewContext<View, Options>;
   private props!: BoardProps<View, Options>;
   private lastSeq = 0;
+  private timer: ViewContext<View, Options>['timer'] = null;
   /** Options sent with `changeOptions` that the server hasn't sent back yet. */
   private pendingOptions: Options | null = null;
 
@@ -101,6 +111,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
 
   create() {
     this.props = this.registry.get('board') as BoardProps<View, Options>;
+    this.timer = this.timerOf(this.props);
     this.ctx = this.makeContext();
     this.lastSeq = this.props.last?.seq ?? 0;
     this.onCreate(this.ctx);
@@ -132,6 +143,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   private receive(props: BoardProps<View, Options>) {
     const before = this.props;
     this.props = props;
+    this.timer = this.timerOf(props);
     if (JSON.stringify(props.options) === JSON.stringify(this.pendingOptions)) {
       this.pendingOptions = null;
     }
@@ -155,6 +167,17 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     if (props.result && !before.result) this.hook('onEnd', this.ctx);
   }
 
+  /** When the timer ends on this device's clock (the server sends how much is left). */
+  private timerOf(props: BoardProps<View, Options>) {
+    const t = props.timer;
+    if (!t) return null;
+    const same = this.timer?.event === t.event && this.timer.ms === t.ms;
+    const endsAt = Date.now() + t.left;
+    // The same timer sent again (another player's change): keep the clock steady.
+    if (same && this.timer && Math.abs(this.timer.endsAt - endsAt) < 400) return this.timer;
+    return { event: t.event, ms: t.ms, endsAt };
+  }
+
   private makeContext(): ViewContext<View, Options> {
     const { view, me, players, hostId, score, options, result } = this.props;
     const seats = players.map((p, seat) => ({
@@ -163,6 +186,8 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       seat,
       bot: Boolean(p.bot),
       connected: p.connected,
+      avatar: p.avatar,
+      left: Boolean(p.left),
     }));
     const { width, height } = this.scale;
     const hud = hudScale();
@@ -176,6 +201,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       score,
       options: this.pendingOptions ?? options,
       result,
+      timer: this.timer,
       screen: { width, height, cx: width / 2, cy: height / 2, top, hud },
     };
   }

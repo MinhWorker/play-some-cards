@@ -34,6 +34,9 @@ export abstract class GameScene extends Phaser.Scene {
       const key = `${this.gameId}/${name}`;
       if (!this.textures.exists(key)) this.load.image(key, url);
     }
+    for (const [name, url] of Object.entries(clientHost().avatars())) {
+      if (!this.textures.exists(`avatar/${name}`)) this.load.image(`avatar/${name}`, url);
+    }
     // `music*` files are the game's background music: the app streams one, no need to preload.
     for (const [name, url] of Object.entries(sounds)) {
       if (!name.startsWith('music')) clientHost().loadSound(url);
@@ -46,6 +49,16 @@ export abstract class GameScene extends Phaser.Scene {
     if (!this.textures.exists(key))
       this.warnOnce(`No image "${name}" in games/${this.gameId}/assets/`);
     return key;
+  }
+
+  /**
+   * Texture key of a player's picture (round, in a golden frame): their account's avatar, the
+   * robot for the computer. E.g. `this.add.image(x, y, this.avatar(player))`.
+   */
+  protected avatar(player: { avatar?: string; bot?: boolean }) {
+    const name = player.bot ? 'bot' : (player.avatar ?? 'boy');
+    const key = `avatar/${name}`;
+    return this.textures.exists(key) ? key : 'avatar/boy';
   }
 
   /** Adds `assets/<name>.webp|png` as an image. */
@@ -76,12 +89,19 @@ export abstract class GameScene extends Phaser.Scene {
 
   /**
    * A tappable button: `image` (from `assets/`, stretched to the size) with a label on top, or
-   * just the label. Lights up on hover, plays `sound` (from `assets/`) on tap.
+   * just the label. Lights up on hover. Sounds like the app's buttons (hover with a mouse, click
+   * on tap), or plays `sound` (from `assets/`) on tap instead. `hoverSound: false` keeps it quiet
+   * on hover (for buttons the mouse passes over all the time).
    */
   protected button(
     text: string,
     onTap: () => void,
-    { image, sound, size = 32 }: { image?: string; sound?: string; size?: number } = {},
+    {
+      image,
+      sound,
+      hoverSound = true,
+      size = 32,
+    }: { image?: string; sound?: string; hoverSound?: boolean; size?: number } = {},
   ): Button {
     const bg = image ? this.image(0, 0, image) : undefined;
     const label = this.label(text, { size });
@@ -124,12 +144,17 @@ export abstract class GameScene extends Phaser.Scene {
     const { width, height } = bg ?? label;
     button.setSize(width, height);
     container.setInteractive({ useHandCursor: true });
-    container.on('pointerover', () => enabled && bg?.setTint(0xfff1b8));
+    container.on('pointerover', (pointer: Phaser.Input.Pointer) => {
+      if (!enabled) return;
+      bg?.setTint(0xfff1b8);
+      if (hoverSound && !pointer.wasTouch) clientHost().playUiSound('hover');
+    });
     container.on('pointerout', () => bg?.clearTint());
     container.on('pointerup', () => {
       if (!enabled) return;
       bg?.clearTint();
       if (sound) this.sfx(sound);
+      else clientHost().playUiSound('click');
       onTap();
     });
     return button;

@@ -15,7 +15,7 @@ import type { GameResult, PlayerId } from './game.js';
  * `PROTOCOL_MISMATCH` (the error's `data.protocol` is the server's version). CI fails when this
  * file changes without a bump, unless the PR has the `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** `connect_error` message when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -32,6 +32,10 @@ export interface PlayerInfo {
   connected: boolean;
   /** A seat the computer plays (never a host, always connected). */
   bot?: boolean;
+  /** The account's picture (`Avatar`); bots have none. */
+  avatar?: string;
+  /** In `seats` only: left the room during this game. */
+  left?: boolean;
 }
 
 export type RoomStatus = 'lobby' | 'playing' | 'finished';
@@ -56,6 +60,11 @@ export interface RoomSnapshot {
   hostId: PlayerId | null;
   players: PlayerInfo[];
   spectators: PlayerInfo[];
+  /**
+   * Everyone seated when the current (or last) game began, in seat order, `left` marking who
+   * has gone since: what the board shows. `null` before the first game.
+   */
+  seats: PlayerInfo[] | null;
   status: RoomStatus;
   view: unknown;
   result: GameResult | null;
@@ -69,6 +78,8 @@ export interface RoomSnapshot {
    * `moveView` lets this member see it). `null` before the first move. `seq` goes up by one each.
    */
   last: { seq: number; player: PlayerId; move: unknown } | null;
+  /** The game's timer: which one, its full length and how much was left when this was sent. */
+  timer: { event: string; ms: number; left: number } | null;
 }
 
 /** One row in a game's room list. */

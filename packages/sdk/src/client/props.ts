@@ -7,6 +7,10 @@ export interface Seat {
   connected: boolean;
   /** Played by the computer. */
   bot?: boolean;
+  /** The account's picture (see `GameScene.avatar`). */
+  avatar?: string;
+  /** Left the room during this game (games that go on without them keep the seat). */
+  left?: boolean;
 }
 
 /** What the app hands the running game screen (a `GameView` turns it into `ctx`). */
@@ -15,7 +19,7 @@ export interface BoardProps<View = unknown, Options = unknown> {
   view: View;
   /** This player. A spectator's `me` is not in `players`. */
   me: PlayerId;
-  /** Seated players, in seat order. */
+  /** Seated players, in seat order (during a game: everyone seated when it began). */
   players: Seat[];
   /** The room's host (starts games, may change the options between games). */
   hostId: PlayerId | null;
@@ -32,6 +36,8 @@ export interface BoardProps<View = unknown, Options = unknown> {
    * change them between games with `changeOptions`; the next game's `onStart` gets the new ones.
    */
   options: Options;
+  /** The game's timer (`ctx.setTimer`): which, how long, and how much was left when sent. */
+  timer: { event: string; ms: number; left: number } | null;
 }
 
 /** Events between the app and the running game screen (on `game.events`). */

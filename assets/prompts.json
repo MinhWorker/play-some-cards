@@ -127,6 +127,11 @@
       "transparent": true,
       "maxSize": 256,
       "prompt": "One chunky glossy yellow game UI arrow button pointing right: a rounded thick arrow shape with a dark-brown outline, soft highlight on top, subtle drop shadow, front view."
+    },
+    "avatar-bot": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "A cute chibi RPG-style character portrait (head and shoulders) of a friendly round little robot with a glossy white and sky-blue body, two glowing cyan eyes, a tiny antenna with a yellow ball and a happy smile screen mouth, inside a round glossy golden medallion frame with a bright sky-blue background inside the frame. Front view."
     }
   }
 }

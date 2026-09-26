@@ -22,6 +22,34 @@ export interface GameClient {
    */
   // biome-ignore lint/suspicious/noExplicitAny: each game has its own options type
   setup?: new () => RoomSetupScene<any>;
+  /**
+   * The question a player gets when they tap "Rời phòng" mid-game (leaving stops the game for
+   * everyone, or loses it in a game with `onLeave`). Change any of its texts, or `false` for a
+   * game where leaving needs no question.
+   */
+  leaveConfirm?: LeaveConfirm | false;
+  /**
+   * The screen shows who won itself (e.g. a standings screen): the app's result panel then only
+   * has its buttons ("Chơi ván mới"), without its "… thắng!" title.
+   */
+  showsResult?: boolean;
+  /**
+   * The screen lists the players itself (names, pictures, whose turn): the room bar hides its
+   * list of players while a game is on.
+   */
+  showsPlayers?: boolean;
+}
+
+/** Texts of the "leave mid-game?" question; the ones left out keep the app's. */
+export interface LeaveConfirm {
+  /** Default: "Bỏ dở ván này?" */
+  title?: string;
+  /** Default: "Bạn rời phòng thì ván đang chơi sẽ dừng lại cho cả bàn." */
+  message?: string;
+  /** The button that keeps playing. Default: "Ở lại chơi tiếp" */
+  stay?: string;
+  /** The button that leaves. Default: "Rời phòng" */
+  leave?: string;
 }
 
 export function defineClient(client: GameClient): GameClient {

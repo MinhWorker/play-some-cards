@@ -18,6 +18,6 @@ Bộ âm thanh Cờ Tướng dùng tiếng quân gỗ khô với điểm nhấn 
 | Hoà | `xiangqi-draw` | Một lần khi kết quả do server quyết định là hoà. |
 | Người chơi trên máy này thắng | `xiangqi-game-win` hoặc `game-win` dùng chung | Chọn một âm thanh kết quả để tiếng chiến thắng không chồng lên nhau. |
 
-Bộ hiện có 12 mã hiệu ứng, build vào `games/xiangqi/assets/` (`npm run audio`). Bàn Cờ Tướng có thể gọi
+Bộ hiện có 12 hiệu ứng trong `games/xiangqi/assets/`. Bàn Cờ Tướng có thể gọi
 `this.sfx(name)` sau các nước đi được chấp nhận hoặc khi chiếu, đổi lượt và có kết quả do server
 quyết định.

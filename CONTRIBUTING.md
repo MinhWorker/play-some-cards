@@ -35,8 +35,8 @@ hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.m
   người đọc (README, CONTRIBUTING, `docs/`, README của game, mẫu issue/PR) viết tiếng Việt.
 - Server là bên quyết định, và thông tin ẩn (bài của người khác) không bao giờ rời server: lọc nó
   trong hook `view` của game.
-- Hình do AI tạo hoặc người vẽ, không bao giờ vẽ bằng code (SVG/CSS/Phaser graphics). Không đặt chữ
-  vào trong hình.
+- Hình và âm thanh làm bằng cách nào cũng được: AI, tự vẽ, Blender, vẽ hay tổng hợp bằng code, tài
+  nguyên miễn phí trên mạng. Chọn cái hợp với game nhất. Không đặt chữ vào trong hình.
 - Thử giao diện ở cỡ điện thoại (390×844) và cỡ máy tính.
 - Migration database phải chạy được với bản web trước đó (thêm trước, xoá sau).
 - Thay đổi giao thức socket làm hỏng client cũ thì tăng `PROTOCOL_VERSION`
@@ -45,7 +45,9 @@ hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.m
 ## Giấy phép
 
 Mã của bạn được chia sẻ theo MIT, hình và âm thanh theo CC BY-NC 4.0
-([LICENSE-ASSETS.md](LICENSE-ASSETS.md)). Chỉ thêm hình hay âm thanh mà bạn có quyền chia sẻ.
+([LICENSE-ASSETS.md](LICENSE-ASSETS.md)). Đây là dự án nhỏ cho bạn bè và cộng đồng: dùng tài nguyên
+miễn phí thoải mái, ghi nguồn khi tiện. Chỉ đừng lấy tài nguyên trả phí hay bị cấm dùng, và không
+đem bán thứ gì.
 
 ## Làm một game
 

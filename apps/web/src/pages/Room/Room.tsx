@@ -2,8 +2,9 @@ import { games, type JoinedRoom, type RoomSnapshot } from '@psc/shared';
 import { useState } from 'react';
 import { Toast } from '@/components/hud';
 import { Button } from '@/components/ui/Button';
-import { useHasSetup } from '@/hooks/useHasSetup';
+import { useGameClient } from '@/hooks/useGameClient';
 import { request } from '@/lib/socket';
+import { LeaveConfirm } from './LeaveConfirm';
 import { RoomBar } from './RoomBar';
 import './Room.css';
 
@@ -23,7 +24,9 @@ interface Props {
  */
 export function Room({ session, snapshot, onLeave, onCustomize, error: moveError }: Props) {
   const [error, setError] = useState('');
-  const hasSetup = useHasSetup(snapshot?.gameId ?? '');
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const client = useGameClient(snapshot?.gameId ?? '');
+  const hasSetup = Boolean(client?.setup);
 
   if (!snapshot) return <Toast>Đang vào phòng…</Toast>;
 
@@ -31,7 +34,8 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
   const isHost = snapshot.hostId === me;
   const isPlayer = snapshot.players.some((p) => p.id === me);
   const game = games[snapshot.gameId];
-  const nameOf = (id: string) => snapshot.players.find((p) => p.id === id)?.name ?? '?';
+  const nameOf = (id: string) =>
+    [...snapshot.players, ...(snapshot.seats ?? [])].find((p) => p.id === id)?.name ?? '?';
   const hostName = snapshot.hostId ? nameOf(snapshot.hostId) : null;
   const seatFree =
     snapshot.status !== 'playing' && snapshot.players.length < (game?.maxPlayers ?? 0);
@@ -46,6 +50,9 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
     <Button onClick={() => send('room:sit')}>Vào chơi</Button>
   );
   const shownError = error || moveError;
+  // A player leaving mid-game stops it for everyone: ask first (unless the game turned it off).
+  const ask = client?.leaveConfirm !== false && isPlayer && snapshot.status === 'playing';
+  const leave = () => (ask ? setConfirmLeave(true) : onLeave());
   const customize = isHost && hasSetup && (
     <Button variant="secondary" onClick={onCustomize}>
       Tuỳ chỉnh
@@ -59,8 +66,16 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
         me={me}
         gameName={game?.name}
         hostName={hostName}
-        onLeave={onLeave}
+        hidePlayers={Boolean(client?.showsPlayers) && snapshot.status !== 'lobby'}
+        onLeave={leave}
       />
+      {confirmLeave && (
+        <LeaveConfirm
+          texts={client?.leaveConfirm || {}}
+          onStay={() => setConfirmLeave(false)}
+          onLeave={onLeave}
+        />
+      )}
 
       {snapshot.status === 'lobby' && (
         <div className="hud panel modal center">
@@ -84,13 +99,15 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
 
       {snapshot.result && (
         <div className="hud panel modal result">
-          <h2>
-            {snapshot.result.winners.length === 0
-              ? 'Hòa!'
-              : snapshot.result.winners.includes(me)
-                ? 'Bạn thắng! 🎉'
-                : `${snapshot.result.winners.map(nameOf).join(', ')} thắng!`}
-          </h2>
+          {!client?.showsResult && (
+            <h2>
+              {snapshot.result.winners.length === 0
+                ? 'Hòa!'
+                : snapshot.result.winners.includes(me)
+                  ? 'Bạn thắng! 🎉'
+                  : `${snapshot.result.winners.map(nameOf).join(', ')} thắng!`}
+            </h2>
+          )}
           {isHost ? (
             <>
               <Button onClick={() => send('game:restart')}>Chơi ván mới</Button>

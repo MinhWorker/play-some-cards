@@ -12,6 +12,10 @@ export interface ClientHost {
   assets(gameId: string): GameAssets;
   loadSound(url: string): void;
   playSound(url: string): void;
+  /** Player pictures by avatar name (`boy`, `girl`, …, and `bot` for the computer). */
+  avatars(): Record<string, string>;
+  /** The app's own button sounds, so buttons in games sound like the app's. */
+  playUiSound(kind: 'click' | 'hover'): void;
 }
 
 let current: ClientHost | null = null;

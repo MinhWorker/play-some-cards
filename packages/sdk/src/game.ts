@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { type Game, type GameEvent, gameRules, type Stored } from './engine.js';
+import { type Game, type GameEvent, gameRules, type Seat, type Stored } from './engine.js';
 
 /** A player's id inside a room (their account id). */
 export type PlayerId = string;
@@ -16,11 +16,13 @@ export interface GameResult {
  */
 export interface RoomContext<Options = unknown> {
   /** Seated players in seat order (seat = index). */
-  players: { id: PlayerId; name: string; bot: boolean }[];
+  players: { id: PlayerId; name: string; bot: boolean; avatar?: string }[];
   hostId: PlayerId | null;
   /** Wins per seat and draws over every game in the room. */
   score: { wins: number[]; draws: number };
   options: Options;
+  /** How the previous game in this room ended; `null` for the first one or a new table. */
+  lastResult?: GameResult | null;
 }
 
 /**
@@ -61,6 +63,17 @@ export interface GameRules<State, Move, View = State, Options = undefined> {
    * `player` is `null` for spectators: show only what is public to everyone.
    */
   getView(state: State, player: PlayerId | null, room?: RoomContext<Options>): View;
+  /** Everyone seated when the game began, in seat order (`left` = gone since). */
+  seats(state: State, room?: RoomContext<Options>): Seat[];
+  /** The timer the game set (see `GameContext.setTimer`); `id` changes with each new one. */
+  timer(state: State): { id: number; ms: number; event: string } | null;
+  /** The timer went off: runs its hook. */
+  fireTimer(state: State, rng: () => number, room?: RoomContext<Options>): State;
+  /**
+   * A player left mid-game and the game goes on without them. Missing when the game has no
+   * `onLeave` hook: then leaving stops the game for everyone.
+   */
+  leave?(state: State, player: PlayerId, rng: () => number, room?: RoomContext<Options>): State;
   /** `null` while the game is still running. */
   getResult(state: State, room?: RoomContext<Options>): GameResult | null;
   /**

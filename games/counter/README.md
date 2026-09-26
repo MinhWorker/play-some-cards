@@ -35,6 +35,8 @@ assets/                   button.webp, press.wav, island.webp
 | `onStart(ctx)` | "Bắt đầu" / "Chơi ván mới": trả về state đầu tiên |
 | `on<Event>(ctx)` | một người chơi gửi sự kiện đó (`press` → `onPress`): trả về state kế tiếp, hoặc `ctx.reject('…')` |
 | `onEnd(ctx)` | sau `ctx.finish(winners)` (tuỳ chọn) |
+| `onLeave(ctx)` | một người rời bàn giữa ván và ván chơi tiếp không có họ (tuỳ chọn; không có thì ván dừng) |
+| `on<Timer>(ctx)` | hẹn giờ `ctx.setTimer(ms, '<timer>')` đã tới (tuỳ chọn) |
 | `view(ctx, viewer)` | mỗi người chơi được thấy gì (tuỳ chọn; giấu bài ở đây) |
 
 | `CounterView` (trình duyệt) | khi nào |
@@ -48,7 +50,7 @@ assets/                   button.webp, press.wav, island.webp
 | `onUpdate(ctx, dt)` | mỗi khung hình (chỉ trên trình duyệt) |
 
 `ctx` luôn chứa cả phòng: `state`, `players` (ghế, tên, có phải máy không), `hostId`, `score`,
-`options`; trên server có thêm `rng`, `finish()` và, trong hook sự kiện, `player`, `payload`,
+`options`; trên server có thêm `rng`, `finish()`, `lastResult` (kết quả ván trước) và, trong hook sự kiện, `player`, `payload`,
 `reject()`; trên trình duyệt có `me`, `isHost`, `result` và `screen`.
 
 Chơi thử một mình: http://localhost:5033/?play=counter&players=2 (khi đang chạy `npm run dev`).

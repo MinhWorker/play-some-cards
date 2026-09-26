@@ -46,7 +46,7 @@ Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import 
 | Bản đồ đảo hoặc bầu trời | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |
 | Nói chuyện với server | `src/lib/socket.ts`, `src/hooks/useRoom.ts` |
 | Đăng nhập và tài khoản | `src/pages/Login/`, `src/lib/auth.ts`, `src/hooks/useAccount.ts` |
-| Nhạc và hiệu ứng âm thanh | `src/lib/sound.ts` + `assets/audio.json` |
+| Nhạc và hiệu ứng âm thanh | `src/lib/sound.ts` + file trong `public/shared/audio/` (sửa thẳng file) |
 | Hình của ứng dụng | `assets/prompts.json` (tạo bằng AI) + `src/phaser/assets.ts` |
 | Luật game | `games/<id>/src/game/<Tên>Game.ts` (ở gốc repo) |
 | Công cụ dev (công tắc, ô nhập; không có trên bản thật) | `src/lib/devTools.ts` (`DEV_SETTINGS`), bảng ở `src/components/hud/DevTools.tsx` |

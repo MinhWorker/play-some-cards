@@ -5,6 +5,46 @@
       "transparent": true,
       "maxSize": 640,
       "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top a round wooden table covered in green felt with a fanned-out hand of oversized playing cards showing only big red heart and black spade suit symbols (no numbers or letters) and a small face-down stack of cards, a red paper lantern on a pole. Isometric 3/4 view, whole island visible."
+    },
+    "card-front": {
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "One blank playing card face seen exactly from the front, flat orthographic view, tall portrait rectangle with a 5:7 aspect ratio and softly rounded corners, warm ivory card stock with a very subtle paper texture and a thin darker cream inner border line. Completely empty face: no suit symbols, no pips, no pictures."
+    },
+    "card-back": {
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "The back of one playing card seen exactly from the front, flat orthographic view, tall portrait rectangle with a 5:7 aspect ratio and softly rounded corners, white outer border, inside a rich red field with a symmetric golden lotus and cloud ornament pattern in Vietnamese Tet style."
+    },
+    "suit-spade": {
+      "transparent": true,
+      "maxSize": 160,
+      "prompt": "A single glossy black spade card-suit symbol, chunky and slightly puffy like a candy, seen straight from the front."
+    },
+    "suit-club": {
+      "transparent": true,
+      "maxSize": 160,
+      "prompt": "A single glossy black club (clover) card-suit symbol, chunky and slightly puffy like a candy, seen straight from the front."
+    },
+    "suit-diamond": {
+      "transparent": true,
+      "maxSize": 160,
+      "prompt": "A single glossy red diamond card-suit symbol, chunky and slightly puffy like a candy, seen straight from the front."
+    },
+    "suit-heart": {
+      "transparent": true,
+      "maxSize": 160,
+      "prompt": "A single glossy red heart card-suit symbol, chunky and slightly puffy like a candy, seen straight from the front."
+    },
+    "table": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "A large oval card table seen exactly from the top, flat top-down view: a thick polished wooden rim with warm brown grain around a smooth green felt playing surface. Nothing on the table."
+    },
+    "button": {
+      "transparent": true,
+      "maxSize": 320,
+      "prompt": "A blank wide rounded-rectangle game button, glossy golden-yellow like the buttons of a cheerful mobile game, thick darker orange bottom edge for depth, seen straight from the front, empty face."
     }
   }
 }

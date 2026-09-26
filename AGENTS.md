@@ -18,7 +18,7 @@ games/<id>/        @psc/game-<id>  One game = one folder; adding or changing a g
   src/scenes/        Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (optional "Tạo phòng"
                      screen, extends RoomSetupScene)
   assets/            App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'))
-  sources/           Optional originals (Git LFS), prompts.json (Codex), audio.json (cuts)
+  sources/           Optional originals (Git LFS), prompts.json (Codex)
 packages/sdk/      @psc/sdk     The only API games use. `.`: Game (engine.ts), definePlugin
                                 ({ meta, game, room? }), types, rng (shuffle/pick/int/seededRng),
                                 testGame. `/client`: defineClient, GameView, GameScene (assets,
@@ -36,10 +36,10 @@ apps/web/          @psc/web     React + Vite + Phaser 4. Folder guide: apps/web/
                                 src/games/index.ts finds games by glob (assets, lazy clients, hub
                                 portals, wip lock); pages/Sandbox is `/?play=<id>`
 assets/            Originals of the app's own art/audio (Git LFS): prompts.json (style + app
-                   prompts), audio.json (sound cuts), shared/, games/<id>/audio/ (older game audio),
+                   prompts), shared/, games/<id>/audio/ (older game audio),
                    audio/ (unsorted experiments)
 scripts/           libs.mjs (find games, build sdk + games + shared), new.mjs + templates/,
-                   gen-asset.mjs (Codex), assets.mjs, build-audio.mjs, lib/media.mjs, smoke.mjs,
+                   gen-asset.mjs (Codex), assets.mjs (images), lib/media.mjs, smoke.mjs,
                    e2e.mjs
 docs/              making-a-game, deploy (CI, versions, hosting), <game>-audio notes (which sound when)
 .github/           CI, PR checks, release-please, Dependabot, CODEOWNERS, templates,
@@ -63,7 +63,6 @@ docs/              making-a-game, deploy (CI, versions, hosting), <game>-audio n
 | `npm run smoke [url]` | Bots register and play Caro (one reconnects, one watches) against a running server (default :8033) |
 | `npm run e2e [url]` | Headless Chromium plays Caro through the real UI (needs `npm run dev`). Screenshots in `.e2e/` |
 | `npm run gen:asset -- <name>` / `<id>/<name>` | Generate an image with Codex CLI (`--missing`; `--edit <name> "<change>"` keeps its style) |
-| `npm run audio [-- <name>]` | Encode sounds listed in `assets/audio.json` |
 | `npm run db:generate -w @psc/server` | Write a migration after editing `apps/server/src/db/schema.ts` (applied on server start) |
 
 The owner often runs `npm run dev` in their own terminal: don't leave servers running. If you
@@ -88,7 +87,9 @@ never open a visible browser window.
   (`VERCEL_ENV`), so unfinished games can be merged.
 - Rooms belong to one game and live in memory (a restart wipes them). From a game's room list you
   create a room, join as a player (free seat, no game running) or watch; leaving means quitting
-  (the next player becomes host, an empty room is disbanded). Rooms keep a score.
+  (the next player becomes host, an empty room is disbanded). A player leaving mid-game stops it
+  for everyone, so the room page asks first (`pages/Room/LeaveConfirm.tsx`; a game changes the
+  texts or turns it off with `defineClient({ leaveConfirm })`). Rooms keep a score.
 - Room options: a game may ship its own settings screen (a `RoomSetupScene`, shown as the
   `setup` stage for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room; `pages/RoomSetup`
   forwards what it passes to `submit`). The server checks
@@ -98,11 +99,17 @@ never open a visible browser window.
   (its events come from the `Game`'s `bot(ctx)`, played by the gateway after a short pause);
   bots never host or keep a room alive. Example: Caro (games/tic-tac-toe).
 - `Game` (`@psc/sdk`, engine.ts): `events` + `onStart`/`on<Event>`/`onEnd`/`bot`/`view` hooks
-  returning new state. `GameView`
+  returning new state, plus `onLeave` (a player left mid-game: without it leaving stops the game
+  for everyone) and timers (`ctx.setTimer(ms, 'name')` → `onName(ctx)`, one per game, run by the
+  gateway; e.g. a turn clock, a pause between rounds). Seats never change during a game: leavers
+  stay in `ctx.players` with `left: true` (`Stored.players`, snapshot `seats`). `GameView`
   (`@psc/sdk/client`: `onCreate`/`onLayout`/`onStart`/`on<Event>`/`onState`/`onEnd`/`onUpdate`,
-  `send`, `changeOptions`; `label`/`button`/`sprite` come from `GameScene`, so setup screens
-  have them too). Test with `testGame` (a plugin or a `Game`; `send`, `error`, `view`,
-  `assertHidden`, `bot`). New files: `npm run new`. Snapshots carry `round` and `last` (the last
+  `send`, `changeOptions`; `label`/`button`/`sprite`/`avatar(player)` come from `GameScene`, so
+  setup screens have them too; `ctx.timer` for countdowns). `ctx.lastResult` = how the room's
+  previous game ended. `defineClient({ showsResult, showsPlayers })` hides the app's winner title
+  / the room bar's player list for games that draw their own. Test with `testGame`
+  (a plugin or a `Game`; `send`, `error`, `view`, `assertHidden`, `bot`, `newGame`, `timer`,
+  `fireTimer`, `leave`; option `bots`). New files: `npm run new`. Snapshots carry `round` and `last` (the last
   event, hidden from others for `secretEvents`) so screens hear events. Examples:
   games/counter (smallest), games/tic-tac-toe. When a mechanic or data would help other games
   (a system event, a ctx property, a view helper), add it to the SDK rather than the game.
@@ -145,8 +152,12 @@ never open a visible browser window.
 
 ## Art and audio
 
-- Art is generated or drawn by people; never draw art with code (SVG/CSS/Phaser graphics) and
-  never bake text into images (write it in code).
+- A small project for friends and the community: any way to make art or sound is fine
+  (Codex, drawn by people, rendered in Blender, drawn or synthesized in code, free resources from
+  the web). Pick what looks and sounds best for a card/board game in the app's style. Credit a
+  source when it's easy (the game's README, LICENSE-ASSETS.md). Never take paid or clearly
+  off-limits assets, and never sell anything.
+- Never bake text into images (write it in code: it has to be Vietnamese and fit any size).
 - A game's files: `games/<id>/assets/` (used as-is) and optional `games/<id>/sources/`
   (`npm run assets`). The app's own: originals in `assets/`, app-ready files in
   `apps/web/public/shared/` (get URLs with `imageUrl`/`soundUrl`; Phaser images also go in
@@ -158,14 +169,15 @@ never open a visible browser window.
   Animation frames sharing one anchor set `preserveCanvas: true` to keep transparent margins.
 - `avatar-long.webp` is a real photo (`assets/shared/images/Long-look-at-u.jpg`) in the generated
   `avatar-frame`, not generated art.
-- Music and effects are made by people or AI tools, never synthesized in code (no procedural
-  substitutes). The originals of the current effects are the clips in `assets/**/sfx-selected/`
-  (Git LFS). A game's music = every `music*` file in its
+- Originals of the current sounds (Veo clips in `assets/**/sfx-selected/`, `psc-*` files,
+  downloads in `assets/**/sfx/`) are in `assets/` (Git LFS), kept as an archive. A game's music = every `music*` file in its
   `assets/` (a random one plays on its board); the app's is `APP_MUSIC` in `src/lib/sound.ts`.
-  `assets/audio.json` maps each
-  app sound to an original with optional `start`/`duration`/`speed`, `game` (output in
-  `games/<id>/assets/`) or `unsorted` (not wired into the app yet). Short effects use
-  `"format": "wav"` (MP3 starts with ~25 ms of padding).
+- **The app-ready sound files are the real ones** (`apps/web/public/shared/audio/`,
+  `games/<id>/assets/`, unsorted in `apps/web/public/audio/`); there is no build step. To change
+  a sound, edit that file in place with ffmpeg (cut: `-ss`/`-t` plus a short `afade`; faster at
+  the same pitch: `atempo`; louder: `volume`), or make it from an original once. Short effects are
+  mono 16-bit WAV (MP3 starts with ~25 ms of padding), music is 128 kbps MP3. Listen/measure with
+  ffprobe after editing.
 - Originals are Git LFS (`.gitattributes`; a new binary type needs a pattern). App-ready files
   are plain git.
 - The app plays effects with `playSfx(name)` (`SFX` in `src/lib/sound.ts`); a board plays

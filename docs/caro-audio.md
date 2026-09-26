@@ -1,8 +1,8 @@
 # Kế hoạch âm thanh Caro
 
 Màn Caro dùng một âm thanh gỗ-và-thuỷ-tinh riêng cho mỗi thao tác. Âm thanh nằm trong
-`games/tic-tac-toe/assets/` và bàn chơi phát chúng bằng `this.sfx(name)`; `npm run audio` build lại
-chúng từ bản gốc khai báo trong `assets/audio.json`.
+`games/tic-tac-toe/assets/` (sửa thẳng các file đó khi cần) và bàn chơi phát chúng bằng
+`this.sfx(name)`.
 
 | Khoảnh khắc | Âm thanh | Khi nào phát |
 | --- | --- | --- |

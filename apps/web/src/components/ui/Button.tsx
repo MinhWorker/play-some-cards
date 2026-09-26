@@ -1,7 +1,8 @@
-import type { ButtonHTMLAttributes } from 'react';
+import type { ButtonHTMLAttributes, Ref } from 'react';
 import { buttonSounds, type Sfx } from '@/lib/sound';
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   /** `primary` is the yellow button, `secondary` the blue one. */
   variant?: 'primary' | 'secondary';
   size?: 'normal' | 'small';

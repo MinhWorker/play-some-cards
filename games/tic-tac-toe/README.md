@@ -47,4 +47,4 @@ Chơi thử một mình: http://localhost:5033/?play=tic-tac-toe (khi đang ch�
 
 ## Ghi công
 
-Hình tạo bằng Codex (`sources/prompts.json`). Âm thanh: xem `assets/audio.json` ở thư mục gốc repo.
+Hình tạo bằng Codex (`sources/prompts.json`). Âm thanh: file trong `assets/`, bản gốc lưu trong `assets/games/tic-tac-toe/` ở gốc repo.

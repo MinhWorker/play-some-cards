@@ -1,7 +1,10 @@
 /**
- * Server entry: what the app needs to know about the game, and its logic (a `Game`). It loads on the server, so it only imports code from game/ (scenes are in client.ts).
+ * Tiến Lên, southern rules: 2–4 players, 13 cards each, the first to empty their hand wins.
+ *
+ * Server entry: the game's meta, its logic (a `Game`) and its room options (computer players).
  */
 import { definePlugin } from '@psc/sdk';
+import { optionsSchema } from './game/model.js';
 import { TienLenGame } from './game/TienLenGame.js';
 
 export default definePlugin({
@@ -10,10 +13,10 @@ export default definePlugin({
     name: 'Tiến Lên',
     minPlayers: 2,
     maxPlayers: 4,
-    // Locked in production until you change this to 'ready'.
-    status: 'wip',
+    status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },
   game: new TienLenGame(),
+  room: { options: optionsSchema, bots: (options) => options.bots },
 });

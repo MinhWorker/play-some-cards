@@ -1,7 +1,6 @@
 # Kế hoạch âm thanh Cờ Cá Ngựa
 
-16 hiệu ứng được khai báo với `"game": "co-ca-ngua"` trong `assets/audio.json` và build vào
-`games/co-ca-ngua/assets/` (`npm run audio`); bàn chơi phát chúng bằng `this.sfx(name)`. Phát âm thanh theo các thay đổi state đã được chấp
+16 hiệu ứng nằm trong `games/co-ca-ngua/assets/`; bàn chơi phát chúng bằng `this.sfx(name)`. Phát âm thanh theo các thay đổi state đã được chấp
 nhận, để nước đi bị từ chối hoặc được phát lại không tạo hiệu ứng trùng.
 
 | Khoảnh khắc | Âm thanh | Khi nào phát |
