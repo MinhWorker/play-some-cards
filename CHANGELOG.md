@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/MinhWorker/play-some-cards/compare/v0.2.0...v0.3.0) (2026-09-26)
+
+
+### Features
+
+* Game/View classes for writing games; Caro gets options, a computer player and bigger boards ([#13](https://github.com/MinhWorker/play-some-cards/issues/13)) ([50a73ca](https://github.com/MinhWorker/play-some-cards/commit/50a73ca8f8af84ef68b7f87f5ef397a451f0d243))
+* **tien-len:** Tiến Lên with multi-round matches, turn clock and standings ([#15](https://github.com/MinhWorker/play-some-cards/issues/15)) ([a710d6c](https://github.com/MinhWorker/play-some-cards/commit/a710d6c3bbd1eb527752475b1efede4d19217004))
+
+
+### Bug fixes
+
+* **e2e:** unpick stray cards so the Tiến Lên match never stalls ([#16](https://github.com/MinhWorker/play-some-cards/issues/16)) ([6470f9d](https://github.com/MinhWorker/play-some-cards/commit/6470f9d72eb4fee066aa005698672c795693b7f9))
+
 ## [0.2.0](https://github.com/MinhWorker/play-some-cards/compare/v0.1.0...v0.2.0) (2026-09-25)
 
 
