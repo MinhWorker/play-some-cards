@@ -3,6 +3,8 @@
 //   npm run gen:asset -- --missing            generate every asset that has no output yet
 //   npm run gen:asset -- --edit <name> "<change>"   ask Codex to edit the existing image
 //                                                   (keeps its style; e.g. "make the flag yellow")
+// An entry with "from": "<name>" is drawn by editing that asset's raw image with its prompt, so
+// animation frames keep the same character, framing and canvas (generate the base first).
 // The app's prompts live in assets/prompts.json: output apps/web/public/shared/images/<name>.webp
 // ("path" puts it elsewhere, relative to the repo root), raw PNG in assets/shared/images/.
 // A game's prompts live in games/<id>/sources/prompts.json and are named "<id>/<name>": raw PNG
@@ -58,6 +60,8 @@ for (const id of readdirSync(join(root, 'games'))) {
   for (const [name, asset] of Object.entries(JSON.parse(readFileSync(file, 'utf8')).assets ?? {})) {
     entries[`${id}/${name}`] = {
       ...asset,
+      // A game's frames are drawn from an image of the same game.
+      ...(asset.from && { from: `${id}/${asset.from}` }),
       raw: join(root, 'games', id, 'sources', `${name}.png`),
       out: join(root, 'games', id, 'assets', `${name}.webp`),
     };
@@ -93,15 +97,20 @@ async function generate(name) {
   const background = asset.transparent ? ' with a transparent background' : '';
   const save =
     'then copy the generated PNG to ./out.png in the current directory. Do nothing else.';
-  const existing = asset.raw;
   const isEdit = edit?.name === name;
-  if (isEdit && !existsSync(existing)) throw new Error(`No existing image to edit: ${existing}`);
+  const base = asset.from && !isEdit ? entries[asset.from] : null;
+  if (asset.from && !isEdit && !base) throw new Error(`"${name}": no asset "${asset.from}"`);
+  const existing = base ? base.raw : asset.raw;
+  if ((isEdit || base) && !existsSync(existing))
+    throw new Error(`No existing image to edit: ${existing}`);
   const instruction = isEdit
     ? `Use your image generation tool to EDIT the attached image${background}: ${edit.change}. Keep everything else the same (style, composition, colors, framing), ${save}\n\nOriginal description: ${prompt}`
-    : `Use your image generation tool to create exactly ONE image${background}, ${save}\n\nImage: ${prompt}`;
+    : base
+      ? `Use your image generation tool to EDIT the attached image${background} into a new animation frame: ${asset.prompt} Keep everything else exactly the same (style, colors, canvas size, scale and position of every object), ${save}`
+      : `Use your image generation tool to create exactly ONE image${background}, ${save}\n\nImage: ${prompt}`;
   const codexArgs = ['exec', '--skip-git-repo-check', '--sandbox', 'workspace-write', '-C', work];
   // '--' stops -i (which takes several files) from swallowing the prompt.
-  if (isEdit) codexArgs.push('-i', existing, '--');
+  if (isEdit || base) codexArgs.push('-i', existing, '--');
   await run('codex', [...codexArgs, instruction], 10 * 60 * 1000);
   const raw = join(work, 'out.png');
   if (!existsSync(raw)) throw new Error(`Codex did not produce an image for "${name}"`);

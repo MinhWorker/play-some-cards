@@ -145,8 +145,9 @@ export class MyView extends GameView<State, Options> {
   Game tự vẽ bảng xếp hạng thì đặt `defineClient({ showsResult: true })`: bảng của ứng dụng chỉ
   còn các nút. Game tự vẽ danh sách người chơi thì đặt `showsPlayers: true` để thanh phòng ẩn
   danh sách của nó trong lúc chơi.
-- Người chơi bấm "Rời phòng" giữa ván sẽ được hỏi lại "Bỏ dở ván này?" (rời đi là dừng ván cho
-  cả bàn). Đổi chữ trong `client.ts`:
+- Thanh phòng có "Rời phòng" (về danh sách phòng của game) và nút 🏠 (rời phòng, về thẳng trang
+  chủ). Bấm một trong hai giữa ván sẽ được hỏi lại "Bỏ dở ván này?" (rời đi là dừng ván cho cả
+  bàn). Đổi chữ trong `client.ts`:
   `defineClient({ scene, leaveConfirm: { title, message, stay, leave } })` (chỗ nào không ghi thì
   giữ chữ mặc định), hoặc `leaveConfirm: false` để tắt, như Bấm Nút.
 
@@ -215,6 +216,8 @@ nhiên một bài.
 Để tạo hình bằng Codex (nếu bạn có), thêm một prompt vào `sources/prompts.json`
 (`{ "assets": { "card-back": { "transparent": true, "maxSize": 256, "prompt": "…" } } }`) rồi chạy
 `npm run gen:asset -- <id>/card-back`.
+Khung hình cho animation: thêm `"from": "<tên hình gốc>"` và `"preserveCanvas": true`, prompt chỉ
+tả chỗ khác đi. Codex sẽ sửa từ hình gốc nên nhân vật và bố cục giữ nguyên (tạo hình gốc trước).
 
 ## Xong chưa?
 

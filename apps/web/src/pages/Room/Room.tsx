@@ -11,7 +11,8 @@ import './Room.css';
 interface Props {
   session: JoinedRoom;
   snapshot: RoomSnapshot | null;
-  onLeave: () => void;
+  /** Leaves the room: back to the game's room list, or (`home`) to the home map. */
+  onLeave: (home: boolean) => void;
   /** Host, between games: open the game's settings screen to change the room's options. */
   onCustomize: () => void;
   /** Error from the last move (moves are sent from the Phaser board). */
@@ -24,7 +25,8 @@ interface Props {
  */
 export function Room({ session, snapshot, onLeave, onCustomize, error: moveError }: Props) {
   const [error, setError] = useState('');
-  const [confirmLeave, setConfirmLeave] = useState(false);
+  /** Asking before leaving mid-game, and where to go after. */
+  const [confirmLeave, setConfirmLeave] = useState<'rooms' | 'home' | null>(null);
   const client = useGameClient(snapshot?.gameId ?? '');
   const hasSetup = Boolean(client?.setup);
 
@@ -52,7 +54,7 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
   const shownError = error || moveError;
   // A player leaving mid-game stops it for everyone: ask first (unless the game turned it off).
   const ask = client?.leaveConfirm !== false && isPlayer && snapshot.status === 'playing';
-  const leave = () => (ask ? setConfirmLeave(true) : onLeave());
+  const leave = (to: 'rooms' | 'home') => (ask ? setConfirmLeave(to) : onLeave(to === 'home'));
   const customize = isHost && hasSetup && (
     <Button variant="secondary" onClick={onCustomize}>
       Tuỳ chỉnh
@@ -67,13 +69,14 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
         gameName={game?.name}
         hostName={hostName}
         hidePlayers={Boolean(client?.showsPlayers) && snapshot.status !== 'lobby'}
-        onLeave={leave}
+        onLeave={() => leave('rooms')}
+        onHome={() => leave('home')}
       />
       {confirmLeave && (
         <LeaveConfirm
           texts={client?.leaveConfirm || {}}
-          onStay={() => setConfirmLeave(false)}
-          onLeave={onLeave}
+          onStay={() => setConfirmLeave(null)}
+          onLeave={() => onLeave(confirmLeave === 'home')}
         />
       )}
 

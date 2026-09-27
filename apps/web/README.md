@@ -51,4 +51,4 @@ Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import 
 | Luật game | `games/<id>/src/game/<Tên>Game.ts` (ở gốc repo) |
 | Công cụ dev (công tắc, ô nhập; không có trên bản thật) | `src/lib/devTools.ts` (`DEV_SETTINGS`), bảng ở `src/components/hud/DevTools.tsx` |
 
-Xem `AGENTS.md` ở gốc repo cho các quy ước và `docs/making-a-game.md` để làm game.
+Xem `AGENTS.md` (gốc repo và `apps/web/AGENTS.md`) cho các quy ước và `docs/making-a-game.md` để làm game.

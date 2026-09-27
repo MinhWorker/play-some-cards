@@ -51,6 +51,12 @@
   pointer-events: auto;
 }
 
+/* Back and home buttons side by side in a top bar. */
+.nav-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .panel {
   background: var(--paper);
   border: 4px solid var(--wood);

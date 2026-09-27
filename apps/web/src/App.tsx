@@ -9,6 +9,7 @@ import {
   Toast,
   transition,
   VersionTag,
+  WarmupOverlay,
 } from '@/components/hud';
 import { gameMusic } from '@/games';
 import { useAccount } from '@/hooks/useAccount';
@@ -122,10 +123,15 @@ export function App() {
     [closeEditing],
   );
 
-  // Leaving a room goes back to that game's room list.
-  const onLeave = () => {
-    if (snapshot) browse(snapshot.gameId);
+  // Leaving a room goes back to that game's room list, or with 🏠 to the home map.
+  const onLeave = (home: boolean) => {
+    if (home) browse(null);
+    else if (snapshot) browse(snapshot.gameId);
     void leave();
+  };
+  const goHome = () => {
+    setSettingUp(false);
+    browse(null);
   };
 
   return (
@@ -137,10 +143,7 @@ export function App() {
         ) : version === 'older' ? (
           <Banner>Server đang cập nhật, chờ chút nhé…</Banner>
         ) : (
-          !connected &&
-          account.status !== 'guest' && (
-            <Banner>Đang kết nối tới server… lần đầu có thể mất tới 1 phút.</Banner>
-          )
+          !connected && account.status !== 'guest' && <WarmupOverlay />
         )}
         {account.status === 'guest' ? (
           <Login onSignIn={signIn} />
@@ -155,7 +158,12 @@ export function App() {
             error={moveError}
           />
         ) : browsing && settingUp ? (
-          <RoomSetup backLabel="Về danh sách phòng" onBack={closeSetup} onSubmit={createRoom} />
+          <RoomSetup
+            backLabel="Về danh sách phòng"
+            onBack={closeSetup}
+            onHome={goHome}
+            onSubmit={createRoom}
+          />
         ) : browsing ? (
           <GameRooms
             gameId={browsing}

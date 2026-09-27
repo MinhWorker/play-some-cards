@@ -132,6 +132,53 @@
       "transparent": true,
       "maxSize": 256,
       "prompt": "A cute chibi RPG-style character portrait (head and shoulders) of a friendly round little robot with a glossy white and sky-blue body, two glowing cyan eyes, a tiny antenna with a yellow ball and a happy smile screen mouth, inside a round glossy golden medallion frame with a bright sky-blue background inside the frame. Front view."
+    },
+    "warmup": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 1024,
+      "prompt": "Wide cartoon scene, side view from the front-left, whole scene visible with generous margin. On the left, a sleep-deprived young male programmer sits hunched on a tiny red plastic stool: messy black hair, thick round glasses, huge dark bags under half-closed sleepy eyes, a tired but determined face, an oversized grey hoodie, shorts and flip-flops, a coffee mug and a closed laptop on the ground beside the stool. He holds one long thin wooden fire-poking stick with both hands, pointing down-right into the firewood. On the right, a huge dented aluminium pot (the kind Vietnamese families use to boil bánh chưng for Tết) stands on three bricks; bubbling water and soft white steam; inside the pot, instead of bánh chưng, a plain black computer server tower case (a tall workstation PC tower: matte black metal box, front panel with drive bays, vent grilles, a power button and small glowing green and blue LEDs) stands upright half out of the boiling water with a slight tilt, water splashing around it. Under the pot, between the bricks, a pile of crossed firewood logs with a bed of glowing red-orange embers, but NO flames at all (flames are added later as a separate layer), leaving empty space just above the logs and below the pot bottom. Pose: the stick is pulled back a little, its tip just touching the front edge of the firewood."
+    },
+    "warmup-2": {
+      "from": "warmup",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 1024,
+      "prompt": "Same programmer, pot, server, bricks and firewood in exactly the same place; only his arms and the stick move: arms reaching a bit further forward, the stick tip pushed halfway into the pile of firewood. Still no flames. Use a real transparent alpha background."
+    },
+    "warmup-3": {
+      "from": "warmup",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 1024,
+      "prompt": "Same programmer, pot, server, bricks and firewood in exactly the same place; only his arms, shoulders and the stick move: leaning forward with arms fully extended, the stick tip jabbed deep into the middle of the firewood, a few small sparks and embers flying up from where it pokes. Still no flames. Use a real transparent alpha background."
+    },
+    "flame-1": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 384,
+      "prompt": "One lively cartoon campfire flame: a cluster of five tall wavy tongues of fire, bright yellow-white core, orange middle, red-orange tips, soft warm glow, two tiny sparks above. Flames only: no logs, no wood, no embers, no ground. The flame base is a wide flat rounded line near the bottom of the frame, centered."
+    },
+    "flame-2": {
+      "from": "flame-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 384,
+      "prompt": "Next frame of the same flicker: same flame size, colors, base width and position; the tongues of fire sway to the left, the middle tongue stretches taller, the right tongue shrinks, the sparks drift higher. Use a real transparent alpha background."
+    },
+    "flame-3": {
+      "from": "flame-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 384,
+      "prompt": "Next frame of the same flicker: same flame size, colors, base width and position; the tongues of fire are shorter and wider, the left tongue splits into two small curls, one tongue tip breaks off as a small floating wisp of fire, new sparks. Use a real transparent alpha background."
+    },
+    "flame-4": {
+      "from": "flame-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 384,
+      "prompt": "Next frame of the same flicker: same flame size, colors, base width and position; the tongues of fire sway to the right, the right tongue stretches tallest, the middle tongue curls, sparks drift up on the right. Use a real transparent alpha background."
     }
   }
 }

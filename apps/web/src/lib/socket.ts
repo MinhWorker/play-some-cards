@@ -6,17 +6,30 @@ import {
 } from '@psc/shared';
 import { io, type Socket } from 'socket.io-client';
 import { loadToken, serverUrl } from '@/lib/auth';
+import { devSetting, devToolsEnabled, subscribeDevSettings } from '@/lib/devTools';
 
 /**
- * The game connection. It only connects once logged in (useAccount calls `connect()`); the
+ * The game connection. It only connects once logged in (useAccount calls `connectSocket()`); the
  * login token is read again on every (re)connect. `useVersionGuard` handles a server that
- * speaks another PROTOCOL_VERSION.
+ * speaks another PROTOCOL_VERSION. Connect through `connectSocket()`, never `socket.connect()`.
  */
 export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(serverUrl, {
   autoConnect: false,
   auth: (cb) =>
     cb({ token: loadToken() ?? '', protocol: PROTOCOL_VERSION } satisfies HandshakeAuth),
 });
+
+/** Connects when logged in, unless the dev tools' "Ngắt kết nối server" is on. */
+export function connectSocket() {
+  if (loadToken() && !devSetting('offline')) socket.connect();
+}
+
+// Dev tools: switching "Ngắt kết nối server" closes the socket or connects it again.
+if (devToolsEnabled)
+  subscribeDevSettings(() => {
+    if (devSetting('offline')) socket.disconnect();
+    else if (!socket.active) connectSocket();
+  });
 
 type Events = ClientToServerEvents;
 type Req<E extends keyof Events> = Parameters<Events[E]>[0];

@@ -23,6 +23,11 @@ export const DEV_SETTINGS = {
     default: false,
     reload: true,
   },
+  offline: {
+    label: 'Ngắt kết nối server',
+    type: 'toggle',
+    default: false,
+  },
 } satisfies Record<string, DevSetting>;
 
 export type DevKey = keyof typeof DEV_SETTINGS;

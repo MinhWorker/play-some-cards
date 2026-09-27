@@ -1,0 +1,90 @@
+{
+  "$comment": "Prompts for this game's art: npm run gen:asset -- mau-binh/<name> (the style in assets/prompts.json is added). Frames with \"from\" are drawn by editing their base image.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A new floating sky island for the 13-card Mậu Binh game. On its grassy top, a broad low rectangular red-lacquered wooden card table with three distinct horizontal lanes of playing cards arranged as five, five, and three. Ivory card faces with simple red and black suit pips, ornamental red card backs, a few gold score tokens, and small paper cushions. Lush grass, flowers, rocks and dangling vines around a tapering brown stone underside. Polished hand-painted 2D mobile game illustration with soft dimensional shading, isometric three-quarter view, whole island visible. No readable card numbers, text, letters, people, UI, sky, watermark or shadow outside the island."
+    },
+    "card-front": {
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "One blank playing card face seen exactly from the front, flat orthographic view, tall portrait rectangle with a 2:3 aspect ratio and softly rounded corners, warm ivory card stock with a very subtle paper texture and a thin gold inner border line. Completely empty face: no suit symbols, no pips, no pictures."
+    },
+    "card-back": {
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "The back of one playing card seen exactly from the front, flat orthographic view, tall portrait rectangle with a 2:3 aspect ratio and softly rounded corners, thin ivory outer border, inside a deep indigo-blue field with a symmetric golden Vietnamese bronze-drum pattern: a many-pointed sun star in the middle, concentric rings of flying cranes and zigzag bands around it, small gold corner ornaments."
+    },
+    "flip-back": {
+      "from": "card-back",
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "The same card back, now turned about 55 degrees around its vertical axis like a card being flipped over: seen in perspective, its right edge nearer and slightly taller, its left edge farther and slightly shorter, so the card looks much narrower (about half as wide), the thin card thickness visible along one side. Same colors and pattern, same height, centered. Use a real transparent alpha background."
+    },
+    "flip-edge": {
+      "from": "card-back",
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "The same card, now turned almost exactly edge-on in the middle of being flipped over: only a thin sliver about one tenth of the card width is visible, the ivory card edge with a hint of the indigo back on one side and ivory face on the other, same height, centered, a faint soft motion glow. Use a real transparent alpha background."
+    },
+    "flip-front": {
+      "from": "card-front",
+      "transparent": true,
+      "maxSize": 360,
+      "prompt": "The same blank ivory card face, now turned about 55 degrees around its vertical axis like a card finishing a flip: seen in perspective, its left edge nearer and slightly taller, its right edge farther and slightly shorter, so the card looks much narrower (about half as wide), the thin card thickness visible along one side. Still completely empty face, same height, centered. Use a real transparent alpha background."
+    },
+    "table": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "A large rectangular card table with softly rounded corners, 4:3 landscape shape, seen exactly from the top, flat top-down view: a thick glossy red-lacquered wooden rim with a thin gold trim line and small gold corner ornaments, around a smooth dark jade-green felt playing surface. Nothing on the table."
+    },
+    "burst-1": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 640,
+      "prompt": "The first frame of a celebratory cartoon burst effect, square canvas: a small bright golden-white flash at the exact center with short thick golden light rays starting to shoot outward in a circle, a few tiny gold sparkles. Lots of empty transparent space around it (the burst grows in later frames)."
+    },
+    "burst-2": {
+      "from": "burst-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 640,
+      "prompt": "Next frame of the same burst: the golden rays are twice as long and reach halfway to the canvas edges, a ring of red and gold confetti pieces and four-point sparkles flies outward, the center flash is bigger. Same center. Use a real transparent alpha background."
+    },
+    "burst-3": {
+      "from": "burst-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 640,
+      "prompt": "Next frame of the same burst: the golden rays reach almost to the canvas edges and start to thin out, red and gold confetti and sparkles are spread wide around the canvas, the center flash is fading to a soft warm glow. Same center. Use a real transparent alpha background."
+    },
+    "burst-4": {
+      "from": "burst-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 640,
+      "prompt": "Last frame of the same burst: the rays are gone, only scattered small red and gold confetti pieces and a few fading sparkles near the canvas edges, a very faint glow in the center. Same center. Use a real transparent alpha background."
+    },
+    "hourglass-1": {
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "A chunky cartoon hourglass standing upright, seen straight from the front: carved red-lacquered wooden top and bottom caps with gold trim, three turned wooden posts, clear glass bulbs; golden sand fills most of the top bulb, a thin stream of sand falls through the neck onto a small heap in the bottom bulb."
+    },
+    "hourglass-2": {
+      "from": "hourglass-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next frame of the same falling sand: the hourglass is exactly the same in the same place; only the thin stream of sand is broken into separate falling grains at different heights and the heap in the bottom bulb has a small splash of grains. Use a real transparent alpha background."
+    },
+    "hourglass-3": {
+      "from": "hourglass-1",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next frame of the same falling sand: the hourglass is exactly the same in the same place; only the falling sand is a wavy stream with a few grains bouncing off the heap in the bottom bulb, and a tiny sparkle glints on the glass. Use a real transparent alpha background."
+    }
+  }
+}
