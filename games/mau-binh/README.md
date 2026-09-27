@@ -1,8 +1,7 @@
 # Mậu Binh
 
 Mậu Binh cho 2–4 người, chơi với bạn hoặc thêm máy. Mỗi người tự xếp 13 lá thành ba chi, rồi cả
-bàn cùng lật bài và so từng chi. Game đang ở trạng thái `wip` (chỉ khoá trên bản thật). Kế hoạch
-và các lựa chọn luật nằm trong [PLAN.md](PLAN.md).
+bàn cùng lật bài và so từng chi. Kế hoạch và các lựa chọn luật nằm trong [PLAN.md](PLAN.md).
 
 ## Luật
 

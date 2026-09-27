@@ -14,8 +14,7 @@ export default definePlugin({
     name: 'Mậu Binh',
     minPlayers: 2,
     maxPlayers: 4,
-    // Locked in production until you change this to 'ready'.
-    status: 'wip',
+    status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },

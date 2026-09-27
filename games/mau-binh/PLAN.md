@@ -7,7 +7,7 @@ cùng lật bài, so từng chi và xem điểm rõ ràng. Trọng tâm là cả
 lật chi, với lá bài và chuyển động 2D hợp phong cách gỗ, giấy của ứng dụng. Không cần model hoặc
 hoạt ảnh 3D.
 
-Bốn bước triển khai bên dưới đã làm xong trong game (vẫn để `wip` cho tới khi chơi thử đủ); luật
+Bốn bước triển khai bên dưới đã làm xong và game đã mở (`ready`); luật
 đang chạy được mô tả trong [README](README.md). Một điểm chốt thêm: chi bằng nhau không tính là
 binh lủng (chi 1 “không yếu hơn” chi 2).
 
