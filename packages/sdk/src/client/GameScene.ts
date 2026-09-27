@@ -6,9 +6,10 @@ import { hudScale, titleStyle } from './text.js';
 export interface Button {
   container: Phaser.GameObjects.Container;
   label: Phaser.GameObjects.Text;
-  image?: Phaser.GameObjects.Image;
+  /** The background, a nine-slice of the image (see `slice` in `button()`). */
+  image?: Phaser.GameObjects.NineSlice;
   setPosition(x: number, y: number): Button;
-  /** Width and height (the image is stretched to it; the label shrinks to fit). */
+  /** Width and height (the image's corners keep their shape; the label shrinks to fit). */
   setSize(width: number, height: number): Button;
   /** A disabled button is greyed out and ignores taps. */
   setEnabled(enabled: boolean): Button;
@@ -109,22 +110,36 @@ export abstract class GameScene extends Phaser.Scene {
   }
 
   /**
-   * A tappable button: `image` (from `assets/`, stretched to the size) with a label on top, or
-   * just the label. Lights up on hover. Sounds like the app's buttons (hover with a mouse, click
-   * on tap), or plays `sound` (from `assets/`) on tap instead. `hoverSound: false` keeps it quiet
-   * on hover (for buttons the mouse passes over all the time).
+   * A tappable button: `image` (from `assets/`) with a label on top, or just the label. Lights up
+   * on hover. Sounds like the app's buttons (hover with a mouse, click on tap), or plays `sound`
+   * (from `assets/`) on tap instead. `hoverSound: false` keeps it quiet on hover (for buttons the
+   * mouse passes over all the time).
+   *
+   * The image is a nine-slice: at any size its corners keep their shape and only the middle
+   * stretches. `slice` is how far in from each edge the corners reach, in the image's pixels
+   * (one number for all four, or `[left, right, top, bottom]`). By default a corner is half the
+   * image's shorter side, which suits a pill or a rounded box.
    */
   protected button(
     text: string,
     onTap: () => void,
     {
       image,
+      slice,
       sound,
       hoverSound = true,
       size = 32,
-    }: { image?: string; sound?: string; hoverSound?: boolean; size?: number } = {},
+    }: {
+      image?: string;
+      slice?: number | [left: number, right: number, top: number, bottom: number];
+      sound?: string;
+      hoverSound?: boolean;
+      size?: number;
+    } = {},
   ): Button {
-    const bg = image ? this.image(0, 0, image) : undefined;
+    const bg = image ? this.nineSlice(image, slice) : undefined;
+    // The image's own size: the corners are drawn at `scale` of it, never squashed.
+    const source = bg ? { width: bg.width, height: bg.height } : undefined;
     const label = this.label(text, { size });
     const container = this.add.container(0, 0, bg ? [bg, label] : [label]);
     let enabled = true;
@@ -138,7 +153,14 @@ export abstract class GameScene extends Phaser.Scene {
         return button;
       },
       setSize: (width, height) => {
-        bg?.setDisplaySize(width, height);
+        if (bg && source) {
+          // As big as the height allows, unless the corners wouldn't fit across the width.
+          const scale = Math.min(
+            height / source.height,
+            width / (bg.leftWidth + bg.rightWidth + 1),
+          );
+          bg.setSize(width / scale, height / scale).setScale(scale);
+        }
         container.setSize(width, height);
         // Text on an image fills 40% of its height; a text-only button keeps its size.
         fontSize = bg ? Math.min(size * hudScale(), height * 0.4) : size * hudScale();
@@ -162,7 +184,7 @@ export abstract class GameScene extends Phaser.Scene {
         return button;
       },
     };
-    const { width, height } = bg ?? label;
+    const { width, height } = source ?? label;
     button.setSize(width, height);
     container.setInteractive({ useHandCursor: true });
     container.on('pointerover', (pointer: Phaser.Input.Pointer) => {
@@ -179,6 +201,20 @@ export abstract class GameScene extends Phaser.Scene {
       onTap();
     });
     return button;
+  }
+
+  /** `assets/<name>` as a nine-slice at its own size (see `slice` in `button()`). */
+  private nineSlice(name: string, slice?: number | [number, number, number, number]) {
+    const key = this.texture(name);
+    const frame = this.textures.getFrame(key);
+    const width = frame?.width ?? 2;
+    const height = frame?.height ?? 2;
+    const half = Math.max(1, Math.floor(Math.min(width, height) / 2) - 1);
+    const [left, right, top, bottom] =
+      typeof slice === 'number'
+        ? [slice, slice, slice, slice]
+        : (slice ?? [half, half, half, half]);
+    return this.add.nineslice(0, 0, key, undefined, width, height, left, right, top, bottom);
   }
 
   /**

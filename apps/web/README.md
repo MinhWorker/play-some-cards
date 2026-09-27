@@ -8,7 +8,8 @@ Chạy từ thư mục gốc repo bằng `npm run dev` (web ở http://localhost
 Mở trang web bằng trình duyệt trên điện thoại rồi chọn **Cài đặt ứng dụng** trên Android hoặc
 **Thêm vào Màn hình chính** trong menu Chia sẻ trên iPhone. Ứng dụng mở toàn màn hình, xoay ngang
 và dùng biểu tượng riêng. Trên Android thanh trạng thái và thanh điều hướng được ẩn; iPhone tự ẩn
-thanh trạng thái khi xoay ngang. Giao diện tránh tai thỏ và thanh home.
+thanh trạng thái khi xoay ngang. Giao diện tránh tai thỏ và thanh home. Màn hình không tự tắt khi
+ứng dụng đang mở ở phía trước.
 
 Máy đã cài bản cũ (chưa toàn màn hình) có thể phải gỡ ra cài lại: Android chỉ cập nhật cách mở
 ứng dụng sau một thời gian, iPhone thì không tự cập nhật.
@@ -36,7 +37,7 @@ src/
     ui/               Khối xây dựng nhỏ (Button)
   hooks/              React hook: đăng nhập, kết nối phòng, âm thanh, trạng thái URL
   lib/                TypeScript thuần (không React): socket, đăng nhập, âm thanh, URL tài nguyên,
-                      nhận ra bản web mới (newBuild.ts)
+                      nhận ra bản web mới (newBuild.ts), giữ màn hình sáng (wakeLock.ts)
   styles/             theme.css (màu, font) và base.css (bảng, nút, hộp thoại)
   phaser/             Phía Phaser: stage, bridge, scenes/ (boot, sky, hub), objects/
   games/index.ts      Tìm mọi game trong thư mục games/ của repo (tài nguyên, code bàn chơi)

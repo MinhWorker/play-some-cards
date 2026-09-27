@@ -142,6 +142,11 @@ export class MyView extends GameView<State, Options> {
   `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
   `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi.
+- `this.button('Đánh', onTap, { image: 'button' })` là nút có nền `assets/button.webp`. Nền là
+  9-slice: nút to nhỏ, dài ngắn thế nào thì bốn góc vẫn giữ nguyên hình, chỉ phần giữa giãn ra.
+  Mặc định mỗi góc rộng bằng nửa cạnh ngắn của ảnh, hợp với nút viên thuốc hay hộp bo góc; ảnh
+  khác thì đặt `slice` (số điểm ảnh từ mép vào, một số cho cả bốn cạnh hoặc `[trái, phải, trên,
+  dưới]`).
 - Hình có file `.json` cùng tên là atlas (nhiều khung gộp một ảnh): `this.anim('hop')` tạo hoạt
   ảnh từ mọi khung theo thứ tự tên, dùng với `sprite.play(...)`.
 - `titleStyle(size)`, `hudScale()`, `this.fitText(...)` và `this.boardArea()` giữ đúng phong cách

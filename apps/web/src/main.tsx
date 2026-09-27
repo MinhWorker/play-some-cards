@@ -12,9 +12,11 @@ import { imageUrl } from '@/lib/assetUrl';
 import { devToolsEnabled } from '@/lib/devTools';
 import { installHudScale } from '@/lib/hudScale';
 import { loadSoundUrl, playSfx, playSoundUrl } from '@/lib/sound';
+import { installWakeLock } from '@/lib/wakeLock';
 import { Sandbox, sandboxFromUrl } from '@/pages/Sandbox/Sandbox';
 
 installHudScale();
+installWakeLock();
 
 // Chrome can install from the menu without a service worker, but its install promotion
 // requires one with a fetch handler.
