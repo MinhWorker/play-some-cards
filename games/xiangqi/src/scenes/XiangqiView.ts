@@ -116,7 +116,8 @@ export class XiangqiView extends GameView<View, Options> {
 
   protected onLayout(ctx: Ctx) {
     const { width, height, top, hud } = ctx.screen;
-    const sideways = width > height && height < 500;
+    // The frame is always landscape: buttons stack beside the board.
+    const sideways = width > height;
     const scoreH = 44 * hud;
     const statusH = 46 * hud;
     const bottom = sideways ? 12 : 120 * hud;
@@ -703,7 +704,7 @@ export class XiangqiView extends GameView<View, Options> {
       }
     }
     const size = Number.parseFloat(String(this.status.style.fontSize));
-    this.fitText(this.status, text, this.scale.width - 24, size * 0.6);
+    this.fitText(this.status, text, this.view.width - 24, size * 0.6);
   }
 
   /**
@@ -792,7 +793,7 @@ export class XiangqiView extends GameView<View, Options> {
       .setFontSize(font * 1.4)
       .setPosition(cx, y);
     const half = this.score.numbers.width / 2 + font * 0.6;
-    const nameWidth = this.scale.width / 2 - 12 - half - font * 0.4 - icon;
+    const nameWidth = this.view.width / 2 - 12 - half - font * 0.4 - icon;
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
       const img = this.score.icons[seat];

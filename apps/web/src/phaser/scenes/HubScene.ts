@@ -1,6 +1,6 @@
+import { FRAME, type Frame, followFrame, hudScale } from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { type Portal, portals } from '@/games';
-import { hudScale } from '@/lib/hudScale';
 import { playSfx } from '@/lib/sound';
 import { titleStyle } from '@/phaser/assets';
 import { bridge } from '@/phaser/bridge';
@@ -19,16 +19,17 @@ interface PortalView {
 /** Native size of one portal (island + sign) before scaling. */
 const PORTAL_W = 640;
 const PORTAL_H = 760;
-/** A pointer that moved further than this is dragging the strip, not tapping a portal. */
-const DRAG_PX = 10;
+/** A pointer that moved further than this (design units) is dragging the strip, not tapping. */
+const DRAG_PX = 16;
 const FOCUS_KEY = 'psc.hubFocus';
 
 /**
  * Home screen: a horizontal strip with one portal (island) per game in games/. It scrolls by
  * drag/swipe (with inertia, snapping to a portal), mouse wheel/trackpad, the arrow buttons and
- * the keyboard (arrow keys + Enter, through React's hidden button list in pages/Home). On
- * phones one portal is in focus and its neighbours peek in at the edges; wide screens show
- * several, or all of them when they fit. Emits 'hub:select' / 'hub:locked' / 'hub:focus'.
+ * the keyboard (arrow keys + Enter, through React's hidden button list in pages/Home). One portal
+ * is in focus and its neighbours peek in at the sides, or all of them show when they fit. Laid out
+ * in design units on the frame; the strip runs on past it to the screen's edges. Emits
+ * 'hub:select' / 'hub:locked' / 'hub:focus'.
  */
 export class HubScene extends Phaser.Scene {
   private views: PortalView[] = [];
@@ -70,6 +71,7 @@ export class HubScene extends Phaser.Scene {
 
     this.focus = Phaser.Math.Clamp(this.savedFocus(), 0, Math.max(0, portals.length - 1));
     this.registry.set('showTitle', true);
+    followFrame(this, () => this.layout());
     this.layout();
     this.scroll = this.targetOf(this.focus);
 
@@ -87,7 +89,6 @@ export class HubScene extends Phaser.Scene {
     bridge.on('hub:step', onStep);
     bridge.on('hub:open', onOpen);
     bridge.on('hub:focus-to', onFocusTo);
-    this.scale.on('resize', this.layout, this);
     this.registry.events.on('changedata-titleBottom', this.layout, this);
     this.events.once('shutdown', () => {
       this.registry.set('showTitle', false);
@@ -96,7 +97,6 @@ export class HubScene extends Phaser.Scene {
       bridge.off('hub:open', onOpen);
       bridge.off('hub:focus-to', onFocusTo);
       clearTimeout(this.wheelTimer);
-      this.scale.off('resize', this.layout, this);
       this.registry.events.off('changedata-titleBottom', this.layout, this);
     });
     bridge.emit('hub:focus', this.views[this.focus]?.portal.gameId);
@@ -170,11 +170,14 @@ export class HubScene extends Phaser.Scene {
     return view;
   }
 
-  /** Sizes and spacing for this screen; positions are applied every frame in update(). */
+  private get frame() {
+    return this.registry.get(FRAME) as Frame;
+  }
+
+  /** Sizes and spacing on the frame; positions are applied every frame in update(). */
   private layout() {
-    const { width, height } = this.scale;
+    const { width, height } = this.frame.view;
     const hud = hudScale();
-    const portrait = height > width;
     const n = this.views.length;
     // Leave room for the title (drawn by SkyScene, which reports its bottom edge) and the dots.
     const titleBottom = (this.registry.get('titleBottom') as number | undefined) ?? height * 0.2;
@@ -182,15 +185,14 @@ export class HubScene extends Phaser.Scene {
     const bottom = height - 44 * hud;
     const availH = Math.max(120, bottom - top);
 
-    // Phones: one portal in focus, neighbours peeking. Wide screens: all of them when a few fit
-    // side by side, otherwise as many as fit and the rest scroll.
+    // All of them when a few fit side by side, otherwise as many as fit and the rest scroll.
     const tallest = (availH * PORTAL_W) / PORTAL_H;
     const fitW = (width * 0.96) / Math.max(1, n) / 1.08;
-    this.fits = !portrait && fitW >= width / 5.5;
-    const cardW = portrait ? width * 0.8 : Math.min(this.fits ? fitW : width / 3.4, tallest);
+    this.fits = fitW >= width / 5.5;
+    const cardW = Math.min(this.fits ? fitW : width / 3.4, tallest);
     this.baseScale = Math.min(cardW / PORTAL_W, availH / PORTAL_H) * 0.95;
-    this.spacing = portrait ? width * 0.74 : PORTAL_W * this.baseScale * 1.08;
-    this.sideScale = portrait ? 0.7 : 0.92;
+    this.spacing = PORTAL_W * this.baseScale * 1.08;
+    this.sideScale = 0.92;
     this.centerY = top + availH / 2;
 
     const arrowH = Math.max(44, 64 * hud);
@@ -222,13 +224,13 @@ export class HubScene extends Phaser.Scene {
   }
 
   override update() {
-    const { width } = this.scale;
+    const { view: frame, bleed } = this.frame;
     this.views.forEach((view, i) => {
       const offset = i * this.spacing - this.scroll;
       const distance = Math.min(1, Math.abs(offset) / this.spacing);
       const scale = this.fits ? 1 : Phaser.Math.Linear(1, this.sideScale, distance);
-      const x = width / 2 + offset;
-      const visible = x > -this.spacing && x < width + this.spacing;
+      const x = frame.width / 2 + offset;
+      const visible = x > bleed.left - this.spacing && x < bleed.right + this.spacing;
       view.container.setVisible(visible);
       if (!visible) return;
       view.container
@@ -256,27 +258,28 @@ export class HubScene extends Phaser.Scene {
     this.registry.set('hubScroll', this.scroll);
   }
 
+  /** The pointer's x in design units (only differences matter: the strip follows the finger). */
+  private pointerX(pointer: Phaser.Input.Pointer) {
+    return pointer.x / this.cameras.main.zoom;
+  }
+
   private onDown(pointer: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) {
     if (this.fits || over.some((o) => this.arrows.includes(o as Phaser.GameObjects.Image))) return;
     this.tweens.killTweensOf(this);
-    this.drag = {
-      startX: pointer.x,
-      startScroll: this.scroll,
-      moved: 0,
-      samples: [[pointer.x, pointer.time]],
-    };
+    const x = this.pointerX(pointer);
+    this.drag = { startX: x, startScroll: this.scroll, moved: 0, samples: [[x, pointer.time]] };
   }
 
   private onMove(pointer: Phaser.Input.Pointer) {
     if (!this.drag || !pointer.isDown) return;
-    const dx = pointer.x - this.drag.startX;
+    const dx = this.pointerX(pointer) - this.drag.startX;
     this.drag.moved = Math.max(this.drag.moved, Math.abs(dx));
     if (this.drag.moved < DRAG_PX) return;
     // Past the first/last portal the strip only gives a little (rubber band).
     const raw = this.drag.startScroll - dx;
     const clamped = this.clampScroll(raw);
     this.scroll = clamped + (raw - clamped) * 0.3;
-    this.drag.samples.push([pointer.x, pointer.time]);
+    this.drag.samples.push([this.pointerX(pointer), pointer.time]);
     if (this.drag.samples.length > 6) this.drag.samples.shift();
     for (const view of this.views) this.setHover(view, false);
   }
@@ -293,11 +296,9 @@ export class HubScene extends Phaser.Scene {
       this.setFocus(this.nearestIndex(projected), true);
       return;
     }
-    // A tap (not a drag): open the portal under the pointer, or bring a side one into focus.
+    // A tap (not a drag): open the portal under the pointer.
     const i = this.views.findIndex((v) => over.includes(v.container));
-    if (i < 0) return;
-    if (i === this.focus || this.fits || !this.isPortrait()) this.open(i);
-    else this.setFocus(i, true);
+    if (i >= 0) this.open(i);
   }
 
   private onWheel(_pointer: Phaser.Input.Pointer, _over: unknown, dx: number, dy: number) {
@@ -311,10 +312,6 @@ export class HubScene extends Phaser.Scene {
 
   private nearestIndex(scroll: number) {
     return Phaser.Math.Clamp(Math.round(scroll / this.spacing), 0, this.views.length - 1);
-  }
-
-  private isPortrait() {
-    return this.scale.height > this.scale.width;
   }
 
   /** Moves the focus by `dir` portals (arrow buttons, arrow keys). */

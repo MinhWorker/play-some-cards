@@ -6,16 +6,16 @@ import { AVATARS } from '@psc/shared';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@/App';
-import { DevTools } from '@/components/hud';
+import { DevTools, RotateHint } from '@/components/hud';
 import { gameAssets, showWip } from '@/games';
 import { imageUrl } from '@/lib/assetUrl';
 import { devToolsEnabled } from '@/lib/devTools';
-import { installHudScale } from '@/lib/hudScale';
+import { installFrame } from '@/lib/frame';
 import { loadSoundUrl, playSfx, playSoundUrl } from '@/lib/sound';
 import { installWakeLock } from '@/lib/wakeLock';
 import { Sandbox, sandboxFromUrl } from '@/pages/Sandbox/Sandbox';
 
-installHudScale();
+installFrame();
 installWakeLock();
 
 // Chrome can install from the menu without a service worker, but its install promotion
@@ -44,6 +44,7 @@ const sandbox = sandboxFromUrl(showWip);
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     {sandbox ? <Sandbox {...sandbox} /> : <App />}
+    <RotateHint />
     {devToolsEnabled && <DevTools />}
   </StrictMode>,
 );

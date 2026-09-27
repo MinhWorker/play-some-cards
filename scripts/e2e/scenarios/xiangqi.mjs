@@ -4,9 +4,12 @@ import { clickCanvas, openRooms, PHONE, signUp } from '../lib.mjs';
 
 export const games = ['xiangqi'];
 
-/** Screen point of board point `sq` (the scene knows where it drew it). */
+/** Page point of board point `sq` (the scene knows where it drew it, in design units). */
 const pointOf = (page, sq) =>
-  page.evaluate((s) => window.__phaser.scene.getScene('xiangqi').pointXY(s), sq);
+  page.evaluate((s) => {
+    const { x, y } = window.__phaser.scene.getScene('xiangqi').pointXY(s);
+    return window.__toScreen('xiangqi', x, y);
+  }, sq);
 
 export default async function run(t) {
   const page = await t.page(PHONE);

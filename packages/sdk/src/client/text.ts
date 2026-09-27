@@ -1,4 +1,5 @@
 import type Phaser from 'phaser';
+import { currentFrame } from './frame.js';
 
 /** The app's font (loaded by the page before Phaser starts). */
 export const FONT = '"Baloo 2", system-ui, sans-serif';
@@ -16,13 +17,10 @@ export function titleStyle(size: number): Phaser.Types.GameObjects.Text.TextStyl
   };
 }
 
-const MIN_HUD = 0.66;
-
 /**
- * HUD scale: small screens (phones, and phones held sideways) shrink UI text so everything
- * fits. 1 on desktop. Multiply font sizes by it.
+ * HUD scale: multiply font and button sizes by it (not board sizes). About 1.35 in design units
+ * (docs/ui-guide.md), times the HUD size the player picked.
  */
 export function hudScale() {
-  const { innerWidth: w, innerHeight: h } = window;
-  return Math.max(MIN_HUD, Math.min(1, w / 440, h / 620));
+  return currentFrame().hud;
 }

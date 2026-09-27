@@ -5,16 +5,15 @@
  */
 
 /*
- * The installed app runs full screen (viewport-fit=cover), so the canvas and the UI keep out of
- * the notch and the home bar: the body's sky colour shows there. Overlays that should dim or
- * cover the whole screen reach back out with `inset: var(--unsafe)`.
+ * The frame (lib/frame.ts, docs/ui-guide.md): the canvas covers the whole screen, notch included,
+ * and draws the frame inside the safe area; the UI layer covers exactly the frame. Overlays that
+ * dim or cover the whole screen are `position: fixed; inset: 0` and pad by `--safe-pad`.
  */
 :root {
+  /* The safe area as an inset (notch, home bar); lib/frame.ts measures it. */
   --safe: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
     env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-  --unsafe: calc(-1 * env(safe-area-inset-top, 0px)) calc(-1 * env(safe-area-inset-right, 0px))
-    calc(-1 * env(safe-area-inset-bottom, 0px)) calc(-1 * env(safe-area-inset-left, 0px));
-  /* 16px of padding inside the safe area, for those full-screen overlays. */
+  /* 16px of padding inside the safe area, for full-screen overlays. */
   --safe-pad: calc(16px + env(safe-area-inset-top, 0px))
     calc(16px + env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px))
     calc(16px + env(safe-area-inset-left, 0px));
@@ -22,13 +21,16 @@
 
 .stage {
   position: fixed;
-  inset: var(--safe);
+  inset: 0;
 }
 
 /* The UI layer lets clicks through to the canvas except on its own controls. */
 .ui {
   position: fixed;
-  inset: var(--safe);
+  left: var(--frame-left, 0);
+  top: var(--frame-top, 0);
+  width: var(--frame-width, 100%);
+  height: var(--frame-height, 100%);
   pointer-events: none;
 }
 
@@ -40,9 +42,9 @@
 }
 
 /*
- * HUD scale (lib/hudScale.ts): add `hud` to any floating panel or button group so it
- * shrinks as a whole on small screens instead of getting cut off. `zoom` also scales
- * the layout box, unlike `transform: scale`.
+ * HUD scale (lib/frame.ts): add `hud` to any floating panel or button group so it scales with
+ * the frame (and the player's HUD size), like the canvas. `zoom` also scales the layout box,
+ * unlike `transform: scale`.
  */
 .hud {
   zoom: var(--hud, 1);
@@ -163,8 +165,8 @@ input:focus-visible,
 }
 
 .modal-backdrop {
-  position: absolute;
-  inset: var(--unsafe);
+  position: fixed;
+  inset: 0;
   z-index: 3;
   background: rgb(20 50 80 / 0.35);
   display: flex;

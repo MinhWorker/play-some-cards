@@ -4,7 +4,7 @@
  * directly (`this.add`, `this.tweens`, … still work).
  *
  *   onCreate(ctx)          once, when the screen opens: make your objects
- *   onLayout(ctx)          after onCreate and whenever the screen size changes: place them
+ *   onLayout(ctx)          after onCreate and whenever the frame changes: place them
  *   onStart(ctx)           a new game began
  *   on<Event>(ctx, event)  someone's event was played (`press` → onPress): animate it
  *   onState(ctx)           the state changed (after any of the above): show it
@@ -57,8 +57,9 @@ export interface ViewContext<View, Options = unknown> {
    */
   timer: { event: string; ms: number; endsAt: number } | null;
   /**
-   * The screen: size, center, `top` = first free pixel below the app's room bar, and the HUD
-   * scale (small phones < 1; multiply sizes by it).
+   * The frame in design units (720 tall, 960 to 1600 wide; docs/ui-guide.md): size, center,
+   * `top` = first free unit below the app's room bar, and the HUD scale (multiply font and button
+   * sizes by it).
    */
   screen: { width: number; height: number; cx: number; cy: number; top: number; hud: number };
 }
@@ -129,12 +130,11 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       this.hook('onLayout', this.ctx);
       this.hook('onState', this.ctx);
     };
+    this.followFrame(onResize);
     this.game.events.on(BOARD_PROPS, onProps);
-    this.scale.on('resize', onResize);
     this.registry.events.on('changedata-hudTop', onResize);
     this.events.once('shutdown', () => {
       this.game.events.off(BOARD_PROPS, onProps);
-      this.scale.off('resize', onResize);
       this.registry.events.off('changedata-hudTop', onResize);
     });
   }
@@ -193,7 +193,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       avatar: p.avatar,
       left: Boolean(p.left),
     }));
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     const hud = hudScale();
     const top = ((this.registry.get('hudTop') as number | undefined) ?? 110 * hud) + 8 * hud;
     return {

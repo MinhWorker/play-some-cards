@@ -5,6 +5,8 @@
 import type { GameView } from './GameView.js';
 import type { RoomSetupScene } from './RoomSetupScene.js';
 
+export * from './followFrame.js';
+export * from './frame.js';
 export * from './GameScene.js';
 export * from './GameView.js';
 export * from './host.js';

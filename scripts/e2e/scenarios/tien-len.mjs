@@ -28,13 +28,14 @@ export default async function run(t) {
     const s = await host.evaluate(() => {
       const scene = window.__phaser.scene.getScene('tien-len');
       const { state, me, result } = scene.ctx;
-      // The visible left edge of each card in the fan (the next card covers the rest).
+      // The visible left edge of each card in the fan (the next card covers the rest), turned
+      // from design units into page pixels.
+      const page = (x, y) => window.__toScreen('tien-len', x, y);
       const hand = [...scene.hand.entries()].map(([card, sp]) => ({
         card,
-        x: sp.x - sp.width / 2 + 8,
-        y: sp.y - 25,
+        ...page(sp.x - sp.width / 2 + 8, sp.y - 25),
       }));
-      const at = (b) => ({ x: b.container.x, y: b.container.y });
+      const at = (b) => page(b.container.x, b.container.y);
       return {
         over: Boolean(result),
         round: state.round,

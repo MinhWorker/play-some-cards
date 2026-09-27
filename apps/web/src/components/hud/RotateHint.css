@@ -1,0 +1,58 @@
+/* "Turn the phone" screen (RotateHint.tsx): only on touch screens held upright. */
+.rotate-hint {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .rotate-hint {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 28px;
+    padding: var(--safe-pad);
+    background: linear-gradient(#6cc3ef, var(--sky));
+  }
+}
+
+/* A phone outline that turns sideways, again and again. */
+.rotate-phone {
+  width: 64px;
+  height: 108px;
+  border: 6px solid var(--wood-dark);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 5px 0 var(--wood-dark);
+  animation: rotate-phone 2.4s ease-in-out infinite;
+}
+
+.rotate-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--paper);
+  -webkit-text-stroke: 6px var(--wood-dark);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--wood-dark);
+}
+
+@keyframes rotate-phone {
+  0%,
+  25% {
+    transform: rotate(0deg);
+  }
+  55%,
+  100% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rotate-phone {
+    animation: none;
+    transform: rotate(-90deg);
+  }
+}

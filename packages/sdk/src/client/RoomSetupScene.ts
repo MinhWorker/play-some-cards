@@ -15,8 +15,8 @@ export const SETUP_CURRENT = 'setup:current';
  * reaches the game and its screens as `ctx.options`.
  *
  * `this.current` is the room's options when editing (`null` for a new room), e.g. to mark what
- * is picked now. `build` creates objects once; `draw` places them (called again on resize). The
- * app shows a back button; `this.cancel()` goes back too.
+ * is picked now. `build` creates objects once; `draw` places them in `this.view` (called again
+ * when the frame changes). The app shows a back button; `this.cancel()` goes back too.
  */
 export abstract class RoomSetupScene<Options> extends GameScene {
   /** The room's current options when opened from inside a room, `null` for a new room. */
@@ -24,11 +24,9 @@ export abstract class RoomSetupScene<Options> extends GameScene {
 
   create() {
     this.current = (this.registry.get(SETUP_CURRENT) as Options | undefined) ?? null;
+    this.followFrame(() => this.draw());
     this.build();
     this.draw();
-    const onResize = () => this.draw();
-    this.scale.on('resize', onResize);
-    this.events.once('shutdown', () => this.scale.off('resize', onResize));
   }
 
   protected abstract build(): void;

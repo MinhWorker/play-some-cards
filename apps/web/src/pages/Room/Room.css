@@ -49,21 +49,10 @@
   letter-spacing: 0.15em;
 }
 
+/* The result panel sits on the right, beside the board. */
 .result {
   position: absolute;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(360px, calc(100% - 32px));
-}
-
-/* Phones held sideways: the result panel sits on the right, beside the board. */
-@media (orientation: landscape) and (max-height: 500px) {
-  .result {
-    left: auto;
-    right: 12px;
-    bottom: 12px;
-    transform: none;
-    width: 280px;
-  }
+  right: 12px;
+  bottom: 12px;
+  width: 280px;
 }
