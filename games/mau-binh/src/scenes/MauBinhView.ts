@@ -79,6 +79,11 @@ interface Block {
   tagAt: { head: { x: number; y: number }; below: { x: number; y: number } };
 }
 
+/** A row of the players list, before the HUD scale (PlayerList.ts). */
+const LIST_ROW = 54;
+/** The table's size against its art's pixels: its red rim comes out thin (docs/ui-guide.md). */
+const TABLE_SCALE = 0.4;
+
 export class MauBinhView extends GameView<View, Options> {
   private cardTextures!: CardTextures;
   private table!: Phaser.GameObjects.NineSlice;
@@ -203,43 +208,60 @@ export class MauBinhView extends GameView<View, Options> {
 
   // ── Layout ──────────────────────────────────────────────────────────────────────────────
 
-  /** Sizes and places derived from the screen. */
+  /**
+   * Sizes and places on the frame (docs/ui-guide.md): your three rows big at the bottom (under
+   * half the height), the buttons stacked in the bottom-right corner, the others' smaller blocks
+   * around the top and sides, the players list in the top-left corner.
+   */
   private geometry({ screen, players }: Ctx) {
     const { width, height, top, hud } = screen;
     const labelW = 92 * hud;
-    // Your cards: five across (overlapping), three rows, beside the row labels.
+    const margin = 16;
+    const button = { w: 150 * hud, h: 56 * hud };
+    // Your cards: five across (overlapping), three rows, beside the row labels, clear of the
+    // button column.
     const big = Math.min(
-      86 * hud,
-      (width - 28 - labelW) / (1 + 4 * 0.78),
-      ((height - top) * 0.36) / (CARD_RATIO * (1 + 2 * 0.66)),
+      110,
+      (width / 2 - button.w - 2 * margin - labelW / 2) / ((1 + 4 * 0.78) / 2),
+      ((height - top) * 0.46) / (CARD_RATIO * (1 + 2 * 0.66)),
     );
     const bigRowStep = big * CARD_RATIO * 0.66;
     const handH = big * CARD_RATIO + 2 * bigRowStep;
     const handBottom = height - 14 * hud;
     const handCy = handBottom - handH / 2;
-    const buttonsY = handBottom - handH - 30 * hud;
-    const statusY = buttonsY - 48 * hud;
+    // Just above your cards: your tag once the rows are shown, and the status line above it.
+    const tagY = handBottom - handH - 24 * hud;
+    const statusY = tagY - 40 * hud;
     // The others: smaller cards, packed tighter.
     // Wide screens seat the others beside the players list (top row); tall ones below it.
-    const wide = width > height;
     const head = 28 * hud;
-    // Wide: below the "Luật" and "Kết quả" buttons in the top-right corner.
-    const sideTop = wide ? top + 94 * hud + head : top + players.length * 48 * hud + head;
-    // The others: smaller cards, packed tighter, as big as the room above the status line allows.
-    const fit = (statusY - 16 * hud - sideTop) / (CARD_RATIO * (1 + 2 * 0.55));
-    const small = Math.min(44 * hud, wide ? Math.max(big * 0.62, fit) : big * 0.62);
+    // The others' seats, each a column of free table (name above the block):
+    // top: under the room bar, above the status line;
+    // left: under the players list, beside your cards;
+    // right: under the "Luật" and "Kết quả" buttons, above the button stack.
+    const listRight = 10 * hud + Math.min(230 * hud, width * 0.42);
+    const listBottom = top + players.length * LIST_ROW * hud;
+    const stackTop = height - margin - 3 * button.h - 20;
+    const rooms = {
+      top: statusY - 20 * hud - (top + head),
+      left: height - margin - (listBottom + head + 12),
+      right: stackTop - 16 - (top + 94 * hud + head),
+    };
+    // Smaller cards, packed tighter: as big as the tightest seat allows.
+    const fit = Math.min(rooms.top, rooms.left, rooms.right) / (CARD_RATIO * (1 + 2 * 0.55));
+    const small = Math.max(24, Math.min(44 * hud, big * 0.62, fit));
     const smallRowStep = small * CARD_RATIO * 0.55;
     const blockW = small * (1 + 4 * 0.52);
     const blockH = small * CARD_RATIO + 2 * smallRowStep;
-    const listRight = 10 * hud + Math.min(230 * hud, width * 0.42);
     const topY = top + head + blockH / 2 + 6 * hud;
     const topX = Math.max(width / 2, listRight + blockW / 2 + 12 * hud);
-    const sideY = wide ? sideTop + blockH / 2 : Math.max(sideTop + blockH / 2, (top + statusY) / 2);
-    const sideX = 14 * hud + blockW / 2;
-    const leftX = wide ? Math.max(sideX, listRight + blockW / 2 + 12 * hud) : sideX;
-    // The "bàn đấu" where chi are compared: above your cards, beside (wide) or below the list.
-    const arenaX = wide ? listRight + 8 * hud : 12 * hud;
-    const arenaY = wide ? top + 4 * hud : top + players.length * 48 * hud + 8 * hud;
+    const leftX = margin + 10 + blockW / 2;
+    const leftY = listBottom + 12 + head + rooms.left / 2;
+    const rightX = width - margin - Math.max(blockW, button.w) / 2;
+    const rightY = top + 94 * hud + head + rooms.right / 2;
+    // The "bàn đấu" where chi are compared: above your cards, beside the list.
+    const arenaX = listRight + 8 * hud;
+    const arenaY = top + 4 * hud;
     const arena = {
       x: arenaX,
       y: arenaY,
@@ -256,8 +278,9 @@ export class MauBinhView extends GameView<View, Options> {
       midY: (topY + blockH / 2 + statusY) / 2,
       labelW,
       arena,
-      buttonsY,
+      tagY,
       statusY,
+      button: { ...button, x: width - margin - button.w / 2, bottom: height - margin },
       blockW,
       blockH,
       head,
@@ -265,8 +288,8 @@ export class MauBinhView extends GameView<View, Options> {
       centers: {
         bottom: { x: width / 2 - labelW / 2, y: handCy },
         top: { x: topX, y: topY },
-        left: { x: leftX, y: sideY },
-        right: { x: width - sideX, y: sideY },
+        left: { x: leftX, y: leftY },
+        right: { x: rightX, y: rightY },
       } satisfies Record<Slot, { x: number; y: number }>,
     };
   }
@@ -309,17 +332,20 @@ export class MauBinhView extends GameView<View, Options> {
 
   protected onLayout(ctx: Ctx) {
     const g = this.geometry(ctx);
-    const inset = 10 * g.hud;
+    const inset = 8;
+    // Drawn at TABLE_SCALE of the art's pixels: a thin rim, the felt filling the frame.
     this.table
       .setPosition(g.cx, (g.top + g.height) / 2)
-      .setSize(g.width - 2 * inset, g.height - g.top - inset);
+      .setSize((g.width - 2 * inset) / TABLE_SCALE, (g.height - g.top - inset) / TABLE_SCALE)
+      .setScale(TABLE_SCALE);
     this.status.setFontSize(26 * g.hud);
-    const buttonW = Math.min(124 * g.hud, (g.width - 40) / 3);
-    const buttonH = 48 * g.hud;
-    [this.autoButton, this.undoButton, this.doneButton].forEach((b, i) => {
-      b.setSize(buttonW, buttonH).setPosition(g.cx + (i - 1) * (buttonW + 8 * g.hud), g.buttonsY);
+    // Stacked in the bottom-right corner, "Xong" (or "Xếp lại") at the bottom.
+    const b = g.button;
+    const slotY = (i: number) => b.bottom - b.h / 2 - i * (b.h + 10);
+    [this.doneButton, this.undoButton, this.autoButton].forEach((button, i) => {
+      button.setSize(b.w, b.h).setPosition(b.x, slotY(i));
     });
-    this.cancelButton.setSize(buttonW * 1.2, buttonH).setPosition(g.cx, g.buttonsY);
+    this.cancelButton.setSize(b.w, b.h).setPosition(b.x, slotY(0));
     this.rulesButton
       .setSize(84 * g.hud, 40 * g.hud)
       .setPosition(g.width - 56 * g.hud, g.top + 26 * g.hud);
@@ -329,7 +355,7 @@ export class MauBinhView extends GameView<View, Options> {
     this.results.layout({ width: g.width, height: g.height, top: g.top, hud: g.hud });
     this.list.layout(10 * g.hud, g.top, g.hud, Math.min(230 * g.hud, g.width * 0.42));
     const area = { cx: g.cx, top: g.top, width: g.width - 24, hud: g.hud };
-    this.board.layout({ ...area, bottom: ctx.result ? g.height - 150 * g.hud : g.buttonsY });
+    this.board.layout({ ...area, bottom: g.tagY });
     this.rules.layout({ ...area, top: g.top + 50 * g.hud, bottom: g.height - 12 });
     this.placeBlocks(ctx, false);
     this.showStatus(ctx);
@@ -381,7 +407,7 @@ export class MauBinhView extends GameView<View, Options> {
       b.name.setVisible(shown);
       b.tagAt = {
         head: { x: c.x + halfW, y: headY },
-        below: { x: c.x, y: bottom ? g.buttonsY : c.y + halfH + 12 * g.hud },
+        below: { x: c.x, y: bottom ? g.tagY : c.y + halfH + 12 * g.hud },
       };
       b.tag.setFontSize(16 * g.hud);
       this.placeTag(ctx, seat);
@@ -990,7 +1016,7 @@ export class MauBinhView extends GameView<View, Options> {
         .setText(text)
         .setColor(color)
         .setVisible(text !== '');
-      if (bottom) b.tag.setPosition(this.g().cx, this.g().buttonsY);
+      if (bottom) b.tag.setPosition(this.g().cx, this.g().tagY);
       else this.placeTag(ctx, seat);
     });
   }
