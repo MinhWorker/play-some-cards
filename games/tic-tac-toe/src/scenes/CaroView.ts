@@ -52,6 +52,13 @@ export class CaroView extends GameView<State, Options> {
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate(ctx: Ctx) {
+    // The app reuses this scene for every Caro room on the page: forget the last one's objects
+    // (Phaser destroyed them when it stopped).
+    this.tiles = new Map();
+    this.pieces = new Map();
+    this.shown = '';
+    this.glowing = '';
+    this.hovered = null;
     this.tileLayer = this.add.container();
     this.pieceLayer = this.add.container();
     this.layer = this.add.container(0, 0, [this.tileLayer, this.pieceLayer]);

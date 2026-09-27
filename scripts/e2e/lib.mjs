@@ -76,11 +76,15 @@ export async function caroSetup(page, pick) {
   await clickCanvas(page, 'tic-tac-toe:setup', new Function(`return (s) => s.${pick}.tile`)());
 }
 
-/** A Caro move on the tile at `x`, `y`, once the board's camera has stopped gliding. */
+/**
+ * A Caro move on the tile at `x`, `y`, once it is this page's turn (the sandbox plays every seat)
+ * and the board's camera has stopped gliding.
+ */
 export async function caroPlay(page, x, y) {
   await page.waitForFunction(() => {
     const s = window.__phaser?.scene.getScene('tic-tac-toe');
-    return s?.layer && !s.tweens.isTweening(s.layer);
+    const myTurn = !s?.ctx.me || s.ctx.state.turn === s.ctx.me.id;
+    return s?.layer && myTurn && !s.tweens.isTweening(s.layer);
   });
   await clickCanvas(page, 'tic-tac-toe', new Function(`return (s) => s.tiles.get('${x},${y}')`)());
   await page.waitForTimeout(400);

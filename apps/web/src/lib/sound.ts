@@ -135,16 +135,20 @@ function syncMusic() {
   return music.play();
 }
 
-// The first tap/key unlocks audio (browser rule): resume Web Audio and start the music.
+// A tap/key unlocks audio (browser rule): resume Web Audio and start the music. Browsers don't
+// count every event as a gesture (on phones a touch's pointerdown isn't one, its pointerup and
+// touchend are), so keep trying on each of them until the audio really runs.
+const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
 const unlock = () => {
-  window.removeEventListener('pointerdown', unlock);
-  window.removeEventListener('keydown', unlock);
   ensureAudio();
-  void ctx?.resume().catch(() => {});
-  void syncMusic().catch(() => {});
+  void Promise.all([ctx?.resume(), syncMusic()])
+    .then(() => {
+      if (ctx && ctx.state !== 'running') return;
+      for (const name of UNLOCK_EVENTS) window.removeEventListener(name, unlock);
+    })
+    .catch(() => {});
 };
-window.addEventListener('pointerdown', unlock);
-window.addEventListener('keydown', unlock);
+for (const name of UNLOCK_EVENTS) window.addEventListener(name, unlock);
 
 /** Applies and saves settings (music and effects separately). */
 export function applySound(settings: SoundSettings) {

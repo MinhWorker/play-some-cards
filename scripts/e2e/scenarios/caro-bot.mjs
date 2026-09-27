@@ -54,4 +54,20 @@ export default async function run(t) {
   await host.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
   if (await host.locator('.room-row', { hasText: 'Phòng của Tuan' }).count())
     throw new Error('The computer room stayed open after Tuan left');
+
+  // A second Caro game on the same page reuses the board scene: it must draw a fresh board.
+  await host.getByRole('button', { name: '+ Tạo phòng' }).click();
+  await caroSetup(host, 'opponents[1]');
+  await caroSetup(host, 'levels[0]');
+  await host.getByRole('button', { name: 'Bắt đầu' }).click();
+  await host.waitForFunction(() => window.__phaser?.scene.isActive('tic-tac-toe'));
+  await host.waitForTimeout(800);
+  await host.screenshot({ path: t.shot('9c-second-room.png') });
+  const tiles = await host.evaluate(
+    () =>
+      [...window.__phaser.scene.getScene('tic-tac-toe').tiles.values()].filter((t) => t.active)
+        .length,
+  );
+  if (tiles !== 81) throw new Error(`The second room's board has ${tiles} tiles, expected 81`);
+  await caroPlay(host, 4, 4);
 }
