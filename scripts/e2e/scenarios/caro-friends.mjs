@@ -1,7 +1,8 @@
 // A room between people: three people create accounts, two (desktop + phone) pick
 // Caro on the island map, create/join a room from the room list and play to a win while the
 // third watches. Mid-game the phone player closes the browser and logs in again on a new one:
-// they must land back in their seat. Then a 6×6 rematch, the host leaves, the room disbands.
+// they must land back in their seat. Edge marks grow the board. Then a rematch with colors
+// swapped, the host leaves, the room disbands.
 import {
   caroPlay,
   caroSetup,
@@ -31,7 +32,6 @@ export default async function run(t) {
   await host.getByRole('button', { name: '+ Tạo phòng' }).click();
   // Caro has its own setup screen: "Bạn bè" creates a room for people.
   await caroSetup(host, 'opponents[0]');
-  await caroSetup(host, 'sizes[0]');
   await host.getByText('Phòng của Minh').waitFor();
 
   // The guest finds Minh's room in the live list and takes the free seat.
@@ -54,9 +54,10 @@ export default async function run(t) {
   await host.screenshot({ path: t.shot('3-lobby.png') });
   await host.getByRole('button', { name: 'Bắt đầu' }).click();
 
-  // Host is X. X takes the top row.
-  await caroPlay(host, 0);
-  await caroPlay(guest, 4);
+  // Host is X and plays along row 4 from the left edge (the board grows 3 columns left); Lan
+  // starts on the bottom edge (3 rows more below).
+  await caroPlay(host, 0, 4);
+  await caroPlay(guest, 4, 8);
 
   // Lan closes her browser without leaving, then logs in on a fresh one: back in her seat.
   await guest.context().close();
@@ -70,11 +71,21 @@ export default async function run(t) {
   await guest.screenshot({ path: t.shot('3b-back-in-seat-phone.png') });
 
   const moves = [
-    [host, 1],
-    [guest, 8],
-    [host, 2],
+    [host, 1, 4],
+    [guest, 5, 5],
+    [host, 2, 4],
+    [guest, 6, 6],
+    [host, 3, 4],
+    [guest, 7, 7],
   ];
-  for (const [page, cell] of moves) await caroPlay(page, cell);
+  for (const [page, x, y] of moves) await caroPlay(page, x, y);
+  const bounds = await host.evaluate(() => {
+    const { board } = window.__phaser.scene.getScene('tic-tac-toe').ctx.state;
+    return `${board.cols}×${board.rows}`;
+  });
+  if (bounds !== '12×12') throw new Error(`The board is ${bounds}, expected 12×12`);
+  await guest.screenshot({ path: t.shot('3c-grown-phone.png') });
+  await caroPlay(host, 4, 4);
   await host.getByText('Bạn thắng!').waitFor();
   await guest.getByText('Minh thắng!').waitFor();
   await fan.getByText('Minh thắng!').waitFor();
@@ -86,9 +97,7 @@ export default async function run(t) {
   );
   if (score !== '1 – 0') throw new Error(`Scoreboard shows "${score}", expected "1 – 0"`);
 
-  // Between games the host picks a 6×6 board (4 in a row) and swaps colors: Lan is red X now.
-  await clickCanvas(host, 'tic-tac-toe', (s) => s.next.sizes[1]);
-  await host.waitForTimeout(300);
+  // Between games the host swaps colors: Lan is red X now.
   await clickCanvas(host, 'tic-tac-toe', (s) => s.next.swap);
   await host.waitForTimeout(300);
   await host.screenshot({ path: t.shot('6b-next-game-options.png') });
@@ -96,14 +105,14 @@ export default async function run(t) {
   await guest.waitForFunction(() => {
     const { state, me } = window.__phaser.scene.getScene('tic-tac-toe').ctx;
     return (
-      state.board.length === 36 &&
-      state.win === 4 &&
+      state.board.cols === 9 &&
+      state.board.cells.every((c) => c === null) &&
       state.players[0] === me.id &&
       state.turn === me.id
     );
   });
-  await caroPlay(guest, 14);
-  await guest.screenshot({ path: t.shot('6c-6x6-phone.png') });
+  await caroPlay(guest, 4, 4);
+  await guest.screenshot({ path: t.shot('6c-rematch-phone.png') });
 
   // Host quits: Lan becomes host. Then Lan quits: no players left, the room is disbanded
   // and the spectator is sent back to the room list.

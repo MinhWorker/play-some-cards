@@ -5,10 +5,10 @@ import { seededRng } from './rng.js';
 /**
  * Plays a `Game` the way the server does, one event at a time, so a test reads like a script:
  *
- *   const game = testGame(plugin, ['a', 'b'], { options: { size: 6 } });
- *   game.send('a', 'place', { cell: 4 });                 // throws if the game rejects it
- *   expect(game.error('a', 'place', { cell: 5 })).toBe('Chưa tới lượt bạn');
- *   expect(game.state.board[4]).toBe('X');
+ *   const game = testGame(plugin, ['a', 'b'], { options: { swap: true } });
+ *   game.send('b', 'place', { x: 4, y: 4 });              // throws if the game rejects it
+ *   expect(game.error('b', 'place', { x: 5, y: 4 })).toBe('Chưa tới lượt bạn');
+ *   expect(game.state.board.cells[40]).toBe('X');
  *   game.fireTimer();                                      // a ctx.setTimer went off
  *   game.leave('b');                                       // b leaves mid-game (onLeave)
  *

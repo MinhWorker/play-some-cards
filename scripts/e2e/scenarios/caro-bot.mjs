@@ -16,7 +16,6 @@ export default async function run(t) {
   await host.waitForTimeout(300);
   await host.screenshot({ path: t.shot('8-create-bot-room.png') });
   await caroSetup(host, 'levels[2]');
-  await caroSetup(host, 'sizes[0]');
   await host.getByText('🤖 Máy').waitFor();
 
   // "Tuỳ chỉnh" reopens the settings screen inside the room: switching to "Bạn bè" sends the
@@ -26,21 +25,20 @@ export default async function run(t) {
   await host.waitForTimeout(300);
   await host.screenshot({ path: t.shot('8b-customize-in-room.png') });
   await caroSetup(host, 'opponents[0]');
-  await caroSetup(host, 'sizes[1]');
   await host.getByText('👤 1/2').waitFor();
   if (await host.getByText('🤖 Máy').count()) throw new Error('The computer stayed in the room');
   await host.getByRole('button', { name: 'Tuỳ chỉnh' }).click();
   await caroSetup(host, 'opponents[1]');
   await caroSetup(host, 'levels[2]');
-  await caroSetup(host, 'sizes[0]');
   await host.getByText('🤖 Máy').waitFor();
   if ((await host.evaluate(() => new URLSearchParams(location.search).toString())) !== roomCode)
     throw new Error('Customizing left the room');
   await host.getByRole('button', { name: 'Bắt đầu' }).click();
-  await caroPlay(host, 4);
+  await caroPlay(host, 4, 4);
   await host.waitForFunction(
     () =>
-      window.__phaser.scene.getScene('tic-tac-toe').ctx.state.board.filter(Boolean).length === 2,
+      window.__phaser.scene.getScene('tic-tac-toe').ctx.state.board.cells.filter(Boolean).length ===
+      2,
   );
   await host.screenshot({ path: t.shot('9-bot-game.png') });
 

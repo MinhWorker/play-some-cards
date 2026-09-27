@@ -4,45 +4,51 @@
  */
 import { type BotContext, type EventContext, Game, type StartContext } from '@psc/sdk';
 import { z } from 'zod';
-import { place, winningLine } from './board.js';
+import { at, grow, inside, isDraw, newBoard, place, winsAt } from './board.js';
 import { botMove } from './bot.js';
-import { type Mark, type Options, type State, WIN_LENGTH } from './model.js';
+import { MAX_SIDE, type Mark, type Options, type Point, type State } from './model.js';
+
+/** A cell coordinate, loosely bounded (onPlace checks it is on the board). */
+const coord = z
+  .number()
+  .int()
+  .min(-MAX_SIDE)
+  .max(MAX_SIDE * 2);
 
 export class CaroGame extends Game<State, Options> {
   /** What players can do: mark a cell. */
   events = {
-    place: z.object({ cell: z.number().int().min(0).max(80) }),
+    place: z.object({ x: coord, y: coord }),
   };
 
   /**
-   * A new game ("Bắt đầu", "Chơi ván mới") with the room's current options: the board size, and
+   * A new game ("Bắt đầu", "Chơi ván mới") on a fresh 9×9 board with the room's current options:
    * who is X (red, starts): the first seat, or the second after "Đổi màu".
    */
   onStart({ players, options }: StartContext<Options>): State {
     const [first, second] = players.map((p) => p.id) as [string, string];
     const [x, o] = options.swap ? [second, first] : [first, second];
-    const { size } = options;
-    return {
-      size,
-      win: WIN_LENGTH[size],
-      board: Array(size * size).fill(null),
-      players: [x, o],
-      turn: x,
-    };
+    return { board: newBoard(), players: [x, o], turn: x };
   }
 
-  /** A player marks a cell (event `place`). */
-  onPlace(ctx: EventContext<State, { cell: number }, Options>): State {
+  /**
+   * A player marks a cell (event `place`): five in a row wins; otherwise a mark on an edge grows
+   * the board there, and once it can't grow and nobody can make five any more it is a draw.
+   */
+  onPlace(ctx: EventContext<State, Point, Options>): State {
     const { state, player, payload, reject, finish } = ctx;
-    const { cell } = payload;
+    const p = { x: payload.x, y: payload.y };
     if (state.turn !== player.id) reject('Chưa tới lượt bạn');
-    if (cell >= state.board.length) reject('Ô này không có trên bàn');
-    if (state.board[cell] !== null) reject('Ô này đã có người đánh');
+    if (!inside(state.board, p)) reject('Ô này không có trên bàn');
+    if (at(state.board, p) !== null) reject('Ô này đã có người đánh');
 
     const mark: Mark = player.id === state.players[0] ? 'X' : 'O';
-    const board = place(state.board, cell, mark);
-    if (winningLine(board, state.win)) finish([player.id]);
-    else if (board.every((c) => c !== null)) finish([]);
+    let board = place(state.board, p, mark);
+    if (winsAt(state.board, p, mark)) finish([player.id]);
+    else {
+      board = grow(board, p);
+      if (isDraw(board)) finish([]);
+    }
     const turn = player.id === state.players[0] ? state.players[1] : state.players[0];
     return { ...state, board, turn };
   }
@@ -51,6 +57,6 @@ export class CaroGame extends Game<State, Options> {
   bot({ state, player, rng, options }: BotContext<State, Options>) {
     if (options.opponent !== 'bot') return null;
     const cell = botMove(state, player.id, rng, options.level);
-    return cell === null ? null : { event: 'place', payload: { cell } };
+    return cell === null ? null : { event: 'place', payload: cell };
   }
 }

@@ -1,8 +1,11 @@
 # Caro
 
-Xếp quân thành hàng trên bàn cờ vuông, chơi với bạn hoặc với máy (Dễ / Vừa / Khó): 3 quân liền
-trên bàn 3×3, 4 quân trên 6×6, 5 quân trên 9×9. Giữa các ván, chủ phòng có thể đổi cỡ bàn hoặc
-đổi màu (X đỏ luôn đi trước).
+Xếp 5 quân liền thành hàng (ngang, dọc hoặc chéo), chơi với bạn hoặc với máy (Dễ / Vừa / Khó).
+Bàn bắt đầu 9×9. Khi ai đó đánh vào ô ở mép bàn mà ván chưa xong, bàn mở rộng thêm 3 hàng hoặc
+3 cột về phía mép đó (ô góc mở cả hai phía) và khung nhìn trượt mượt tới bàn mới. Mỗi chiều mở
+rộng tối đa tới 15 ô. Khi bàn đã 15×15 mà không còn hàng 5 ô nào một người có thể lấp đầy (mọi
+hàng 5 ô đều có quân của cả hai bên) thì ván hoà. Giữa các ván, chủ phòng có thể đổi màu (X đỏ
+luôn đi trước).
 
 Viết bằng hai lớp `Game` (server) và `GameView` (trình duyệt): các hook vòng đời, một `ctx` chứa
 cả phòng, sự kiện đi giữa hai bên. `games/counter` là ví dụ nhỏ nhất; game này thêm tuỳ chọn
@@ -17,7 +20,7 @@ src/
   game/             phần logic: không Phaser (chạy trên server)
     model.ts          ★ đọc trước: State và Options
     CaroGame.ts       sự kiện và hook: onStart, onPlace, bot
-    board.ts          hàm tiện ích cho lưới (hàng thắng, chuỗi quân, ô trống)
+    board.ts          hàm tiện ích cho bàn (mở rộng bàn, hàng thắng, xét hoà, chuỗi quân, ô trống)
     bot.ts            bộ não của máy: đánh vào ô nào
     *.test.ts         test, viết bằng testGame (npm run check)
   scenes/           những gì người chơi thấy (chỉ trên trình duyệt)
@@ -37,10 +40,10 @@ Server không có vòng lặp game: nó chờ sự kiện, mỗi sự kiện ch�
 | --- | --- | --- |
 | "Tạo phòng" / "Tuỳ chỉnh" | tuỳ chọn được `optionsSchema` kiểm tra, phòng giữ lại | `Setup.ts` gọi `submit(options)` |
 | "Bắt đầu", "Chơi ván mới" | `onStart(ctx)` → state đầu tiên | `onStart` (âm thanh bắt đầu), `onState` |
-| Bấm vào một ô trống | `send('place', { cell })` → `onPlace(ctx)`: kiểm tra, rồi trả state mới (hoặc `reject`) | `onPlace` (quân hiện ra), `onState` |
+| Bấm vào một ô trống | `send('place', { x, y })` → `onPlace(ctx)`: kiểm tra, mở rộng bàn nếu ô ở mép, rồi trả state mới (hoặc `reject`) | `onPlace` (quân hiện ra), `onState` (ô mới hiện dần, khung nhìn trượt tới) |
 | Tới lượt máy | `bot(ctx)` → sự kiện `place`, sau một khoảng dừng ngắn | như khi người bấm |
-| Ba (bốn, năm) quân liền / hết ô | `ctx.finish(winners)` trong `onPlace` | `onEnd` (hàng thắng sáng lên, âm thanh), bảng kết quả |
-| Chủ phòng bấm cỡ bàn hoặc ⇄ sau một ván | `onStart` kế tiếp dùng tuỳ chọn mới | `changeOptions(...)` |
+| Năm quân liền / không ai còn thắng được | `ctx.finish(winners)` trong `onPlace` | `onEnd` (hàng thắng sáng lên, âm thanh), bảng kết quả |
+| Chủ phòng bấm ⇄ sau một ván | `onStart` kế tiếp dùng tuỳ chọn mới | `changeOptions(...)` |
 
 Chơi thử một mình: http://localhost:5033/?play=tic-tac-toe (khi đang chạy `npm run dev`). Nút
 "Tuỳ chỉnh" trong sandbox mở màn cài đặt; các nút ghế đổi góc nhìn sang người chơi khác.
