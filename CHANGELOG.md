@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.5.0](https://github.com/MinhWorker/play-some-cards/compare/v0.4.0...v0.5.0) (2026-09-27)
+
+
+### Features
+
+* **tic-tac-toe:** one 9×9 five-in-a-row board that grows at its edges ([#20](https://github.com/MinhWorker/play-some-cards/issues/20)) ([a87ed1c](https://github.com/MinhWorker/play-some-cards/commit/a87ed1c5fd299cd22b9b3e34a8caba6b318e527a))
+* **web:** add mobile app manifest and icons ([#24](https://github.com/MinhWorker/play-some-cards/issues/24)) ([d64a4f0](https://github.com/MinhWorker/play-some-cards/commit/d64a4f052d61510456c540bf73a79128f992be60))
+* **xiangqi:** rules, computer player, jade pieces and move effects ([#25](https://github.com/MinhWorker/play-some-cards/issues/25)) ([4ab2053](https://github.com/MinhWorker/play-some-cards/commit/4ab2053c2182b546f070e45a5ea11cb67da1d92d))
+
+
+### Bug fixes
+
+* Caro board missing after changing rooms, and sound locked on phones ([#22](https://github.com/MinhWorker/play-some-cards/issues/22)) ([8f92c34](https://github.com/MinhWorker/play-some-cards/commit/8f92c34b4c202457abca99eaa33f67ea724dd374))
+* **web:** offer a reload when the site was deployed under an open page ([#23](https://github.com/MinhWorker/play-some-cards/issues/23)) ([7228243](https://github.com/MinhWorker/play-some-cards/commit/722824396f17d95449033eaa3bb01d3b61acd8e1))
+
 ## [0.4.0](https://github.com/MinhWorker/play-some-cards/compare/v0.3.0...v0.4.0) (2026-09-27)
 
 
