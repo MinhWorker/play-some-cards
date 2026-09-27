@@ -4,15 +4,31 @@
  * their component (e.g. components/hud/SoundControl.css).
  */
 
+/*
+ * The installed app runs full screen (viewport-fit=cover), so the canvas and the UI keep out of
+ * the notch and the home bar: the body's sky colour shows there. Overlays that should dim or
+ * cover the whole screen reach back out with `inset: var(--unsafe)`.
+ */
+:root {
+  --safe: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  --unsafe: calc(-1 * env(safe-area-inset-top, 0px)) calc(-1 * env(safe-area-inset-right, 0px))
+    calc(-1 * env(safe-area-inset-bottom, 0px)) calc(-1 * env(safe-area-inset-left, 0px));
+  /* 16px of padding inside the safe area, for those full-screen overlays. */
+  --safe-pad: calc(16px + env(safe-area-inset-top, 0px))
+    calc(16px + env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px))
+    calc(16px + env(safe-area-inset-left, 0px));
+}
+
 .stage {
   position: fixed;
-  inset: 0;
+  inset: var(--safe);
 }
 
 /* The UI layer lets clicks through to the canvas except on its own controls. */
 .ui {
   position: fixed;
-  inset: 0;
+  inset: var(--safe);
   pointer-events: none;
 }
 
@@ -148,13 +164,13 @@ input:focus-visible,
 
 .modal-backdrop {
   position: absolute;
-  inset: 0;
+  inset: var(--unsafe);
   z-index: 3;
   background: rgb(20 50 80 / 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: var(--safe-pad);
 }
 
 .modal {

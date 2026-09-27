@@ -6,8 +6,12 @@ Chạy từ thư mục gốc repo bằng `npm run dev` (web ở http://localhost
 ## Cài trên điện thoại
 
 Mở trang web bằng trình duyệt trên điện thoại rồi chọn **Cài đặt ứng dụng** trên Android hoặc
-**Thêm vào Màn hình chính** trong menu Chia sẻ trên iPhone. Ứng dụng mở ở chế độ toàn màn hình và
-dùng biểu tượng riêng.
+**Thêm vào Màn hình chính** trong menu Chia sẻ trên iPhone. Ứng dụng mở toàn màn hình, xoay ngang
+và dùng biểu tượng riêng. Trên Android thanh trạng thái và thanh điều hướng được ẩn; iPhone tự ẩn
+thanh trạng thái khi xoay ngang. Giao diện tránh tai thỏ và thanh home.
+
+Máy đã cài bản cũ (chưa toàn màn hình) có thể phải gỡ ra cài lại: Android chỉ cập nhật cách mở
+ứng dụng sau một thời gian, iPhone thì không tự cập nhật.
 
 Màn hình có hai lớp. Phaser vẽ thế giới trên một canvas toàn màn hình: bầu trời, bản đồ đảo và bàn
 chơi. React vẽ giao diện đè lên trên: bảng, nút và form. `src/phaser/bridge.ts` là cầu nối duy nhất

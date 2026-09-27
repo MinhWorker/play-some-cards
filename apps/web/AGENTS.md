@@ -18,7 +18,7 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
   - Panels are wood and paper, with yellow buttons (`src/styles/`).
   - The font is "Baloo 2" (`titleStyle` in Phaser).
 - **Mobile first**:
-  - Test a phone (390×844).
+  - Test a phone (390×844), and phones held sideways with `npm run shots`.
   - When the layout changes, also test a desktop size, ideally plus 360×640 and 844×390.
 - **Games** are found by glob in `src/games/index.ts`: their assets, lazy clients, hub portals and
   the wip lock. `pages/Sandbox` is `/?play=<id>`.

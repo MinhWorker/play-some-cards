@@ -11,6 +11,7 @@ coverage/
 .env*
 !.env.example
 .e2e/
+.shots/
 .playwright-mcp/
 __pycache__/
 # Written by scripts/libs.mjs
