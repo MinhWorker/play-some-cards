@@ -56,6 +56,12 @@ khi socket kết nối. Trang cũ hơn server tự tải lại; trang mới hơn
 nhật" và thử lại tới khi server theo kịp. Bản xem trước của PR nói chuyện với server thật, nên bản
 xem trước nào tăng protocol sẽ hiện dòng thông báo đó.
 
+Mỗi bản build web đặt tên file theo mã băm, và Vercel chỉ phục vụ file của bản mới nhất. Một
+trang mở từ trước lần deploy web sẽ không tải được code của game (404) khi người chơi mở game.
+Web nhận ra điều này (`src/lib/newBuild.ts`: tải lại `index.html` và so file JS chính) khi tải
+code game thất bại hoặc khi người chơi quay lại tab, rồi hiện hộp "Đã có phiên bản mới" với nút
+"Tải lại". Ở chế độ dev hộp này không bao giờ hiện.
+
 Migration database chạy khi server khởi động, trong lúc bản web trước có thể vẫn đang chạy: hãy
 làm chúng chạy được với bản trước (thêm cột trước, xoá cột cũ ở một PR sau).
 
