@@ -37,7 +37,9 @@ hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.m
   trong hook `view` của game.
 - Hình và âm thanh làm bằng cách nào cũng được: AI, tự vẽ, Blender, vẽ hay tổng hợp bằng code, tài
   nguyên miễn phí trên mạng. Chọn cái hợp với game nhất. Không đặt chữ vào trong hình.
-- Thử giao diện ở cỡ điện thoại (390×844) và cỡ máy tính.
+- Thử giao diện ở cỡ điện thoại (390×844 và xoay ngang) và cỡ máy tính. `npm run shots` chụp một
+  trang trên nhiều điện thoại, máy tính bảng và máy tính thật, xoay ngang, đúng độ phân giải của
+  từng máy.
 - Migration database phải chạy được với bản web trước đó (thêm trước, xoá sau).
 - Thay đổi giao thức socket làm hỏng client cũ thì tăng `PROTOCOL_VERSION`
   (`packages/shared/src/protocol.ts`); CI sẽ nhắc bạn.

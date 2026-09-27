@@ -26,6 +26,7 @@
     "dev:server": "npm run build -w @psc/shared && concurrently -k -n shared,server -c magenta,blue \"npm run dev -w @psc/shared\" \"npm run dev -w @psc/server\"",
     "gen:asset": "node scripts/gen-asset.mjs",
     "e2e": "node scripts/e2e.mjs",
+    "shots": "node scripts/shots.mjs",
     "new": "node scripts/new.mjs",
     "new:game": "node scripts/new.mjs game",
     "assets": "node scripts/assets.mjs"

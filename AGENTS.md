@@ -38,6 +38,7 @@ docs/              Guides for people: making-a-game, deploy, <game>-audio
 | `npm run check` | Lint + typecheck + unit tests |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run e2e [url]` | Headless Chromium plays every scenario in `scripts/e2e/scenarios/` through the real UI, side by side (needs a running dev server). `-- --only <names>`, `-- --changed origin/main`; flags at the top of `scripts/e2e.mjs`. Screenshots in `.e2e/<scenario>/` |
+| `npm run shots [url]` | Headless screenshots of one page (`-- --path '/?play=<id>'`, `-- --login`) on real phone/tablet/desktop sizes held sideways, at their pixel density and with notch insets. Prints the canvas density against the screen's. `.shots/<device>.png` + a 1:1 `-crop.png`; flags at the top of `scripts/shots.mjs` |
 | `npm run smoke [url]` | Bots play Caro over sockets against a running server |
 
 Commands for games, assets and the DB are in the topic files above.
@@ -47,7 +48,8 @@ The owner often runs `npm run dev` in their own terminal. If you need a running 
 - check what you need;
 - stop it when you are done.
 
-Test the browser headless only: `npm run e2e` or your own headless Playwright script.
+Test the browser headless only: `npm run e2e`, `npm run shots` or your own headless Playwright
+script. Judge sharpness on the `-crop.png` files: the full shots are scaled down when viewed.
 
 ## Conventions
 
@@ -79,8 +81,8 @@ Test what the change needs, no more (e2e is slow):
 
 - **Assets only** (an image, a sound, a prompt): look at the file itself, for example one headless
   screenshot where it is used. Skip `npm run check` and e2e.
-- **Small UI/CSS tweaks**: `npm run check`, plus one headless phone (390×844) screenshot of that
-  screen.
+- **Small UI/CSS tweaks**: `npm run check`, plus `npm run shots` of that screen (and one headless
+  portrait phone, 390×844, while the app still has a portrait layout).
 - **Other code changes**: `npm run check` passes.
 - **Gameplay, room/lobby flow, protocol or socket changes**: also run
   `npm run e2e -- --changed origin/main` (the scenarios CI will pick) against a running dev

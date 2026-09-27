@@ -1,14 +1,14 @@
 /* Server warm-up scene (WarmupOverlay.tsx): covers the page, under the dev tools. */
 .warmup {
   position: absolute;
-  inset: 0;
+  inset: var(--unsafe);
   z-index: 50;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 16px;
+  padding: var(--safe-pad);
   background: radial-gradient(ellipse at 50% 60%, rgb(80 40 12 / 0.65), rgb(10 14 30 / 0.92) 75%);
   backdrop-filter: blur(3px);
 }
