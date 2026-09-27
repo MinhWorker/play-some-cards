@@ -4,6 +4,8 @@ import { Title } from '@/phaser/objects/Title';
 
 /** The title's width in design units. */
 const TITLE_WIDTH = 540;
+/** A cloud's width at full size in design units (drawn at 50–100% of it). */
+const CLOUD_WIDTH = { 'cloud-a': 512, 'cloud-b': 384 };
 
 /**
  * Always-on background: the sky image, the game title (home map only, set through the
@@ -67,18 +69,19 @@ export class SkyScene extends Phaser.Scene {
     this.title.setScale(titleScale).setPosition(view.width / 2, 12 - this.title.top * titleScale);
     this.registry.set('titleBottom', this.title.y + this.title.bottom * titleScale);
 
-    const base = view.height / 900;
     this.clouds.forEach(({ img }, i) => {
+      // Its texture's size doesn't matter: art exported bigger stays the same size on screen.
+      const full = CLOUD_WIDTH[img.texture.key as keyof typeof CLOUD_WIDTH] / img.width;
       // The first two clouds drift across the title so it peeks out from behind them.
       if (i < 2) {
         // Lighter and smaller than the rest, so the title still reads through them.
-        img.setScale(base * Phaser.Math.FloatBetween(0.4, 0.5)).setAlpha(0.55);
+        img.setScale(full * Phaser.Math.FloatBetween(0.4, 0.5)).setAlpha(0.55);
         img.setPosition(
           Phaser.Math.Between(bleed.left, bleed.right),
           this.title.y + (i ? -20 : 25) * titleScale,
         );
       } else {
-        img.setScale(base * Phaser.Math.FloatBetween(0.5, 1));
+        img.setScale(full * Phaser.Math.FloatBetween(0.5, 1));
         img.setPosition(
           Phaser.Math.Between(bleed.left, bleed.right),
           Phaser.Math.Between(bleed.top, bleed.bottom),
