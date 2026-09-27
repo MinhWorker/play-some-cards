@@ -2,7 +2,7 @@ import type { AuthResponse, JoinedRoom, User } from '@psc/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { loadToken, logout, saveToken } from '@/lib/auth';
 import type { Profile } from '@/lib/profile';
-import { request, socket } from '@/lib/socket';
+import { connectSocket, request, socket } from '@/lib/socket';
 
 /** `loading`: a saved token is being checked (or the server is still waking up). */
 export type Account = { status: 'loading' } | { status: 'guest' } | { status: 'in'; user: User };
@@ -37,13 +37,13 @@ export function useAccount(onResume: (room: JoinedRoom | null) => void) {
         setAccount({ status: 'guest' });
         onResume(null);
       } else if (!socket.active) {
-        setTimeout(() => loadToken() && socket.connect(), RETRY_MS);
+        setTimeout(connectSocket, RETRY_MS);
       }
     };
     socket.on('connect', resume);
     socket.on('connect_error', refused);
     if (socket.connected) resume();
-    else if (loadToken()) socket.connect();
+    else connectSocket();
     return () => {
       socket.off('connect', resume);
       socket.off('connect_error', refused);
@@ -53,7 +53,8 @@ export function useAccount(onResume: (room: JoinedRoom | null) => void) {
   const signIn = useCallback(({ token, user }: AuthResponse) => {
     saveToken(token);
     setAccount({ status: 'in', user });
-    socket.disconnect().connect();
+    socket.disconnect();
+    connectSocket();
   }, []);
 
   const signOut = useCallback(() => {

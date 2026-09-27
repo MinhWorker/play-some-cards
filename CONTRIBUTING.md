@@ -31,8 +31,8 @@ hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.m
 
 ## Quy tắc CI không kiểm được
 
-- Người chơi thấy tiếng Việt. Mã, chú thích trong mã và `AGENTS.md` viết tiếng Anh; tài liệu cho
-  người đọc (README, CONTRIBUTING, `docs/`, README của game, mẫu issue/PR) viết tiếng Việt.
+- Người chơi thấy tiếng Việt. Mã, chú thích trong mã và các file `AGENTS.md` viết tiếng Anh; tài
+  liệu cho người đọc (README, CONTRIBUTING, `docs/`, README của game, mẫu issue/PR) viết tiếng Việt.
 - Server là bên quyết định, và thông tin ẩn (bài của người khác) không bao giờ rời server: lọc nó
   trong hook `view` của game.
 - Hình và âm thanh làm bằng cách nào cũng được: AI, tự vẽ, Blender, vẽ hay tổng hợp bằng code, tài

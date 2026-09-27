@@ -1,6 +1,8 @@
 # Cờ Tướng
 
-Luật chơi, và ghi công cho hình và âm thanh.
+Game đang ở trạng thái `wip`: luật và màn hình hiện vẫn là game mẫu “đua tới 21”. Xem
+[kế hoạch Cờ Tướng](PLAN.md) về phiên bản luật, model 3D, hoạt ảnh và cut-in tên thế cờ;
+[kế hoạch âm thanh](../../docs/xiangqi-audio.md) liệt kê các hiệu ứng đã chuẩn bị.
 
 ## Các thứ nằm ở đâu
 

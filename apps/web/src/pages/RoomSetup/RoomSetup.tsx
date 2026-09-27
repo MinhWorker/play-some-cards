@@ -7,6 +7,8 @@ interface Props {
   /** Label of the back button, for screen readers. */
   backLabel: string;
   onBack: () => void;
+  /** Straight to the home map (creating a room; not while changing the room's options). */
+  onHome?: () => void;
   /** Creates the room or changes its options; rejects with the message to show. */
   onSubmit: (options: unknown) => Promise<unknown>;
 }
@@ -15,7 +17,7 @@ interface Props {
  * While a game's own settings screen runs on the canvas (its `setup` scene, for "Tạo phòng" or
  * "Tuỳ chỉnh"): a back button, and whatever options the scene hands over go to `onSubmit`.
  */
-export function RoomSetup({ backLabel, onBack, onSubmit }: Props) {
+export function RoomSetup({ backLabel, onBack, onHome, onSubmit }: Props) {
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -34,9 +36,16 @@ export function RoomSetup({ backLabel, onBack, onSubmit }: Props) {
   return (
     <>
       <header className="hud hud-top">
-        <Button variant="secondary" size="small" aria-label={backLabel} onClick={onBack}>
-          ←
-        </Button>
+        <div className="nav-buttons">
+          <Button variant="secondary" size="small" aria-label={backLabel} onClick={onBack}>
+            ←
+          </Button>
+          {onHome && (
+            <Button variant="secondary" size="small" aria-label="Về trang chủ" onClick={onHome}>
+              🏠
+            </Button>
+          )}
+        </div>
       </header>
       {error && <Toast error>{error}</Toast>}
     </>
