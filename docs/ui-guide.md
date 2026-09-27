@@ -58,6 +58,8 @@ khung, nhân với cỡ HUD người chơi chọn. Cỡ chữ và nút nhân v�
 - Người chơi chỉnh được **cỡ giao diện** (80–130%, chữ và nút) và **lề màn hình** (0–32 điểm CSS:
   cả khung lùi vào khỏi mép, trời lấp chỗ trống) trong bảng cài đặt (nút loa), lưu theo từng máy
   (`apps/web/src/lib/frame.ts`).
+- Cùng bảng đó có **chất lượng hình**: Cao (mặc định, tới 3× điểm ảnh), Vừa (2×), Thấp (1×). Máy
+  yếu bị giật thì hạ xuống: ít điểm ảnh phải vẽ hơn, hình mềm hơn một chút.
 - HUD của React (bảng, hộp thoại, thanh phòng) và nút vẽ trong Phaser dùng chung tỉ lệ này, nên
   luôn khớp nhau.
 

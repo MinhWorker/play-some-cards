@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { HUD_SIZES, MARGINS, setViewSettings, viewSettings } from '@/lib/frame';
+import { HUD_SIZES, MARGINS, QUALITIES, setViewSettings, viewSettings } from '@/lib/frame';
+
+const QUALITY_NAMES: Record<number, string> = { 1: 'Thấp', 2: 'Vừa', 3: 'Cao' };
 
 /**
  * The player's view settings, in the settings panel: how big the HUD is (text and buttons, in
- * React and on the canvas) and how far the game keeps from the screen's edges. Steps rather than
- * sliders: the panel itself grows or shrinks with the HUD size, under the player's finger.
+ * React and on the canvas), how far the game keeps from the screen's edges, and the picture
+ * quality (lower is smoother on slow phones). Steps rather than sliders: the panel itself grows
+ * or shrinks with the HUD size, under the player's finger.
  */
 export function ViewSettings() {
   const [view, setView] = useState(viewSettings);
@@ -26,6 +29,13 @@ export function ViewSettings() {
       value: view.margin,
       shown: String(view.margin),
       set: (margin: number) => change({ margin }),
+    },
+    {
+      label: 'Chất lượng hình',
+      steps: QUALITIES,
+      value: view.quality,
+      shown: QUALITY_NAMES[view.quality] ?? '',
+      set: (quality: number) => change({ quality }),
     },
   ];
   return (

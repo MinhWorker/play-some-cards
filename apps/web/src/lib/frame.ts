@@ -7,8 +7,9 @@
  *   --hud                          `zoom` of `.hud` panels (design HUD scale × --unit)
  *
  * The player's view settings (the settings panel; kept per device, since they suit a screen)
- * change it too: the HUD size scales text and buttons, and the screen margin keeps the frame
- * that far from the screen's edges.
+ * change it too: the HUD size scales text and buttons, the screen margin keeps the frame that
+ * far from the screen's edges, and the picture quality caps the canvas's pixel density (fewer
+ * pixels to draw: smoother on slow phones, a little softer).
  */
 import { type Frame, pickFrame, setFrame } from '@psc/sdk/client';
 import { devSetting, subscribeDevSettings } from '@/lib/devTools';
@@ -21,12 +22,16 @@ export interface ViewSettings {
   hudSize: number;
   /** Extra space between the frame and the screen's edges, in CSS px (MARGINS). */
   margin: number;
+  /** The highest pixel density the canvas draws at (QUALITIES). */
+  quality: number;
 }
 
 export const HUD_SIZES = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
 export const MARGINS = [0, 8, 16, 24, 32];
+/** Picture quality: the canvas's pixel density at most (low, medium, high). */
+export const QUALITIES = [1, 2, 3];
 const VIEW_KEY = 'psc:view';
-const DEFAULT_VIEW: ViewSettings = { hudSize: 1, margin: 0 };
+const DEFAULT_VIEW: ViewSettings = { hudSize: 1, margin: 0, quality: 3 };
 let view = loadView();
 
 function loadView(): ViewSettings {
@@ -39,6 +44,9 @@ function loadView(): ViewSettings {
       margin: MARGINS.includes(saved?.margin ?? -1)
         ? (saved.margin as number)
         : DEFAULT_VIEW.margin,
+      quality: QUALITIES.includes(saved?.quality ?? -1)
+        ? (saved.quality as number)
+        : DEFAULT_VIEW.quality,
     };
   } catch {
     return DEFAULT_VIEW;
@@ -80,7 +88,7 @@ function measure() {
     safe: safeArea(),
     devicePixelRatio: window.devicePixelRatio || 1,
     width: devSetting('frameWidth') || undefined,
-    maxDpr: devSetting('maxDpr') || undefined,
+    maxDpr: devSetting('maxDpr') || view.quality,
     hudSize: view.hudSize,
   });
   const { css } = frame;
