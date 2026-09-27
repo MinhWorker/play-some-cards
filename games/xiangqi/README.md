@@ -36,7 +36,7 @@ Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc m�
 **Bạn cầm quân** (Đỏ đi trước, hoặc Đen). Chủ phòng đổi các tuỳ chọn này giữa hai ván bằng
 "Tuỳ chỉnh". Người cầm Đen thấy bàn cờ xoay ngược để quân mình luôn ở dưới.
 
-Nút **Hiệu ứng** dưới bàn bật/tắt hiệu ứng trên máy đang dùng (nhớ trong trình duyệt): khi tắt,
+Nút **Hiệu ứng** bên phải bàn bật/tắt hiệu ứng trên máy đang dùng (nhớ trong trình duyệt): khi tắt,
 quân chuyển thẳng tới chỗ mới, không nhấc, không bụi, không rung.
 
 ## Các thứ nằm ở đâu
