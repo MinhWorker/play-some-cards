@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Banner,
   CloudCurtain,
+  NewVersionDialog,
   ProfileBadge,
   revealCurtain,
   SoundControl,
@@ -17,6 +18,7 @@ import { useBoardMoves } from '@/hooks/useBoardMoves';
 import { useBrowsingGame } from '@/hooks/useBrowsingGame';
 import { useConnected } from '@/hooks/useConnected';
 import { useGameEndSound } from '@/hooks/useGameEndSound';
+import { useNewBuild } from '@/hooks/useNewBuild';
 import { useRoom } from '@/hooks/useRoom';
 import { useVersionGuard } from '@/hooks/useVersionGuard';
 import { request } from '@/lib/socket';
@@ -36,6 +38,7 @@ import { PhaserStage } from '@/phaser/PhaserStage';
 export function App() {
   const connected = useConnected();
   const version = useVersionGuard();
+  const newBuild = useNewBuild();
   const [notice, setNotice] = useState('');
   const [browsing, browse] = useBrowsingGame();
   /** The game's own settings screen is open: for a new room, or for the room we are in. */
@@ -179,6 +182,7 @@ export function App() {
         )}
         {notice && <Toast>{notice}</Toast>}
         <SoundControl />
+        {newBuild.shown && version !== 'newer' && <NewVersionDialog onLater={newBuild.later} />}
       </main>
       <CloudCurtain />
       <VersionTag />

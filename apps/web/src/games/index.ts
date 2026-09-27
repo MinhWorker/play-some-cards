@@ -1,6 +1,7 @@
 import type { GameAssets, GameClient } from '@psc/sdk/client';
 import { type AnyGameDefinition, games } from '@psc/shared';
 import { devSetting } from '@/lib/devTools';
+import { checkForNewBuild } from '@/lib/newBuild';
 
 /**
  * The web side of the game plugins in games/<id>/. Nothing here names a game: rules and meta
@@ -39,11 +40,19 @@ export function gameMusic(gameId: string): string[] {
     .map(([, url]) => url);
 }
 
-/** Loads a game's board code (scene). */
+/**
+ * Loads a game's board code (scene). If the download fails, the page may be older than the
+ * site (see lib/newBuild.ts): that check then offers a reload.
+ */
 export async function loadClient(gameId: string): Promise<GameClient> {
   const load = clients[`../../../../games/${gameId}/src/client.ts`];
   if (!load) throw new Error(`games/${gameId}/src/client.ts not found`);
-  return (await load()).default;
+  try {
+    return (await load()).default;
+  } catch (err) {
+    void checkForNewBuild();
+    throw err;
+  }
 }
 
 /**

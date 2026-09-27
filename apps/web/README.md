@@ -20,11 +20,13 @@ src/
     Room/             Trong phòng: thanh phòng, bảng "đang chờ", bảng kết quả
   components/
     hud/              Giao diện có ở mọi màn hình: huy hiệu hồ sơ, nút âm thanh,
-                      hiệu ứng mây chuyển cảnh, thông báo, nhãn phiên bản, công cụ dev.
+                      hiệu ứng mây chuyển cảnh, thông báo, nhãn phiên bản, hộp báo
+                      phiên bản mới, công cụ dev.
                       Import từ '@/components/hud'
     ui/               Khối xây dựng nhỏ (Button)
   hooks/              React hook: đăng nhập, kết nối phòng, âm thanh, trạng thái URL
-  lib/                TypeScript thuần (không React): socket, đăng nhập, âm thanh, URL tài nguyên
+  lib/                TypeScript thuần (không React): socket, đăng nhập, âm thanh, URL tài nguyên,
+                      nhận ra bản web mới (newBuild.ts)
   styles/             theme.css (màu, font) và base.css (bảng, nút, hộp thoại)
   phaser/             Phía Phaser: stage, bridge, scenes/ (boot, sky, hub), objects/
   games/index.ts      Tìm mọi game trong thư mục games/ của repo (tài nguyên, code bàn chơi)
