@@ -16,6 +16,7 @@ import { bridge, type Stage } from './bridge';
 import { BootScene } from './scenes/BootScene';
 import { HubScene } from './scenes/HubScene';
 import { SkyScene } from './scenes/SkyScene';
+import { textureAudit } from './textureAudit';
 
 /** Scenes that stay on behind everything; any other one (hub, a board, a setup screen) is the foreground. */
 const BACKGROUND = new Set(['boot', 'sky']);
@@ -150,7 +151,7 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       });
       game.current = g;
       // Lets scripts/e2e.mjs find objects on the canvas (dev server only): `__toScreen` turns a
-      // scene's design units into page CSS px.
+      // scene's design units into page CSS px. `__textureAudit` lists stretched images (shots).
       if (import.meta.env.DEV) {
         Object.assign(window, {
           __phaser: g,
@@ -162,6 +163,7 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
               y: (cam.y + (y - cam.scrollY) * cam.zoom) / dpr,
             };
           },
+          __textureAudit: () => textureAudit(g),
         });
       }
     });
