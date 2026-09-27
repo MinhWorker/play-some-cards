@@ -15,6 +15,15 @@ import { loadSoundUrl, playSfx, playSoundUrl } from '@/lib/sound';
 import { Sandbox, sandboxFromUrl } from '@/pages/Sandbox/Sandbox';
 
 installHudScale();
+
+// Chrome can install from the menu without a service worker, but its install promotion
+// requires one with a fetch handler.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker.register('/sw.js').catch((error: unknown) => {
+    console.error('Service worker registration failed', error);
+  });
+}
+
 // What game screens get from the app: their asset URLs, the app's sound channels and the
 // button sounds (so a game's buttons click like the app's).
 setClientHost({

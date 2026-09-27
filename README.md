@@ -5,6 +5,9 @@ Chọn một game, mở phòng, bạn bè vào từ danh sách phòng để chơ
 
 **Chơi:** https://play-some-cards.vercel.app
 
+Có thể cài Chút Bài từ nút cài đặt trên Chrome khi trình duyệt hỗ trợ. Khi mất kết nối, trang báo
+ngoại tuyến sẽ thay cho màn hình lỗi.
+
 ![Caro trên các đảo bay](docs/images/screenshot.webp)
 
 ## Chạy trên máy (5 phút)
