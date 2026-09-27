@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Chơi Chút Bài",
-  "short_name": "Chút Bài",
+  "name": "Chơi chút bài",
+  "short_name": "Chơi chút bài",
   "description": "Chơi các trò chơi cùng bạn bè ngay trên trình duyệt.",
   "lang": "vi",
   "start_url": "/",
