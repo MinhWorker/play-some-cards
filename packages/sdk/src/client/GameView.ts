@@ -13,6 +13,10 @@
  *
  * `ctx` (also `this.ctx`) has everything: the state as you may see it, who you are, the players,
  * host, score, options, result, the game's timer (`ctx.timer`, for a countdown).
+ *
+ * The app keeps one instance per game and restarts it for every room (and after "Tuỳ chỉnh"):
+ * Phaser destroys the objects when it stops, but fields keep their values. Reset any field that
+ * holds objects or remembers what is drawn in `onCreate`, not in its initializer.
  */
 import { hookName } from '../engine.js';
 import type { GameResult, PlayerId } from '../game.js';

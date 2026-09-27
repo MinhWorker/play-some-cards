@@ -130,6 +130,9 @@ export class MyView extends GameView<State, Options> {
 }
 ```
 
+- App dùng lại cùng một màn hình cho mọi phòng của game (và sau "Tuỳ chỉnh"): Phaser xoá các đối
+  tượng khi dừng màn, nhưng các field của class vẫn giữ giá trị cũ. Field nào giữ đối tượng hoặc
+  nhớ những gì đã vẽ thì gán lại trong `onCreate`, đừng chỉ gán lúc khai báo.
 - Khi người chơi thao tác, gọi `this.send('place', { x, y })`. Server quyết định có hợp lệ không,
   và lỗi được hiện sẵn cho bạn.
 - `ctx` có `state` (những gì người này được thấy), `me` (`null` với khán giả), `players`, `hostId`,
