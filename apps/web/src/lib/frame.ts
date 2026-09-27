@@ -5,12 +5,58 @@
  *   --frame-left/top/width/height  where the frame is, in CSS px (`.ui` covers it)
  *   --unit                         CSS px per design unit
  *   --hud                          `zoom` of `.hud` panels (design HUD scale × --unit)
+ *
+ * The player's view settings (the settings panel; kept per device, since they suit a screen)
+ * change it too: the HUD size scales text and buttons, and the screen margin keeps the frame
+ * that far from the screen's edges.
  */
 import { type Frame, pickFrame, setFrame } from '@psc/sdk/client';
 import { devSetting, subscribeDevSettings } from '@/lib/devTools';
 
 const listeners = new Set<(frame: Frame) => void>();
 let current: Frame | null = null;
+
+export interface ViewSettings {
+  /** HUD size, 1 = 100% (HUD_SIZES). */
+  hudSize: number;
+  /** Extra space between the frame and the screen's edges, in CSS px (MARGINS). */
+  margin: number;
+}
+
+export const HUD_SIZES = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
+export const MARGINS = [0, 8, 16, 24, 32];
+const VIEW_KEY = 'psc:view';
+const DEFAULT_VIEW: ViewSettings = { hudSize: 1, margin: 0 };
+let view = loadView();
+
+function loadView(): ViewSettings {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VIEW_KEY) ?? 'null') as Partial<ViewSettings>;
+    return {
+      hudSize: HUD_SIZES.includes(saved?.hudSize ?? -1)
+        ? (saved.hudSize as number)
+        : DEFAULT_VIEW.hudSize,
+      margin: MARGINS.includes(saved?.margin ?? -1)
+        ? (saved.margin as number)
+        : DEFAULT_VIEW.margin,
+    };
+  } catch {
+    return DEFAULT_VIEW;
+  }
+}
+
+export function viewSettings() {
+  return view;
+}
+
+/** Changes the player's view settings: saved on this device, and the frame follows at once. */
+export function setViewSettings(change: Partial<ViewSettings>) {
+  view = { ...view, ...change };
+  try {
+    localStorage.setItem(VIEW_KEY, JSON.stringify(view));
+  } catch {}
+  measure();
+}
 
 /** The safe area in CSS px, read from a fixed box inset by env(safe-area-inset-*). */
 function safeArea() {
@@ -23,7 +69,9 @@ function safeArea() {
     document.body.append(probe);
   }
   const r = probe.getBoundingClientRect();
-  return { left: r.left, top: r.top, width: r.width, height: r.height };
+  // The player's margin, but never so much that little is left.
+  const m = Math.min(view.margin, r.width / 8, r.height / 8);
+  return { left: r.left + m, top: r.top + m, width: r.width - 2 * m, height: r.height - 2 * m };
 }
 
 function measure() {
@@ -33,6 +81,7 @@ function measure() {
     devicePixelRatio: window.devicePixelRatio || 1,
     width: devSetting('frameWidth') || undefined,
     maxDpr: devSetting('maxDpr') || undefined,
+    hudSize: view.hudSize,
   });
   const { css } = frame;
   const style = document.documentElement.style;
