@@ -72,7 +72,8 @@ games/<id>/          Only index.ts + client.ts are required
   - The host changes options between games through "Tuỳ chỉnh" or `changeOptions`.
 - **Snapshots** carry `round` and `last` (the last event). `ctx.lastResult` is how the room's
   previous game ended.
-- **Boards**: build them from `GameScene` helpers so they fit phones first:
+- **Boards**: follow `docs/ui-guide.md` (landscape frame, table filling the height, sizes), and
+  build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
 

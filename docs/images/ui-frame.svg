@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -40 1680 860" font-family="Baloo 2, system-ui, sans-serif">
+  <rect x="-40" y="-40" width="1680" height="860" fill="#8fd3f4"/>
+  <!-- The widest frame (20:9) and the narrower presets inside it, all 720 tall. -->
+  <rect x="0" y="0" width="1600" height="720" fill="#e9f7fd" stroke="#2c5d7a" stroke-width="4"/>
+  <g fill="none" stroke="#2c5d7a" stroke-width="3" stroke-dasharray="14 10">
+    <rect x="80" y="0" width="1440" height="720"/>
+    <rect x="160" y="0" width="1280" height="720"/>
+    <rect x="224" y="0" width="1152" height="720"/>
+  </g>
+  <!-- Core: 960×720, on screen in every frame. -->
+  <rect x="320" y="0" width="960" height="720" fill="#fff4d6" stroke="#b5651d" stroke-width="5"/>
+  <!-- Margin (player setting) and the HUD corners. -->
+  <rect x="24" y="24" width="1552" height="672" fill="none" stroke="#7a3" stroke-width="3" stroke-dasharray="4 8"/>
+  <rect x="24" y="24" width="440" height="88" rx="18" fill="#f2c14e" stroke="#8a5a14" stroke-width="3"/>
+  <rect x="1136" y="24" width="440" height="88" rx="18" fill="#f2c14e" stroke="#8a5a14" stroke-width="3"/>
+  <!-- A board filling the core's height under the top bar. -->
+  <rect x="456" y="128" width="688" height="568" rx="12" fill="#c98f4e" stroke="#6b3d12" stroke-width="4"/>
+  <g font-size="30" font-weight="700" fill="#1d3b4f" text-anchor="middle">
+    <text x="244" y="68">HUD trái</text>
+    <text x="1356" y="68">HUD phải</text>
+    <text x="800" y="420">Bàn chơi (trong lõi)</text>
+    <text x="800" y="760">Lõi 960 × 720: luôn nằm trên màn hình</text>
+  </g>
+  <g font-size="24" fill="#1d3b4f">
+    <text x="30" y="700">20:9 (1600)</text>
+    <text x="96" y="660">2:1 (1440)</text>
+    <text x="172" y="620">16:9 (1280)</text>
+    <text x="236" y="580">16:10 (1152)</text>
+    <text x="330" y="540">4:3 = lõi</text>
+    <text x="30" y="150" fill="#4a7a1e">lề 24 (chỉnh được)</text>
+  </g>
+</svg>

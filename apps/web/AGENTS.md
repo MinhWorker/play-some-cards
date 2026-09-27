@@ -13,6 +13,8 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
   - UI shown on every screen goes in `components/hud/`, exported from its `index.ts`.
   - React state logic goes in `hooks/`; plain helpers go in `lib/`.
 - **Floating React panels** get the `hud` class.
+- **Layout**: a landscape frame 720 units tall in five aspect ratios, HUD corners, board sizes and
+  minimum tap/text sizes: `docs/ui-guide.md` (Vietnamese). Follow it for any screen.
 - **Look**: floating sky islands, in a polished 3D-cartoon mobile-game style (2015 Vietnamese
   mobile games).
   - Panels are wood and paper, with yellow buttons (`src/styles/`).
