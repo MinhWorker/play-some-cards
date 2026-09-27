@@ -78,7 +78,8 @@ export class Standings {
 
   /** The line under the rows ("Vòng 3 bắt đầu sau 4 giây"). */
   setFooter(text: string) {
-    this.footer.setText(text);
+    // Called every frame while the countdown runs: redraw only when the words change.
+    if (this.footer.text !== text) this.footer.setText(text);
   }
 
   hide() {
