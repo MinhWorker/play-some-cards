@@ -2,14 +2,43 @@
 
 ## CI (GitHub Actions)
 
-- `ci.yml` (mọi PR và mọi lần push lên `main`): `check` = `npm run check` + `npm run build`;
-  `e2e` = `npm run dev` không có database, rồi `npm run smoke` và `npm run e2e` trong Chromium
-  headless (ảnh chụp được tải lên thành artifact `e2e-screenshots`).
+- `ci.yml` (mọi PR và mọi lần push lên `main`): `check` = `npm run check` + `npm run build`.
+  E2E chia làm ba job:
+  - `e2e-plan` chọn kịch bản cần chạy (`scripts/e2e/scenarios/`). Push lên `main` chạy hết. PR
+    chỉ chạy kịch bản liên quan đến file đã đổi (xem [E2E trong CI](#e2e-trong-ci)).
+  - `e2e-run` chạy mỗi kịch bản trên một máy riêng: `npm run dev` không có database, rồi
+    `npm run e2e -- --only <kịch bản> --retries 1` trong Chromium headless. Ảnh chụp là artifact
+    `e2e-<kịch bản>`. Máy đầu tiên chạy thêm `npm run smoke`.
+  - `e2e` là check bắt buộc: đạt khi mọi kịch bản được chọn đều qua, hoặc không cần kịch bản nào.
 - `pr.yml` (PR): `title` kiểm tra tiêu đề theo Conventional Commit; `protocol` báo lỗi khi
   `packages/shared/src/protocol.ts` thay đổi mà không tăng `PROTOCOL_VERSION` (gắn nhãn
   `protocol:compatible` để bỏ qua).
 - `release.yml` (push lên `main`): release-please giữ PR phát hành luôn cập nhật.
 - Dependabot mở PR gộp hằng tuần cho npm và GitHub Actions.
+
+## E2E trong CI
+
+Mỗi kịch bản là một file trong `scripts/e2e/scenarios/`, tự tạo tài khoản và phòng riêng. Nhờ đó
+các kịch bản chạy song song được. Tổng thời gian bằng thời gian của kịch bản dài nhất cộng khoảng
+một phút cài đặt, không phải tổng của tất cả.
+
+Cách chọn kịch bản cho một PR (`npm run e2e -- --list --changed origin/main` in ra đúng danh
+sách CI sẽ chạy):
+
+- Chỉ đổi tài liệu (`*.md`, `docs/`), ảnh gốc (`games/*/sources/`), `.github/` (trừ `ci.yml`) hay
+  cấu hình release-please: không chạy kịch bản nào.
+- Chỉ đổi trong `games/<id>/`: chạy các kịch bản khai báo `games = ['<id>']`, cùng các kịch bản có
+  `always = true` (đường đi ngắn nhất qua toàn bộ ứng dụng).
+- Chỉ đổi file của một kịch bản: chạy riêng kịch bản đó.
+- Đổi bất cứ thứ gì khác (app, server, SDK, `packages/shared`, `scripts/e2e.mjs`,
+  `scripts/e2e/lib.mjs`, dependency…): chạy hết.
+
+Để test nhanh hơn, server trong CI đặt `BOT_DELAY_MS=200`: máy đi gần như ngay, không nghỉ 0,7 giây
+như khi người thật chơi. Kịch bản lỗi được chạy lại một lần. Nếu lần sau qua, CI vẫn xanh nhưng hiện
+cảnh báo "Flaky e2e" để biết kịch bản đó chập chờn. Một kịch bản chạy quá 10 phút sẽ bị tính là lỗi.
+
+Thêm game mới: viết một kịch bản `scripts/e2e/scenarios/<id>.mjs` có `export const games =
+['<id>']`. CI tự nhận nó, không cần sửa `ci.yml`.
 
 ## Phiên bản
 

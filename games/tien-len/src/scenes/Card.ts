@@ -81,6 +81,9 @@ export class CardSprite extends Phaser.GameObjects.Container {
 
   /** Turns the card over to show `card` (or its back), like a flip in the hand. */
   flipTo(card: Card | null, duration = 180) {
+    // Cleared off the table meanwhile (a new round on a slow screen). An error thrown from a
+    // tween callback would stop Phaser's frame loop for good.
+    if (!this.scene) return;
     const scaleX = this.scaleX || 1;
     this.scene.tweens.add({
       targets: this,
@@ -88,6 +91,7 @@ export class CardSprite extends Phaser.GameObjects.Container {
       duration: duration / 2,
       ease: 'Sine.easeIn',
       onComplete: () => {
+        if (!this.scene) return;
         this.setCard(card);
         this.scene.tweens.add({
           targets: this,

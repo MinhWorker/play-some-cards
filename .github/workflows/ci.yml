@@ -22,9 +22,46 @@ jobs:
       - run: npm run check
       - run: npm run build
 
-  # The real app in headless Chromium, against a server without a database.
-  e2e:
+  # Which e2e scenarios (scripts/e2e/scenarios/) this change needs: all of them on main, the
+  # ones the changed files touch on a PR (none for docs), none for a release PR (versions only).
+  e2e-plan:
     runs-on: ubuntu-latest
+    outputs:
+      scenarios: ${{ steps.pick.outputs.scenarios }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+      - id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: origin/${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [[ "$HEAD_REF" == release-please--* ]]; then list='[]'
+          elif [ "$EVENT" = pull_request ]; then list=$(node scripts/e2e.mjs --list --changed "$BASE")
+          else list=$(node scripts/e2e.mjs --list)
+          fi
+          echo "scenarios=$list" >> "$GITHUB_OUTPUT"
+          echo "E2E scenarios: $list" >> "$GITHUB_STEP_SUMMARY"
+
+  # One machine per scenario, so the slowest scenario sets the time, not their sum. Each runs
+  # the real app in headless Chromium against a server without a database.
+  e2e-run:
+    needs: e2e-plan
+    if: needs.e2e-plan.outputs.scenarios != '[]'
+    name: e2e (${{ matrix.scenario }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: ${{ fromJSON(needs.e2e-plan.outputs.scenarios) }}
+    env:
+      # Computer players move without the pause people need to follow along.
+      BOT_DELAY_MS: 200
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -32,7 +69,14 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      - id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # System libraries always; the browser download is skipped when the cache has it.
+      - run: npx playwright install --with-deps --only-shell chromium
       - name: Start the app
         run: |
           npm run dev > dev.log 2>&1 &
@@ -41,14 +85,28 @@ jobs:
             sleep 1
           done
           cat dev.log; exit 1
-      - run: npm run smoke
-      - run: npm run e2e
+      - if: strategy.job-index == 0
+        run: npm run smoke
+      - run: npm run e2e -- --only ${{ matrix.scenario }} --retries 1
       - name: Dev server log
         if: failure()
         run: cat dev.log
       - uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: e2e-screenshots
+          name: e2e-${{ matrix.scenario }}
           path: .e2e/
           retention-days: 7
+
+  # The required check: passes when every picked scenario passed, or none was needed.
+  e2e:
+    needs: [e2e-plan, e2e-run]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          PLAN: ${{ needs.e2e-plan.result }}
+          RUN: ${{ needs.e2e-run.result }}
+        run: |
+          echo "plan: $PLAN, run: $RUN"
+          [ "$PLAN" = success ] && { [ "$RUN" = success ] || [ "$RUN" = skipped ]; }
