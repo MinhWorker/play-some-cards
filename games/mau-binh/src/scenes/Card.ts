@@ -122,11 +122,19 @@ export class CardSprite extends Phaser.GameObjects.Container {
       .strokeRoundedRect(-w / 2, -h / 2, w, h, Math.max(3, w * 0.1));
   }
 
+  /** A card cleared off the table mid-flip stops flipping (the frames would touch it gone). */
+  protected override preDestroy() {
+    for (const t of this.flipping) t.remove(false);
+    this.flipping = [];
+    super.preDestroy();
+  }
+
   /**
    * Turns the card over to show `card` (or its back): three drawn frames in between, the
    * whole flip taking `duration` ms.
    */
   flipTo(card: Card | null, duration = 240) {
+    if (!this.scene) return;
     for (const t of this.flipping) t.remove(false);
     const toFace = card !== null;
     const frames = toFace ? this.textures.flip : [...this.textures.flip].reverse();

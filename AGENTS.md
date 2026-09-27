@@ -37,7 +37,7 @@ docs/              Guides for people: making-a-game, deploy, <game>-audio
 | `npm run dev` | Server on :8033, web on :5033 (Vite proxies `/api` and `/socket.io`). `PORT=8133 WEB_PORT=5133` moves them |
 | `npm run check` | Lint + typecheck + unit tests |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
-| `npm run e2e [url]` | Headless Chromium plays Caro through the real UI (needs a running dev server). Screenshots in `.e2e/` |
+| `npm run e2e [url]` | Headless Chromium plays every scenario in `scripts/e2e/scenarios/` through the real UI, side by side (needs a running dev server). `-- --only <names>`, `-- --changed origin/main`; flags at the top of `scripts/e2e.mjs`. Screenshots in `.e2e/<scenario>/` |
 | `npm run smoke [url]` | Bots play Caro over sockets against a running server |
 
 Commands for games, assets and the DB are in the topic files above.
@@ -82,9 +82,10 @@ Test what the change needs, no more (e2e is slow):
 - **Small UI/CSS tweaks**: `npm run check`, plus one headless phone (390×844) screenshot of that
   screen.
 - **Other code changes**: `npm run check` passes.
-- **Gameplay, room/lobby flow, protocol or socket changes**: also run `npm run e2e` against a
-  running dev server and look at the screenshots. Run it once, at the end of the task, not after
-  every small follow-up edit. For a game, also try it in the sandbox.
+- **Gameplay, room/lobby flow, protocol or socket changes**: also run
+  `npm run e2e -- --changed origin/main` (the scenarios CI will pick) against a running dev
+  server and look at the screenshots. Run it once, at the end of the task, not after every small
+  follow-up edit. For a game, also try it in the sandbox.
 
 Keep the AGENTS.md files accurate when you change layout, commands or conventions. This file
 holds what every session needs; a topic file holds the rest.
