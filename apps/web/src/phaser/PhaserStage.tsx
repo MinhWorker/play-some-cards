@@ -94,6 +94,9 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
         parent: parent.current,
         backgroundColor: '#8fd3f4',
         scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+        // Mipmaps for power-of-two images (256×256 pieces…): drawn at a fraction of their size,
+        // they stay smooth instead of turning jagged.
+        render: { mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
         // Only listen on the canvas. Window listeners would let taps on React panels and
         // modals (drawn over the canvas) reach the islands or board underneath.
         input: { windowEvents: false },

@@ -2,6 +2,11 @@
 export interface GameAssets {
   images: Record<string, string>;
   sounds: Record<string, string>;
+  /**
+   * `<name>.json` next to image `<name>`: that image is a texture atlas (Phaser's JSON hash or
+   * array format, as texture packers write it), its frames animated with `GameScene.anim()`.
+   */
+  atlases: Record<string, string>;
 }
 
 /**

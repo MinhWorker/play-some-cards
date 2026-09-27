@@ -2,13 +2,13 @@
 
 ## Đích đến
 
-Hai người chơi một ván Cờ Tướng trọn vẹn trên bàn cờ dễ đọc ở điện thoại. Quân cờ giữ dáng quân
-gỗ truyền thống nhưng các nước ăn quân có nhịp hành động riêng: lao tới, bay, nhào lộn, va đập
-và vỡ thành mảnh gỗ. Những khai cuộc hoặc thế đánh được nhận diện chắc chắn có cut-in tên bằng
-tiếng Việt. Hiệu ứng làm nước đi đáng nhớ nhưng không che khuất trạng thái bàn cờ.
+Hai người chơi một ván Cờ Tướng trọn vẹn trên bàn cờ dễ đọc ở điện thoại. Quân cờ bằng ngọc trắng
+khắc chữ Hán; các nước ăn quân có nhịp hành động riêng: lao tới, bay, nhào lộn, va đập và vỡ.
+Những khai cuộc hoặc thế đánh được nhận diện chắc chắn có cut-in tên bằng tiếng Việt. Hiệu ứng làm nước đi đáng nhớ nhưng không che khuất trạng thái bàn cờ.
 
-Hiện thư mục game vẫn dùng luật và màn hình mẫu “đua tới 21”; mới có hình đảo, nhạc và hiệu ứng
-âm thanh Cờ Tướng. Các hạng mục dưới đây đều là việc sẽ triển khai.
+Hiện đã có luật đầy đủ (nước đi, chiếu, chiếu bí, hết nước, lặp thế cờ, xin hoà, đầu hàng), máy
+chơi ba mức, bàn cờ và 14 quân; xem [README](README.md). Các hạng mục còn lại
+(hoạt ảnh ăn quân riêng từng loại, mảnh vỡ, cut-in) là việc sẽ triển khai.
 
 ## Luật chơi sẽ áp dụng
 
@@ -34,12 +34,10 @@ Hiện thư mục game vẫn dùng luật và màn hình mẫu “đua tới 21�
   của ứng dụng. Ưu tiên nhìn được nước đi trên màn hình nhỏ trước khi thêm chi tiết trang trí.
 - Dựng một dáng quân tròn thống nhất và bảy biến thể nhận diện cho từng loại quân, mỗi loại có bản
   Đỏ và Đen. Các quân cùng loại dùng chung ngôn ngữ tạo hình; 32 quân trên bàn vẫn dễ phân biệt
-  nhờ màu, ký hiệu và bố cục chuẩn. Chữ trên quân và chữ cut-in được vẽ bằng chữ trong game, không
-  đóng sẵn vào ảnh.
+  nhờ màu, ký hiệu và bố cục chuẩn.
 - Dùng Blender dựng model, vật liệu, ánh sáng và chuyển động; render thành frame 2D nền trong suốt
   để hiển thị trong Phaser. Giữ cùng góc máy, kích thước và điểm neo cho mọi frame để quân không
-  bị “nhảy” khi đổi từ trạng thái đứng yên sang hoạt ảnh. Lưu model và cảnh gốc để chỉnh sửa,
-  còn game chỉ tải hình đã xuất.
+  bị “nhảy” khi đổi từ trạng thái đứng yên sang hoạt ảnh. Repo chỉ chứa hình đã xuất.
 - Làm trước một quân mẫu và một cảnh ăn quân mẫu để duyệt độ rõ, độ vui và dung lượng trên điện
   thoại, rồi mới sản xuất đủ bộ.
 
@@ -59,7 +57,7 @@ luôn kết thúc ở giao điểm hợp lệ, dù pha hành động có cườn
 | Pháo | Lấy đà qua quân ngòi, bật lên và nện xuống ô đích. |
 | Tốt/Binh | Lao bước ngắn, cú đẩy nhỏ mà dứt khoát. |
 
-Quân bị ăn có phản ứng trúng đòn, bay lệch khỏi bàn rồi vỡ thành mảnh gỗ; mức độ va đập thay đổi
+Quân bị ăn có phản ứng trúng đòn, bay lệch khỏi bàn rồi vỡ vụn; mức độ va đập thay đổi
 theo loại quân tấn công để các pha không giống hệt nhau. Nước thường có chuyển động ngắn hơn;
 chọn quân, chiếu Tướng, chiếu bí, thắng và hoà có điểm nhấn riêng. Ghép các pha này với bộ âm
 thanh đã có theo [kế hoạch âm thanh](../../docs/xiangqi-audio.md), tránh nhiều âm kết quả phát

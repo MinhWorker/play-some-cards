@@ -1,27 +1,65 @@
 # Cờ Tướng
 
-Game đang ở trạng thái `wip`: luật và màn hình hiện vẫn là game mẫu “đua tới 21”. Xem
-[kế hoạch Cờ Tướng](PLAN.md) về phiên bản luật, model 3D, hoạt ảnh và cut-in tên thế cờ;
-[kế hoạch âm thanh](../../docs/xiangqi-audio.md) liệt kê các hiệu ứng đã chuẩn bị.
+Cờ Tướng cho hai người theo [Luật Cờ Tướng Thế giới 2018 của WXF](https://www.wxf-xiangqi.org/images/wxf-rules/2018_World_XiangQi_Rules_English2018.pdf),
+chơi với bạn bè hoặc với máy. Game đang ở trạng thái `wip`. Xem [kế hoạch Cờ Tướng](PLAN.md) về
+hoạt ảnh và cut-in tên thế cờ; [kế hoạch âm thanh](../../docs/xiangqi-audio.md) ghi âm thanh nào
+phát khi nào.
+
+## Luật chơi
+
+- Bàn 9 đường dọc × 10 đường ngang, quân đi trên giao điểm. Đỏ đi trước.
+- **Tướng** đi một bước ngang/dọc trong cung. **Sĩ** đi một bước chéo trong cung. **Tượng** đi
+  chéo hai bước, không qua sông, bị cản nếu có quân ở giữa (mắt tượng). **Xe** đi thẳng bao xa
+  cũng được. **Mã** đi chữ L, bị cản nếu có quân sát bên cạnh theo hướng đi (chân mã). **Pháo**
+  đi như Xe, nhưng ăn quân phải nhảy qua đúng một quân (ngòi). **Tốt** đi thẳng một bước; qua
+  sông thì được đi ngang, không bao giờ đi lùi.
+- Không được đi nước để Tướng mình bị chiếu, và hai Tướng không được đối mặt trên một cột trống.
+- **Thua** khi tới lượt mà không còn nước đi hợp lệ (bị chiếu bí, hoặc hết nước dù không bị
+  chiếu), khi đầu hàng, hoặc khi rời bàn giữa ván.
+- **Lặp lại thế cờ** (cùng một thế xuất hiện lần thứ ba):
+  - bên nào nước nào cũng chiếu (chiếu dai) thì thua;
+  - bên nào nước nào cũng đuổi bắt một quân (đuổi dai) thì thua; chiếu dai gặp đuổi dai thì bên
+    chiếu thua;
+  - không ai phạm, hoặc cả hai cùng phạm như nhau, thì hoà.
+
+  "Đuổi" là nước tạo ra mối đe doạ mới ăn một quân không được bảo vệ, hoặc dùng Mã/Pháo doạ ăn
+  Xe (dù Xe có được bảo vệ). Tướng và Tốt doạ ăn thì không tính là đuổi; doạ ăn Tốt chưa qua sông
+  cũng không tính.
+- **Hoà** khi hai bên đồng ý (một bên bấm "Xin hoà", bên kia bấm "Đồng ý hoà"; đi một nước là
+  từ chối), khi 60 nước mỗi bên liền không ai ăn quân, hoặc khi cả hai bên đều không còn Xe, Mã,
+  Pháo, Tốt.
+- Chưa có đồng hồ: mỗi nước nghĩ bao lâu cũng được.
+
+## Tạo phòng
+
+Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó) và
+**Bạn cầm quân** (Đỏ đi trước, hoặc Đen). Chủ phòng đổi các tuỳ chọn này giữa hai ván bằng
+"Tuỳ chỉnh". Người cầm Đen thấy bàn cờ xoay ngược để quân mình luôn ở dưới.
+
+Nút **Hiệu ứng** dưới bàn bật/tắt hiệu ứng trên máy đang dùng (nhớ trong trình duyệt): khi tắt,
+quân chuyển thẳng tới chỗ mới, không nhấc, không bụi, không rung.
 
 ## Các thứ nằm ở đâu
 
 ```
 src/
-  index.ts                  đầu vào phía server: meta (tên, số người, đảo) + phần logic
-  client.ts                 đầu vào phía trình duyệt: hiện những màn nào
-  game/XiangqiGame.ts      phần logic (server): State, sự kiện và hook của chúng
-  game/XiangqiGame.test.ts test (npm run check)
-  scenes/XiangqiView.ts    màn hình (trình duyệt): hook và đối tượng
-assets/                     hình (.webp/.png) và âm thanh (.wav/.mp3), dùng theo tên file
+  index.ts                  đầu vào phía server: meta, phần logic và tuỳ chọn phòng
+  client.ts                 đầu vào phía trình duyệt: form tạo phòng và bàn cờ
+  game/model.ts             dữ liệu: State, View, tuỳ chọn phòng
+  game/rules.ts             quân đi thế nào, chiếu, nước hợp lệ (dùng chung cho server, máy và màn hình)
+  game/referee.ts           phân xử lặp thế cờ: chiếu dai, đuổi dai, hoà
+  game/bot.ts               máy chơi (tìm kiếm alpha-beta theo giá trị quân)
+  game/XiangqiGame.ts       các sự kiện: move, offer-draw, decline-draw, resign
+  scenes/XiangqiView.ts     bàn cờ: chọn quân, chấm nước đi, nút xin hoà/đầu hàng
+  scenes/Setup.ts           form tạo phòng
+  scenes/theme.ts           tên quân, màu, câu kết quả ván
+assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo tên file
 sources/                    file gốc tuỳ chọn; `npm run assets -- xiangqi` biến chúng thành assets/
 ```
 
-Một game là hai lớp có các hook vòng đời, giống script trong Unity. Một lần bấm gọi
-`this.send('add', { amount })` trong view; server chạy `onAdd(ctx)` trong game và trả về state kế
-tiếp; rồi mọi màn hình nhận `onAdd(ctx, event)` và `onState(ctx)`. games/counter liệt kê mọi hook;
-games/tic-tac-toe thêm tuỳ chọn phòng, màn "Tạo phòng" và người chơi máy.
+`board.webp` là ảnh sinh (prompt trong `sources/prompts.json`), đường kẻ do game vẽ theo `BOARD`
+trong `scenes/theme.ts`. `piece-<red|black>-<kind>.webp`, bóng
+chung `piece-shadow.webp` và `river.webp` (楚河 漢界) render từ Blender. `button.webp` lấy từ Tiến Lên.
 
-Thêm file từ mẫu: `npm run new -- logic|view|setup xiangqi [Tên]`.
-
+Test: `npm run check` (gồm perft đếm nước đi từ thế khai cuộc, chiếu bí, hết nước, lặp thế cờ).
 Chơi thử một mình: http://localhost:5033/?play=xiangqi&players=2 (khi đang chạy `npm run dev`).

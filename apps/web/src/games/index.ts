@@ -9,7 +9,7 @@ import { checkForNewBuild } from '@/lib/newBuild';
  */
 
 // URLs only (no download until used): every file in games/<id>/assets/.
-const files = import.meta.glob('../../../../games/*/assets/*.{webp,png,jpg,wav,mp3,ogg}', {
+const files = import.meta.glob('../../../../games/*/assets/*.{webp,png,jpg,wav,mp3,ogg,json}', {
   eager: true,
   query: '?url',
   import: 'default',
@@ -23,14 +23,15 @@ const assetsById: Record<string, GameAssets> = {};
 for (const [path, url] of Object.entries(files)) {
   const [, id, file] = path.match(/games\/([^/]+)\/assets\/(.+)$/) ?? [];
   if (!id || !file) continue;
-  assetsById[id] ??= { images: {}, sounds: {} };
+  assetsById[id] ??= { images: {}, sounds: {}, atlases: {} };
   const name = file.replace(/\.\w+$/, '');
-  (IMAGE.test(file) ? assetsById[id].images : assetsById[id].sounds)[name] = url;
+  const kind = file.endsWith('.json') ? 'atlases' : IMAGE.test(file) ? 'images' : 'sounds';
+  assetsById[id][kind][name] = url;
 }
 
 /** URLs of a game's `assets/`, by file name without the extension. */
 export function gameAssets(gameId: string): GameAssets {
-  return assetsById[gameId] ?? { images: {}, sounds: {} };
+  return assetsById[gameId] ?? { images: {}, sounds: {}, atlases: {} };
 }
 
 /** A game's background music: every `music*` file in its assets/ (empty if it has none). */

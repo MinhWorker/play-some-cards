@@ -6,6 +6,8 @@ dist/
 coverage/
 .DS_Store
 .vercel
+.blender
+.claude/tmp/
 .env*
 !.env.example
 .e2e/

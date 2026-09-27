@@ -29,10 +29,13 @@ export abstract class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    const { images, sounds } = clientHost().assets(this.gameId);
+    const { images, sounds, atlases } = clientHost().assets(this.gameId);
     for (const [name, url] of Object.entries(images)) {
       const key = `${this.gameId}/${name}`;
-      if (!this.textures.exists(key)) this.load.image(key, url);
+      if (this.textures.exists(key)) continue;
+      const atlas = atlases[name];
+      if (atlas) this.load.atlas(key, url, atlas);
+      else this.load.image(key, url);
     }
     for (const [name, url] of Object.entries(clientHost().avatars())) {
       if (!this.textures.exists(`avatar/${name}`)) this.load.image(`avatar/${name}`, url);
@@ -64,6 +67,24 @@ export abstract class GameScene extends Phaser.Scene {
   /** Adds `assets/<name>.webp|png` as an image. */
   protected image(x: number, y: number, name: string) {
     return this.add.image(x, y, this.texture(name));
+  }
+
+  /**
+   * An animation of every frame of atlas `assets/<name>` (image + same-name .json), in the
+   * frames' name order (`hop-01`, `hop-02`…). Made once; returns its key for `sprite.play()`:
+   *   this.sprite('horse-hop').play(this.anim('horse-hop', { frameRate: 30 }))
+   */
+  protected anim(name: string, { frameRate = 24, repeat = 0 } = {}) {
+    const key = this.texture(name);
+    if (!this.anims.exists(key)) {
+      const frames = this.textures
+        .get(key)
+        .getFrameNames()
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
+        .map((frame) => ({ key, frame }));
+      this.anims.create({ key, frames, frameRate, repeat });
+    }
+    return key;
   }
 
   /** Plays `assets/<name>.wav|mp3` on the effects channel (follows the player's volume). */

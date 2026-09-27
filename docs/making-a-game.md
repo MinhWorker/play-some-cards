@@ -142,6 +142,8 @@ export class MyView extends GameView<State, Options> {
   `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
   `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi.
+- Hình có file `.json` cùng tên là atlas (nhiều khung gộp một ảnh): `this.anim('hop')` tạo hoạt
+  ảnh từ mọi khung theo thứ tự tên, dùng với `sprite.play(...)`.
 - `titleStyle(size)`, `hudScale()`, `this.fitText(...)` và `this.boardArea()` giữ đúng phong cách
   của ứng dụng và vừa điện thoại nhỏ.
 - Bảng thắng/hoà, nút "Chơi ván mới", thanh phòng và âm thanh khi thắng đã được ứng dụng làm sẵn.
@@ -202,9 +204,8 @@ vào (nếu còn ghế) hoặc rời đi, và tỉ số tính lại từ đầu.
 
 Đặt file hoàn chỉnh vào `assets/` là được dùng nguyên như vậy. Làm bằng cách nào cũng được: tự vẽ,
 tạo bằng AI, render bằng Blender, vẽ bằng code (Phaser graphics), tài nguyên miễn phí trên mạng; chọn
-cái trông và nghe hợp với game nhất, ghi nguồn khi tiện. Chỉ đừng đặt chữ vào trong hình (viết chữ
-bằng Phaser, để nó là tiếng Việt và vừa mọi cỡ màn hình). `assets/island.webp` là hòn đảo của game trên bản đồ
-trang chủ (`meta.portal.image`).
+cái trông và nghe hợp với game nhất, ghi nguồn khi tiện. `assets/island.webp` là hòn đảo của game
+trên bản đồ trang chủ (`meta.portal.image`).
 
 Hình gốc lớn có thể để trong `sources/` (lưu bằng Git LFS), rồi `npm run assets -- <id>` tạo file
 sẵn dùng: mỗi hình trong `sources/` thành một `assets/<cùng tên>.webp` đã cắt viền và thu nhỏ (tuỳ
