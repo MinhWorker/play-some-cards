@@ -5,6 +5,11 @@
       "transparent": true,
       "maxSize": 640,
       "prompt": "A floating sky island: rocky brown underside tapering to a point with a few hanging vines, lush green grass on top, and on top an oriental Chinese chess (xiangqi) board with round wooden disc pieces in red and black, a small bonsai pine tree and a stone lantern. Isometric 3/4 view, whole island visible."
+    },
+    "board": {
+      "transparent": true,
+      "maxSize": 1200,
+      "prompt": "A Chinese chess (xiangqi) playing board seen exactly from the top, flat top-down orthographic view, nearly square but slightly taller than wide (about 9:10 portrait), softly rounded outer corners: a thick glossy red-lacquered wooden rim with a thin gold trim line on its inner edge and small ornate gold corner pieces, around a large smooth light honey-colored wooden playing surface with a very subtle soft wood grain. The playing surface is completely empty and plain: no grid lines, no markings, no pieces, no text. Matches a red-lacquer card table from the same game."
     }
   }
 }

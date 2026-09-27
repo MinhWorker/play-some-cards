@@ -17,7 +17,8 @@ games/<id>/          Only index.ts + client.ts are required
   src/client.ts        export default defineClient({ scene, setup?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
   src/game/            Pure logic, no Phaser or DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
   src/scenes/          Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (a RoomSetupScene for "Tạo phòng")
-  assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'))
+  assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'));
+                       an image with a same-name .json is an atlas (this.anim('hop'))
   sources/             Optional originals (Git LFS) + prompts.json (see assets/AGENTS.md)
 ```
 

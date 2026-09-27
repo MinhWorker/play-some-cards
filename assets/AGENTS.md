@@ -5,7 +5,6 @@
 - Pick what looks and sounds best for a card/board game in the app's style.
 - Credit a source when it's easy, in the game's README or in LICENSE-ASSETS.md.
 - Use only free, clearly allowed assets, and never sell anything.
-- **Images carry no text.** Write text in code, so it is Vietnamese and fits any size.
 
 ## Where files live
 
