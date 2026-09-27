@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/MinhWorker/play-some-cards/compare/v0.5.0...v0.5.1) (2026-09-27)
+
+
+### Bug fixes
+
+* **web:** enable Chrome PWA install promotion ([#26](https://github.com/MinhWorker/play-some-cards/issues/26)) ([f695cf2](https://github.com/MinhWorker/play-some-cards/commit/f695cf22d5dafdbfca0ee486d5d505e661195eda))
+* **web:** open the installed app full screen and sideways ([#28](https://github.com/MinhWorker/play-some-cards/issues/28)) ([ce12dd7](https://github.com/MinhWorker/play-some-cards/commit/ce12dd7f20378b5eff24063290815750f466af46))
+
 ## [0.5.0](https://github.com/MinhWorker/play-some-cards/compare/v0.4.0...v0.5.0) (2026-09-27)
 
 
