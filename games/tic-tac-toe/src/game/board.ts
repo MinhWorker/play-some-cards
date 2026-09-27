@@ -1,5 +1,14 @@
-/** Helpers for the square grid, shared by CaroGame, the bot and CaroView. */
-import type { Cell, Mark } from './model.js';
+/** Helpers for the growing board, shared by CaroGame, the bot and CaroView. */
+import {
+  type Board,
+  type Cell,
+  GROW,
+  MAX_SIDE,
+  type Mark,
+  type Point,
+  START_SIDE,
+  WIN,
+} from './model.js';
 
 /** Right, down, down-right, down-left. */
 export const DIRECTIONS = [
@@ -10,37 +19,95 @@ export const DIRECTIONS = [
 ] as const;
 type Direction = (typeof DIRECTIONS)[number];
 
-/** Side length of a square board. */
-export const sideOf = (board: Cell[]) => Math.round(Math.sqrt(board.length));
+/** An empty START_SIDE × START_SIDE board. */
+export function newBoard(): Board {
+  const side = START_SIDE;
+  return { left: 0, top: 0, cols: side, rows: side, cells: Array(side * side).fill(null) };
+}
+
+export function inside(board: Board, { x, y }: Point) {
+  const col = x - board.left;
+  const row = y - board.top;
+  return col >= 0 && row >= 0 && col < board.cols && row < board.rows;
+}
+
+/** The mark on `p`, `null` if it is free, `undefined` off the board. */
+export function at(board: Board, p: Point): Cell | undefined {
+  if (!inside(board, p)) return undefined;
+  return board.cells[(p.y - board.top) * board.cols + (p.x - board.left)];
+}
+
+/** Every cell of the board, row by row. */
+export function points(board: Board): Point[] {
+  return Array.from({ length: board.cols * board.rows }, (_, i) => ({
+    x: board.left + (i % board.cols),
+    y: board.top + Math.floor(i / board.cols),
+  }));
+}
+
+/** The free cells. */
+export function emptyCells(board: Board) {
+  return points(board).filter((p) => at(board, p) === null);
+}
+
+/** "x,y", to key maps and sets by cell. */
+export const keyOf = ({ x, y }: Point) => `${x},${y}`;
+
+/** The board after `mark` takes `p` (a new board). */
+export function place(board: Board, p: Point, mark: Mark): Board {
+  const cells = board.cells.slice();
+  cells[(p.y - board.top) * board.cols + (p.x - board.left)] = mark;
+  return { ...board, cells };
+}
 
 /**
- * Walks from `cell` one way (`sign` 1 or -1): `run` = `mark`s right after it, `open` = the cell
+ * The board after a mark on `p`: every edge `p` stands on gets GROW more rows or columns on
+ * that side, as long as the board stays within MAX_SIDE (a corner grows both ways).
+ */
+export function grow(board: Board, p: Point): Board {
+  const more = (side: number) => (side + GROW <= MAX_SIDE ? GROW : 0);
+  const left = p.x === board.left ? more(board.cols) : 0;
+  const right = p.x === board.left + board.cols - 1 ? more(board.cols) : 0;
+  const up = p.y === board.top ? more(board.rows) : 0;
+  const down = p.y === board.top + board.rows - 1 ? more(board.rows) : 0;
+  if (!left && !right && !up && !down) return board;
+  const next: Board = {
+    left: board.left - left,
+    top: board.top - up,
+    cols: board.cols + left + right,
+    rows: board.rows + up + down,
+    cells: [],
+  };
+  next.cells = points(next).map((q) => at(board, q) ?? null);
+  return next;
+}
+
+/**
+ * Walks from `p` one way (`sign` 1 or -1): `run` = `mark`s right after it, `open` = the cell
  * after them is free, `room` = cells up to the other player's mark or the edge.
  */
-function walk(board: Cell[], cell: number, mark: Mark, [dx, dy]: Direction, sign: 1 | -1) {
-  const size = sideOf(board);
-  let x = (cell % size) + dx * sign;
-  let y = Math.floor(cell / size) + dy * sign;
-  const at = () => (x >= 0 && y >= 0 && x < size && y < size ? board[y * size + x] : undefined);
+function walk(board: Board, p: Point, mark: Mark, [dx, dy]: Direction, sign: 1 | -1) {
+  const q = { x: p.x + dx * sign, y: p.y + dy * sign };
+  const cell = () => at(board, q);
   const step = () => {
-    x += dx * sign;
-    y += dy * sign;
+    q.x += dx * sign;
+    q.y += dy * sign;
   };
   let run = 0;
-  for (; at() === mark; step()) run++;
-  const open = at() === null;
+  for (; cell() === mark; step()) run++;
+  const open = cell() === null;
   let room = run;
-  for (; at() !== undefined && at() !== otherMark(mark); step()) room++;
+  for (; cell() !== undefined && cell() !== otherMark(mark); step()) room++;
   return { run, open, room };
 }
 
 /**
- * If `mark` stood on `cell`: its run through `cell` along `direction`, how many of the run's two
- * ends are free (0-2), and the room it has to grow (a run that can't reach `win` is dead).
+ * If `mark` stood on `p`: its run through `p` along `direction`, how many of the run's two
+ * ends are free (0-2), and the room it has to grow (a run that can't reach WIN is dead).
  */
-export function runAt(board: Cell[], cell: number, mark: Mark, direction: Direction) {
-  const a = walk(board, cell, mark, direction, 1);
-  const b = walk(board, cell, mark, direction, -1);
+export function runAt(board: Board, p: Point, mark: Mark, direction: Direction) {
+  const a = walk(board, p, mark, direction, 1);
+  const b = walk(board, p, mark, direction, -1);
   return {
     length: 1 + a.run + b.run,
     open: Number(a.open) + Number(b.open),
@@ -48,43 +115,45 @@ export function runAt(board: Cell[], cell: number, mark: Mark, direction: Direct
   };
 }
 
-/** The cells of the first run of `win` equal marks, or `null` if there is none. */
-export function winningLine(board: Cell[], win: number): [number, ...number[]] | null {
-  const size = sideOf(board);
-  for (let cell = 0; cell < board.length; cell++) {
-    const mark = board[cell];
+/** Whether `mark` on `p` would make WIN (or more) in a row. */
+export function winsAt(board: Board, p: Point, mark: Mark) {
+  return DIRECTIONS.some((d) => runAt(board, p, mark, d).length >= WIN);
+}
+
+/** The first WIN cells in a row with the same mark, or `null` if there are none. */
+export function winningLine(board: Board): Point[] | null {
+  for (const p of points(board)) {
+    const mark = at(board, p);
     if (!mark) continue;
-    const x = cell % size;
-    const y = Math.floor(cell / size);
     for (const [dx, dy] of DIRECTIONS) {
-      const line: [number, ...number[]] = [cell];
-      for (let step = 1; step < win; step++) {
-        const nx = x + dx * step;
-        const ny = y + dy * step;
-        if (nx < 0 || ny < 0 || nx >= size || ny >= size || board[ny * size + nx] !== mark) break;
-        line.push(ny * size + nx);
-      }
-      if (line.length === win) return line;
+      const line = Array.from({ length: WIN }, (_, i) => ({ x: p.x + dx * i, y: p.y + dy * i }));
+      if (line.every((q) => at(board, q) === mark)) return line;
     }
   }
   return null;
 }
 
-/** Someone has `win` in a row, or the board is full. */
-export function isOver(board: Cell[], win: number) {
-  return winningLine(board, win) !== null || board.every((cell) => cell !== null);
+/**
+ * Nobody can win any more: the board can't grow (MAX_SIDE both ways) and every WIN cells in a
+ * row on it already hold both marks. A full board is the extreme case.
+ */
+export function isDraw(board: Board) {
+  if (board.cols < MAX_SIDE || board.rows < MAX_SIDE) return false;
+  for (const p of points(board)) {
+    for (const [dx, dy] of DIRECTIONS) {
+      const line = Array.from({ length: WIN }, (_, i) =>
+        at(board, { x: p.x + dx * i, y: p.y + dy * i }),
+      );
+      if (line.includes(undefined)) continue;
+      if (!line.includes('X') || !line.includes('O')) return false;
+    }
+  }
+  return true;
 }
 
-/** Indexes of the free cells. */
-export function emptyCells(board: Cell[]) {
-  return board.flatMap((cell, i) => (cell === null ? [i] : []));
-}
-
-/** The board after `mark` takes `cell` (a new array). */
-export function place(board: Cell[], cell: number, mark: Mark) {
-  const next = board.slice();
-  next[cell] = mark;
-  return next;
+/** Someone has WIN in a row, or nobody can get it any more. */
+export function isOver(board: Board) {
+  return winningLine(board) !== null || isDraw(board);
 }
 
 export const otherMark = (mark: Mark): Mark => (mark === 'X' ? 'O' : 'X');

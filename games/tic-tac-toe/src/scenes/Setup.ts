@@ -1,30 +1,28 @@
 /**
- * The room settings screen, in steps: play a friend or the computer, (computer) how strong,
- * then the board size. It opens for "Tạo phòng" and again for "Tuỳ chỉnh" inside a room, where
+ * The room settings screen, in steps: play a friend or the computer, then (computer) how strong.
+ * It opens for "Tạo phòng" and again for "Tuỳ chỉnh" inside a room, where
  * the room's current picks are marked gold. The last tap calls `this.submit(options)`; those
  * options stay with the room (`ctx.options` in CaroGame and CaroView).
  */
 import { hudScale, RoomSetupScene, titleStyle } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import { type BotLevel, type Options, optionsSchema, SIZES, WIN_LENGTH } from '../game/model.js';
+import { type BotLevel, type Options, optionsSchema } from '../game/model.js';
 import { MARKS, TINT } from './theme.js';
 
-/** A wooden tile with a label (and a piece or a second line) that reacts to taps. */
+/** A wooden tile with a label (and maybe a piece) that reacts to taps. */
 interface Choice {
   /** Whether this is what the room has now (marked when editing a room). */
   isCurrent: (current: Options) => boolean;
   tile: Phaser.GameObjects.Image;
   label: Phaser.GameObjects.Text;
   icon?: Phaser.GameObjects.Image;
-  sub?: Phaser.GameObjects.Text;
 }
 
-type Step = 'opponent' | 'level' | 'size';
+type Step = 'opponent' | 'level';
 
 const TITLES: Record<Step, string> = {
   opponent: 'Chơi với ai?',
   level: 'Máy chơi giỏi cỡ nào?',
-  size: 'Bàn cờ bao lớn?',
 };
 
 const LEVELS: { level: BotLevel; label: string }[] = [
@@ -42,7 +40,6 @@ export class Setup extends RoomSetupScene<Options> {
   private back!: Phaser.GameObjects.Text;
   private opponents: Choice[] = [];
   private levels: Choice[] = [];
-  private sizes: Choice[] = [];
   /** Ignores taps for a moment after asking for a room (no double rooms). */
   private sentAt = 0;
 
@@ -61,7 +58,8 @@ export class Setup extends RoomSetupScene<Options> {
       this.choice(
         'Bạn bè',
         { piece: MARKS.X.piece, isCurrent: (c) => c.opponent === 'human' },
-        () => this.pick({ opponent: 'human' }, 'size'),
+        // Editing keeps what this screen doesn't ask (who plays red).
+        () => this.send({ ...this.current, opponent: 'human' }),
       ),
       this.choice('Máy', { piece: MARKS.O.piece, isCurrent: (c) => c.opponent === 'bot' }, () =>
         this.pick({ opponent: 'bot' }, 'level'),
@@ -69,22 +67,14 @@ export class Setup extends RoomSetupScene<Options> {
     ];
     this.levels = LEVELS.map(({ level, label }) =>
       this.choice(label, { isCurrent: (c) => c.opponent === 'bot' && c.level === level }, () =>
-        this.pick({ level }, 'size'),
-      ),
-    );
-    this.sizes = SIZES.map((size) =>
-      this.choice(
-        `${size}×${size}`,
-        { sub: `nối ${WIN_LENGTH[size]}`, isCurrent: (c) => c.size === size },
-        // Editing keeps what this screen doesn't ask (who plays red).
-        () => this.send({ ...this.current, ...this.picked, size }),
+        this.send({ ...this.current, ...this.picked, level }),
       ),
     );
   }
 
   private choice(
     text: string,
-    extra: { piece?: string; sub?: string; isCurrent: Choice['isCurrent'] },
+    extra: { piece?: string; isCurrent: Choice['isCurrent'] },
     onPick: () => void,
   ) {
     const tile = this.image(0, 0, 'tile').setInteractive({ useHandCursor: true });
@@ -102,7 +92,6 @@ export class Setup extends RoomSetupScene<Options> {
       label: this.add.text(0, 0, text, titleStyle(32)).setOrigin(0.5),
     };
     if (extra.piece) choice.icon = this.image(0, 0, extra.piece);
-    if (extra.sub) choice.sub = this.add.text(0, 0, extra.sub, titleStyle(22)).setOrigin(0.5);
     return choice;
   }
 
@@ -132,7 +121,7 @@ export class Setup extends RoomSetupScene<Options> {
     const hud = hudScale();
     const top = this.safeTop();
     const step = this.steps.at(-1) ?? 'opponent';
-    const all = { opponent: this.opponents, level: this.levels, size: this.sizes };
+    const all = { opponent: this.opponents, level: this.levels };
     for (const [name, choices] of Object.entries(all)) {
       for (const c of choices) this.setVisible(c, name === step);
     }
@@ -158,10 +147,9 @@ export class Setup extends RoomSetupScene<Options> {
       const x = width / 2 + (i - (count - 1) / 2) * (size + gap);
       c.tile.setPosition(x, cy).setDisplaySize(size, size);
       this.tint(c);
-      const labelY = c.icon ? cy + size * 0.28 : c.sub ? cy - size * 0.08 : cy;
+      const labelY = c.icon ? cy + size * 0.28 : cy;
       c.label.setFontSize(Math.max(22, size * 0.2)).setPosition(x, labelY);
       c.icon?.setPosition(x, cy - size * 0.1).setScale((size * 0.45) / c.icon.width);
-      c.sub?.setFontSize(Math.max(16, size * 0.13)).setPosition(x, cy + size * 0.2);
     });
   }
 
@@ -172,6 +160,6 @@ export class Setup extends RoomSetupScene<Options> {
   }
 
   private setVisible(c: Choice, visible: boolean) {
-    for (const obj of [c.tile, c.label, c.icon, c.sub]) obj?.setVisible(visible);
+    for (const obj of [c.tile, c.label, c.icon]) obj?.setVisible(visible);
   }
 }

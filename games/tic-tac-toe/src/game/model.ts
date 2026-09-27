@@ -8,32 +8,47 @@ import { z } from 'zod';
 export type Mark = 'X' | 'O';
 export type Cell = Mark | null;
 
-/** Board sizes on offer, and how many marks in a row win on each. */
-export const WIN_LENGTH = { 3: 3, 6: 4, 9: 5 } as const;
-export type BoardSize = keyof typeof WIN_LENGTH;
-export const SIZES = Object.keys(WIN_LENGTH).map(Number) as BoardSize[];
+/** Marks in a row that win. */
+export const WIN = 5;
+/** Cells per side of a new board. */
+export const START_SIDE = 9;
+/** Rows or columns a mark on an edge adds on that side. */
+export const GROW = 3;
+/** The board grows no wider and no taller than this (a 15×15 board at most). */
+export const MAX_SIDE = 15;
+
+/** A cell by its coordinates: x to the right, y down; (0, 0) is the new board's top-left cell. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/** The board as it is now: a rectangle of cells that grows as marks reach its edges. */
+export interface Board {
+  /** Coordinates of the top-left cell: 0, 0 on a new board, negative once it grew left or up. */
+  left: number;
+  top: number;
+  cols: number;
+  rows: number;
+  /** rows × cols cells, row by row. */
+  cells: Cell[];
+}
 
 /** Everything about one game in progress. Kept on the server, never mutated. */
 export interface State {
-  /** Cells per side. */
-  size: BoardSize;
-  /** Marks in a row needed to win. */
-  win: number;
-  /** size × size cells, row by row (a 3×3 board: 0 1 2 / 3 4 5 / 6 7 8). */
-  board: Cell[];
+  board: Board;
   /** players[0] is X (red, starts), players[1] is O (blue). */
   players: [PlayerId, PlayerId];
   turn: PlayerId;
 }
 
 /**
- * Room options. Picked on the setup screen (scenes/Setup.ts); the host can change `size` and
- * `swap` between games from the board. `optionsSchema.parse({})` gives the defaults.
+ * Room options. Picked on the setup screen (scenes/Setup.ts); the host can change `swap`
+ * between games from the board. `optionsSchema.parse({})` gives the defaults.
  */
 export const optionsSchema = z.object({
   opponent: z.enum(['human', 'bot']).default('human'),
   level: z.enum(['easy', 'normal', 'hard']).default('easy'),
-  size: z.union([z.literal(3), z.literal(6), z.literal(9)]).default(3),
   /** The second seat plays X (red, starts) instead of the first. */
   swap: z.boolean().default(false),
 });

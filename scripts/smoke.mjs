@@ -50,12 +50,14 @@ try {
   await cam.send('room:join', { roomCode: room.roomCode, role: 'spectator' });
   await alice.send('game:start', {});
   const refused = await cam
-    .send('game:move', { move: { event: 'place', payload: { cell: 0 } } })
+    .send('game:move', { move: { event: 'place', payload: { x: 4, y: 4 } } })
     .catch((e) => e.message);
   if (refused !== 'Bạn đang xem, không đi được')
     throw new Error(`Spectator move was not refused: ${refused}`);
-  await alice.send('game:move', { move: { event: 'place', payload: { cell: 0 } } });
-  await bob.send('game:move', { move: { event: 'place', payload: { cell: 3 } } });
+  // Alice plays row 4, Bob row 6 (five in a row wins).
+  const place = (x, y) => ({ move: { event: 'place', payload: { x, y } } });
+  await alice.send('game:move', place(2, 4));
+  await bob.send('game:move', place(2, 6));
 
   // Bob closes the browser without leaving, then logs in elsewhere: same seat, same game.
   bob.socket.close();
@@ -67,12 +69,16 @@ try {
   await new Promise((r) => setTimeout(r, 200));
   if (alice.state()?.players[1]?.connected !== true) throw new Error('Bob should be back online');
 
-  for (const [who, cell] of [
-    [alice, 1],
-    [bob, 4],
-    [alice, 2],
+  for (const [who, x, y] of [
+    [alice, 3, 4],
+    [bob, 3, 6],
+    [alice, 4, 4],
+    [bob, 4, 6],
+    [alice, 5, 4],
+    [bob, 5, 6],
+    [alice, 6, 4],
   ]) {
-    await who.send('game:move', { move: { event: 'place', payload: { cell } } });
+    await who.send('game:move', place(x, y));
   }
   await new Promise((r) => setTimeout(r, 200));
   const result = cam.state()?.result;

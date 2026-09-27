@@ -4,11 +4,61 @@ import { RoomsService } from './rooms.service.js';
 /** A logged-in account (id = lowercase name, for readable tests). */
 const acc = (name: string) => ({ id: name.toLowerCase(), name });
 
-/** A Caro move: mark `cell`. */
-const place = (cell: unknown) => ({ event: 'place', payload: { cell } });
+/** A Caro move: mark the cell at x, y. */
+const place = (x: unknown, y = 4) => ({ event: 'place', payload: { x, y } });
 
 /** Caro's own state inside what the room keeps (games written with `Game` wrap it). */
 const caro = (state: unknown) => (state as { state: Record<string, unknown> }).state;
+
+/** Caro moves where `x` (who plays X) makes five in a row on row 4 while `o` plays row 6. */
+const fiveInARow = (x: string, o: string) =>
+  [2, 3, 4, 5, 6]
+    .flatMap((col) => [
+      [x, col, 4],
+      [o, col, 6],
+    ])
+    .slice(0, -1) as [string, number, number][];
+
+/**
+ * Caro moves for a drawn game: the board grows once on each side to 15×15 (x, y from -3 to 11)
+ * and X / O fill it in a pattern with at most two in a row, until the game calls the draw.
+ */
+function playToDraw(
+  service: RoomsService,
+  room: ReturnType<typeof setupRoom>['room'],
+  x: string,
+  o: string,
+) {
+  const markOf = (col: number, row: number) => ((((col + 2 * row + 1) % 4) + 4) % 4 < 2 ? x : o);
+  const todo: [number, number][] = [
+    [0, 4],
+    [8, 5],
+    [3, 0],
+    [5, 8],
+  ];
+  for (let row = -3; row <= 11; row++) {
+    for (let col = -3; col <= 11; col++) {
+      if (!todo.some(([a, b]) => a === col && b === row)) todo.push([col, row]);
+    }
+  }
+  while (room.status !== 'finished') {
+    const { turn, board } = caro(room.state) as {
+      turn: string;
+      board: { left: number; top: number; cols: number; rows: number };
+    };
+    const i = todo.findIndex(
+      ([col, row]) =>
+        markOf(col, row) === turn &&
+        col >= board.left &&
+        row >= board.top &&
+        col < board.left + board.cols &&
+        row < board.top + board.rows,
+    );
+    const [move] = todo.splice(i, 1);
+    if (!move) throw new Error('no move left');
+    service.move(room.code, turn, place(...move));
+  }
+}
 
 function setupRoom() {
   const service = new RoomsService();
@@ -36,14 +86,8 @@ describe('RoomsService', () => {
   it('plays a full game to a win', () => {
     const { service, room, host, guest } = setupRoom();
     service.start(room.code, host.id);
-    for (const [player, cell] of [
-      [host, 0],
-      [guest, 3],
-      [host, 1],
-      [guest, 4],
-      [host, 2],
-    ] as const) {
-      service.move(room.code, player.id, place(cell));
+    for (const [id, x, y] of fiveInARow(host.id, guest.id)) {
+      service.move(room.code, id, place(x, y));
     }
     expect(room.status).toBe('finished');
     expect(room.result).toEqual({ winners: [host.id] });
@@ -136,14 +180,8 @@ describe('RoomsService', () => {
   it('makes the next player host when the host leaves, back in the lobby', () => {
     const { service, room, host, guest } = setupRoom();
     service.start(room.code, host.id);
-    for (const [id, cell] of [
-      [host.id, 0],
-      [guest.id, 3],
-      [host.id, 1],
-      [guest.id, 4],
-      [host.id, 2],
-    ] as const) {
-      service.move(room.code, id, place(cell));
+    for (const [id, x, y] of fiveInARow(host.id, guest.id)) {
+      service.move(room.code, id, place(x, y));
     }
     const { closed } = service.leave(room.code, host.id);
     expect(closed).toBe(false);
@@ -163,30 +201,13 @@ describe('RoomsService', () => {
 
   it('keeps score per seat across games', () => {
     const { service, room, host, guest } = setupRoom();
-    const play = (moves: [string, number][]) => {
-      service.start(room.code, host.id);
-      for (const [id, cell] of moves) service.move(room.code, id, place(cell));
-    };
-    // X (host, seat 0) wins the top row.
-    play([
-      [host.id, 0],
-      [guest.id, 3],
-      [host.id, 1],
-      [guest.id, 4],
-      [host.id, 2],
-    ]);
+    // X (host, seat 0) wins.
+    service.start(room.code, host.id);
+    for (const [id, x, y] of fiveInARow(host.id, guest.id))
+      service.move(room.code, id, place(x, y));
     // Draw.
-    play([
-      [host.id, 0],
-      [guest.id, 1],
-      [host.id, 2],
-      [guest.id, 4],
-      [host.id, 3],
-      [guest.id, 5],
-      [host.id, 7],
-      [guest.id, 6],
-      [host.id, 8],
-    ]);
+    service.start(room.code, host.id);
+    playToDraw(service, room, host.id, guest.id);
     expect(service.snapshotFor(room, guest.id).score).toEqual({ wins: [1, 0], draws: 1 });
   });
 
@@ -213,7 +234,7 @@ describe('RoomsService', () => {
       const service = new RoomsService();
       const { room } = service.create('tic-tac-toe', acc('Alice'));
       expect(room.players).toHaveLength(1);
-      expect(room.options).toEqual({ opponent: 'human', level: 'easy', size: 3, swap: false });
+      expect(room.options).toEqual({ opponent: 'human', level: 'easy', swap: false });
     });
 
     it('rejects options the game does not know', () => {
@@ -243,11 +264,13 @@ describe('RoomsService', () => {
   describe('changing options between games', () => {
     it('lets the host change them before the next game', () => {
       const { service, room, host, guest } = setupRoom();
-      expect(() => service.setOptions(room.code, guest.id, { size: 9 })).toThrow('Chỉ chủ phòng');
-      service.setOptions(room.code, host.id, { size: 9, swap: true });
+      expect(() => service.setOptions(room.code, guest.id, { swap: true })).toThrow(
+        'Chỉ chủ phòng',
+      );
+      service.setOptions(room.code, host.id, { swap: true });
       service.start(room.code, host.id);
-      expect(caro(room.state)).toMatchObject({ size: 9, players: [guest.id, host.id] });
-      expect(() => service.setOptions(room.code, host.id, { size: 3 })).toThrow('hết ván');
+      expect(caro(room.state)).toMatchObject({ players: [guest.id, host.id], turn: guest.id });
+      expect(() => service.setOptions(room.code, host.id, { swap: false })).toThrow('hết ván');
     });
 
     it('lets the computer leave or join the room', () => {

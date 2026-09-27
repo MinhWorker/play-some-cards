@@ -76,8 +76,12 @@ export async function caroSetup(page, pick) {
   await clickCanvas(page, 'tic-tac-toe:setup', new Function(`return (s) => s.${pick}.tile`)());
 }
 
-/** A Caro move on tile `cell`. */
-export async function caroPlay(page, cell) {
-  await clickCanvas(page, 'tic-tac-toe', new Function(`return (s) => s.tiles[${cell}]`)());
+/** A Caro move on the tile at `x`, `y`, once the board's camera has stopped gliding. */
+export async function caroPlay(page, x, y) {
+  await page.waitForFunction(() => {
+    const s = window.__phaser?.scene.getScene('tic-tac-toe');
+    return s?.layer && !s.tweens.isTweening(s.layer);
+  });
+  await clickCanvas(page, 'tic-tac-toe', new Function(`return (s) => s.tiles.get('${x},${y}')`)());
   await page.waitForTimeout(400);
 }

@@ -130,7 +130,7 @@ export class MyView extends GameView<State, Options> {
 }
 ```
 
-- Khi người chơi thao tác, gọi `this.send('place', { cell })`. Server quyết định có hợp lệ không,
+- Khi người chơi thao tác, gọi `this.send('place', { x, y })`. Server quyết định có hợp lệ không,
   và lỗi được hiện sẵn cho bạn.
 - `ctx` có `state` (những gì người này được thấy), `me` (`null` với khán giả), `players`, `hostId`,
   `isHost`, `score`, `options`, `result`, `timer` (`endsAt`, `ms`: vẽ đồng hồ đếm ngược) và `screen`
@@ -183,11 +183,11 @@ export default definePlugin({
 
 - Tuỳ chọn tới tay game dưới dạng `ctx.options`, ở cả `Game` lẫn `GameView`.
 - Người chơi máy: viết hook `bot(ctx)` trong `Game`, trả về sự kiện của máy cho ghế `ctx.player`
-  (ví dụ `{ event: 'place', payload: { cell } }`), hoặc `null` khi chưa tới lượt. Server chơi nó
+  (ví dụ `{ event: 'place', payload: { x, y } }`), hoặc `null` khi chưa tới lượt. Server chơi nó
   sau một khoảng dừng ngắn và kiểm tra như mọi sự kiện. Test bằng `.bot(player)` của `testGame`.
 - Giữa các ván, chủ phòng có thể đổi tuỳ chọn ngay trên màn hình bằng `this.changeOptions({...})`
   (kiểm tra `ctx.isHost`; `ctx.options` đã tính cả thay đổi đang gửi đi). `onStart` kế tiếp nhận
-  tuỳ chọn mới. Caro dùng cách này cho các nút đổi cỡ bàn và đổi màu nhanh.
+  tuỳ chọn mới. Caro dùng cách này cho nút đổi màu nhanh.
 
 `optionsSchema.parse({})` phải chạy được: các giá trị mặc định đó dùng cho phòng tạo không qua
 màn cài đặt. Ghế của máy đứng sau người thật. Khi tuỳ chọn mới cần nhiều hay ít máy hơn, máy sẽ
