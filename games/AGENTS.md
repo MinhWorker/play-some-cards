@@ -76,6 +76,10 @@ games/<id>/          Only index.ts + client.ts are required
   build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
+- **Coordinates are design units** on a landscape frame 720 tall and 960–1600 wide
+  (`this.view`, `ctx.screen`), never screen pixels: the camera scales the frame to the screen at
+  its pixel density. `this.bleed` is how far the screen reaches beyond it (backgrounds only).
+  Read taps with `pointer.worldX/worldY`; `pointer.x/y` are canvas pixels.
 
   Setup screens have the same helpers. Anything game-like (pieces, cards, animation, drag and
   drop) is drawn in Phaser.

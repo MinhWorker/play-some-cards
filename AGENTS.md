@@ -81,8 +81,7 @@ Test what the change needs, no more (e2e is slow):
 
 - **Assets only** (an image, a sound, a prompt): look at the file itself, for example one headless
   screenshot where it is used. Skip `npm run check` and e2e.
-- **Small UI/CSS tweaks**: `npm run check`, plus `npm run shots` of that screen (and one headless
-  portrait phone, 390×844, while the app still has a portrait layout).
+- **Small UI/CSS tweaks**: `npm run check`, plus `npm run shots` of that screen.
 - **Other code changes**: `npm run check` passes.
 - **Gameplay, room/lobby flow, protocol or socket changes**: also run
   `npm run e2e -- --changed origin/main` (the scenarios CI will pick) against a running dev

@@ -91,9 +91,9 @@ export class XiangqiView extends GameView<View, Options> {
     this.zone = this.add
       .zone(0, 0, 10, 10)
       .setInteractive({ useHandCursor: true })
-      .on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p.x, p.y))
+      .on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p.worldX, p.worldY))
       .on('pointermove', (p: Phaser.Input.Pointer) => {
-        if (!p.wasTouch) this.hover(this.pointAt(p.x, p.y));
+        if (!p.wasTouch) this.hover(this.pointAt(p.worldX, p.worldY));
       })
       .on('pointerout', () => this.hover(null));
     this.status = this.label('', { size: 34 });

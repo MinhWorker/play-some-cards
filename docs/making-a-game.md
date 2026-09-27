@@ -124,7 +124,7 @@ export class MyGame extends Game<State, Options> {
 ```ts
 export class MyView extends GameView<State, Options> {
   onCreate(ctx) { /* tạo đối tượng: this.label, this.button, this.sprite, hoặc Phaser */ }
-  onLayout(ctx) { /* đặt vị trí theo ctx.screen (chạy lại khi đổi cỡ màn hình) */ }
+  onLayout(ctx) { /* đặt vị trí theo ctx.screen (chạy lại khi khung đổi) */ }
   onState(ctx)  { /* hiện state sau mọi thay đổi */ }
   // tuỳ chọn: onStart(ctx), on<Event>(ctx, event), onEnd(ctx), onUpdate(ctx, dt)
 }
@@ -137,7 +137,13 @@ export class MyView extends GameView<State, Options> {
   và lỗi được hiện sẵn cho bạn.
 - `ctx` có `state` (những gì người này được thấy), `me` (`null` với khán giả), `players`, `hostId`,
   `isHost`, `score`, `options`, `result`, `timer` (`endsAt`, `ms`: vẽ đồng hồ đếm ngược) và `screen`
-  (cỡ, tâm, `top` = chỗ trống đầu tiên dưới thanh phòng, `hud` = tỉ lệ cho điện thoại nhỏ).
+  (cỡ, tâm, `top` = chỗ trống đầu tiên dưới thanh phòng, `hud` = tỉ lệ HUD).
+- **Toạ độ là đơn vị thiết kế**, không phải điểm ảnh: màn chơi nằm trên một khung ngang cao 720,
+  rộng 960 đến 1600 tuỳ máy (`this.view`, `ctx.screen`; xem [ui-guide.md](ui-guide.md)). Ứng dụng
+  phóng khung cho vừa màn hình và vẽ đúng mật độ điểm ảnh, nên hình luôn đúng tỉ lệ và sắc nét.
+  Ngoài khung vẫn còn màn hình (`this.bleed`): nền trải tới đó, còn thứ phải thấy thì đặt trong
+  khung. Vị trí chạm lấy `pointer.worldX`, `pointer.worldY` (không dùng `pointer.x`, là điểm ảnh
+  của canvas).
 - `this.avatar(player)` cho ảnh đại diện của người chơi (máy có ảnh robot), dùng với
   `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
@@ -149,8 +155,8 @@ export class MyView extends GameView<State, Options> {
   dưới]`).
 - Hình có file `.json` cùng tên là atlas (nhiều khung gộp một ảnh): `this.anim('hop')` tạo hoạt
   ảnh từ mọi khung theo thứ tự tên, dùng với `sprite.play(...)`.
-- `titleStyle(size)`, `hudScale()`, `this.fitText(...)` và `this.boardArea()` giữ đúng phong cách
-  của ứng dụng và vừa điện thoại nhỏ.
+- `titleStyle(size)`, `hudScale()` (nhân cỡ chữ và nút với nó), `this.fitText(...)` và
+  `this.boardArea()` giữ đúng phong cách và cỡ chữ của ứng dụng.
 - Bảng thắng/hoà, nút "Chơi ván mới", thanh phòng và âm thanh khi thắng đã được ứng dụng làm sẵn.
   Game tự vẽ bảng xếp hạng thì đặt `defineClient({ showsResult: true })`: bảng của ứng dụng chỉ
   còn các nút. Game tự vẽ danh sách người chơi thì đặt `showsPlayers: true` để thanh phòng ẩn
