@@ -1,4 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-40 -40 1680 860" font-family="Baloo 2, system-ui, sans-serif">
+  <title>Khung hình: năm tỉ lệ cao 720, lõi 960 × 720, hai góc HUD và lề</title>
   <rect x="-40" y="-40" width="1680" height="860" fill="#8fd3f4"/>
   <!-- The widest frame (20:9) and the narrower presets inside it, all 720 tall. -->
   <rect x="0" y="0" width="1600" height="720" fill="#e9f7fd" stroke="#2c5d7a" stroke-width="4"/>
