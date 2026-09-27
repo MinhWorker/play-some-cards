@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/MinhWorker/play-some-cards/compare/v0.3.0...v0.4.0) (2026-09-27)
+
+
+### Features
+
+* Mậu Binh, a warm-up screen while the server wakes, and a home button ([#17](https://github.com/MinhWorker/play-some-cards/issues/17)) ([222ca29](https://github.com/MinhWorker/play-some-cards/commit/222ca29abf72fced1cecc8202a515ed52c584ba0))
+
 ## [0.3.0](https://github.com/MinhWorker/play-some-cards/compare/v0.2.0...v0.3.0) (2026-09-26)
 
 
