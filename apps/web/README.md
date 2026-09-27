@@ -3,6 +3,12 @@
 Ứng dụng web của game: React cho giao diện, Phaser 4 cho thế giới game, Vite để build.
 Chạy từ thư mục gốc repo bằng `npm run dev` (web ở http://localhost:5033).
 
+## Cài trên điện thoại
+
+Mở trang web bằng trình duyệt trên điện thoại rồi chọn **Cài đặt ứng dụng** trên Android hoặc
+**Thêm vào Màn hình chính** trong menu Chia sẻ trên iPhone. Ứng dụng mở ở chế độ toàn màn hình và
+dùng biểu tượng riêng.
+
 Màn hình có hai lớp. Phaser vẽ thế giới trên một canvas toàn màn hình: bầu trời, bản đồ đảo và bàn
 chơi. React vẽ giao diện đè lên trên: bảng, nút và form. `src/phaser/bridge.ts` là cầu nối duy nhất
 giữa hai bên.
