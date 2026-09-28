@@ -81,8 +81,8 @@ export class PlayerList {
   /** Redraws the turn ring with the clock (`left`: 1 → 0, `null` = no clock). */
   draw(left: number | null) {
     const { x, y, hud, maxWidth } = this.place;
-    const size = 40 * hud;
-    const rowH = 48 * hud;
+    const size = 46 * hud;
+    const rowH = 54 * hud;
     this.shown.forEach((row, i) => {
       const o = this.objects[i] as RowObjects;
       const cy = y + i * rowH + rowH / 2;
@@ -90,9 +90,9 @@ export class PlayerList {
       o.avatar.setTexture(row.avatar).setDisplaySize(size, size).setPosition(ax, cy);
       const textX = x + size + 8 * hud;
       const textW = maxWidth - size - 16 * hud;
-      o.name.setFontSize(19 * hud).setPosition(textX, cy - 9 * hud);
+      o.name.setFontSize(21 * hud).setPosition(textX, cy - 10 * hud);
       fit(o.name, row.name, textW);
-      o.info.setFontSize(14 * hud).setPosition(textX, cy + 11 * hud);
+      o.info.setFontSize(18 * hud).setPosition(textX, cy + 12 * hud);
       fit(o.info, row.info, textW);
       o.badge
         .setFontSize(14 * hud)
@@ -100,7 +100,7 @@ export class PlayerList {
         .setColor(row.badgeColor ?? '#ffe066')
         .setVisible(Boolean(row.badge));
       const nameEnd = textX + Math.max(o.name.width, o.info.width);
-      o.badge.setPosition(nameEnd + 8 * hud, cy - 9 * hud);
+      o.badge.setPosition(nameEnd + 8 * hud, cy - 10 * hud);
       const w = Math.max(nameEnd, row.badge ? o.badge.x + o.badge.width : 0) - x + 12 * hud;
       o.back.clear();
       o.back
