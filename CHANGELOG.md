@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.0](https://github.com/MinhWorker/play-some-cards/compare/v0.5.1...v0.6.0) (2026-09-28)
+
+
+### Features
+
+* fixed-ratio landscape frame with sharp rendering ([#31](https://github.com/MinhWorker/play-some-cards/issues/31)) ([27de8c2](https://github.com/MinhWorker/play-some-cards/commit/27de8c2dbf031eaa39dd32260c7d20b2525697da))
+* **mau-binh:** thin table rim and bigger cards on the landscape frame ([#34](https://github.com/MinhWorker/play-some-cards/issues/34)) ([3e2f10f](https://github.com/MinhWorker/play-some-cards/commit/3e2f10fada9e7e9744c10bf329512807208fa86a))
+* **tic-tac-toe:** board fills the landscape frame's height ([#36](https://github.com/MinhWorker/play-some-cards/issues/36)) ([e3b3f86](https://github.com/MinhWorker/play-some-cards/commit/e3b3f861acab35a7d406e5b41b2b95c4fdd460fd))
+* **tien-len:** the table fills the landscape frame ([#33](https://github.com/MinhWorker/play-some-cards/issues/33)) ([4b009e8](https://github.com/MinhWorker/play-some-cards/commit/4b009e895e0074e97d0c108c0958a49dab10486e))
+* **web:** HUD size and screen margin settings ([#32](https://github.com/MinhWorker/play-some-cards/issues/32)) ([0fed6f2](https://github.com/MinhWorker/play-some-cards/commit/0fed6f24d210c83fadfd6be96bd196f090896898))
+* **web:** picture quality setting ([#38](https://github.com/MinhWorker/play-some-cards/issues/38)) ([d8e1446](https://github.com/MinhWorker/play-some-cards/commit/d8e14468169ea011a9b95d8b0e9f5d99ffc7553b))
+* **web:** texture audit, sharper clouds, vine and arrow ([#37](https://github.com/MinhWorker/play-some-cards/issues/37)) ([4cdb0a9](https://github.com/MinhWorker/play-some-cards/commit/4cdb0a9b8476bc4606bdeea7a28e5b13fb439fa8))
+* **xiangqi:** board fills the landscape frame's height ([#35](https://github.com/MinhWorker/play-some-cards/issues/35)) ([73dcc26](https://github.com/MinhWorker/play-some-cards/commit/73dcc262b21e22dba43779280096008a3af14da9))
+
+
+### Bug fixes
+
+* **sdk:** nine-slice button backgrounds, and keep the screen on ([#29](https://github.com/MinhWorker/play-some-cards/issues/29)) ([f70029d](https://github.com/MinhWorker/play-some-cards/commit/f70029ddfd3ef146b6a4a5604b3148575530158d))
+
 ## [0.5.1](https://github.com/MinhWorker/play-some-cards/compare/v0.5.0...v0.5.1) (2026-09-27)
 
 
