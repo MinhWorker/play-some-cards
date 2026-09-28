@@ -83,8 +83,10 @@ export async function caroSetup(page, pick) {
 export async function caroPlay(page, x, y) {
   await page.waitForFunction(() => {
     const s = window.__phaser?.scene.getScene('tic-tac-toe');
-    const myTurn = !s?.ctx.me || s.ctx.state.turn === s.ctx.me.id;
-    return s?.layer && myTurn && !s.tweens.isTweening(s.layer);
+    // The scene can exist a moment before its first `ctx` arrives.
+    if (!s?.ctx || !s.layer) return false;
+    const myTurn = !s.ctx.me || s.ctx.state.turn === s.ctx.me.id;
+    return myTurn && !s.tweens.isTweening(s.layer);
   });
   await clickCanvas(page, 'tic-tac-toe', new Function(`return (s) => s.tiles.get('${x},${y}')`)());
   await page.waitForTimeout(400);
