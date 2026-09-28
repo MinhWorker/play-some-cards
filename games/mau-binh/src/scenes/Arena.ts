@@ -92,10 +92,10 @@ export class Arena {
 
   /** A label under an entry: "Lan: Thùng +1". */
   label(x: number, y: number, text: string, color: string, hud: number) {
+    // The color goes in the style: each change after creation redraws the text.
     const label = this.scene.add
-      .text(x, y, text, { ...titleStyle(16 * hud), strokeThickness: 3 })
+      .text(x, y, text, { ...titleStyle(16 * hud), strokeThickness: 3, color })
       .setOrigin(0.5)
-      .setColor(color)
       .setDepth(790)
       .setScale(0.3);
     this.scene.tweens.add({ targets: label, scale: 1, duration: 180, ease: 'Back.easeOut' });
