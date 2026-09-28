@@ -9,6 +9,7 @@
 //   npm run shots -- --tab                    in a browser tab (minus its bars), not the app
 //   --wait MS    wait after the page loads (default 2500)
 //   --crop X,Y,W,H  the 1:1 detail crop, in CSS px (default: the middle of the screen)
+//   --audit      also list the images drawn bigger than their pixels (blurry: export them bigger)
 //
 // Per device it writes <device>.png (every device pixel) and <device>-crop.png (a 1:1 detail of
 // it, small enough to view unscaled: that is where blur shows), and prints the canvas density
@@ -49,6 +50,7 @@ const { values: args, positionals } = parseArgs({
     tab: { type: 'boolean', default: false },
     wait: { type: 'string', default: '2500' },
     crop: { type: 'string' },
+    audit: { type: 'boolean', default: false },
   },
 });
 const base = positionals[0] ?? 'http://localhost:5033';
@@ -119,6 +121,17 @@ for (const name of names) {
   console.log(
     `${name.padEnd(13)} ${d.width}×${height} @${d.dpr}  screen ${d.dpr}× ${density}${warn}`,
   );
+  if (args.audit) {
+    const uses = (await page.evaluate(() => window.__textureAudit?.() ?? [])).filter(
+      (u) => u.upscale > 1.05,
+    );
+    for (const u of uses) {
+      const need = `${Math.ceil(u.source.width * u.upscale)}×${Math.ceil(u.source.height * u.upscale)}`;
+      console.log(
+        `  stretched ${u.upscale.toFixed(2)}× ${u.key} (${u.source.width}×${u.source.height}, needs ${need})`,
+      );
+    }
+  }
   for (const e of errors) console.log(`  page error: ${e}`);
   await context.close();
 }
