@@ -10,12 +10,12 @@
     },
     "cloud-a": {
       "transparent": true,
-      "maxSize": 640,
+      "maxSize": 1100,
       "prompt": "One wide fluffy white cumulus cloud, soft blue-tinted shading underneath."
     },
     "cloud-b": {
       "transparent": true,
-      "maxSize": 480,
+      "maxSize": 800,
       "prompt": "One small round puffy white cloud made of three bumps, soft blue-tinted shading underneath."
     },
     "cloud-curtain": {
@@ -109,7 +109,7 @@
     },
     "vine": {
       "transparent": true,
-      "maxSize": 512,
+      "maxSize": 640,
       "prompt": "A single straight vertical ivy vine rope: a thin twisted green-brown vine with small fresh green ivy leaves along its whole length, perfectly vertical, long and thin, running from the very top to the very bottom of the image."
     },
     "avatar-frame": {
@@ -125,7 +125,7 @@
     },
     "arrow": {
       "transparent": true,
-      "maxSize": 256,
+      "maxSize": 320,
       "prompt": "One chunky glossy yellow game UI arrow button pointing right: a rounded thick arrow shape with a dark-brown outline, soft highlight on top, subtle drop shadow, front view."
     },
     "avatar-bot": {

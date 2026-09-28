@@ -102,6 +102,8 @@ function impactOf(play: Play, before: Play | undefined) {
 
 /** How wide the players list in the top-left corner may get. */
 const listWidth = (width: number, hud: number) => Math.min(230 * hud, width * 0.42);
+/** How far in from each end of `table.webp` its round ends reach, in its pixels (3-slice). */
+const TABLE_END = 300;
 
 /** A repeatable "random" number in [-1, 1] for a pile position, the same on every screen. */
 const jitter = (n: number) => {
@@ -111,7 +113,7 @@ const jitter = (n: number) => {
 
 export class TienLenView extends GameView<View, Options> {
   private cardTextures!: CardTextures;
-  private table!: Phaser.GameObjects.Image;
+  private table!: Phaser.GameObjects.NineSlice;
   private status!: Phaser.GameObjects.Text;
   private playButton!: Button;
   private passButton!: Button;
@@ -147,7 +149,18 @@ export class TienLenView extends GameView<View, Options> {
         string
       >,
     };
-    this.table = this.sprite('table');
+    // Only the straight middle of the table stretches: it spans wide frames, ends stay round.
+    const tex = this.textures.getFrame(this.texture('table'));
+    this.table = this.add.nineslice(
+      0,
+      0,
+      this.texture('table'),
+      undefined,
+      tex.width,
+      tex.height,
+      TABLE_END,
+      TABLE_END,
+    );
     this.status = this.label('', { size: 30 });
     // Used every turn: no hover sound, it gets distracting.
     const quiet = { image: 'button', hoverSound: false };
@@ -174,40 +187,53 @@ export class TienLenView extends GameView<View, Options> {
 
   // ── Layout ──────────────────────────────────────────────────────────────────────────────
 
-  /** Sizes and places derived from the screen. */
+  /**
+   * Sizes and places on the frame (docs/ui-guide.md). The players list on the left, the table
+   * filling the rest (from under the room bar down behind the top of your hand), and "Bỏ lượt" /
+   * "Đánh" stacked in the bottom-right corner. Your hand runs along the bottom, under the list up
+   * to the buttons; the others sit at the table's top and round ends.
+   */
   private geometry({ screen }: Ctx) {
     const { width, height, top, hud } = screen;
-    const handWidth = Math.min(96 * hud, (width - 24) / (1 + 12 * 0.42));
-    const handY = height - (handWidth * CARD_RATIO) / 2 - 14 * hud;
-    const buttonsY = handY - (handWidth * CARD_RATIO) / 2 - 42 * hud;
-    const middleTop = top + 70 * hud;
-    const middleBottom = buttonsY - 70 * hud;
-    const cy = (middleTop + middleBottom) / 2;
-    const listRight = 10 * hud + listWidth(width, hud);
-    const tableSize = { w: width * 0.98, h: Math.max(160, middleBottom - middleTop + 90 * hud) };
-    const ratio = this.table.height / this.table.width;
-    const tableW = Math.min(tableSize.w, tableSize.h / ratio);
-    // The side seats sit at the table's edges (the screen's on phones).
-    const side = Math.max(46 * hud, width / 2 - tableW / 2 - 30 * hud);
+    const margin = 16;
+    const listRight = 10 * hud + listWidth(width, hud) + margin;
+    const buttonW = 150 * hud;
+    const buttonH = 60 * hud;
+    const handLeft = margin;
+    const handRight = width - buttonW - 2 * margin;
+    const handSpan = handRight - handLeft;
+    const handWidth = Math.min(140, handSpan / (1 + 12 * 0.42));
+    const handH = handWidth * CARD_RATIO;
+    const handY = height - handH / 2 - 10;
+    const tableLeft = listRight;
+    const tableRight = width - margin;
+    const tableTop = top;
+    const tableH = Math.max(200, handY - handH * 0.2 - tableTop);
+    const tableW = Math.max(tableH * 1.2, tableRight - tableLeft);
+    const cx = (tableLeft + tableRight) / 2;
+    const cy = tableTop + tableH / 2;
+    const end = tableH * 0.3;
     return {
       width,
       height,
       top,
       hud,
-      cx: width / 2,
+      cx,
       cy,
       handWidth,
+      handSpan,
+      handX: (handLeft + handRight) / 2,
       handY,
-      buttonsY,
-      pileWidth: handWidth * 0.85,
+      statusY: handY - handH / 2 - 26 * hud,
+      button: { w: buttonW, h: buttonH, x: width - margin - buttonW / 2, y: height - margin },
+      pileWidth: Math.min(96, handWidth * 0.7),
       tableW,
-      tableH: tableW * ratio,
+      tableH,
       slots: {
-        bottom: { x: width / 2, y: handY },
-        // Clear of the players list in the top-left corner on narrow screens.
-        top: { x: Math.max(width / 2, listRight + handWidth * 0.8), y: top + 44 * hud },
-        left: { x: side, y: cy },
-        right: { x: width - side, y: cy },
+        bottom: { x: (handLeft + handRight) / 2, y: handY },
+        top: { x: cx, y: tableTop + tableH * 0.16 },
+        left: { x: cx - tableW / 2 + end, y: cy },
+        right: { x: cx + tableW / 2 - end, y: cy },
       } satisfies Record<Slot, { x: number; y: number }>,
     };
   }
@@ -227,24 +253,28 @@ export class TienLenView extends GameView<View, Options> {
     const g = this.geometry(ctx);
     const slot = this.slotOf(ctx, seat);
     const { x, y } = g.slots[slot];
-    if (slot === 'bottom') return { x, y: g.buttonsY - 80 * g.hud };
+    if (slot === 'bottom') return { x, y: g.statusY - 60 * g.hud };
     if (slot === 'top') return { x, y: y + 80 * g.hud };
     return { x: slot === 'left' ? x + 60 * g.hud : x - 60 * g.hud, y: y + 70 * g.hud };
   }
 
   protected onLayout(ctx: Ctx) {
     const g = this.geometry(ctx);
-    this.table.setDisplaySize(g.tableW, g.tableH).setPosition(g.cx, g.cy);
-    this.status.setFontSize(28 * g.hud).setPosition(g.cx, g.buttonsY - 46 * g.hud);
-    const buttonW = Math.min(150 * g.hud, g.width * 0.36);
-    this.passButton.setSize(buttonW, 54 * g.hud).setPosition(g.cx - buttonW * 0.6, g.buttonsY);
-    this.playButton.setSize(buttonW, 54 * g.hud).setPosition(g.cx + buttonW * 0.6, g.buttonsY);
+    const scale = g.tableH / this.table.height;
+    this.table
+      .setSize(g.tableW / scale, this.table.height)
+      .setScale(scale)
+      .setPosition(g.cx, g.cy);
+    this.status.setFontSize(28 * g.hud).setPosition(g.handX, g.statusY);
+    const b = g.button;
+    this.playButton.setSize(b.w, b.h).setPosition(b.x, b.y - b.h / 2);
+    this.passButton.setSize(b.w, b.h).setPosition(b.x, b.y - b.h * 1.5 - 12);
     this.list.layout(10 * g.hud, g.top, g.hud, listWidth(g.width, g.hud));
     this.board.layout({
       cx: g.cx,
       top: g.top,
-      // The app's result panel sits at the bottom once the match is over.
-      bottom: ctx.result ? g.height - 150 * g.hud : g.buttonsY - 20 * g.hud,
+      // Over the table; the app's result panel sits at the bottom right once the match is over.
+      bottom: g.statusY - 20 * g.hud,
       width: g.width - 24,
       hud: g.hud,
     });
@@ -314,9 +344,9 @@ export class TienLenView extends GameView<View, Options> {
     const cards = [...this.hand.keys()].sort((a, b) => a - b);
     const step = Math.min(
       g.handWidth * 0.62,
-      (g.width - 24 - g.handWidth) / Math.max(1, cards.length - 1),
+      (g.handSpan - g.handWidth) / Math.max(1, cards.length - 1),
     );
-    const start = g.cx - (step * (cards.length - 1)) / 2;
+    const start = g.handX - (step * (cards.length - 1)) / 2;
     cards.forEach((card, i) => {
       const sprite = this.hand.get(card) as CardSprite;
       sprite.setCardWidth(g.handWidth).setDepth(100 + i);
@@ -607,7 +637,7 @@ export class TienLenView extends GameView<View, Options> {
     // A play during the deal (a slow screen) lies on the pile when the deal ends, no slap.
     if (this.dealing || !play || played.length !== this.shownPlays + 1) return;
     const g = this.geometry(ctx);
-    const from = event.isMe ? { x: g.cx, y: g.handY } : g.slots[this.slotOf(ctx, play.seat)];
+    const from = event.isMe ? { x: g.handX, y: g.handY } : g.slots[this.slotOf(ctx, play.seat)];
     this.sfx('tien-len-throw');
     this.addToPile(ctx, play, played.length - 1, {
       from,
@@ -873,7 +903,7 @@ export class TienLenView extends GameView<View, Options> {
       if (seat === turn && o.ring.visible)
         drawRing(o.ring, o.ringAt.x, o.ringAt.y, o.ringAt.r, left);
     });
-    this.list.draw(left);
+    this.list.drawRing(left);
   }
 
   protected onUpdate(ctx: Ctx) {

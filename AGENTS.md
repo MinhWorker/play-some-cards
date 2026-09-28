@@ -38,7 +38,7 @@ docs/              Guides for people: making-a-game, deploy, <game>-audio
 | `npm run check` | Lint + typecheck + unit tests |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run e2e [url]` | Headless Chromium plays every scenario in `scripts/e2e/scenarios/` through the real UI, side by side (needs a running dev server). `-- --only <names>`, `-- --changed origin/main`; flags at the top of `scripts/e2e.mjs`. Screenshots in `.e2e/<scenario>/` |
-| `npm run shots [url]` | Headless screenshots of one page (`-- --path '/?play=<id>'`, `-- --login`) on real phone/tablet/desktop sizes held sideways, at their pixel density and with notch insets. Prints the canvas density against the screen's. `.shots/<device>.png` + a 1:1 `-crop.png`; flags at the top of `scripts/shots.mjs` |
+| `npm run shots [url]` | Headless screenshots of one page (`-- --path '/?play=<id>'`, `-- --login`) on real phone/tablet/desktop sizes held sideways, at their pixel density and with notch insets. Prints the canvas density against the screen's; `-- --audit` also lists images drawn bigger than their pixels. `.shots/<device>.png` + a 1:1 `-crop.png`; flags at the top of `scripts/shots.mjs` |
 | `npm run smoke [url]` | Bots play Caro over sockets against a running server |
 
 Commands for games, assets and the DB are in the topic files above.

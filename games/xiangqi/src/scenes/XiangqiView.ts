@@ -53,11 +53,14 @@ export class XiangqiView extends GameView<View, Options> {
   private checkRing!: Phaser.GameObjects.Graphics;
   private zone!: Phaser.GameObjects.Zone;
   private status!: Phaser.GameObjects.Text;
+  /** Per seat: the general it plays, its name and its wins, in the left column. */
   private score!: {
     icons: Phaser.GameObjects.Image[];
     names: Phaser.GameObjects.Text[];
-    numbers: Phaser.GameObjects.Text;
+    wins: Phaser.GameObjects.Text[];
   };
+  /** The column left of the board (x in the middle), for the score. */
+  private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
   private buttons!: { draw: Button; decline: Button; resign: Button; effects: Button };
   private pieces = new Map<number, PieceObj>();
   /** Where point (row 0, col 0) is on screen, and the gaps between columns and rows. */
@@ -66,8 +69,8 @@ export class XiangqiView extends GameView<View, Options> {
   private targets: number[] = [];
   /** The piece the mouse is over (lit when you may pick it). */
   private hovered: number | null = null;
-  /** Where the buttons sit: a row under the board, or stacked beside it (sideways phones). */
-  private buttonRow = { x: 0, y: 0, width: 300, height: 40, stacked: false };
+  /** The buttons' stack in the column right of the board: its middle, bottom and sizes. */
+  private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   /** "Đầu hàng" was tapped once: a second tap within a few seconds confirms. */
   private resignArmed = false;
   private resignTimer?: Phaser.Time.TimerEvent;
@@ -99,11 +102,9 @@ export class XiangqiView extends GameView<View, Options> {
     this.status = this.label('', { size: 34 });
     this.score = {
       icons: [0, 1].map(() => this.sprite(pieceImage('r', 'k'))),
-      names: [0, 1].map(() => this.label('', { size: 24 })),
-      numbers: this.label('', { size: 36 }),
+      names: [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0.5)),
+      wins: [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0.5)),
     };
-    this.score.names[0]?.setOrigin(1, 0.5);
-    this.score.names[1]?.setOrigin(0, 0.5);
     const opts = { image: 'button', size: 24 };
     this.buttons = {
       draw: this.button('Xin hoà', () => this.send('offer-draw'), opts),
@@ -114,24 +115,26 @@ export class XiangqiView extends GameView<View, Options> {
     this.makeDustTexture();
   }
 
+  /**
+   * On the frame (docs/ui-guide.md): the board as tall as it fits under the room bar, in the
+   * middle; the players and their wins in the column on its left (the side at the top of the
+   * board above, yours below); the status line and the buttons in the column on its right.
+   */
   protected onLayout(ctx: Ctx) {
     const { width, height, top, hud } = ctx.screen;
-    // The frame is always landscape: buttons stack beside the board.
-    const sideways = width > height;
-    const scoreH = 44 * hud;
-    const statusH = 46 * hud;
-    const bottom = sideways ? 12 : 120 * hud;
-    const sideRoom = sideways ? 180 * hud : 0;
-    const availW = width - 8 - sideRoom;
-    const availH = height - top - scoreH - statusH - bottom;
+    const margin = 16;
+    const columnMin = 150 * hud;
+    const availW = width - 2 * columnMin;
+    const availH = height - top - margin;
     // The table image, as big as fits.
     const scale = Math.min(availW / BOARD.width, availH / BOARD.height);
     const boardW = BOARD.width * scale;
     const boardH = BOARD.height * scale;
-    const cx = (width - sideRoom) / 2;
-    const boardTop = top + scoreH + statusH + Math.max(0, (availH - boardH) / 2);
+    const cx = width / 2;
+    const boardTop = top + Math.max(0, (availH - boardH) / 2);
     const cy = boardTop + boardH / 2;
     const left = cx - boardW / 2;
+    const columnW = left - 2 * margin;
     const grid = {
       x0: left + BOARD.x0 * scale,
       y0: boardTop + BOARD.y0 * scale,
@@ -158,26 +161,28 @@ export class XiangqiView extends GameView<View, Options> {
     );
     this.zone.setSize(zoneW, zoneH);
     this.zone.input?.hitArea.setTo(0, 0, zoneW, zoneH);
-    this.status.setFontSize(Math.min(34, Math.max(20, cell * 0.5)) * hud);
-    this.status.setPosition(cx, boardTop - statusH / 2);
-    this.layoutScore(ctx, cx, top + scoreH / 2, hud);
 
-    const btnH = 46 * hud;
-    this.buttonRow = sideways
-      ? {
-          x: cx + boardW / 2 + sideRoom / 2,
-          y: cy,
-          width: sideRoom - 16,
-          height: btnH,
-          stacked: true,
-        }
-      : {
-          x: cx,
-          y: boardTop + boardH + 12 * hud + btnH / 2,
-          width: availW - 16,
-          height: btnH,
-          stacked: false,
-        };
+    const rightX = cx + boardW / 2 + margin + columnW / 2;
+    this.status
+      .setFontSize(Math.min(34, Math.max(22, cell * 0.5)) * hud)
+      .setOrigin(0.5, 0)
+      .setWordWrapWidth(columnW)
+      .setPosition(rightX, boardTop + 8);
+    this.leftColumn = {
+      x: margin + columnW / 2,
+      width: columnW,
+      top: boardTop + 40 * hud,
+      bottom: boardTop + boardH - 40 * hud,
+    };
+    this.layoutScore(ctx);
+
+    const btnH = 56 * hud;
+    this.buttonStack = {
+      x: rightX,
+      bottom: boardTop + boardH,
+      width: Math.min(columnW, 190 * hud),
+      height: btnH,
+    };
     this.placeButtons();
 
     for (const [sq, obj] of this.pieces) this.placePiece(obj, sq);
@@ -229,7 +234,7 @@ export class XiangqiView extends GameView<View, Options> {
     this.drawMarks(ctx);
     this.showStatus(ctx);
     this.showButtons(ctx);
-    this.layoutScore(ctx, ...this.scoreRow());
+    this.layoutScore(ctx);
   }
 
   protected onEnd(ctx: Ctx) {
@@ -703,8 +708,8 @@ export class XiangqiView extends GameView<View, Options> {
         text = `${this.nameOf(ctx, state.drawOffer)} xin hoà`;
       }
     }
-    const size = Number.parseFloat(String(this.status.style.fontSize));
-    this.fitText(this.status, text, this.view.width - 24, size * 0.6);
+    // Wraps in the column right of the board (onLayout).
+    this.status.setText(text);
   }
 
   /**
@@ -730,22 +735,18 @@ export class XiangqiView extends GameView<View, Options> {
   }
 
   /** The visible buttons, sharing their row (or stack) evenly. */
+  /**
+   * The visible buttons, stacked down to the board's bottom edge; once the game is over, just
+   * under the status line instead (the app's result panel takes the bottom-right corner).
+   */
   private placeButtons() {
-    const row = this.buttonRow;
+    const { x, bottom, width, height } = this.buttonStack;
     const shown = Object.values(this.buttons).filter((b) => b.container.visible);
     const gap = 8;
-    if (row.stacked) {
-      shown.forEach((b, i) => {
-        b.setSize(row.width, row.height);
-        b.setPosition(row.x, row.y + (i - (shown.length - 1) / 2) * (row.height + gap));
-      });
-      return;
-    }
-    const hud = this.ctx.screen.hud;
-    const width = Math.min(150 * hud, (row.width - gap * (shown.length - 1)) / shown.length);
+    const span = shown.length * height + (shown.length - 1) * gap;
+    const top = this.ctx.result ? this.status.y + this.status.height + 16 : bottom - span;
     shown.forEach((b, i) => {
-      b.setSize(width, row.height);
-      b.setPosition(row.x + (i - (shown.length - 1) / 2) * (width + gap), row.y);
+      b.setSize(width, height).setPosition(x, top + height / 2 + i * (height + gap));
     });
   }
 
@@ -777,39 +778,38 @@ export class XiangqiView extends GameView<View, Options> {
     });
   }
 
-  private scoreRow(): [number, number, number] {
-    const { grid } = this;
-    const cx = grid.x0 + (grid.dx * (COLS - 1)) / 2;
-    const { top, hud } = this.ctx.screen;
-    return [cx, top + (44 * hud) / 2, hud];
-  }
-
-  /** Seat 0 left, score, seat 1 right, each with the color it plays: [Đỏ] Minh 1 – 0 Lan [Đen]. */
-  private layoutScore({ players, score, state }: Ctx, cx: number, y: number, hud: number) {
-    const font = 22 * hud;
-    const icon = font * 1.6;
-    this.score.numbers
-      .setText(`${score.wins[0] ?? 0}  –  ${score.wins[1] ?? 0}`)
-      .setFontSize(font * 1.4)
-      .setPosition(cx, y);
-    const half = this.score.numbers.width / 2 + font * 0.6;
-    const nameWidth = this.view.width / 2 - 12 - half - font * 0.4 - icon;
+  /**
+   * The two players in the left column, each beside the general it plays, with its wins: the
+   * side at the top of the board above, the side at the bottom below.
+   */
+  private layoutScore({ players, score, state }: Ctx) {
+    const { hud } = this.ctx.screen;
+    const col = this.leftColumn;
+    const icon = 60 * hud;
+    const textX = col.x - col.width / 2 + icon + 10 * hud;
+    const textW = col.width - icon - 10 * hud;
+    const bottomSide: Side = this.grid.flip ? 'b' : 'r';
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
+      const wins = this.score.wins[seat];
       const img = this.score.icons[seat];
       const player = players[seat];
-      if (!name || !img) return;
+      if (!name || !wins || !img) return;
       const side: Side = player ? (state.players[0] === player.id ? 'r' : 'b') : seat ? 'b' : 'r';
-      const dir = seat === 0 ? -1 : 1;
-      name
-        .setFontSize(font)
-        .setColor(SIDES[side].text)
-        .setPosition(cx + dir * half, y);
-      this.fitText(name, player ? player.name : '…', nameWidth);
+      const y = side === bottomSide ? col.bottom : col.top;
       img
         .setTexture(this.texture(pieceImage(side, 'k')))
         .setDisplaySize(icon / DISC, icon / DISC)
-        .setPosition(cx + dir * (half + name.width + font * 0.4 + icon / 2), y);
+        .setPosition(col.x - col.width / 2 + icon / 2, y);
+      name
+        .setFontSize(26 * hud)
+        .setColor(SIDES[side].text)
+        .setPosition(textX, y - 14 * hud);
+      this.fitText(name, player ? player.name : '…', textW, 18 * hud);
+      wins
+        .setFontSize(20 * hud)
+        .setText(`Thắng ${score.wins[seat] ?? 0}`)
+        .setPosition(textX, y + 16 * hud);
     });
   }
 }

@@ -96,6 +96,10 @@ hay khung trang trí ăn chỗ.
 - Hình phải đủ điểm ảnh cho lúc phóng to nhất: **cỡ ảnh ≥ cỡ hiển thị (đơn vị) × 2,3**. Ví dụ một lá
   bài cao 160 cần ảnh cao ít nhất 368; một quân cờ 68 cần ảnh 160.
 - Ảnh to hơn nhiều so với cần thì thu nhỏ lại khi xuất, cho nhẹ và mượt.
+- `npm run shots -- --path '<trang>' --audit` đo thật trên màn hình: mỗi ảnh đang hiện bị phóng
+  to bao nhiêu lần so với điểm ảnh của nó, và cần xuất ra cỡ nào. Thử trên `ipad` (phóng to
+  nhất). Đặt kích thước hình theo đơn vị thiết kế (không theo điểm ảnh của ảnh), để xuất ảnh to
+  hơn không làm hình to ra.
 - Nền nút, nền bảng cần ghi độ dày viền (để đặt `slice`) khi làm hình.
 
 ## Chuyển động
