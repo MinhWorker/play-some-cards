@@ -3,9 +3,9 @@ import { Button } from '@/components/ui/Button';
 
 /**
  * Shown when the site was updated while this page was open: the old page can't open games any
- * more, so it offers a reload (a room in progress takes the player back to their seat).
+ * more, so its only way on is a reload (a room in progress takes the player back to their seat).
  */
-export function NewVersionDialog({ onLater }: { onLater: () => void }) {
+export function NewVersionDialog() {
   const reload = useRef<HTMLButtonElement>(null);
   useEffect(() => reload.current?.focus(), []);
   return (
@@ -14,9 +14,6 @@ export function NewVersionDialog({ onLater }: { onLater: () => void }) {
         <h2>Đã có phiên bản mới</h2>
         <Button ref={reload} onClick={() => window.location.reload()}>
           Tải lại
-        </Button>
-        <Button variant="secondary" onClick={onLater}>
-          Để sau
         </Button>
       </div>
     </div>

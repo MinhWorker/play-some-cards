@@ -48,6 +48,11 @@
       "maxSize": 192,
       "prompt": "The same chunky glossy golden-yellow cartoon loudspeaker icon (speaker cone facing right), but instead of sound waves a bold red X next to it meaning muted, thick dark-brown outline, game UI button icon, side view."
     },
+    "gear": {
+      "transparent": true,
+      "maxSize": 192,
+      "prompt": "A chunky glossy golden-yellow cartoon settings gear (cogwheel) icon with eight rounded teeth and a round hole in the middle, thick dark-brown outline, game UI button icon, front view, slightly tilted."
+    },
     "orb": {
       "transparent": true,
       "maxSize": 160,

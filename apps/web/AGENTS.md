@@ -23,7 +23,7 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
   - The app is played sideways. `lib/frame.ts` picks the frame (`pickFrame` in the SDK) and sets
     `--frame-*`, `--unit` and `--hud` on <html>; `.ui` covers the frame, the canvas the whole
     screen. Phones held upright get `RotateHint`.
-  - The player's view settings (HUD size, screen margin; `ViewSettings` in the speaker panel) live
+  - The player's view settings (HUD size, screen margin; `ViewSettings` in the settings panel) live
     in `lib/frame.ts` and feed `pickFrame`.
   - Test with `npm run shots` (real phones, an iPad and a laptop). DEV settings force a frame
     width or a lower pixel density, and show the FPS.

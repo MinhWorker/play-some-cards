@@ -5,7 +5,7 @@
   left: 12px;
   display: flex;
   align-items: center;
-  /* Only the speaker button shares the top row. */
+  /* Only the settings button shares the top row. */
   max-width: min(340px, calc(100% - 90px));
 }
 

@@ -145,9 +145,8 @@ export function App() {
           <Banner>Đã có phiên bản mới, đang tải lại…</Banner>
         ) : version === 'older' ? (
           <Banner>Server đang cập nhật, chờ chút nhé…</Banner>
-        ) : (
-          !connected && account.status !== 'guest' && <WarmupOverlay />
-        )}
+        ) : null}
+        <WarmupOverlay shown={version === 'ok' && !connected && account.status !== 'guest'} />
         {account.status === 'guest' ? (
           <Login onSignIn={signIn} />
         ) : account.status === 'loading' ? null : session && editing ? (
@@ -182,7 +181,7 @@ export function App() {
         )}
         {notice && <Toast>{notice}</Toast>}
         <SoundControl />
-        {newBuild.shown && version !== 'newer' && <NewVersionDialog onLater={newBuild.later} />}
+        {newBuild && version !== 'newer' && <NewVersionDialog />}
       </main>
       <CloudCurtain />
       <VersionTag />
