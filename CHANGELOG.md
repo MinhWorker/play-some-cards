@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/MinhWorker/play-some-cards/compare/v0.6.0...v0.6.1) (2026-09-28)
+
+
+### Performance
+
+* **cards:** draw card ranks once as images ([#41](https://github.com/MinhWorker/play-some-cards/issues/41)) ([0318686](https://github.com/MinhWorker/play-some-cards/commit/03186863d5bb300b23acf01ee1baa32404ba86a1))
+
 ## [0.6.0](https://github.com/MinhWorker/play-some-cards/compare/v0.5.1...v0.6.0) (2026-09-28)
 
 
