@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0](https://github.com/MinhWorker/play-some-cards/compare/v0.6.1...v0.7.0) (2026-09-28)
+
+
+### Features
+
+* **web:** settings gear, reload-only update dialog, warm-up art kept loaded ([#44](https://github.com/MinhWorker/play-some-cards/issues/44)) ([72bcd45](https://github.com/MinhWorker/play-some-cards/commit/72bcd45d4085275a9983d59ea7e558f9dbd9d681))
+
+
+### Bug fixes
+
+* **mau-binh:** your cards stay as you arrange them; easier drag and drop ([#45](https://github.com/MinhWorker/play-some-cards/issues/45)) ([36d9e9d](https://github.com/MinhWorker/play-some-cards/commit/36d9e9ddad25f0153327b43ddcab54e63aa346a6))
+
+
+### Performance
+
+* **mau-binh:** draw card outlines once as an image ([#43](https://github.com/MinhWorker/play-some-cards/issues/43)) ([3f77722](https://github.com/MinhWorker/play-some-cards/commit/3f77722999be346cfa075e5fc338ad4db021a989))
+
 ## [0.6.1](https://github.com/MinhWorker/play-some-cards/compare/v0.6.0...v0.6.1) (2026-09-28)
 
 
