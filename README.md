@@ -30,7 +30,8 @@ Mở thêm một cửa sổ trình duyệt (hoặc cửa sổ ẩn danh) để t
 - `games/<id>`: mỗi game một thư mục (luật, màn chơi, hình, âm thanh). Tự làm game với
   `npm run new:game` (và từng file với `npm run new`), xem [docs/making-a-game.md](docs/making-a-game.md)
 - `packages/sdk`: bộ API nhỏ mà các game dùng
-- `apps/web`: React + Vite cho giao diện, Phaser 4 cho thế giới và bàn chơi
+- `apps/web`: React + Vite cho giao diện, Phaser 4 cho thế giới và bàn chơi. Định hướng giao diện
+  (khung ngang, HUD, bàn chơi): [docs/ui-guide.md](docs/ui-guide.md)
 - `apps/server`: NestJS + Socket.IO; server giữ các phòng và kiểm tra mọi nước đi
 
 `npm run check` chạy lint, kiểm tra kiểu và test. Các lệnh khác và bản đồ đầy đủ: `AGENTS.md`.
