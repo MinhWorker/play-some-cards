@@ -1,6 +1,6 @@
 /**
  * All app audio: background music and short UI sound effects, through one Web Audio graph
- * with a gain node per channel, following the speaker panel's volume/mute for each
+ * with a gain node per channel, following the settings panel's volume/mute for each
  * (iOS ignores `audio.volume`, so volume must go through gain nodes). Music is a streamed <audio> element, so it starts
  * before the whole file downloads. Settings are remembered per browser.
  */

@@ -64,7 +64,7 @@ export class SkyScene extends Phaser.Scene {
     this.sky.setScale(Math.max(screenW / this.sky.width, screenH / this.sky.height) * 1.1);
     this.placeSky((this.registry.get('hubScroll') as number | undefined) ?? 0);
 
-    // Title centered at the top of the frame, between the profile and the speaker.
+    // Title centered at the top of the frame, between the profile and the settings button.
     const titleScale = TITLE_WIDTH / this.title.span;
     this.title.setScale(titleScale).setPosition(view.width / 2, 12 - this.title.top * titleScale);
     this.registry.set('titleBottom', this.title.y + this.title.bottom * titleScale);

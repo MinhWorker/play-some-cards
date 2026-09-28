@@ -12,7 +12,7 @@ const CHANNELS: { id: Channel; label: string }[] = [
 const icon = (silent: boolean) => imageUrl(silent ? 'speaker-off' : 'speaker-on');
 
 /**
- * Speaker button in the top-right corner. Tap it for the settings panel: a volume slider and a
+ * Settings (gear) button in the top-right corner. Tap it for the settings panel: a volume slider and a
  * mute toggle for the music and for sound effects separately, then the view settings (HUD size,
  * screen margin).
  */
@@ -43,18 +43,16 @@ export function SoundControl() {
     change: (s: SoundSettings[Channel]) => SoundSettings[Channel],
   ) => setSettings((s) => ({ ...s, [channel]: change(s[channel]) }));
 
-  const allSilent = isSilent(settings.music) && isSilent(settings.sfx);
-
   return (
     <div className="hud sound" ref={ref}>
       <button
         type="button"
         className="sound-btn"
-        aria-label="Âm thanh"
+        aria-label="Cài đặt"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        <img src={icon(allSilent)} alt="" />
+        <img src={imageUrl('gear')} alt="" />
       </button>
       {open && (
         <div className="panel sound-panel">
