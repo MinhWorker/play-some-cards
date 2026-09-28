@@ -28,6 +28,31 @@ Tiến Lên miền Nam, 2–4 người, chơi với bạn hoặc với máy (D�
 
 Chưa có: tới trắng, phạt thối heo, tính điểm theo lá còn lại.
 
+## Bàn chơi
+
+- Mặt bàn là một **chiếc chiếu cói** trải kín màn hình. Hoa văn đỏ xanh dệt trên chiếu đóng khung
+  vùng đánh bài ở giữa.
+- Người chơi ngồi quanh chiếu, mỗi người một **thẻ ghế**: ảnh (có vòng đồng hồ khi tới lượt), tên,
+  điểm và số lá còn lại. Hai người hai bên có thẻ dựng đứng sát mép, người đối diện có thẻ nằm
+  ngang ngay dưới thanh phòng.
+- Khi ai **bỏ lượt**, về hạng hay rời bàn, một con dấu đóng lên chính thẻ ghế của họ và thẻ mờ đi.
+  Dấu không bao giờ che bài ở giữa chiếu.
+- Bài trên tay nằm dọc mép dưới, hơi tràn khỏi màn hình (số và chất vẫn thấy rõ). Dòng trạng thái
+  ("Tới lượt bạn! · 15") nằm trên mép dưới của khung hoa văn, cạnh ảnh của bạn.
+- Nút **Điểm** (trên "Bỏ lượt") mở danh sách mọi người: số lá, điểm, hạng. Chạm chỗ khác để đóng.
+
+### Kiểu lá bài
+
+Mặt trước và mặt sau lá bài chọn riêng, khai báo trong `src/scenes/deck.ts`:
+
+- **Mặt sau**: một hình `assets/back-<tên>.webp`, lá bài nhìn thẳng, tỉ lệ 2:3. Hiện dùng
+  `back-lattice` (lưới xanh như bộ bài phổ biến ngoài tiệm), còn có `back-lotus` (đỏ, sen vàng).
+- **Mặt trước**: một lá trắng `assets/face-<tên>.webp`, bốn hình chất, màu chữ đỏ/đen và vị trí
+  của số, chất nhỏ, chất lớn trên lá. Số vẽ bằng font của app.
+
+Thêm một kiểu mới chỉ cần thêm hình và một dòng trong `FACES` hoặc `BACKS`; code vẽ bài không
+đổi. Kiểu đang dùng là `DEFAULT_LOOK`.
+
 ## Các thứ nằm ở đâu
 
 ```
@@ -43,12 +68,15 @@ src/
     bot.ts                bộ não của máy: đánh bộ nào
     *.test.ts             test (npm run check)
   scenes/
-    TienLenView.ts        bàn chơi: bài trên tay, người chơi quanh bàn, đống bài giữa bàn, chữ
-                          giới thiệu vòng, chữ nhảy lên khi có nước đặc biệt
-    PlayerList.ts         danh sách người chơi góc trái (ảnh, tên, số lá, điểm, đồng hồ lượt)
+    TienLenView.ts        bàn chơi: bài trên tay, người chơi quanh chiếu, đống bài giữa chiếu,
+                          dòng trạng thái, chữ giới thiệu vòng, chữ nhảy lên khi có nước đặc biệt
+    Mat.ts                chiếc chiếu: vân cói, ánh sáng, hoa văn dệt quanh vùng đánh bài
+    Seat.ts               thẻ ghế của một người (ảnh, tên, điểm, số lá, dấu "Bỏ lượt", đồng hồ)
+    PlayerList.ts         danh sách người chơi sau nút "Điểm" (ảnh, tên, số lá, điểm, hạng)
     Standings.ts          bảng xếp hạng sau mỗi vòng và bảng tổng kết
     Callout.ts            chữ lớn nhảy lên rồi bay đi ("Chặt heo!", "Vòng 2")
     Card.ts               một lá bài trên màn hình (mặt, số, chất, mặt sau, lật bài)
+    deck.ts               kiểu lá bài: mặt trước và mặt sau chọn riêng
     Setup.ts              màn cài đặt một bước: số máy, độ khó, số vòng, thời gian mỗi lượt
 assets/                 hình (Codex, prompt trong sources/prompts.json) và âm thanh
 ```
@@ -75,7 +103,8 @@ sandbox không có máy, các nút ghế đổi góc nhìn; đồng hồ lượt
 
 ## Ghi công
 
-Hình tạo bằng Codex (`sources/prompts.json`). Nhạc tổng kết `tien-len-standings.mp3` cắt từ
+Hình tạo bằng Codex (`sources/prompts.json`), trừ vân chiếu `assets/mat.webp` vẽ bằng code:
+`node scripts/mat-texture.mjs`. Nhạc tổng kết `tien-len-standings.mp3` cắt từ
 "winning" của pw23check trên Pixabay. Âm thanh: file trong `assets/`, phần lớn làm từ một bản ghi lá bài thật (xem
 `LICENSE-ASSETS.md`); bản gốc lưu trong `assets/games/tien-len/audio/`; xem thêm
 [docs/tien-len-audio.md](../../docs/tien-len-audio.md).

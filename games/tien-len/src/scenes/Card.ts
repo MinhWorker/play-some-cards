@@ -1,17 +1,12 @@
 /**
- * One playing card on screen: the blank face from assets/ with its rank written in code and the
- * suit symbol, or the back. A Phaser container, so it moves, turns and flips as one object.
+ * One playing card on screen: a face (blank card, rank written in code, suit symbols) or its
+ * back, both from the table's card look (deck.ts). A Phaser container, so it moves, turns and
+ * flips as one object.
  */
 import { FONT } from '@psc/sdk/client';
 import Phaser from 'phaser';
-import { type Card, isRed, RANKS, rankOf, SUITS, type Suit, suitOf } from '../game/cards.js';
-
-/** Texture keys the card needs (from the view's `this.texture(...)`). */
-export interface CardTextures {
-  front: string;
-  back: string;
-  suits: Record<Suit, string>;
-}
+import { type Card, isRed, RANKS, rankOf, suitOf } from '../game/cards.js';
+import type { CardArt } from './deck.js';
 
 /** Height / width of the card art. */
 export const CARD_RATIO = 1.5;
@@ -46,15 +41,15 @@ export class CardSprite extends Phaser.GameObjects.Container {
 
   constructor(
     scene: Phaser.Scene,
-    private readonly textures: CardTextures,
+    private readonly art: CardArt,
     card: Card | null,
   ) {
     super(scene);
-    this.face = scene.add.image(0, 0, textures.front);
-    this.back = scene.add.image(0, 0, textures.back);
+    this.face = scene.add.image(0, 0, art.blank);
+    this.back = scene.add.image(0, 0, art.back);
     this.rank = scene.add.image(0, 0, '__DEFAULT');
-    this.small = scene.add.image(0, 0, textures.suits.spade);
-    this.big = scene.add.image(0, 0, textures.suits.spade);
+    this.small = scene.add.image(0, 0, art.suits.spade);
+    this.big = scene.add.image(0, 0, art.suits.spade);
     this.add([this.face, this.back, this.rank, this.small, this.big]);
     scene.add.existing(this);
     this.setCard(card);
@@ -71,11 +66,10 @@ export class CardSprite extends Phaser.GameObjects.Container {
     this.back.setVisible(!up);
     for (const obj of [this.face, this.rank, this.small, this.big]) obj.setVisible(up);
     if (up) {
-      const suit = SUITS.indexOf(suitOf(card));
-      const color = isRed(card) ? '#c8102e' : '#1d1d1f';
+      const color = isRed(card) ? this.art.ink.red : this.art.ink.black;
       this.rank.setTexture(rankTexture(this.scene, RANKS[rankOf(card)] ?? '', color));
-      this.small.setTexture(this.textures.suits[SUITS[suit] as Suit]);
-      this.big.setTexture(this.textures.suits[SUITS[suit] as Suit]);
+      this.small.setTexture(this.art.suits[suitOf(card)]);
+      this.big.setTexture(this.art.suits[suitOf(card)]);
     }
     return this.setCardWidth(this.cardWidth);
   }
@@ -90,9 +84,10 @@ export class CardSprite extends Phaser.GameObjects.Container {
     this.setSize(w, h);
     // A tappable card keeps a tap area as big as the card.
     if (this.input) (this.input.hitArea as Phaser.Geom.Rectangle).setTo(0, 0, w, h);
-    this.rank.setScale((w * 0.32) / RANK_PX).setPosition(-w * 0.27, -h * 0.34);
-    this.small.setPosition(-w * 0.27, -h * 0.15).setScale((w * 0.22) / this.small.width);
-    this.big.setPosition(w * 0.1, h * 0.14).setScale((w * 0.52) / this.big.width);
+    const { rank, small, big } = this.art;
+    this.rank.setScale((w * rank.size) / RANK_PX).setPosition(w * rank.x, h * rank.y);
+    this.small.setPosition(w * small.x, h * small.y).setScale((w * small.size) / this.small.width);
+    this.big.setPosition(w * big.x, h * big.y).setScale((w * big.size) / this.big.width);
     return this;
   }
 
