@@ -36,8 +36,13 @@ Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc m�
 **Bạn cầm quân** (Đỏ đi trước, hoặc Đen). Chủ phòng đổi các tuỳ chọn này giữa hai ván bằng
 "Tuỳ chỉnh". Người cầm Đen thấy bàn cờ xoay ngược để quân mình luôn ở dưới.
 
+Mỗi loại quân ăn theo kiểu riêng: Tốt lùi lấy đà rồi húc, Sĩ xoay một vòng khi lướt chéo, Tượng
+nhảy chéo thật mạnh, Mã nhảy hai nhịp chữ L và lộn nhào, Xe lao thẳng rồi phanh gấp, Pháo bay
+qua ngòi rồi nện xuống, Tướng nhấc cao rồi giáng xuống. Quân bị ăn bị hất lên rồi vỡ thành mảnh
+ngọc.
+
 Nút **Hiệu ứng** bên phải bàn bật/tắt hiệu ứng trên máy đang dùng (nhớ trong trình duyệt): khi tắt,
-quân chuyển thẳng tới chỗ mới, không nhấc, không bụi, không rung.
+quân chuyển thẳng tới chỗ mới, quân bị ăn biến mất ngay, không nhấc, không bụi, không rung.
 
 ## Các thứ nằm ở đâu
 
@@ -50,7 +55,8 @@ src/
   game/referee.ts           phân xử lặp thế cờ: chiếu dai, đuổi dai, hoà
   game/bot.ts               máy chơi (tìm kiếm alpha-beta theo giá trị quân)
   game/XiangqiGame.ts       các sự kiện: move, offer-draw, decline-draw, resign
-  scenes/XiangqiView.ts     bàn cờ: chọn quân, chấm nước đi, nút xin hoà/đầu hàng
+  scenes/XiangqiView.ts     bàn cờ: chọn quân, chấm nước đi, pha ăn quân, nút xin hoà/đầu hàng
+  scenes/shatter.ts         quân bị ăn vỡ thành mảnh (cắt từ chính ảnh quân)
   scenes/Setup.ts           form tạo phòng
   scenes/theme.ts           tên quân, màu, câu kết quả ván
 assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo tên file
@@ -59,7 +65,8 @@ sources/                    file gốc tuỳ chọn; `npm run assets -- xiangqi`
 
 `board.webp` là ảnh sinh (prompt trong `sources/prompts.json`), đường kẻ do game vẽ theo `BOARD`
 trong `scenes/theme.ts`. `piece-<red|black>-<kind>.webp`, bóng
-chung `piece-shadow.webp` và `river.webp` (楚河 漢界) render từ Blender. `button.webp` lấy từ Tiến Lên.
+chung `piece-shadow.webp` và `river.webp` (楚河 漢界) render từ Blender. `button.webp` lấy từ Tiến Lên. `xiangqi-move.wav` và `xiangqi-shatter.wav`
+tổng hợp bằng code.
 
 Test: `npm run check` (gồm perft đếm nước đi từ thế khai cuộc, chiếu bí, hết nước, lặp thế cờ).
 Chơi thử một mình: http://localhost:5033/?play=xiangqi&players=2 (khi đang chạy `npm run dev`).

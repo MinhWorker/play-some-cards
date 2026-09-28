@@ -7,8 +7,8 @@ khắc chữ Hán; các nước ăn quân có nhịp hành động riêng: lao t
 Những khai cuộc hoặc thế đánh được nhận diện chắc chắn có cut-in tên bằng tiếng Việt. Hiệu ứng làm nước đi đáng nhớ nhưng không che khuất trạng thái bàn cờ.
 
 Hiện đã có luật đầy đủ (nước đi, chiếu, chiếu bí, hết nước, lặp thế cờ, xin hoà, đầu hàng), máy
-chơi ba mức, bàn cờ và 14 quân; xem [README](README.md). Các hạng mục còn lại
-(hoạt ảnh ăn quân riêng từng loại, mảnh vỡ, cut-in) là việc sẽ triển khai.
+chơi ba mức, bàn cờ, 14 quân, pha ăn quân riêng cho từng loại và quân vỡ thành mảnh; xem
+[README](README.md). Còn lại: điểm nhấn khi kết thúc ván và cut-in.
 
 ## Luật chơi sẽ áp dụng
 

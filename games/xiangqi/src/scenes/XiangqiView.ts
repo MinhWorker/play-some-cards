@@ -14,14 +14,18 @@
  * the front: each is drawn a little above its point and over the pieces behind it, on a
  * shadow of its own (piece-shadow) that stays on the table when the piece is lifted.
  *
- * Effects (lifting, sliding, dust, knocks, shakes, the check pulse and pop-up) can be turned
+ * A capture is a little scene of its own per kind of attacker (`attack`); the taken piece is
+ * struck, thrown and breaks into shards of itself (shatter.ts).
+ *
+ * Effects (lifting, sliding, dust, captures, shakes, the check pulse and pop-up) can be turned
  * off on each device ("Hiệu ứng"); pieces then jump straight to their points. The board always
  * follows the state at once; animations only catch the pieces' looks up, one move at a time.
  */
 import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
-import type Phaser from 'phaser';
+import Phaser from 'phaser';
 import { COLS, type Move, type Options, ROWS, type Side, type View } from '../game/model.js';
 import { colOf, generalOf, kindOf, legalTargets, rowOf, sideOf } from '../game/rules.js';
+import { shatter } from './shatter.js';
 import { BOARD, COLORS, DISC, endText, pieceImage, SIDES } from './theme.js';
 
 type Ctx = ViewContext<View, Options>;
@@ -32,6 +36,9 @@ interface PieceObj {
   container: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Image;
   image: Phaser.GameObjects.Image;
+  /** Tweened by `lift` and `leap` (so `placePiece` can stop them): gaps up, and a leap's progress. */
+  height: number;
+  progress: number;
 }
 
 /** Pieces nearer the bottom of the screen are drawn over those behind them (+ row / 100). */
@@ -358,7 +365,7 @@ export class XiangqiView extends GameView<View, Options> {
     const shadow = this.sprite('piece-shadow');
     const image = this.sprite(pieceImage(sideOf(piece), kindOf(piece)));
     const container = this.add.container(0, 0, [shadow, image]);
-    const obj = { piece, container, shadow, image };
+    const obj = { piece, container, shadow, image, height: 0, progress: 0 };
     this.placePiece(obj, sq);
     return obj;
   }
@@ -366,31 +373,38 @@ export class XiangqiView extends GameView<View, Options> {
   /** Puts a piece on its point at the current board size, at rest. */
   private placePiece(obj: PieceObj, sq: number) {
     const { x, y } = this.piecePos(sq);
-    this.tweens.killTweensOf([obj.container, obj.image, obj.shadow]);
+    this.tweens.killTweensOf([obj, obj.container, obj.image, obj.shadow]);
     obj.container.setPosition(x, y).setScale(1).setAlpha(1).setAngle(0).setDepth(this.depthAt(sq));
     const size = (this.grid.dx * BOARD.disc) / DISC;
-    obj.image.setDisplaySize(size, size).setPosition(0, 0);
+    obj.image.setDisplaySize(size, size).setPosition(0, 0).clearTint();
     obj.shadow.setDisplaySize(size, size).setPosition(0, 0).setAlpha(1);
     if (sq === this.selected && this.effects) this.lift(obj, LIFT.picked, 0);
   }
 
   /** Raises the piece `height` column gaps off the table (0 = standing on it). */
   private lift(obj: PieceObj, height: number, duration = 110) {
-    const size = (this.grid.dx * BOARD.disc) / DISC;
-    const shadowScale = (size / obj.shadow.width) * (1 - height * 0.4);
-    const to = {
-      image: { y: -height * this.grid.dx },
-      shadow: { alpha: 1 - height * 1.3, scaleX: shadowScale, scaleY: shadowScale },
-    };
     if (!duration) {
-      obj.image.setY(to.image.y);
-      obj.shadow.setAlpha(to.shadow.alpha).setScale(shadowScale);
+      this.setLift(obj, height);
       return Promise.resolve();
     }
-    return Promise.all([
-      this.tween({ targets: obj.image, ...to.image, duration, ease: 'Quad.easeOut' }),
-      this.tween({ targets: obj.shadow, ...to.shadow, duration, ease: 'Quad.easeOut' }),
-    ]).then(() => undefined);
+    return this.tween({
+      targets: obj,
+      height,
+      duration,
+      ease: 'Quad.easeOut',
+      onUpdate: () => this.setLift(obj, obj.height),
+    });
+  }
+
+  /** The piece `height` gaps up; its shadow stays on the table, smaller and fainter. */
+  private setLift(obj: PieceObj, height: number) {
+    if (!obj.image.active) return;
+    obj.height = height;
+    const size = (this.grid.dx * BOARD.disc) / DISC;
+    obj.image.setY(-height * this.grid.dx);
+    obj.shadow
+      .setAlpha(Math.max(0, 1 - height * 1.3))
+      .setScale((size / obj.shadow.width) * Math.max(0.4, 1 - height * 0.4));
   }
 
   /**
@@ -468,7 +482,10 @@ export class XiangqiView extends GameView<View, Options> {
     });
   }
 
-  /** Lift, slide, set down with a thud and a puff of dust; a taken piece is knocked away. */
+  /**
+   * Lift, slide, set down with a thud and a puff of dust. A capture has its own scene per kind
+   * of attacker (`attack`); when moves are waiting it is just a quick slide and the break.
+   */
   private async animateMove(
     obj: PieceObj,
     from: number,
@@ -478,15 +495,11 @@ export class XiangqiView extends GameView<View, Options> {
     fast: boolean,
   ) {
     const end = this.piecePos(to);
-    const land = () => {
-      this.sfx(
-        victim ? (after.heavy ? 'xiangqi-capture-heavy' : 'xiangqi-capture') : 'xiangqi-move',
-      );
-    };
+    const captureSound = after.heavy ? 'xiangqi-capture-heavy' : 'xiangqi-capture';
     if (!this.effects || !obj.container.active) {
       if (obj.container.active) this.placePiece(obj, to);
       if (victim) this.gone(victim);
-      land();
+      this.sfx(victim ? captureSound : 'xiangqi-move');
       this.afterMove(after);
       return;
     }
@@ -494,19 +507,36 @@ export class XiangqiView extends GameView<View, Options> {
     const a = this.shown(from);
     const b = this.shown(to);
     const distance = Math.hypot(a.row - b.row, a.col - b.col);
+    const blow = { x: (b.col - a.col) / (distance || 1), y: (b.row - a.row) / (distance || 1) };
+    const hit = (power: number) => {
+      if (!victim) return;
+      this.sfx(captureSound);
+      this.hit(victim, blow, power);
+    };
     obj.container.setDepth(DEPTH.moving);
-    await this.lift(obj, LIFT.moving, 90 * speed);
-    await this.tween({
-      targets: obj.container,
-      x: end.x,
-      y: end.y,
-      duration: Math.min(420, 150 + 50 * distance) * speed,
-      ease: 'Sine.easeInOut',
-    });
-    await this.lift(obj, 0, 80 * speed);
+    if (victim && !fast) {
+      await this.attack(obj, from, to, blow, hit);
+    } else {
+      await this.lift(obj, LIFT.moving, 90 * speed);
+      await this.tween({
+        targets: obj.container,
+        x: end.x,
+        y: end.y,
+        duration: Math.min(420, 150 + 50 * distance) * speed,
+        ease: 'Sine.easeInOut',
+      });
+      await this.lift(obj, 0, 80 * speed);
+      if (victim) hit(1);
+      else this.sfx('xiangqi-move');
+    }
     if (!obj.container.active) return;
-    land();
-    const at = this.pointXY(to);
+    this.settle(obj, to, speed);
+    this.afterMove(after, true);
+  }
+
+  /** The piece sets down on point `sq`: dust, a squash, back to its place in the rows. */
+  private settle(obj: PieceObj, sq: number, speed = 1) {
+    const at = this.pointXY(sq);
     this.puff(at.x, at.y);
     this.tweens.add({
       targets: obj.container,
@@ -515,10 +545,332 @@ export class XiangqiView extends GameView<View, Options> {
       duration: 70 * speed,
       yoyo: true,
     });
-    if (victim)
-      this.knock(victim, (b.col - a.col) / (distance || 1), (b.row - a.row) / (distance || 1));
-    obj.container.setDepth(this.depthAt(to));
-    this.afterMove(after, true);
+    obj.container.setDepth(this.depthAt(sq));
+  }
+
+  /**
+   * How each kind of piece takes (games/xiangqi/PLAN.md): the attacker ends on `to` standing
+   * on the table, and `hit(power)` fires at the moment it strikes.
+   */
+  private async attack(
+    obj: PieceObj,
+    from: number,
+    to: number,
+    blow: { x: number; y: number },
+    hit: (power: number) => void,
+  ) {
+    const end = this.piecePos(to);
+    const gap = this.grid.dx;
+    const a = this.shown(from);
+    const b = this.shown(to);
+    const distance = Math.hypot(a.row - b.row, a.col - b.col);
+    const kind = kindOf(obj.piece);
+    if (kind === 'p') {
+      // A short step back to wind up, then a quick shove.
+      await this.tween({
+        targets: obj.container,
+        x: obj.container.x - blow.x * gap * 0.18,
+        y: obj.container.y - blow.y * gap * 0.18,
+        scaleX: 1.08,
+        scaleY: 0.9,
+        duration: 150,
+        ease: 'Quad.easeOut',
+      });
+      await this.leap(obj, end, {
+        height: 0.12,
+        duration: 130,
+        ease: 'Quad.easeIn',
+        unsquash: true,
+      });
+      hit(0.75);
+    } else if (kind === 'a') {
+      // A neat diagonal glide, spinning once.
+      await this.leap(obj, end, {
+        height: 0.28,
+        duration: 320,
+        ease: 'Sine.easeInOut',
+        spin: blow.x >= 0 ? 360 : -360,
+      });
+      hit(0.85);
+    } else if (kind === 'b') {
+      // A big diagonal bound that grows as it rises, landing like a ram.
+      await this.crouch(obj, 110);
+      await this.leap(obj, end, { height: 0.6, duration: 380, grow: 0.2, unsquash: true });
+      this.shockwave(to, 0.8);
+      hit(1.05);
+    } else if (kind === 'n') {
+      // The L: a hop onto the leg point, then a leap with a somersault onto the victim.
+      const leg = legPoint(from, to);
+      await this.leap(obj, this.piecePos(leg), { height: 0.25, duration: 170 });
+      await this.tween({
+        targets: obj.container,
+        scaleX: 1.08,
+        scaleY: 0.9,
+        duration: 60,
+        yoyo: true,
+      });
+      await this.leap(obj, end, { height: 0.85, duration: 380, flip: true });
+      hit(1);
+    } else if (kind === 'r') {
+      // Straight in fast with a blur behind, past the point, braking back onto it.
+      await this.lift(obj, 0.1, 70);
+      const trail = this.afterimages(obj);
+      await this.tween({
+        targets: obj.container,
+        x: end.x,
+        y: end.y,
+        duration: 110 + 25 * distance,
+        ease: 'Cubic.easeIn',
+      });
+      hit(1.2);
+      await this.tween({
+        targets: obj.container,
+        x: end.x + blow.x * gap * 0.2,
+        y: end.y + blow.y * gap * 0.2,
+        duration: 70,
+        ease: 'Quad.easeOut',
+      });
+      trail.remove();
+      await Promise.all([
+        this.tween({
+          targets: obj.container,
+          x: end.x,
+          y: end.y,
+          duration: 160,
+          ease: 'Back.easeOut',
+        }),
+        this.lift(obj, 0, 120),
+      ]);
+    } else if (kind === 'c') {
+      // Crouch, fly high over the screen (which jumps as it's passed), crash down.
+      const screen = this.screenBetween(from, to);
+      await this.crouch(obj, 130);
+      const duration = 300 + 30 * distance;
+      if (screen) this.time.delayedCall(duration * 0.45, () => this.jolt(screen));
+      await this.leap(obj, end, { height: 1.5, duration, ease: 'Quad.easeIn', unsquash: true });
+      this.shockwave(to, 1);
+      this.cameras.main.shake(130, 0.004);
+      hit(1.15);
+    } else {
+      // The general: rises slowly, trembling with the effort, and comes down on it.
+      await this.lift(obj, 0.75, 280);
+      this.shake(obj.image, 0.04);
+      await this.wait(200);
+      await this.leap(obj, end, {
+        height: 0.1,
+        duration: 170,
+        ease: 'Quad.easeIn',
+        unsquash: true,
+      });
+      this.shockwave(to, 1.3);
+      this.cameras.main.shake(180, 0.006);
+      hit(1.3);
+      await this.wait(60);
+    }
+  }
+
+  /**
+   * Flies the piece to `end` on an arc `height` gaps high (starting from however high it is
+   * now), optionally spinning, growing at the top, or flipping over like a coin.
+   */
+  private leap(
+    obj: PieceObj,
+    end: { x: number; y: number },
+    o: {
+      height: number;
+      duration: number;
+      ease?: string;
+      spin?: number;
+      grow?: number;
+      flip?: boolean;
+      /** Ease its squash from `crouch` back out on the way. */
+      unsquash?: boolean;
+    },
+  ) {
+    const c = obj.container;
+    const start = { x: c.x, y: c.y, lift: obj.height, angle: c.angle };
+    const squash = { x: c.scaleX, y: c.scaleY };
+    const imageScale = obj.image.scaleY;
+    obj.progress = 0;
+    return this.tween({
+      targets: obj,
+      progress: 1,
+      duration: o.duration,
+      ease: o.ease ?? 'Sine.easeInOut',
+      onUpdate: () => {
+        if (!c.active) return;
+        const p = obj.progress;
+        const arc = 4 * p * (1 - p);
+        c.setPosition(start.x + (end.x - start.x) * p, start.y + (end.y - start.y) * p);
+        this.setLift(obj, start.lift * (1 - p) + o.height * arc);
+        if (o.spin) c.setAngle(start.angle + o.spin * p);
+        const grow = 1 + (o.grow ?? 0) * arc;
+        const back = o.unsquash ? Math.min(1, p * 3) : 0;
+        c.setScale(
+          grow * (squash.x + (1 - squash.x) * back),
+          grow * (squash.y + (1 - squash.y) * back),
+        );
+        if (o.flip) {
+          const turn = Math.cos(p * Math.PI * 2);
+          obj.image.setScale(obj.image.scaleX, imageScale * turn);
+          // Its plain underside shows darker while it's upside down.
+          if (turn < 0) obj.image.setTint(0xd8cfb8);
+          else obj.image.clearTint();
+        }
+      },
+      onComplete: () => {
+        if (!c.active) return;
+        c.setAngle(start.angle);
+        obj.image.setScale(obj.image.scaleX, imageScale).clearTint();
+      },
+    });
+  }
+
+  /** Squashes down before a jump. */
+  private crouch(obj: PieceObj, duration: number) {
+    return this.tween({
+      targets: obj.container,
+      scaleX: 1.12,
+      scaleY: 0.86,
+      duration,
+      ease: 'Quad.easeOut',
+    });
+  }
+
+  /** The piece a cannon jumps over on its way from `from` to `to`. */
+  private screenBetween(from: number, to: number) {
+    const step = rowOf(to) === rowOf(from) ? Math.sign(to - from) : Math.sign(to - from) * COLS;
+    for (let sq = from + step; sq !== to; sq += step) {
+      const obj = this.pieces.get(sq);
+      if (obj) return obj;
+    }
+    return null;
+  }
+
+  /** A piece jumps a little in its place, as if the table shook under it. */
+  private jolt(obj: PieceObj) {
+    if (!obj.container.active) return;
+    this.tweens.add({
+      targets: obj.image,
+      y: obj.image.y - this.grid.dx * 0.12,
+      duration: 90,
+      yoyo: true,
+      ease: 'Quad.easeOut',
+    });
+  }
+
+  /** Fading copies of the piece left behind it while it dashes; `remove()` stops them. */
+  private afterimages(obj: PieceObj) {
+    return this.time.addEvent({
+      delay: 28,
+      loop: true,
+      callback: () => {
+        const c = obj.container;
+        if (!c.active) return;
+        const ghost = this.add
+          .image(c.x, c.y + obj.image.y * c.scaleY, obj.image.texture.key)
+          .setScale(obj.image.scaleX * c.scaleX, obj.image.scaleY * c.scaleY)
+          .setAlpha(0.35)
+          .setDepth(DEPTH.moving - 0.1);
+        this.tweens.add({
+          targets: ghost,
+          alpha: 0,
+          duration: 180,
+          onComplete: () => ghost.destroy(),
+        });
+      },
+    });
+  }
+
+  /** A ring of air flattening out across the table from point `sq`. */
+  private shockwave(sq: number, power: number) {
+    const { x, y } = this.pointXY(sq);
+    const gap = this.grid.dx;
+    const ring = this.add
+      .graphics()
+      .setPosition(x, y)
+      .setDepth(DEPTH.marks + 0.5);
+    ring.lineStyle(Math.max(2, gap * 0.08), 0xfff6dc, 1).strokeEllipse(0, 0, gap, gap * 0.9);
+    ring.setScale(0.5);
+    this.tweens.add({
+      targets: ring,
+      scale: 1.3 + power,
+      alpha: 0,
+      duration: 380,
+      ease: 'Quad.easeOut',
+      onComplete: () => ring.destroy(),
+    });
+  }
+
+  /**
+   * The taken piece is struck: it flashes white, is thrown up and along the blow, spinning,
+   * and breaks into shards with the jade's crack. `power` (about 1) sets how far and how hard.
+   */
+  private hit(victim: PieceObj, blow: { x: number; y: number }, power: number) {
+    const c = victim.container;
+    if (!c.active) return;
+    const gap = this.grid.dx;
+    const image = victim.image;
+    c.setDepth(DEPTH.popup - 1);
+    image.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+    this.time.delayedCall(60, () => {
+      if (image.active) image.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+    });
+    this.tween({
+      targets: victim.shadow,
+      alpha: 0,
+      duration: 120,
+    });
+    const side = Math.random() < 0.5 ? -1 : 1;
+    // Along the blow and a little aside, but still over the board, so it breaks in view.
+    const { x0, y0, dy } = this.grid;
+    const throwTo = {
+      x: Phaser.Math.Clamp(
+        c.x + (blow.x - blow.y * side * 0.4) * gap * 0.55 * power,
+        x0,
+        x0 + gap * (COLS - 1),
+      ),
+      y: Phaser.Math.Clamp(
+        c.y + (blow.y + blow.x * side * 0.4) * gap * 0.55 * power,
+        y0 - gap * 0.1,
+        y0 + dy * (ROWS - 1),
+      ),
+    };
+    this.tweens.add({
+      targets: c,
+      ...throwTo,
+      angle: side * 120 * power,
+      duration: 200,
+      ease: 'Quad.easeOut',
+    });
+    this.tweens.add({
+      targets: image,
+      y: -gap * 0.5 * power,
+      duration: 200,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        if (!c.active) return this.gone(victim);
+        this.sfx('xiangqi-shatter');
+        shatter(this, {
+          key: image.texture.key,
+          x: c.x,
+          y: c.y + image.y,
+          size: image.displayWidth * c.scaleX,
+          angle: c.angle,
+          ground: c.y + BOARD.lift * gap,
+          gap,
+          dirX: blow.x,
+          dirY: blow.y,
+          power,
+          depth: DEPTH.popup - 1,
+        });
+        this.gone(victim);
+      },
+    });
+  }
+
+  private wait(ms: number) {
+    return new Promise<void>((resolve) => this.time.delayedCall(ms, resolve));
   }
 
   /** After a move lands: the check's shake and pop-up, or "your turn". */
@@ -534,26 +886,6 @@ export class XiangqiView extends GameView<View, Options> {
   private gone(victim: PieceObj) {
     this.leaving.delete(victim.container);
     victim.container.destroy();
-  }
-
-  /** The taken piece flies off the way the attacker came, spinning, and fades. */
-  private knock(victim: PieceObj, dirCol: number, dirRow: number) {
-    const { dx, dy } = this.grid;
-    const c = victim.container;
-    if (!c.active) return;
-    c.setDepth(DEPTH.moving - 0.5);
-    victim.shadow.setVisible(false);
-    this.tweens.add({
-      targets: c,
-      x: c.x + dirCol * dx * 1.1,
-      y: c.y + dirRow * dy * 1.1 - dy * 0.5,
-      angle: (dirCol >= 0 ? 1 : -1) * 150,
-      scale: 0.8,
-      alpha: 0,
-      duration: 360,
-      ease: 'Quad.easeOut',
-      onComplete: () => this.gone(victim),
-    });
   }
 
   /** The general in check shakes, and "Chiếu!" pops up over it. */
@@ -734,7 +1066,6 @@ export class XiangqiView extends GameView<View, Options> {
     this.placeButtons();
   }
 
-  /** The visible buttons, sharing their row (or stack) evenly. */
   /**
    * The visible buttons, stacked down to the board's bottom edge; once the game is over, just
    * under the status line instead (the app's result panel takes the bottom-right corner).
@@ -812,6 +1143,13 @@ export class XiangqiView extends GameView<View, Options> {
         .setPosition(textX, y + 16 * hud);
     });
   }
+}
+
+/** The point a horse steps over on its way (its "leg"): one step along its longer leg. */
+function legPoint(from: number, to: number) {
+  const dr = rowOf(to) - rowOf(from);
+  const dc = colOf(to) - colOf(from);
+  return Math.abs(dr) === 2 ? from + Math.sign(dr) * COLS : from + Math.sign(dc);
 }
 
 /** Effects are on unless this browser saved "off". */
