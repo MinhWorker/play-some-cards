@@ -4,7 +4,7 @@
 mọi màn hình: khung hình, đơn vị, chỗ đặt HUD, cỡ chữ và nút, cách dựng bàn chơi và kích thước
 hình. Game mới và mọi thay đổi giao diện bám theo đây.
 
-Ứng dụng đang được chuyển dần sang hướng này qua từng PR; chỗ nào chưa có ghi *(sắp có)*.
+Ứng dụng đang được chuyển dần sang hướng này qua từng PR: bàn chơi của từng game sẽ theo sau.
 
 ## Khung hình
 
@@ -55,8 +55,9 @@ khung, nhân với cỡ HUD người chơi chọn. Cỡ chữ và nút nhân v�
 - **Góc trên trái**: nút quay lại, tên phòng hoặc hồ sơ. **Góc trên phải**: âm thanh, cài đặt. Hai
   góc cao 88, cách mép một **lề** (mặc định 24).
 - Giữa hai góc để trống cho bàn chơi: HUD không phủ ngang cả màn hình.
-- Người chơi chỉnh được **cỡ HUD** (80–130%) và **lề màn hình** (0–64) trong cài đặt, lưu theo từng
-  máy *(sắp có)*.
+- Người chơi chỉnh được **cỡ giao diện** (80–130%, chữ và nút) và **lề màn hình** (0–32 điểm CSS:
+  cả khung lùi vào khỏi mép, trời lấp chỗ trống) trong bảng cài đặt (nút loa), lưu theo từng máy
+  (`apps/web/src/lib/frame.ts`).
 - HUD của React (bảng, hộp thoại, thanh phòng) và nút vẽ trong Phaser dùng chung tỉ lệ này, nên
   luôn khớp nhau.
 

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { applySound, type Channel, isSilent, loadSound, type SoundSettings } from '@/lib/sound';
 import './SoundControl.css';
 import { imageUrl } from '@/lib/assetUrl';
+import { ViewSettings } from './ViewSettings';
 
 const CHANNELS: { id: Channel; label: string }[] = [
   { id: 'music', label: 'Nhạc' },
@@ -11,8 +12,9 @@ const CHANNELS: { id: Channel; label: string }[] = [
 const icon = (silent: boolean) => imageUrl(silent ? 'speaker-off' : 'speaker-on');
 
 /**
- * Speaker button in the top-right corner. Tap it for a panel with a volume slider and a
- * mute toggle for the music and for sound effects separately.
+ * Speaker button in the top-right corner. Tap it for the settings panel: a volume slider and a
+ * mute toggle for the music and for sound effects separately, then the view settings (HUD size,
+ * screen margin).
  */
 export function SoundControl() {
   const [settings, setSettings] = useState(loadSound);
@@ -92,6 +94,8 @@ export function SoundControl() {
               </div>
             );
           })}
+          <hr className="sound-divider" />
+          <ViewSettings />
         </div>
       )}
     </div>
