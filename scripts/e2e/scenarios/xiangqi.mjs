@@ -1,5 +1,6 @@
 // Cờ Tướng against the computer on a phone: the one-form setup, a few moves as Red by tapping
-// a piece and then one of its marked points, then "Đầu hàng" (tapped twice) ends the game.
+// a piece and then one of its marked points, then "Đầu hàng" (tapped twice) ends the game and
+// the result panel shows how long it took.
 import { clickCanvas, openRooms, PHONE, signUp } from '../lib.mjs';
 
 export const games = ['xiangqi'];
@@ -73,4 +74,14 @@ export default async function run(t) {
   if (!status.includes('đầu hàng')) throw new Error(`After resigning the status says "${status}"`);
   await page.getByRole('button', { name: 'Chơi ván mới' }).waitFor();
   await page.screenshot({ path: t.shot('14-xiangqi-resigned.png') });
+  // The result panel, after the last move's animation: who won and how long it took.
+  await page.waitForFunction(() => window.__phaser.scene.getScene('xiangqi').panel.shown, null, {
+    timeout: 10000,
+  });
+  await page.waitForTimeout(400);
+  const rows = await page.evaluate(() =>
+    window.__phaser.scene.getScene('xiangqi').panel.rows.map((r) => r.map((x) => x.text).join(' ')),
+  );
+  if (!rows[0]?.startsWith('Thời gian')) throw new Error(`The result panel shows ${rows}`);
+  await page.screenshot({ path: t.shot('15-xiangqi-result.png') });
 }

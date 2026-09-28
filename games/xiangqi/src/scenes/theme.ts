@@ -55,26 +55,32 @@ export const COLORS = {
  * this player). Draws have neither.
  */
 export function endText(reason: EndReason, winner: string, loser: string): string {
+  const how = reasonText(reason, loser);
+  return winner ? `${winner} thắng · ${how}` : `Hoà · ${how}`;
+}
+
+/** How the game ended, in a few words (`loser`: the side's player name). */
+export function reasonText(reason: EndReason, loser: string): string {
   switch (reason) {
     case 'checkmate':
-      return `${winner} thắng · Chiếu bí!`;
+      return 'Chiếu bí!';
     case 'stalemate':
-      return `${winner} thắng · ${loser} hết nước đi`;
+      return `${loser} hết nước đi`;
     case 'resign':
-      return `${winner} thắng · ${loser} đầu hàng`;
+      return `${loser} đầu hàng`;
     case 'left':
-      return `${winner} thắng · ${loser} rời bàn`;
+      return `${loser} rời bàn`;
     case 'perpetual-check':
-      return `${winner} thắng · ${loser} chiếu dai`;
+      return `${loser} chiếu dai`;
     case 'perpetual-chase':
-      return `${winner} thắng · ${loser} đuổi dai`;
+      return `${loser} đuổi dai`;
     case 'repetition':
-      return 'Hoà · Lặp lại thế cờ';
+      return 'Lặp lại thế cờ';
     case 'move-limit':
-      return 'Hoà · 60 nước không ăn quân';
+      return '60 nước không ăn quân';
     case 'material':
-      return 'Hoà · Hết quân tấn công';
+      return 'Hết quân tấn công';
     case 'agreement':
-      return 'Hoà · Hai bên đồng ý';
+      return 'Hai bên đồng ý';
   }
 }

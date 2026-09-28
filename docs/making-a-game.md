@@ -136,7 +136,8 @@ export class MyView extends GameView<State, Options> {
 - Khi người chơi thao tác, gọi `this.send('place', { x, y })`. Server quyết định có hợp lệ không,
   và lỗi được hiện sẵn cho bạn.
 - `ctx` có `state` (những gì người này được thấy), `me` (`null` với khán giả), `players`, `hostId`,
-  `isHost`, `score`, `options`, `result`, `timer` (`endsAt`, `ms`: vẽ đồng hồ đếm ngược) và `screen`
+  `isHost`, `score`, `options`, `result`, `timer` (`endsAt`, `ms`: vẽ đồng hồ đếm ngược), `clock`
+  (`startedAt`, `endedAt`: ván đã chơi bao lâu, theo giờ của server) và `screen`
   (cỡ, tâm, `top` = chỗ trống đầu tiên dưới thanh phòng, `hud` = tỉ lệ HUD, `gap` = khoảng trống
   giữa hàng của thanh phòng, giữa các nút và tên phòng, hoặc `null`: đặt được một thứ nhỏ như ghế
   đối diện, như Tiến Lên).
@@ -149,7 +150,8 @@ export class MyView extends GameView<State, Options> {
 - `this.avatar(player)` cho ảnh đại diện của người chơi (máy có ảnh robot), dùng với
   `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
-  `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi.
+  `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi;
+  `this.jingle('victory')` cũng vậy, nhưng nhạc nền nhỏ đi trong lúc nó phát (nhạc thắng).
 - `this.button('Đánh', onTap, { image: 'button' })` là nút có nền `assets/button.webp`. Nền là
   9-slice: nút to nhỏ, dài ngắn thế nào thì bốn góc vẫn giữ nguyên hình, chỉ phần giữa giãn ra.
   Mặc định mỗi góc rộng bằng nửa cạnh ngắn của ảnh, hợp với nút viên thuốc hay hộp bo góc; ảnh

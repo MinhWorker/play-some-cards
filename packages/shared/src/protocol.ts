@@ -15,7 +15,7 @@ import type { GameResult, PlayerId } from './game.js';
  * `PROTOCOL_MISMATCH` (the error's `data.protocol` is the server's version). CI fails when this
  * file changes without a bump, unless the PR has the `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 4;
 
 /** `connect_error` message when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -80,6 +80,11 @@ export interface RoomSnapshot {
   last: { seq: number; player: PlayerId; move: unknown } | null;
   /** The game's timer: which one, its full length and how much was left when this was sent. */
   timer: { event: string; ms: number; left: number } | null;
+  /**
+   * How long the current (or last) game has lasted when this was sent; `running` until it
+   * ends. `null` when no game is on the board.
+   */
+  played: { ms: number; running: boolean } | null;
 }
 
 /** One row in a game's room list. */

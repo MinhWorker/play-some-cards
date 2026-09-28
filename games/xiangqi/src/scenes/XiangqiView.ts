@@ -25,8 +25,10 @@ import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sd
 import Phaser from 'phaser';
 import { COLS, type Move, type Options, ROWS, type Side, type View } from '../game/model.js';
 import { colOf, generalOf, kindOf, legalTargets, rowOf, sideOf } from '../game/rules.js';
+import { cutIn } from './cutin.js';
+import { formatPlayed, ResultPanel } from './ResultPanel.js';
 import { shatter } from './shatter.js';
-import { BOARD, COLORS, DISC, endText, pieceImage, SIDES } from './theme.js';
+import { BOARD, COLORS, DISC, endText, pieceImage, reasonText, SIDES } from './theme.js';
 
 type Ctx = ViewContext<View, Options>;
 
@@ -42,7 +44,16 @@ interface PieceObj {
 }
 
 /** Pieces nearer the bottom of the screen are drawn over those behind them (+ row / 100). */
-const DEPTH = { board: 0, lines: 1, marks: 2, piece: 5, moving: 7, popup: 9 } as const;
+const DEPTH = {
+  board: 0,
+  lines: 1,
+  marks: 2,
+  piece: 5,
+  moving: 7,
+  popup: 9,
+  panel: 12,
+  cutIn: 15,
+} as const;
 
 /** How high a piece rises, in column gaps: picked, and while it moves. */
 const LIFT = { picked: 0.14, moving: 0.3 };
@@ -68,7 +79,19 @@ export class XiangqiView extends GameView<View, Options> {
   };
   /** The column left of the board (x in the middle), for the score. */
   private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
-  private buttons!: { draw: Button; decline: Button; resign: Button; effects: Button };
+  private buttons!: {
+    draw: Button;
+    decline: Button;
+    resign: Button;
+    result: Button;
+    effects: Button;
+  };
+  /** The result over the board once a game is over. */
+  private panel!: ResultPanel;
+  /** This game's end is on its way to the screen (queued after the last move's animation). */
+  private endQueued = false;
+  /** This screen saw the game being played (not just its finished board, joining late). */
+  private live = false;
   private pieces = new Map<number, PieceObj>();
   /** Where point (row 0, col 0) is on screen, and the gaps between columns and rows. */
   private grid = { x0: 0, y0: 0, dx: 40, dy: 35, flip: false };
@@ -117,8 +140,18 @@ export class XiangqiView extends GameView<View, Options> {
       draw: this.button('Xin hoà', () => this.send('offer-draw'), opts),
       decline: this.button('Từ chối', () => this.send('decline-draw'), opts),
       resign: this.button('Đầu hàng', () => this.resign(), opts),
+      result: this.button('Kết quả', () => this.showPanel(false), opts),
       effects: this.button('', () => this.toggleEffects(), opts),
     };
+    const close = this.button(
+      'Xem bàn cờ',
+      () => {
+        this.panel.hide();
+        this.showButtons(this.ctx);
+      },
+      opts,
+    );
+    this.panel = new ResultPanel(this, close, DEPTH.panel);
     this.makeDustTexture();
   }
 
@@ -194,6 +227,7 @@ export class XiangqiView extends GameView<View, Options> {
 
     for (const [sq, obj] of this.pieces) this.placePiece(obj, sq);
     this.drawMarks(ctx);
+    if (this.panel.shown) this.showPanel(false);
   }
 
   /** A new game: an empty board (animations still waiting are dropped), then the start sound. */
@@ -206,6 +240,9 @@ export class XiangqiView extends GameView<View, Options> {
     this.pieces.clear();
     this.leaving.clear();
     this.deselect();
+    this.endQueued = false;
+    this.live = true;
+    this.panel.hide();
     this.sfx('xiangqi-start');
   }
 
@@ -226,6 +263,8 @@ export class XiangqiView extends GameView<View, Options> {
     const { state, result, me } = ctx;
     const after = {
       check: Boolean(state.check && !result),
+      mate: state.end?.reason === 'checkmate',
+      attacker: moving.image.texture.key,
       general: generalOf(state.board, state.turn),
       myTurn: Boolean(me && !result && state.turn === this.mySide(ctx)),
       heavy: Boolean(victim && kindOf(victim.piece) === 'r'),
@@ -242,14 +281,13 @@ export class XiangqiView extends GameView<View, Options> {
     this.showStatus(ctx);
     this.showButtons(ctx);
     this.layoutScore(ctx);
-  }
-
-  protected onEnd(ctx: Ctx) {
-    const { end } = ctx.state;
-    if (!end) return;
-    if (!end.winner) this.sfx('xiangqi-draw');
-    else if (end.reason === 'checkmate') this.sfx('xiangqi-checkmate');
-    else if (end.winner === this.mySide(ctx)) this.sfx('xiangqi-game-win');
+    if (!ctx.result) this.live = true;
+    else if (!this.endQueued) {
+      // After the last move's animation (it is queued already, onMove comes first).
+      this.endQueued = true;
+      const live = this.live;
+      this.enqueue(() => this.presentEnd(live), { move: false });
+    }
   }
 
   // ── Board ───────────────────────────────────────────────────────────────────────────────
@@ -458,12 +496,13 @@ export class XiangqiView extends GameView<View, Options> {
    * Runs `step` after the animations before it. `fast` is true when more moves are waiting:
    * the step then hurries, so the board never lags behind the game.
    */
-  private enqueue(step: (fast: boolean) => Promise<void>) {
+  private enqueue(step: (fast: boolean) => Promise<void>, { move = true } = {}) {
     const generation = this.generation;
-    this.waiting++;
+    // Only moves waiting make the ones before them hurry (the game's end doesn't).
+    if (move) this.waiting++;
     this.queue = this.queue
       .then(async () => {
-        this.waiting--;
+        if (move) this.waiting--;
         if (generation === this.generation) await step(this.waiting > 0);
       })
       .catch((err) => console.error(err));
@@ -491,7 +530,7 @@ export class XiangqiView extends GameView<View, Options> {
     from: number,
     to: number,
     victim: PieceObj | null,
-    after: { check: boolean; general: number; myTurn: boolean; heavy: boolean },
+    after: AfterMove & { heavy: boolean },
     fast: boolean,
   ) {
     const end = this.piecePos(to);
@@ -500,7 +539,7 @@ export class XiangqiView extends GameView<View, Options> {
       if (obj.container.active) this.placePiece(obj, to);
       if (victim) this.gone(victim);
       this.sfx(victim ? captureSound : 'xiangqi-move');
-      this.afterMove(after);
+      await this.afterMove(after, false);
       return;
     }
     const speed = fast ? 0.4 : 1;
@@ -531,7 +570,9 @@ export class XiangqiView extends GameView<View, Options> {
     }
     if (!obj.container.active) return;
     this.settle(obj, to, speed);
-    this.afterMove(after, true);
+    // Let the taken piece break in view before a cut-in covers the board.
+    if (victim && !fast && (after.check || after.mate)) await this.wait(450);
+    await this.afterMove(after, !fast);
   }
 
   /** The piece sets down on point `sq`: dust, a squash, back to its place in the rows. */
@@ -873,11 +914,25 @@ export class XiangqiView extends GameView<View, Options> {
     return new Promise<void>((resolve) => this.time.delayedCall(ms, resolve));
   }
 
-  /** After a move lands: the check's shake and pop-up, or "your turn". */
-  private afterMove(after: { check: boolean; general: number; myTurn: boolean }, animate = false) {
-    if (after.check) {
-      this.time.delayedCall(120, () => this.sfx('xiangqi-check'));
-      if (animate && this.effects) this.announceCheck(after.general);
+  /**
+   * After a move lands: a check or mate cut-in (then the general in check shakes), or "your
+   * turn". `animate` is false when effects are off or moves are waiting to be shown.
+   */
+  private async afterMove(after: AfterMove, animate: boolean) {
+    if (after.check || after.mate) {
+      this.sfx(after.mate ? 'xiangqi-checkmate' : 'xiangqi-check');
+      if (!animate || !this.effects) return;
+      const { width, height, hud } = this.ctx.screen;
+      await cutIn(this, {
+        text: after.mate ? 'CHIẾU BÍ!' : 'CHIẾU TƯỚNG!',
+        piece: after.attacker,
+        width,
+        height,
+        hud,
+        depth: DEPTH.cutIn,
+      });
+      const general = this.pieces.get(after.general);
+      if (general) this.shake(general.image, 0.07);
     } else if (after.myTurn) {
       this.time.delayedCall(260, () => this.sfx('xiangqi-turn'));
     }
@@ -888,27 +943,62 @@ export class XiangqiView extends GameView<View, Options> {
     victim.container.destroy();
   }
 
-  /** The general in check shakes, and "Chiếu!" pops up over it. */
-  private announceCheck(general: number) {
-    const obj = this.pieces.get(general);
-    if (!obj) return;
-    this.shake(obj.image, 0.07);
-    const { x, y } = this.piecePos(general);
-    const { dx } = this.grid;
-    const text = this.label('Chiếu!', { size: 40, color: '#ff5a4f' })
-      .setFontSize(Math.max(18, dx * 0.6))
-      .setPosition(x, y - dx * 0.7)
-      .setDepth(DEPTH.popup)
-      .setScale(0.3);
-    this.tweens.chain({
-      targets: text,
-      tweens: [
-        { scale: 1.15, duration: 160, ease: 'Back.easeOut' },
-        { scale: 1, duration: 90 },
-        { y: text.y - dx * 0.35, alpha: 0, delay: 650, duration: 300 },
-      ],
-      onComplete: () => text.destroy(),
-    });
+  /**
+   * The game is over (after its last move has played out): the win jingle for the winner here,
+   * the draw sound, then the result panel. `live`: this screen watched it end.
+   */
+  private async presentEnd(live: boolean) {
+    const ctx = this.ctx;
+    const end = ctx.state.end;
+    if (!ctx.result || !end) return;
+    if (live) {
+      if (!end.winner) this.sfx('xiangqi-draw');
+      else if (end.winner === this.mySide(ctx)) this.jingle('xiangqi-victory');
+      if (this.effects) await this.wait(350);
+    }
+    this.showPanel(live && this.effects);
+  }
+
+  /** Fills and shows the result panel over the board. */
+  private showPanel(pop: boolean) {
+    const ctx = this.ctx;
+    const { state, clock } = ctx;
+    const end = state.end;
+    if (!ctx.result || !end) return;
+    const mine = this.mySide(ctx);
+    const winner = end.winner;
+    const loser = winner === 'r' ? 'b' : 'r';
+    const title = !winner
+      ? 'Hoà'
+      : mine
+        ? winner === mine
+          ? 'Chiến thắng!'
+          : 'Thua rồi'
+        : `${SIDES[winner].name} thắng`;
+    const general = (side: Side) => this.texture(pieceImage(side, 'k'));
+    // Pieces each side took: Black's pieces (lower case) were taken by Red.
+    const took = (side: Side) => state.captured.filter((p) => sideOf(p) !== side).length;
+    const rows: [string, string][] = [];
+    if (clock)
+      rows.push(['Thời gian', formatPlayed((clock.endedAt ?? Date.now()) - clock.startedAt)]);
+    rows.push(['Số nước', String(state.plies)]);
+    rows.push(['Quân đã ăn', `Đỏ ${took('r')} · Đen ${took('b')}`]);
+    this.panel.show(
+      {
+        title,
+        reason: reasonText(end.reason, winner ? this.nameOf(ctx, loser) : ''),
+        generals: winner ? [general(winner)] : [general('r'), general('b')],
+        rows,
+      },
+      {
+        x: this.boardImage.x,
+        y: this.boardImage.y,
+        width: this.boardImage.displayWidth,
+        hud: ctx.screen.hud,
+      },
+      pop,
+    );
+    this.showButtons(ctx);
   }
 
   /** A quick side-to-side wiggle of `amount` column gaps. */
@@ -1055,7 +1145,8 @@ export class XiangqiView extends GameView<View, Options> {
     const offered = playing && state.drawOffer && state.drawOffer !== mine;
     // The computer never takes a draw: no point offering one.
     const vsBot = ctx.players.some((p) => p.bot);
-    const { draw, decline, resign, effects } = this.buttons;
+    const { draw, decline, resign, result, effects } = this.buttons;
+    result.container.setVisible(Boolean(ctx.result && state.end && !this.panel.shown));
     draw.container.setVisible(playing && !vsBot);
     resign.container.setVisible(playing);
     decline.container.setVisible(Boolean(offered));
@@ -1143,6 +1234,17 @@ export class XiangqiView extends GameView<View, Options> {
         .setPosition(textX, y + 16 * hud);
     });
   }
+}
+
+/** What the screen needs after a move lands (worked out when the move arrives). */
+interface AfterMove {
+  check: boolean;
+  mate: boolean;
+  /** Image key of the piece that moved (the cut-in shows it). */
+  attacker: string;
+  /** The general of the side to move (the one in check). */
+  general: number;
+  myTurn: boolean;
 }
 
 /** The point a horse steps over on its way (its "leg"): one step along its longer leg. */
