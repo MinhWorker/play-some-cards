@@ -12,8 +12,9 @@ bàn cùng lật bài và so từng chi.
   sảnh. Chi 3 chỉ tính mậu thầu, đôi, sám cô. A-2-3-4-5 là sảnh nhỏ nhất, 10-J-Q-K-A lớn nhất.
 - Mọi người xếp cùng lúc và chỉ thấy bài mình. Xếp xong thì bấm "Xong"; muốn sửa thì bấm "Xếp
   lại" khi người khác chưa xong. Bài lủng vẫn nộp được, nhưng phải bấm thêm lần nữa để xác nhận.
-- **Đồng hồ xếp bài** 60 hoặc 90 giây. Hai giây cuối, bài đang xếp hợp lệ tự được nộp. Hết giờ,
-  ai chưa xong thì máy xếp giúp (luôn hợp lệ).
+- **Đồng hồ xếp bài** 60 hoặc 90 giây. Hai giây cuối, bài đang xếp tự được nộp đúng như đang
+  nằm, kể cả khi lủng: máy không xếp lại bài của bạn. Chỉ khi màn hình không gửi được gì (mất
+  kết nối) thì hết giờ máy mới xếp giúp.
 - **Điểm**, so từng cặp người, từng chi cùng vị trí:
   - thắng một chi được +1, thua −1, hoà 0; thắng cả ba chi (**sập 3 chi**) được thêm +3;
   - thắng chi bằng bộ đặc biệt được nhiều hơn: sám cô chi 3 +3, cù lũ chi 2 +2, tứ quý chi 1 / chi
@@ -32,9 +33,10 @@ bàn cùng lật bài và so từng chi.
 
 ## Cách xếp bài
 
-Chạm một lá rồi chạm lá khác để đổi chỗ, hoặc kéo lá này thả lên lá kia. "Tự xếp" để máy xếp giúp,
-"Hoàn tác" quay lại bước trước. Tên bộ của từng chi hiện bên phải; chi nào làm bài lủng thì chữ
-đỏ và dòng trạng thái nói lý do.
+Chạm một lá rồi chạm lá khác để đổi chỗ, hoặc kéo một lá thả gần lá kia (lá sẽ đổi chỗ sáng viền
+vàng; thả lại chỗ cũ là thôi). "Tự xếp" để máy xếp giúp, "Hoàn tác" quay lại bước trước. Tên bộ
+của từng chi hiện bên phải; chi nào làm bài lủng thì chữ đỏ và dòng trạng thái nói lý do. Mất kết
+nối rồi vào lại, bài vẫn nằm như bạn đang xếp.
 
 ## Các thứ nằm ở đâu
 
@@ -46,7 +48,7 @@ src/
     model.ts              ★ đọc trước: State, View (mỗi người thấy gì), Options, nhịp chia và lật bài
     cards.ts              lá bài, nhận diện bộ, so sức mạnh, kiểm tra binh lủng
     scoring.ts            điểm từng chi, thưởng chi, tới trắng, so từng cặp người
-    arrange.ts            tìm cách xếp tốt nhất (máy, hết giờ, nút "Tự xếp")
+    arrange.ts            tìm cách xếp tốt nhất (máy, người mất kết nối lúc hết giờ, nút "Tự xếp")
     match.ts              bảng xếp hạng và người thắng ván
     MauBinhGame.ts        sự kiện submit / cancel và các hook: chia bài, hẹn giờ, lật bài,
                           người rời bàn, máy, view
@@ -74,7 +76,7 @@ assets/                 hình (Codex, prompt trong sources/prompts.json) và âm
 | Bấm "Xong" | `send('submit', { rows })` → `onSubmit`: kiểm tra đúng 13 lá, 5–5–3. Bài nộp là bí mật (`secretEvents`) | người khác chỉ thấy dấu ✓ |
 | Bấm "Xếp lại" | `onCancel` | bài mở lại để xếp |
 | Máy | `bot(ctx)`: nộp cách xếp tốt nhất ngay | như người bấm |
-| Mọi người xong, hoặc hết giờ | `onArrangeOver` / lật bài: máy xếp cho ai chưa xong, tính điểm, hẹn giờ `next-round` (vòng cuối: `finish`) sau khi màn hình lật xong | "Lật bài!", tới trắng, rồi từng chi 1 → 2 → 3 của mọi người được đặt ra "bàn đấu" giữa bàn, lật lên, so và ghi điểm rồi trở về tay; sập 3 chi, điểm từng người, bảng "Kết quả vòng" |
+| Mọi người xong, hoặc hết giờ | `onArrangeOver` / lật bài: máy xếp cho ai chưa nộp (màn hình mất kết nối), tính điểm, hẹn giờ `next-round` (vòng cuối: `finish`) sau khi màn hình lật xong | "Lật bài!", tới trắng, rồi từng chi 1 → 2 → 3 của mọi người được đặt ra "bàn đấu" giữa bàn, lật lên, so và ghi điểm rồi trở về tay; sập 3 chi, điểm từng người, bảng "Kết quả vòng" |
 | Có người rời bàn | `onLeave`: họ thua vòng này, ngồi ngoài các vòng sau | "Lan bỏ cuộc" |
 | Hết vòng cuối | `ctx.finish([người nhiều điểm nhất])` | bảng "Tổng kết" và nhạc cho cả bàn |
 
