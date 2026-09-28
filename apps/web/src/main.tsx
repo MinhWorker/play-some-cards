@@ -31,7 +31,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 setClientHost({
   assets: gameAssets,
   loadSound: loadSoundUrl,
-  playSound: playSoundUrl,
+  playSound: (url, options) => playSoundUrl(url, options),
   playUiSound: (kind) => playSfx(kind === 'click' ? 'button-click' : 'button-hover'),
   avatars: () =>
     Object.fromEntries([...AVATARS, 'bot'].map((name) => [name, imageUrl(`avatar-${name}`)])),

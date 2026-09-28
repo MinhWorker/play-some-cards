@@ -38,6 +38,8 @@ export interface BoardProps<View = unknown, Options = unknown> {
   options: Options;
   /** The game's timer (`ctx.setTimer`): which, how long, and how much was left when sent. */
   timer: { event: string; ms: number; left: number } | null;
+  /** How long this game has lasted when sent (`running` until it ends); `null`: no game. */
+  played: { ms: number; running: boolean } | null;
 }
 
 /** Events between the app and the running game screen (on `game.events`). */

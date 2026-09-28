@@ -10,16 +10,17 @@ Bộ âm thanh Cờ Tướng dùng tiếng quân gỗ khô với điểm nhấn 
 | Đi một nước thường | `xiangqi-move` | Lúc quân nện xuống bàn sau nước đi không ăn quân (âm tổng hợp bằng code). |
 | Ăn quân | `xiangqi-capture` | Thay `xiangqi-move` sau khi server chấp nhận nước ăn quân. |
 | Ăn quân quan trọng | `xiangqi-capture-heavy` | Thay `xiangqi-capture` cho nước ăn đặc biệt quan trọng. |
+| Quân bị ăn vỡ | `xiangqi-shatter` | Lúc quân bị ăn vỡ thành mảnh, ngay sau tiếng ăn quân (âm tổng hợp bằng code). |
 | Chiếu tướng đối phương | `xiangqi-check` | Một lần khi state chuyển sang bị chiếu. |
 | Tới lượt người chơi trên máy này | `xiangqi-turn` | Khi chuyển sang lượt người chơi trên máy này, không phát lúc vào phòng hay kết nối lại. |
 | Server từ chối nước đi | `xiangqi-illegal` | Một lần khi nước đi bị từ chối, nếu giao diện có phản hồi đó. |
 | Nước đi quyết định thắng | `xiangqi-decisive-move` | Một lần sau khi nước cuối được chấp nhận. |
 | Chiếu bí | `xiangqi-checkmate` | Một lần khi ván chuyển sang kết quả chiếu bí. |
 | Hoà | `xiangqi-draw` | Một lần khi kết quả do server quyết định là hoà. |
-| Người chơi trên máy này thắng | `xiangqi-game-win` hoặc `game-win` dùng chung | Chọn một âm thanh kết quả để tiếng chiến thắng không chồng lên nhau. |
+| Người chơi trên máy này thắng | `xiangqi-victory` | Nhạc chiến thắng khoảng 5 giây (tổng hợp bằng code), nhạc nền nhỏ đi trong lúc phát. |
 
-Bộ hiện có 12 hiệu ứng trong `games/xiangqi/assets/`. Bàn Cờ Tướng (`scenes/XiangqiView.ts`)
-đã phát các âm thanh bắt đầu, chọn quân, đi quân, ăn quân (`xiangqi-capture-heavy` khi ăn Xe),
+Bộ hiện có 14 hiệu ứng trong `games/xiangqi/assets/`. Bàn Cờ Tướng (`scenes/XiangqiView.ts`)
+đã phát các âm thanh bắt đầu, chọn quân, đi quân, ăn quân (`xiangqi-capture-heavy` khi ăn Xe), quân vỡ (chỉ khi bật hiệu ứng),
 chiếu, tới lượt, chiếu bí, hoà và thắng; `xiangqi-illegal` khi chạm vào điểm quân đang chọn không
-đi tới được. Bàn tự hiện kết quả nên app không phát thêm `game-win` dùng chung. Chưa dùng
-`xiangqi-decisive-move`.
+đi tới được. Nhạc thắng là `xiangqi-victory`. Bàn tự hiện kết quả nên app không phát thêm
+`game-win` dùng chung. Chưa dùng `xiangqi-decisive-move` và `xiangqi-game-win`.

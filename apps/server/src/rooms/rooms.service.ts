@@ -52,6 +52,9 @@ export interface Room {
   last: { seq: number; player: PlayerId; move: unknown } | null;
   /** The game's pending timer (`ctx.setTimer`), once the gateway has started it. */
   timer: { key: string; event: string; ms: number; endsAt: number } | null;
+  /** When the current (or last) game began and ended (`null` while it runs). */
+  startedAt: number | null;
+  endedAt: number | null;
   createdAt: number;
 }
 
@@ -92,6 +95,8 @@ export class RoomsService {
       round: 0,
       last: null,
       timer: null,
+      startedAt: null,
+      endedAt: null,
       createdAt: Date.now(),
     };
     this.rooms.set(room.code, room);
@@ -243,6 +248,8 @@ export class RoomsService {
     );
     room.status = 'playing';
     room.result = null;
+    room.startedAt = Date.now();
+    room.endedAt = null;
     room.round++;
     room.last = null;
     room.timer = null;
@@ -299,6 +306,7 @@ export class RoomsService {
     if (room.result && room.status === 'playing') {
       room.status = 'finished';
       room.timer = null;
+      room.endedAt = Date.now();
       this.addToScore(room, room.result);
     }
   }
@@ -366,6 +374,13 @@ export class RoomsService {
         ms: room.timer.ms,
         left: Math.max(0, room.timer.endsAt - Date.now()),
       },
+      played:
+        room.status === 'lobby' || room.startedAt === null
+          ? null
+          : {
+              ms: (room.endedAt ?? Date.now()) - room.startedAt,
+              running: room.endedAt === null,
+            },
     };
   }
 
