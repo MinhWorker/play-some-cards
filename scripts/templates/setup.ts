@@ -27,7 +27,7 @@ export class __Name__Setup extends RoomSetupScene<Options> {
 
   /** Place them (runs again on resize). `this.safeTop()` leaves room for the app's top bar. */
   protected draw() {
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     const top = this.safeTop();
     const middle = top + (height - top) / 2;
     this.title.setPosition(width / 2, middle - 80);

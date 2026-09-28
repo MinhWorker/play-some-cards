@@ -1,7 +1,10 @@
 // Helpers every e2e scenario shares: the Phaser canvas, accounts, the island map, rooms.
 // A scenario gets a `t` (see ../e2e.mjs): its own browser, a screenshot folder and a run tag.
 
-/** Screen position of a Phaser object, read from the dev-only window.__phaser handle. */
+/**
+ * Page position (CSS px) of a Phaser object, read from the dev-only window.__phaser handle.
+ * Scenes lay out in design units; window.__toScreen turns those into page pixels.
+ */
 export async function canvasPoint(page, sceneKey, pick) {
   await page.waitForFunction((key) => window.__phaser?.scene.isActive(key), sceneKey);
   return page.evaluate(
@@ -9,7 +12,7 @@ export async function canvasPoint(page, sceneKey, pick) {
       const scene = window.__phaser.scene.getScene(key);
       const obj = new Function('scene', `return (${pickSrc})(scene)`)(scene);
       const m = obj.getWorldTransformMatrix();
-      return { x: m.tx, y: m.ty };
+      return window.__toScreen(key, m.tx, m.ty);
     },
     { key: sceneKey, pickSrc: pick.toString() },
   );
@@ -22,7 +25,8 @@ export async function clickCanvas(page, sceneKey, pick) {
 
 export const PASSWORD = 'e2e-pass';
 export const DESKTOP = { width: 1280, height: 760 };
-export const PHONE = { width: 390, height: 844 };
+/** A phone held sideways (the app is played in landscape). */
+export const PHONE = { width: 844, height: 390 };
 
 /** Opens the app and creates an account whose in-game name is `name`. */
 export async function signUp(t, page, name, shot) {

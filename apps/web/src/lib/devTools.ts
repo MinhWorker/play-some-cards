@@ -28,6 +28,21 @@ export const DEV_SETTINGS = {
     type: 'toggle',
     default: false,
   },
+  frameWidth: {
+    label: 'Khung (960/1152/1280/1440/1600, 0 = tự chọn)',
+    type: 'number',
+    default: 0,
+  },
+  maxDpr: {
+    label: 'Mật độ điểm ảnh tối đa (1–3, 0 = theo máy)',
+    type: 'number',
+    default: 0,
+  },
+  fps: {
+    label: 'Hiện FPS',
+    type: 'toggle',
+    default: false,
+  },
 } satisfies Record<string, DevSetting>;
 
 export type DevKey = keyof typeof DEV_SETTINGS;

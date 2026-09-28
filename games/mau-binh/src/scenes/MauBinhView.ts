@@ -572,7 +572,8 @@ export class MauBinhView extends GameView<View, Options> {
     });
     sprite.on('dragend', (pointer: Phaser.Input.Pointer) => {
       if (!this.dragged) return;
-      const target = this.cardAt(pointer.x, pointer.y, sprite);
+      const at = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+      const target = this.cardAt(at.x, at.y, sprite);
       if (target && this.canArrange(this.ctx)) this.swap(sprite, target);
       else this.placeBlocks(this.ctx, true);
     });

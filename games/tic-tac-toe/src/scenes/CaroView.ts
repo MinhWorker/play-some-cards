@@ -312,7 +312,7 @@ export class CaroView extends GameView<State, Options> {
         ? `Tới lượt bạn!${rule}`
         : `Lượt của ${name}${rule}`;
     this.status.setVisible(!(result && isHost));
-    this.fitText(this.status, text, this.scale.width - 24, 18);
+    this.fitText(this.status, text, this.view.width - 24, 18);
   }
 
   private scoreRow(): [number, number, number, number] {
@@ -338,7 +338,7 @@ export class CaroView extends GameView<State, Options> {
       .setFontSize(font * 1.5)
       .setPosition(cx, y);
     const half = this.score.numbers.width / 2 + font * 0.6;
-    const nameWidth = this.scale.width / 2 - 12 - half - font * 0.4 - icon;
+    const nameWidth = this.view.width / 2 - 12 - half - font * 0.4 - icon;
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
       const img = this.score.icons[seat];

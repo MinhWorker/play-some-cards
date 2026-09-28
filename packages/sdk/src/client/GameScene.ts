@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
+import { followFrame } from './followFrame.js';
+import { currentFrame, FRAME, type Frame } from './frame.js';
 import { clientHost } from './host.js';
 import { hudScale, titleStyle } from './text.js';
+
+/** A scene's frame (a function, not a method: games name their own methods freely). */
+function frameOf(scene: Phaser.Scene) {
+  return (scene.registry.get(FRAME) as Frame | undefined) ?? currentFrame();
+}
 
 /** A button made by `this.button()`: an optional image with a label, reacting to taps. */
 export interface Button {
@@ -23,6 +30,30 @@ export interface Button {
  */
 export abstract class GameScene extends Phaser.Scene {
   private warned = new Set<string>();
+
+  /**
+   * The frame in design units (720 tall, 960 to 1600 wide; docs/ui-guide.md): lay the scene out
+   * in it. The camera shows it at the screen's size and pixel density.
+   */
+  protected get view() {
+    return frameOf(this).view;
+  }
+
+  /**
+   * How far the screen reaches beyond the frame, in design units (`left`/`top` are ≤ 0): draw
+   * full-screen backgrounds out to these edges. Only the frame is sure to be seen.
+   */
+  protected get bleed() {
+    return frameOf(this).bleed;
+  }
+
+  /**
+   * Points the camera at the frame and keeps text sharp; `onChange` runs when the frame changes
+   * (the window was resized or turned). GameView and RoomSetupScene call it for you.
+   */
+  protected followFrame(onChange?: () => void) {
+    followFrame(this, onChange);
+  }
 
   /** The game id. The app adds the board as `<id>` and the setup screen as `<id>:setup`. */
   get gameId() {
@@ -219,16 +250,14 @@ export abstract class GameScene extends Phaser.Scene {
 
   /**
    * Where the board may draw, leaving room for the room bar (top, its real height comes from
-   * the registry key 'hudTop') and the result panel (bottom), plus a score row and a status
-   * line above the board. Phones held sideways show the result panel on the right instead, so
-   * the board keeps the full height.
+   * the registry key 'hudTop', in design units) plus a score row and a status line above the
+   * board. The result panel sits on the right, so the board keeps the full height.
    */
   protected boardArea() {
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     const hud = hudScale();
-    const sideways = width > height && height < 500;
     const top = ((this.registry.get('hudTop') as number | undefined) ?? 110 * hud) + 8 * hud;
-    const bottom = sideways ? 12 : 140 * hud;
+    const bottom = 12;
     const score = 50 * hud;
     const status = 56 * hud;
     const above = score + status;

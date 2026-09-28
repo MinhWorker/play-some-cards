@@ -2,6 +2,8 @@ import {
   BOARD_MOVE,
   BOARD_OPTIONS,
   BOARD_PROPS,
+  FRAME,
+  type Frame,
   SETUP_CANCEL,
   SETUP_CURRENT,
   SETUP_SUBMIT,
@@ -9,6 +11,7 @@ import {
 import Phaser from 'phaser';
 import { useEffect, useRef } from 'react';
 import { loadClient } from '@/games';
+import { currentAppFrame, onFrame } from '@/lib/frame';
 import { bridge, type Stage } from './bridge';
 import { BootScene } from './scenes/BootScene';
 import { HubScene } from './scenes/HubScene';
@@ -61,7 +64,24 @@ function applyStage(game: Phaser.Game, latest: () => Stage) {
   }
 }
 
-/** Full-screen Phaser canvas behind the React UI. `onReady` fires once images are loaded. */
+/** The room bar's bottom edge (CSS px from the top of the page) in design units, or undefined. */
+function hudTopUnits(px: number | undefined, frame: Frame) {
+  return px === undefined ? undefined : (px - frame.css.top) / frame.css.unit;
+}
+
+/** Sizes the canvas to the screen at its pixel density and hands the frame to the scenes. */
+function applyFrame(game: Phaser.Game, frame: Frame, hudTop: number | undefined) {
+  const { width, height } = frame.canvas;
+  if (game.scale.width !== width || game.scale.height !== height) game.scale.resize(width, height);
+  game.scale.setZoom(1 / frame.dpr);
+  game.registry.set('hudTop', hudTopUnits(hudTop, frame));
+  game.registry.set(FRAME, frame);
+}
+
+/**
+ * Full-screen Phaser canvas behind the React UI, drawn at the screen's pixel density. Scenes lay
+ * out in design units on the frame (`followFrame`). `onReady` fires once images are loaded.
+ */
 export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => void }) {
   const parent = useRef<HTMLDivElement>(null);
   const game = useRef<Phaser.Game | null>(null);
@@ -71,16 +91,21 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
   const readyCallback = useRef(onReady);
   readyCallback.current = onReady;
 
-  // The room bar's height, kept in the registry so game screens can leave room for it.
+  // The room bar's height, kept in the registry (in design units) so game screens can leave
+  // room for it.
   const hudTop = useRef<number | undefined>(undefined);
   useEffect(() => {
     const onHudTop = (px: number | undefined) => {
       hudTop.current = px;
-      game.current?.registry.set('hudTop', px);
+      game.current?.registry.set('hudTop', hudTopUnits(px, currentAppFrame()));
     };
     bridge.on('hud:top', onHudTop);
+    const offFrame = onFrame((frame) => {
+      if (game.current && ready.current) applyFrame(game.current, frame, hudTop.current);
+    });
     return () => {
       bridge.off('hud:top', onHudTop);
+      offFrame();
     };
   }, []);
 
@@ -89,11 +114,18 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
     // Phaser draws text on a canvas, so the web font must be loaded first.
     void document.fonts.load('800 32px "Baloo 2"').finally(() => {
       if (cancelled || !parent.current) return;
+      const frame = currentAppFrame();
       const g = new Phaser.Game({
         type: Phaser.AUTO,
         parent: parent.current,
         backgroundColor: '#8fd3f4',
-        scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
+        // As many canvas pixels as the screen has, shown at CSS size: sharp on every density.
+        scale: {
+          mode: Phaser.Scale.NONE,
+          width: frame.canvas.width,
+          height: frame.canvas.height,
+          zoom: 1 / frame.dpr,
+        },
         // Mipmaps for power-of-two images (256×256 pieces…): drawn at a fraction of their size,
         // they stay smooth instead of turning jagged.
         render: { mipmapFilter: 'LINEAR_MIPMAP_LINEAR' },
@@ -108,15 +140,30 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       // A game's setup screen hands its room options to React (RoomSetup), which creates the room.
       g.events.on(SETUP_SUBMIT, (options: unknown) => bridge.emit('setup:submit', options));
       g.events.on(SETUP_CANCEL, () => bridge.emit('setup:cancel'));
+      // Before any scene starts: they read it in create().
+      g.registry.set(FRAME, frame);
       g.events.once('booted', () => {
         ready.current = true;
-        g.registry.set('hudTop', hudTop.current);
+        applyFrame(g, currentAppFrame(), hudTop.current);
         applyStage(g, () => latest.current);
         readyCallback.current?.();
       });
       game.current = g;
-      // Lets scripts/e2e.mjs find objects on the canvas (dev server only).
-      if (import.meta.env.DEV) (window as unknown as { __phaser?: Phaser.Game }).__phaser = g;
+      // Lets scripts/e2e.mjs find objects on the canvas (dev server only): `__toScreen` turns a
+      // scene's design units into page CSS px.
+      if (import.meta.env.DEV) {
+        Object.assign(window, {
+          __phaser: g,
+          __toScreen: (key: string, x: number, y: number) => {
+            const cam = g.scene.getScene(key).cameras.main;
+            const { dpr } = g.registry.get(FRAME) as Frame;
+            return {
+              x: (cam.x + (x - cam.scrollX) * cam.zoom) / dpr,
+              y: (cam.y + (y - cam.scrollY) * cam.zoom) / dpr,
+            };
+          },
+        });
+      }
     });
     return () => {
       cancelled = true;

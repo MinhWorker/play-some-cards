@@ -117,7 +117,7 @@ export class Setup extends RoomSetupScene<Options> {
   // ── Update ──────────────────────────────────────────────────────────────────────────────
 
   protected draw() {
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     const hud = hudScale();
     const top = this.safeTop();
     const step = this.steps.at(-1) ?? 'opponent';

@@ -108,7 +108,7 @@ export class Setup extends RoomSetupScene<Options> {
   }
 
   protected draw() {
-    const { width, height } = this.scale;
+    const { width, height } = this.view;
     const top = this.safeTop();
     const panelW = Math.min(560, width - 24);
     const pad = 16;

@@ -6,6 +6,7 @@ export { CloudCurtain, revealCurtain, transition } from './CloudCurtain';
 export { DevTools } from './DevTools';
 export { NewVersionDialog } from './NewVersionDialog';
 export { ProfileBadge } from './ProfileBadge';
+export { RotateHint } from './RotateHint';
 export { SoundControl } from './SoundControl';
 export { Banner, Toast } from './Toast';
 export { VersionTag } from './VersionTag';

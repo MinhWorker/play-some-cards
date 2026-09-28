@@ -1,9 +1,14 @@
+import { FRAME, type Frame, followFrame } from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { Title } from '@/phaser/objects/Title';
 
+/** The title's width in design units. */
+const TITLE_WIDTH = 540;
+
 /**
  * Always-on background: the sky image, the game title (home map only, set through the
- * registry key 'showTitle' by HubScene) and clouds drifting across in front of both.
+ * registry key 'showTitle' by HubScene) and clouds drifting across in front of both. In design
+ * units like every scene, but it covers the whole screen (the frame's bleed), notch included.
  */
 export class SkyScene extends Phaser.Scene {
   private sky!: Phaser.GameObjects.Image;
@@ -25,7 +30,7 @@ export class SkyScene extends Phaser.Scene {
       const img = this.add
         .image(0, 0, i % 2 ? 'cloud-b' : 'cloud-a')
         .setAlpha(Phaser.Math.FloatBetween(0.6, 0.95));
-      this.clouds.push({ img, speed: Phaser.Math.FloatBetween(6, 18) });
+      this.clouds.push({ img, speed: Phaser.Math.FloatBetween(10, 28) });
     }
     this.scene.sendToBack();
     // Parallax: the sky and clouds drift a little when the home map's strip scrolls.
@@ -35,8 +40,12 @@ export class SkyScene extends Phaser.Scene {
       lastScroll = scroll;
       this.placeSky(scroll);
     });
+    followFrame(this, () => this.layout());
     this.layout();
-    this.scale.on('resize', this.layout, this);
+  }
+
+  private get frame() {
+    return this.registry.get(FRAME) as Frame;
   }
 
   private showTitle(show: boolean, animate: boolean) {
@@ -46,48 +55,52 @@ export class SkyScene extends Phaser.Scene {
   }
 
   private layout() {
-    const { width, height } = this.scale;
+    const { view, bleed } = this.frame;
+    const screenW = bleed.right - bleed.left;
+    const screenH = bleed.bottom - bleed.top;
     // 10% larger than the screen, so the parallax shift never shows an edge.
-    this.sky.setScale(Math.max(width / this.sky.width, height / this.sky.height) * 1.1);
+    this.sky.setScale(Math.max(screenW / this.sky.width, screenH / this.sky.height) * 1.1);
     this.placeSky((this.registry.get('hubScroll') as number | undefined) ?? 0);
 
-    // Title centered at the top. On portrait phones it sits below the profile/speaker row.
-    const portrait = height > width;
-    // Phones held sideways get a smaller title, leaving height for the islands.
-    const short = !portrait && height < 500;
-    const titleScale = Math.min(
-      1,
-      (width * (portrait ? 0.86 : short ? 0.3 : 0.5)) / this.title.span,
-    );
-    const birdsTop = portrait ? 76 : 6;
-    this.title.setScale(titleScale).setPosition(width / 2, birdsTop - this.title.top * titleScale);
+    // Title centered at the top of the frame, between the profile and the speaker.
+    const titleScale = TITLE_WIDTH / this.title.span;
+    this.title.setScale(titleScale).setPosition(view.width / 2, 12 - this.title.top * titleScale);
     this.registry.set('titleBottom', this.title.y + this.title.bottom * titleScale);
 
-    const base = Math.min(width, height) / 900;
+    const base = view.height / 900;
     this.clouds.forEach(({ img }, i) => {
       // The first two clouds drift across the title so it peeks out from behind them.
       if (i < 2) {
         // Lighter and smaller than the rest, so the title still reads through them.
         img.setScale(base * Phaser.Math.FloatBetween(0.4, 0.5)).setAlpha(0.55);
-        img.setPosition(Phaser.Math.Between(0, width), this.title.y + (i ? -20 : 25) * titleScale);
+        img.setPosition(
+          Phaser.Math.Between(bleed.left, bleed.right),
+          this.title.y + (i ? -20 : 25) * titleScale,
+        );
       } else {
         img.setScale(base * Phaser.Math.FloatBetween(0.5, 1));
-        img.setPosition(Phaser.Math.Between(0, width), Phaser.Math.Between(0, height));
+        img.setPosition(
+          Phaser.Math.Between(bleed.left, bleed.right),
+          Phaser.Math.Between(bleed.top, bleed.bottom),
+        );
       }
     });
   }
 
   private placeSky(scroll: number) {
-    const { width, height } = this.scale;
-    const room = (this.sky.displayWidth - width) / 2;
-    this.sky.setPosition(width / 2 + Phaser.Math.Clamp(-scroll * 0.03, -room, room), height / 2);
+    const { bleed } = this.frame;
+    const room = (this.sky.displayWidth - (bleed.right - bleed.left)) / 2;
+    this.sky.setPosition(
+      (bleed.left + bleed.right) / 2 + Phaser.Math.Clamp(-scroll * 0.03, -room, room),
+      (bleed.top + bleed.bottom) / 2,
+    );
   }
 
   override update(_time: number, delta: number) {
-    const { width } = this.scale;
+    const { bleed } = this.frame;
     for (const { img, speed } of this.clouds) {
       img.x += (speed * delta) / 1000;
-      if (img.x - img.displayWidth / 2 > width) img.x = -img.displayWidth / 2;
+      if (img.x - img.displayWidth / 2 > bleed.right) img.x = bleed.left - img.displayWidth / 2;
     }
   }
 }

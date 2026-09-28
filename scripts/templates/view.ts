@@ -21,7 +21,7 @@ export class __Name__View extends GameView<State> {
     this.status = this.label('', { size: 36 });
   }
 
-  /** After onCreate and on every resize: place them (ctx.screen). */
+  /** After onCreate and when the frame changes: place them (ctx.screen, in design units). */
   protected onLayout({ screen }: Ctx) {
     this.status.setFontSize(36 * screen.hud).setPosition(screen.cx, screen.top + 40 * screen.hud);
   }

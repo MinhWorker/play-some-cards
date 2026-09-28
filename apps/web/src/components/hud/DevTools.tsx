@@ -1,4 +1,4 @@
-import { useState, useSyncExternalStore } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import {
   DEV_SETTINGS,
   type DevKey,
@@ -34,6 +34,7 @@ export function DevTools() {
 
   return (
     <div className="devtools hud">
+      {devSetting('fps') && <FpsMeter />}
       {open && (
         <div className="devtools-panel">
           {(Object.keys(DEV_SETTINGS) as DevKey[]).map((key) => (
@@ -78,4 +79,24 @@ function Control({ id }: { id: DevKey }) {
       />
     </label>
   );
+}
+
+/** Frames per second over the last half second (Phaser draws once per browser frame). */
+function FpsMeter() {
+  const [fps, setFps] = useState(0);
+  useEffect(() => {
+    let frames = 0;
+    let since = performance.now();
+    let id = requestAnimationFrame(function tick(now) {
+      frames++;
+      if (now - since >= 500) {
+        setFps(Math.round((frames * 1000) / (now - since)));
+        frames = 0;
+        since = now;
+      }
+      id = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return <output className="devtools-fps">{fps} FPS</output>;
 }
