@@ -83,6 +83,17 @@ interface Block {
 const LIST_ROW = 54;
 /** The table's size against its art's pixels: its red rim comes out thin (docs/ui-guide.md). */
 const TABLE_SCALE = 0.4;
+/** Hint on the card a dragged card would swap with. */
+const DROP_MARK = 0xffd84a;
+
+/** The same 13 cards in any order give the same key. */
+const handKey = (hand: Card[]) => [...hand].sort((a, b) => a - b).join();
+
+/**
+ * Your cards as you last laid them, kept outside the screen: a reconnect or a restarted screen
+ * lays out the same hand again as you left it, not back in the order it was dealt.
+ */
+let kept: { hand: string; order: Card[] } | null = null;
 
 export class MauBinhView extends GameView<View, Options> {
   private cardTextures!: CardTextures;
@@ -116,6 +127,8 @@ export class MauBinhView extends GameView<View, Options> {
   private undo: Card[][] = [];
   /** A drag just ended: the tap that ends it is not a pick. */
   private dragged = false;
+  /** The card a dragged card would swap with, lit up. */
+  private dropHint: CardSprite | null = null;
   /** "Xong" on binh lủng asks once; a second tap within a few seconds hands it in. */
   private foulWarnedAt = -Infinity;
   /** This round's points have popped up (until then the list shows the points before it). */
@@ -454,6 +467,7 @@ export class MauBinhView extends GameView<View, Options> {
   private makeCards(ctx: Ctx) {
     const me = this.mySeat(ctx);
     this.shownSeat = ctx.me?.seat ?? -1;
+    this.dropHint = null;
     this.blocks.forEach((b, seat) => {
       for (const c of b.cards) c.destroy();
       for (const l of b.labels) l.setText('').setVisible(false);
@@ -471,9 +485,10 @@ export class MauBinhView extends GameView<View, Options> {
     this.updateMyLabels(ctx);
   }
 
-  /** Your cards as they start: the rows you handed in, or strongest first. */
+  /** Your cards as they start: the rows you handed in, as you left them, or strongest first. */
   private startingOrder(ctx: Ctx): Card[] {
     if (ctx.state.mine) return ctx.state.mine.flat();
+    if (kept?.hand === handKey(ctx.state.hand)) return kept.order;
     return [...ctx.state.hand].sort((a, b) => rankOf(b) - rankOf(a) || b - a);
   }
 
@@ -587,19 +602,25 @@ export class MauBinhView extends GameView<View, Options> {
     sprite.on('pointerdown', () => {
       this.dragged = false;
     });
+    // Held above everything, a bit bigger; the card it would swap with lights up.
     sprite.on('dragstart', () => {
       if (!this.canArrange(this.ctx)) return;
       this.dragged = true;
       this.pick(null);
-      sprite.setDepth(500);
+      sprite.setDepth(900).setScale(1.08);
     });
     sprite.on('drag', (_p: Phaser.Input.Pointer, x: number, y: number) => {
-      if (this.dragged && this.canArrange(this.ctx)) sprite.setPosition(x, y);
+      if (!this.dragged || !this.canArrange(this.ctx)) return;
+      sprite.setPosition(x, y);
+      this.hintDrop(this.dropTarget(sprite), sprite);
     });
-    sprite.on('dragend', (pointer: Phaser.Input.Pointer) => {
+    sprite.on('dragend', () => {
       if (!this.dragged) return;
-      const at = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
-      const target = this.cardAt(at.x, at.y, sprite);
+      const target = this.dropTarget(sprite);
+      // The hint just goes: the cards move from where they are to their new places.
+      if (this.dropHint) this.tweens.killTweensOf(this.dropHint.setMark(null));
+      this.dropHint = null;
+      sprite.setScale(1);
       if (target && this.canArrange(this.ctx)) this.swap(sprite, target);
       else this.placeBlocks(this.ctx, true);
     });
@@ -611,12 +632,47 @@ export class MauBinhView extends GameView<View, Options> {
     });
   }
 
-  /** Your card under (x, y), besides `except`: the one in front where cards overlap. */
-  private cardAt(x: number, y: number, except: CardSprite) {
+  /**
+   * The card a dragged card would swap with: whichever of yours its center is nearest to, if
+   * within about a card's width (so it can be dropped anywhere near, not only right on it).
+   */
+  private dropTarget(dragged: CardSprite) {
+    const me = this.ctx.me;
     const cards = this.myBlock(this.ctx)?.cards ?? [];
-    return cards
-      .filter((c) => c !== except && c.getBounds().contains(x, y))
-      .sort((a, b) => b.depth - a.depth)[0];
+    if (!me) return undefined;
+    // By places, not where the cards are: a hinted card slides over to the dragged one's place.
+    // Back over its own place means no swap.
+    let best: CardSprite | undefined;
+    let bestD = dragged.cardHeight * 0.75;
+    cards.forEach((c, pos) => {
+      const spot = this.cardSpot(this.ctx, me.seat, pos);
+      const d = Math.hypot(spot.x - dragged.x, spot.y - dragged.y);
+      if (d < bestD) {
+        best = c === dragged ? undefined : c;
+        bestD = d;
+      }
+    });
+    return best;
+  }
+
+  /**
+   * Shows what a drop would do: the card it would swap with lights up and slides over to the
+   * dragged card's place (a card no longer hinted slides back).
+   */
+  private hintDrop(target: CardSprite | undefined | null, dragged?: CardSprite) {
+    if (target === this.dropHint) return;
+    const me = this.ctx.me;
+    const cards = this.myBlock(this.ctx)?.cards ?? [];
+    const slide = (card: CardSprite, pos: number) => {
+      if (!me || pos < 0) return;
+      const spot = this.cardSpot(this.ctx, me.seat, pos);
+      this.tweens.killTweensOf(card);
+      this.tweens.add({ targets: card, x: spot.x, y: spot.y, duration: 120, ease: 'Quad.easeOut' });
+    };
+    const old = this.dropHint;
+    if (old) slide(old.setMark(null), cards.indexOf(old));
+    this.dropHint = target ?? null;
+    if (target && dragged) slide(target.setMark(DROP_MARK), cards.indexOf(dragged));
   }
 
   private pick(sprite: CardSprite | null) {
@@ -648,6 +704,8 @@ export class MauBinhView extends GameView<View, Options> {
   }
 
   private afterMove() {
+    const rows = this.myRows(this.ctx);
+    if (rows) kept = { hand: handKey(this.ctx.state.hand), order: rows.flat() };
     this.picked?.setMark(null);
     this.picked = null;
     this.foulWarnedAt = -Infinity;
@@ -879,7 +937,9 @@ export class MauBinhView extends GameView<View, Options> {
 
   /**
    * The last ten seconds: the status line beats once a second; the last three pop up big with
-   * a tick. Two seconds before the end, rows that are fine are handed in for you.
+   * a tick. Two seconds before the end, your rows are handed in as they lie, even binh lủng:
+   * nothing re-arranges them for you (the server's computer only steps in for a screen that
+   * sent nothing, e.g. offline).
    */
   private tick(ctx: Ctx, seconds: number) {
     if (seconds > 10 || seconds <= 0) return;
@@ -896,7 +956,7 @@ export class MauBinhView extends GameView<View, Options> {
       this.sfx('mau-binh-tick');
     }
     const rows = this.myRows(ctx);
-    if (seconds <= 2 && !this.autoSent && rows && !foulOf(rows) && this.canArrange(ctx)) {
+    if (seconds <= 2 && !this.autoSent && rows && this.canArrange(ctx)) {
       this.autoSent = true;
       this.send('submit', { rows });
     }
