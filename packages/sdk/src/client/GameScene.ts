@@ -249,23 +249,28 @@ export abstract class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Where the board may draw, leaving room for the room bar (top, its real height comes from
-   * the registry key 'hudTop', in design units) plus a score row and a status line above the
-   * board. The result panel sits on the right, so the board keeps the full height.
+   * Where a board game draws on the frame (docs/ui-guide.md): a square board as tall as it fits
+   * under the room bar (`top`; its real height comes from the registry key 'hudTop', in design
+   * units), in the middle, and a column on each side of it (`left`, `right`: middle and width)
+   * for the players, score, status line and buttons.
    */
   protected boardArea() {
     const { width, height } = this.view;
     const hud = hudScale();
+    const margin = 16;
     const top = ((this.registry.get('hudTop') as number | undefined) ?? 110 * hud) + 8 * hud;
-    const bottom = 12;
-    const score = 50 * hud;
-    const status = 56 * hud;
-    const above = score + status;
-    const size = Math.max(120, Math.min(width * 0.92, height - top - bottom - above));
-    const cx = width / 2;
-    const cy = top + above + (height - top - bottom - above) / 2;
-    const statusY = cy - size / 2 - status / 2;
-    return { size, cx, cy, hud, statusY, scoreY: statusY - status / 2 - score / 2 };
+    const availH = height - top - margin;
+    const size = Math.max(120, Math.min(width - 2 * 150 * hud, availH));
+    const columnW = (width - size) / 2 - 2 * margin;
+    return {
+      size,
+      cx: width / 2,
+      cy: top + availH / 2,
+      top,
+      hud,
+      left: { x: margin + columnW / 2, width: columnW },
+      right: { x: width - margin - columnW / 2, width: columnW },
+    };
   }
 
   /**

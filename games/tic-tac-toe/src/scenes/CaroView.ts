@@ -28,7 +28,7 @@ export class CaroView extends GameView<State, Options> {
   private score!: {
     icons: Phaser.GameObjects.Image[];
     names: Phaser.GameObjects.Text[];
-    numbers: Phaser.GameObjects.Text;
+    wins: Phaser.GameObjects.Text[];
   };
   /** Host controls after a game: "⇄" and the piece the host plays next game. */
   private next!: {
@@ -65,11 +65,9 @@ export class CaroView extends GameView<State, Options> {
     this.status = this.label('', { size: 40 });
     this.score = {
       icons: [0, 1].map(() => this.sprite(MARKS.X.piece)),
-      names: [0, 1].map(() => this.label('', { size: 26 })),
-      numbers: this.label('', { size: 40 }),
+      names: [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0.5)),
+      wins: [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0.5)),
     };
-    this.score.names[0]?.setOrigin(1, 0.5);
-    this.score.names[1]?.setOrigin(0, 0.5);
     this.next = {
       swap: this.tapText('⇄', () => this.swapColors()),
       piece: this.sprite(MARKS.X.piece)
@@ -79,13 +77,20 @@ export class CaroView extends GameView<State, Options> {
     this.syncTiles(ctx.state.board, false);
   }
 
+  /**
+   * On the frame (boardArea): the board in the middle, as tall as it fits; the players and
+   * their wins in the column on its left; the status line (and the host's controls after a
+   * game) in the column on its right.
+   */
   protected onLayout(ctx: Ctx) {
-    const { size, cx, hud, statusY, scoreY } = this.boardArea();
+    const { top, hud, right } = this.boardArea();
     this.status
-      .setFontSize(Math.min(44, Math.max(26, size * 0.093)) * hud)
-      .setPosition(cx, statusY);
-    this.layoutScore(ctx, cx, scoreY, size, hud);
-    this.layoutNext(ctx, cx, statusY);
+      .setFontSize(30 * hud)
+      .setOrigin(0.5, 0)
+      .setWordWrapWidth(right.width)
+      .setPosition(right.x, top + 8);
+    this.layoutScore(ctx);
+    this.layoutNext(ctx);
     this.frame(ctx.state.board, false);
   }
 
@@ -133,8 +138,8 @@ export class CaroView extends GameView<State, Options> {
     for (const key of this.tiles.keys()) this.tintTile(key, line);
     this.glow(line);
     this.showStatus(ctx);
-    this.layoutScore(ctx, ...this.scoreRow());
-    this.layoutNext(ctx, this.boardArea().cx, this.status.y);
+    this.layoutScore(ctx);
+    this.layoutNext(ctx);
   }
 
   protected onEnd(ctx: Ctx) {
@@ -312,38 +317,28 @@ export class CaroView extends GameView<State, Options> {
         ? `Tới lượt bạn!${rule}`
         : `Lượt của ${name}${rule}`;
     this.status.setVisible(!(result && isHost));
-    this.fitText(this.status, text, this.view.width - 24, 18);
-  }
-
-  private scoreRow(): [number, number, number, number] {
-    const { size, cx, hud, scoreY } = this.boardArea();
-    return [cx, scoreY, size, hud];
+    // Wraps in the column right of the board (onLayout).
+    this.status.setText(text);
   }
 
   /**
-   * Seat 0 left, score, seat 1 right: e.g. [X] Minh  2 – 1  Lan [O]. Each name has the color
-   * and piece it plays this game. Long names are cut short with "…".
+   * The two players in the left column, seat 0 above seat 1, each with the piece it plays this
+   * game (in its color) and its wins: the piece beside the name, or above it in a narrow column
+   * (4:3 screens). Long names are cut short with "…".
    */
-  private layoutScore(
-    { players, score, state }: Ctx,
-    cx: number,
-    y: number,
-    size: number,
-    hud: number,
-  ) {
-    const font = Math.min(26, Math.max(18, size * 0.06)) * hud;
-    const icon = font * 1.5;
-    this.score.numbers
-      .setText(`${score.wins[0] ?? 0}  –  ${score.wins[1] ?? 0}`)
-      .setFontSize(font * 1.5)
-      .setPosition(cx, y);
-    const half = this.score.numbers.width / 2 + font * 0.6;
-    const nameWidth = this.view.width / 2 - 12 - half - font * 0.4 - icon;
+  private layoutScore({ players, score, state }: Ctx) {
+    const { top, hud, left } = this.boardArea();
+    const icon = 52 * hud;
+    const stacked = left.width < 220 * hud;
+    const textX = stacked ? left.x : left.x - left.width / 2 + icon + 10 * hud;
+    const textW = stacked ? left.width : left.width - icon - 10 * hud;
+    const origin = stacked ? 0.5 : 0;
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
+      const wins = this.score.wins[seat];
       const img = this.score.icons[seat];
       const player = players[seat];
-      if (!name || !img) return;
+      if (!name || !wins || !img) return;
       const mark: Mark = player
         ? state.players[0] === player.id
           ? 'X'
@@ -351,21 +346,32 @@ export class CaroView extends GameView<State, Options> {
         : seat === 0
           ? 'X'
           : 'O';
-      const side = seat === 0 ? -1 : 1;
-      name
-        .setFontSize(font)
-        .setColor(MARKS[mark].color)
-        .setPosition(cx + side * half, y);
-      this.fitText(name, player ? player.name : '…', nameWidth);
+      const rowH = stacked ? 150 * hud : 90 * hud;
+      const y = top + 40 * hud + seat * rowH;
       img
         .setTexture(this.texture(MARKS[mark].piece))
         .setDisplaySize(icon, icon)
-        .setPosition(cx + side * (half + name.width + font * 0.4 + icon / 2), y);
+        .setPosition(stacked ? left.x : left.x - left.width / 2 + icon / 2, y);
+      // Stacked: the name and wins under the piece.
+      const textY = stacked ? y + icon / 2 + 20 * hud : y - 14 * hud;
+      name
+        .setFontSize(26 * hud)
+        .setColor(MARKS[mark].color)
+        .setOrigin(origin, 0.5)
+        .setPosition(textX, textY);
+      this.fitText(name, player ? player.name : '…', textW, 18 * hud);
+      wins
+        .setFontSize(20 * hud)
+        .setText(`Thắng ${score.wins[seat] ?? 0}`)
+        .setOrigin(origin, 0.5)
+        .setPosition(textX, textY + 30 * hud);
     });
   }
 
-  /** [⇄][the piece the host plays next game] — host only, after a game. */
-  private layoutNext({ result, isHost, options, players, me }: Ctx, cx: number, y: number) {
+  /** [⇄][the piece the host plays next game] — host only, after a game, in the right column. */
+  private layoutNext({ result, isHost, options, players, me }: Ctx) {
+    const cx = this.boardArea().right.x;
+    const y = this.status.y + 30 * this.boardArea().hud;
     const { swap, piece } = this.next;
     const show = Boolean(result) && isHost;
     for (const obj of [swap, piece]) obj.setVisible(show);

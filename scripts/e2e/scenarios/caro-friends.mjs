@@ -93,9 +93,13 @@ export default async function run(t) {
   await guest.screenshot({ path: t.shot('5-result-phone.png') });
   await fan.screenshot({ path: t.shot('6-result-spectator.png') });
   const score = await host.evaluate(() =>
-    window.__phaser.scene.getScene('tic-tac-toe').score.numbers.text.replace(/\s+/g, ' '),
+    window.__phaser.scene
+      .getScene('tic-tac-toe')
+      .score.wins.map((w) => w.text)
+      .join(', '),
   );
-  if (score !== '1 – 0') throw new Error(`Scoreboard shows "${score}", expected "1 – 0"`);
+  if (score !== 'Thắng 1, Thắng 0')
+    throw new Error(`Scoreboard shows "${score}", expected "Thắng 1, Thắng 0"`);
 
   // Between games the host swaps colors: Lan is red X now.
   await clickCanvas(host, 'tic-tac-toe', (s) => s.next.swap);
