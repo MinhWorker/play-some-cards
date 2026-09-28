@@ -70,12 +70,32 @@ function hudTopUnits(px: number | undefined, frame: Frame) {
   return px === undefined ? undefined : (px - frame.css.top) / frame.css.unit;
 }
 
+/** The free middle of the room bar's row: a box in CSS px from the page's corner. */
+type HudGap = { left: number; right: number; top: number; bottom: number } | undefined;
+
+/** The room bar's free middle in design units (the registry key 'hudGap'), or undefined. */
+function hudGapUnits(gap: HudGap, frame: Frame) {
+  if (!gap) return undefined;
+  const { left, top, unit } = frame.css;
+  return {
+    left: (gap.left - left) / unit,
+    right: (gap.right - left) / unit,
+    top: (gap.top - top) / unit,
+    bottom: (gap.bottom - top) / unit,
+  };
+}
+
 /** Sizes the canvas to the screen at its pixel density and hands the frame to the scenes. */
-function applyFrame(game: Phaser.Game, frame: Frame, hudTop: number | undefined) {
+function applyFrame(
+  game: Phaser.Game,
+  frame: Frame,
+  hud: { top: number | undefined; gap: HudGap },
+) {
   const { width, height } = frame.canvas;
   if (game.scale.width !== width || game.scale.height !== height) game.scale.resize(width, height);
   game.scale.setZoom(1 / frame.dpr);
-  game.registry.set('hudTop', hudTopUnits(hudTop, frame));
+  game.registry.set('hudTop', hudTopUnits(hud.top, frame));
+  game.registry.set('hudGap', hudGapUnits(hud.gap, frame));
   game.registry.set(FRAME, frame);
 }
 
@@ -92,20 +112,26 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
   const readyCallback = useRef(onReady);
   readyCallback.current = onReady;
 
-  // The room bar's height, kept in the registry (in design units) so game screens can leave
-  // room for it.
-  const hudTop = useRef<number | undefined>(undefined);
+  // The room bar's height and the free middle of its row, kept in the registry (in design
+  // units) so game screens can leave room for the bar and use the rest of its row.
+  const hud = useRef<{ top: number | undefined; gap: HudGap }>({ top: undefined, gap: undefined });
   useEffect(() => {
     const onHudTop = (px: number | undefined) => {
-      hudTop.current = px;
+      hud.current.top = px;
       game.current?.registry.set('hudTop', hudTopUnits(px, currentAppFrame()));
     };
+    const onHudGap = (gap: HudGap) => {
+      hud.current.gap = gap;
+      game.current?.registry.set('hudGap', hudGapUnits(gap, currentAppFrame()));
+    };
     bridge.on('hud:top', onHudTop);
+    bridge.on('hud:gap', onHudGap);
     const offFrame = onFrame((frame) => {
-      if (game.current && ready.current) applyFrame(game.current, frame, hudTop.current);
+      if (game.current && ready.current) applyFrame(game.current, frame, hud.current);
     });
     return () => {
       bridge.off('hud:top', onHudTop);
+      bridge.off('hud:gap', onHudGap);
       offFrame();
     };
   }, []);
@@ -145,7 +171,7 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       g.registry.set(FRAME, frame);
       g.events.once('booted', () => {
         ready.current = true;
-        applyFrame(g, currentAppFrame(), hudTop.current);
+        applyFrame(g, currentAppFrame(), hud.current);
         applyStage(g, () => latest.current);
         readyCallback.current?.();
       });

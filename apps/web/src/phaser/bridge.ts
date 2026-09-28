@@ -13,7 +13,8 @@ export type Stage =
 
 /**
  * The only link between React and Phaser.
- * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px).
+ * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px), 'hud:gap'
+ * (the free middle of the room bar's row: left, right, top, bottom in px).
  * Phaser -> React: 'hub:select' (gameId), 'hub:locked', 'board:move' (move), 'board:options',
  * 'setup:submit' (room options), 'setup:cancel'.
  * Game scenes (from games/) don't see this: PhaserStage passes their props and events along.

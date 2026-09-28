@@ -163,12 +163,15 @@ export class SeatPlate extends Phaser.GameObjects.Container {
     scene.add.existing(this);
   }
 
-  /** The plate's shape and HUD scale; call `show` or keep the last info. */
-  layout(shape: SeatShape, hud: number) {
+  /**
+   * The plate's shape and HUD scale, and for a flat plate its width (250 at 100% by default, at
+   * least 200: a narrower plate cuts long names).
+   */
+  layout(shape: SeatShape, hud: number, flatWidth = 250 * hud) {
     this.shape = shape;
     this.hud = hud;
     const side = shape === 'side';
-    const width = (side ? 104 : 250) * hud;
+    const width = side ? 104 * hud : Math.max(200 * hud, flatWidth);
     const height = (side ? 128 : 64) * hud;
     this.size = { width, height };
     // Corners of the plate art are 60 px round: about 20 units at 100%.
@@ -221,7 +224,8 @@ export class SeatPlate extends Phaser.GameObjects.Container {
     this.info = info;
     // Display size is a scale of the texture: set it again for a new picture.
     this.avatar.setTexture(info.avatar).setDisplaySize(this.avatarSize, this.avatarSize);
-    const maxText = this.shape === 'side' ? this.size.width - 12 * hud : 150 * hud;
+    // Beside the picture and the card count on a flat plate.
+    const maxText = this.size.width - (this.shape === 'side' ? 12 : 136) * hud;
     if (was?.name !== info.name || !was) fit(this.title, info.name, maxText);
     if (was?.points !== info.points || !was) this.score.setText(info.points);
 

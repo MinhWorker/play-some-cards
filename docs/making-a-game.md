@@ -137,7 +137,9 @@ export class MyView extends GameView<State, Options> {
   và lỗi được hiện sẵn cho bạn.
 - `ctx` có `state` (những gì người này được thấy), `me` (`null` với khán giả), `players`, `hostId`,
   `isHost`, `score`, `options`, `result`, `timer` (`endsAt`, `ms`: vẽ đồng hồ đếm ngược) và `screen`
-  (cỡ, tâm, `top` = chỗ trống đầu tiên dưới thanh phòng, `hud` = tỉ lệ HUD).
+  (cỡ, tâm, `top` = chỗ trống đầu tiên dưới thanh phòng, `hud` = tỉ lệ HUD, `gap` = khoảng trống
+  giữa hàng của thanh phòng, giữa các nút và tên phòng, hoặc `null`: đặt được một thứ nhỏ như ghế
+  đối diện, như Tiến Lên).
 - **Toạ độ là đơn vị thiết kế**, không phải điểm ảnh: màn chơi nằm trên một khung ngang cao 720,
   rộng 960 đến 1600 tuỳ máy (`this.view`, `ctx.screen`; xem [ui-guide.md](ui-guide.md)). Ứng dụng
   phóng khung cho vừa màn hình và vẽ đúng mật độ điểm ảnh, nên hình luôn đúng tỉ lệ và sắc nét.

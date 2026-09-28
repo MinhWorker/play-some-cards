@@ -232,12 +232,13 @@ export class TienLenView extends GameView<View, Options> {
   /**
    * Sizes and places on the frame (docs/ui-guide.md). The mat covers the whole screen. Your hand
    * runs along the bottom and a little off it, "Bỏ lượt" / "Đánh" stacked in the bottom-right
-   * corner with "Điểm" above them. The seat across sits on a flat plate under the room bar, the
-   * side seats on narrow plates against the edges; the pattern frames the play area between
-   * them, from the middle of the top plate down to just over your hand, and the pile sits in it.
+   * corner with "Điểm" above them. The side seats sit on narrow plates against the edges, the
+   * seat across on a flat plate in the free middle of the room bar's row (or, when it doesn't
+   * fit there, under the bar). The pattern frames the play area between them, down to just over
+   * your hand, and the pile sits in it.
    */
   private geometry(ctx: Ctx) {
-    const { width, height, top, hud } = ctx.screen;
+    const { width, height, top, hud, gap } = ctx.screen;
     const margin = 16;
     const buttonW = 150 * hud;
     const buttonH = 60 * hud;
@@ -257,15 +258,28 @@ export class TienLenView extends GameView<View, Options> {
     const statusH = 52 * hud;
     // The same side margins without side seats: clear of "Điểm" and the buttons' column.
     const inset = margin + side.w + 14;
+    const cx = width / 2;
+    // The seat across: in the room bar's row when the plate fits there (in the middle if it
+    // can), else under the bar, where the pattern's top edge runs through it.
+    const room = 16;
+    const free = gap ? gap.right - gap.left - 2 * room : 0;
+    const fitsRow = gap !== null && free >= 200 * hud;
+    // Narrower in a tight row (the name is cut), never wider than it needs.
+    if (fitsRow) flat.w = Math.min(flat.w, free);
+    const acrossX = fitsRow
+      ? Math.min(Math.max(cx, gap.left + room + flat.w / 2), gap.right - room - flat.w / 2)
+      : cx;
+    const acrossY = fitsRow
+      ? Math.max((gap.top + gap.bottom) / 2, gap.top + flat.h / 2)
+      : top + flat.h / 2;
     const frame = {
       left: inset,
       right: width - inset,
-      top: across ? top + flat.h / 2 : top + 8,
+      top: across && !fitsRow ? acrossY : top + 8,
       bottom: handY - handH / 2 - lift - statusH / 2 - 4,
     };
     // The pile keeps clear of the top plate.
-    const pileTop = across ? top + flat.h + 8 : frame.top + 16;
-    const cx = width / 2;
+    const pileTop = Math.max(frame.top + 16, across ? acrossY + flat.h / 2 + 8 : 0);
     const cy = (pileTop + frame.bottom) / 2;
     const pileWidth = Math.min(handWidth, (frame.bottom - pileTop) / 2.1);
     const b = { w: buttonW, h: buttonH, x: width - margin - buttonW / 2, y: height - margin };
@@ -298,7 +312,7 @@ export class TienLenView extends GameView<View, Options> {
       stackDx: Math.min(STACK.dx, (frame.right - cx) / pileWidth - 1),
       slots: {
         bottom: { x: (handLeft + handRight) / 2, y: handY },
-        top: { x: cx, y: top + flat.h / 2 },
+        top: { x: acrossX, y: acrossY },
         left: { x: margin + side.w / 2, y: top + side.h / 2 },
         right: { x: width - margin - side.w / 2, y: top + side.h / 2 },
       } satisfies Record<Slot, { x: number; y: number }>,
@@ -386,7 +400,7 @@ export class TienLenView extends GameView<View, Options> {
       // Your own hand has the bottom; a spectator sees seat 0 there like the others.
       plate.setVisible(slot !== 'bottom' || !ctx.me);
       const side = slot === 'left' || slot === 'right';
-      plate.layout(side ? 'side' : 'flat', g.hud);
+      plate.layout(side ? 'side' : 'flat', g.hud, g.flat.w);
       const { x, y } = g.slots[slot];
       plate.setPosition(x, slot === 'bottom' ? g.frame.bottom + g.flat.h : y);
     });

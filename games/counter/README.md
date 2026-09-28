@@ -42,7 +42,7 @@ assets/                   button.webp, press.wav, island.webp
 | `CounterView` (trình duyệt) | khi nào |
 | --- | --- |
 | `onCreate(ctx)` | màn hình mở ra: tạo đối tượng (`this.label`, `this.button`, `this.sprite`, hoặc Phaser). Nền của `this.button` là 9-slice (góc giữ nguyên hình), `slice` chỉnh độ rộng góc |
-| `onLayout(ctx)` | sau onCreate và khi khung đổi: đặt vị trí (`ctx.screen`, đơn vị thiết kế trên khung cao 720) |
+| `onLayout(ctx)` | sau onCreate và khi khung đổi: đặt vị trí (`ctx.screen`, đơn vị thiết kế trên khung cao 720; `ctx.screen.gap` = chỗ trống giữa hàng thanh phòng, có thể `null`) |
 | `onStart(ctx)` | một ván mới bắt đầu |
 | `on<Event>(ctx, event)` | sự kiện của ai đó vừa được chơi: làm hiệu ứng (`event.player`, `event.isMe`) |
 | `onState(ctx)` | sau mọi thay đổi: hiện state |

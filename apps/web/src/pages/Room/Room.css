@@ -3,19 +3,31 @@
   align-items: center;
 }
 
-.room-title {
-  text-align: center;
+/* The game's name beside the home button, and the room's name by the settings button: words on
+   the board, no panel. */
+.room-game,
+.room-name {
+  align-self: center;
+  font-weight: 800;
   line-height: 1.1;
-  background: var(--paper);
-  border: 3px solid var(--wood);
-  border-radius: 12px;
-  padding: 4px 14px;
+  color: var(--paper);
+  -webkit-text-stroke: 4px var(--wood-dark);
+  paint-order: stroke fill;
+  white-space: nowrap;
 }
 
-.room-code {
-  font-weight: 800;
-  font-size: 1.3rem;
-  letter-spacing: 0.08em;
+.room-game {
+  margin-left: 4px;
+  font-size: 1.1rem;
+}
+
+.room-name {
+  font-size: 0.95rem;
+  max-width: 14em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Keeps the stroke of the first letter inside the clipped box. */
+  padding-left: 3px;
 }
 
 .players {

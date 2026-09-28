@@ -8,3 +8,19 @@
   gap: 6px;
   justify-content: flex-end;
 }
+
+/* "Chơi thử" and the game's name, on a paper label at the start of the bar. */
+.room-title {
+  text-align: center;
+  line-height: 1.1;
+  background: var(--paper);
+  border: 3px solid var(--wood);
+  border-radius: 12px;
+  padding: 4px 14px;
+}
+
+.room-code {
+  font-weight: 800;
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+}
