@@ -37,6 +37,27 @@ function rankTexture(scene: Phaser.Scene, rank: string, color: string) {
   return key;
 }
 
+/** The outline texture is drawn for a card this wide (px), then scaled: sharp at 3×. */
+const MARK_W = 512;
+
+/**
+ * A white rounded outline around a card, drawn once per page; cards show it scaled and tinted.
+ * A Graphics outline per card was rebuilt every frame and split the cards into many draw
+ * calls: by chi 3 of the comparison nearly every card had one and phones stuttered.
+ */
+function markTexture(scene: Phaser.Scene) {
+  const key = 'card-mark';
+  if (scene.textures.exists(key)) return key;
+  const w = MARK_W;
+  const h = w * CARD_RATIO;
+  const line = w * 0.06;
+  const g = scene.make.graphics({}, false);
+  g.lineStyle(line, 0xffffff, 1).strokeRoundedRect(line / 2, line / 2, w, h, w * 0.1);
+  g.generateTexture(key, Math.ceil(w + line), Math.ceil(h + line));
+  g.destroy();
+  return key;
+}
+
 export class CardSprite extends Phaser.GameObjects.Container {
   /** The card it shows face up, or `null` face down. */
   card: Card | null = null;
@@ -47,7 +68,7 @@ export class CardSprite extends Phaser.GameObjects.Container {
   private readonly small: Phaser.GameObjects.Image;
   private readonly big: Phaser.GameObjects.Image;
   /** Picked, winning, losing…: a colored outline (see `setMark`), made when first needed. */
-  private mark: Phaser.GameObjects.Graphics | null = null;
+  private mark: Phaser.GameObjects.Image | null = null;
   private markColor: number | null = null;
   private cardWidth = 60;
   private flipping: Phaser.Time.TimerEvent[] = [];
@@ -125,18 +146,13 @@ export class CardSprite extends Phaser.GameObjects.Container {
   }
 
   private drawMark() {
-    this.mark?.clear();
+    this.mark?.setVisible(this.markColor !== null);
     if (this.markColor === null) return;
     if (!this.mark) {
-      this.mark = this.scene.add.graphics();
+      this.mark = this.scene.add.image(0, 0, markTexture(this.scene));
       this.add(this.mark);
     }
-    const w = this.cardWidth;
-    const h = this.cardHeight;
-    const line = Math.max(2, w * 0.06);
-    this.mark
-      .lineStyle(line, this.markColor, 1)
-      .strokeRoundedRect(-w / 2, -h / 2, w, h, Math.max(3, w * 0.1));
+    this.mark.setTint(this.markColor).setScale(this.cardWidth / MARK_W);
   }
 
   /** A card cleared off the table mid-flip stops flipping (the frames would touch it gone). */
