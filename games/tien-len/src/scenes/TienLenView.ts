@@ -1,20 +1,31 @@
 /**
- * The Tiến Lên table, in the browser. Your hand fans out at the bottom (tap cards to pick them,
- * then "Đánh"), the others sit around the table, and every play is slammed onto a messy pile in
- * the middle. The players are listed top-left with the turn clock.
+ * The Tiến Lên table, in the browser: a sedge mat over the whole screen. Your hand fans out along
+ * the bottom (tap cards to pick them, then "Đánh"), the others sit on plates at the mat's edges
+ * (picture, points, cards left, a stamp when they pass), and every play is slammed onto a messy
+ * pile in the middle. The status sits on the pattern's lower edge with your turn clock; "Điểm"
+ * opens the full list of players.
  *
  * Each round: the deck is shuffled and dealt in front of everyone, "Vòng 2" and "Lan đi trước"
  * pop up, then play starts. Big words pop up for special plays ("Chặt heo!", "Tứ quý!") and for
  * places ("Về nhất!"). After a round its ranking is shown; after the match, the final standings.
  */
-import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import {
+  type Button,
+  GameView,
+  titleStyle,
+  type ViewContext,
+  type ViewEvent,
+} from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import { beats, type Card, comboOf, isChop, rankOf, SUITS, type Suit, TWO } from '../game/cards.js';
+import { beats, type Card, comboOf, isChop, rankOf, TWO } from '../game/cards.js';
 import { standings } from '../game/match.js';
 import { DEAL, INTRO, type Options, type Play, type View } from '../game/model.js';
 import { callout } from './Callout.js';
-import { CARD_RATIO, CardSprite, type CardTextures } from './Card.js';
+import { CARD_RATIO, CardSprite } from './Card.js';
+import { type CardArt, cardArt, DEFAULT_LOOK } from './deck.js';
+import { Mat } from './Mat.js';
 import { drawRing, PlayerList, type PlayerRow } from './PlayerList.js';
+import { plateTexture, type SeatInfo, SeatPlate, type SeatStamp } from './Seat.js';
 import { type StandingRow, Standings } from './Standings.js';
 
 type Ctx = ViewContext<View, Options>;
@@ -27,18 +38,6 @@ const SLOTS: Record<number, Slot[]> = {
   4: ['bottom', 'right', 'top', 'left'],
 };
 
-/** Someone at the table: their picture, a few card backs, how many cards they hold. */
-interface Opponent {
-  avatar: Phaser.GameObjects.Image;
-  ring: Phaser.GameObjects.Graphics;
-  /** Where the ring goes (around the picture). */
-  ringAt: { x: number; y: number; r: number };
-  backs: CardSprite[];
-  count: Phaser.GameObjects.Text;
-  /** "Bỏ lượt", their place, "Rời bàn". */
-  tag: Phaser.GameObjects.Text;
-}
-
 /** A card on the pile, placed relative to the middle in card widths (so it survives resizes). */
 interface PileCard {
   sprite: CardSprite;
@@ -50,7 +49,7 @@ interface PileCard {
   stacked?: number;
 }
 
-/** Where finished tricks are swept to: the table's right edge, in card widths from the middle. */
+/** Where finished tricks are swept to: right of the pile, in card widths from the middle. */
 const STACK = { dx: 2.4, dy: -0.1 };
 /** When the four sweeps of the trick-over sound come (ms): each moves a quarter of the cards. */
 const SWEEPS_MS = [20, 160, 300, 440];
@@ -100,10 +99,33 @@ function impactOf(play: Play, before: Play | undefined) {
   return { sound: plain, shake: 0, words: null };
 }
 
-/** How wide the players list in the top-left corner may get. */
-const listWidth = (width: number, hud: number) => Math.min(230 * hud, width * 0.42);
-/** How far in from each end of `table.webp` its round ends reach, in its pixels (3-slice). */
-const TABLE_END = 300;
+/** The stamp on a seat's plate for "Bỏ lượt", a place or "Rời bàn" (see `tagOf`). */
+const stampOf = (tag: { text: string; color: string; kind: 'pass' | 'place' | 'gone' }) =>
+  ({
+    text: tag.text,
+    fill:
+      tag.kind === 'pass'
+        ? 0xb3261e
+        : tag.kind === 'gone'
+          ? 0x6b6b6b
+          : Number.parseInt(tag.color.slice(1), 16),
+    ink: tag.kind === 'place' ? '#4a2a00' : '#fff3d6',
+  }) satisfies SeatStamp;
+
+/** A small list icon (three lines) for the "Điểm" button, drawn once. */
+function listIcon(scene: Phaser.Scene) {
+  const key = 'icon-list';
+  if (scene.textures.exists(key)) return key;
+  const g = scene.make.graphics({}, false);
+  g.fillStyle(0xffd98a, 1);
+  for (const y of [14, 42, 70]) {
+    g.fillCircle(12, y, 8);
+    g.fillRoundedRect(30, y - 6, 66, 12, 6);
+  }
+  g.generateTexture(key, 100, 84);
+  g.destroy();
+  return key;
+}
 
 /** A repeatable "random" number in [-1, 1] for a pile position, the same on every screen. */
 const jitter = (n: number) => {
@@ -112,14 +134,25 @@ const jitter = (n: number) => {
 };
 
 export class TienLenView extends GameView<View, Options> {
-  private cardTextures!: CardTextures;
-  private table!: Phaser.GameObjects.NineSlice;
-  private status!: Phaser.GameObjects.Text;
+  private art!: CardArt;
+  private mat!: Mat;
+  /** The status on the pattern's lower edge: your picture (with your clock) and the words. */
+  private status!: {
+    box: Phaser.GameObjects.Container;
+    plate: Phaser.GameObjects.NineSlice;
+    avatar: Phaser.GameObjects.Image;
+    ring: Phaser.GameObjects.Graphics;
+    text: Phaser.GameObjects.Text;
+  };
   private playButton!: Button;
   private passButton!: Button;
+  /** "Điểm": opens the list of players (cards, points, places). */
+  private listButton!: Phaser.GameObjects.Container;
   private list!: PlayerList;
+  private listPanel!: Phaser.GameObjects.NineSlice;
   private board!: Standings;
-  private opponents: Opponent[] = [];
+  /** Each seat's plate (yours is hidden while you hold a hand). */
+  private seats: SeatPlate[] = [];
   private hand = new Map<Card, CardSprite>();
   private selected = new Set<Card>();
   private pile: PileCard[] = [];
@@ -141,99 +174,147 @@ export class TienLenView extends GameView<View, Options> {
   // ── Create ──────────────────────────────────────────────────────────────────────────────
 
   protected onCreate(ctx: Ctx) {
-    this.cardTextures = {
-      front: this.texture('card-front'),
-      back: this.texture('card-back'),
-      suits: Object.fromEntries(SUITS.map((s) => [s, this.texture(`suit-${s}`)])) as Record<
-        Suit,
-        string
-      >,
-    };
-    // Only the straight middle of the table stretches: it spans wide frames, ends stay round.
-    const tex = this.textures.getFrame(this.texture('table'));
-    this.table = this.add.nineslice(
-      0,
-      0,
-      this.texture('table'),
-      undefined,
-      tex.width,
-      tex.height,
-      TABLE_END,
-      TABLE_END,
-    );
-    this.status = this.label('', { size: 30 });
+    this.art = cardArt(DEFAULT_LOOK, (name) => this.texture(name));
+    this.mat = new Mat(this, this.texture('mat'));
+    this.makeStatus();
     // Used every turn: no hover sound, it gets distracting.
     const quiet = { image: 'button', hoverSound: false };
     this.passButton = this.button('Bỏ lượt', () => this.send('pass'), quiet);
     this.playButton = this.button('Đánh', () => this.playSelected(), quiet);
-    this.list = new PlayerList(this);
+    this.makeList();
     this.board = new Standings(this);
-    this.makeOpponents(ctx);
+    this.makeSeats(ctx);
   }
 
-  private makeOpponents(ctx: Ctx) {
-    for (const o of this.opponents) {
-      for (const obj of [o.avatar, o.ring, ...o.backs, o.count, o.tag]) obj.destroy();
-    }
-    this.opponents = ctx.players.map((player) => ({
-      avatar: this.add.image(0, 0, this.avatar(player)).setDepth(40),
-      ring: this.add.graphics().setDepth(41),
-      ringAt: { x: 0, y: 0, r: 0 },
-      backs: [0, 1, 2].map(() => new CardSprite(this, this.cardTextures, null)),
-      count: this.label('', { size: 26 }).setDepth(42),
-      tag: this.label('', { size: 22 }).setDepth(42),
-    }));
+  private makeStatus() {
+    const plate = this.add.nineslice(0, 0, plateTexture(this), undefined, 130, 170, 64, 64, 64, 74);
+    const avatar = this.add.image(0, 0, '__DEFAULT');
+    const ring = this.add.graphics();
+    const text = this.add
+      .text(0, 0, '', { ...titleStyle(24), strokeThickness: 0, color: '#fff3d6' })
+      .setOrigin(0, 0.5);
+    const box = this.add.container(0, 0, [plate, avatar, ring, text]).setDepth(90);
+    this.status = { box, plate, avatar, ring, text };
+  }
+
+  /** The "Điểm" button and the list of players it opens (tap anywhere to close it). */
+  private makeList() {
+    const plate = this.add.nineslice(0, 0, plateTexture(this), undefined, 130, 170, 64, 64, 64, 74);
+    const icon = this.add.image(0, 0, listIcon(this));
+    // A container needs a size before its tap area (`layoutList` resizes both).
+    this.listButton = this.add.container(0, 0, [plate, icon]).setDepth(95).setSize(88, 88);
+    this.listButton.setInteractive({ useHandCursor: true }).on('pointerup', () => {
+      this.showList(!this.list.visible);
+    });
+    this.listPanel = this.add
+      .nineslice(0, 0, plateTexture(this), undefined, 130, 170, 64, 64, 64, 74)
+      .setOrigin(0)
+      .setDepth(799);
+    this.list = new PlayerList(this);
+    this.showList(false);
+    this.input.on('pointerdown', (_: unknown, over: Phaser.GameObjects.GameObject[]) => {
+      if (this.list.visible && !over.includes(this.listButton)) this.showList(false);
+    });
+  }
+
+  private showList(shown: boolean) {
+    this.list.setVisible(shown);
+    this.listPanel.setVisible(shown);
+  }
+
+  private makeSeats(ctx: Ctx) {
+    for (const seat of this.seats) seat.destroy();
+    this.seats = ctx.players.map(() => new SeatPlate(this, this.art.back).setDepth(80));
   }
 
   // ── Layout ──────────────────────────────────────────────────────────────────────────────
 
   /**
-   * Sizes and places on the frame (docs/ui-guide.md). The players list on the left, the table
-   * filling the rest (from under the room bar down behind the top of your hand), and "Bỏ lượt" /
-   * "Đánh" stacked in the bottom-right corner. Your hand runs along the bottom, under the list up
-   * to the buttons; the others sit at the table's top and round ends.
+   * Sizes and places on the frame (docs/ui-guide.md). The mat covers the whole screen. Your hand
+   * runs along the bottom and a little off it, "Bỏ lượt" / "Đánh" stacked in the bottom-right
+   * corner with "Điểm" above them. The side seats sit on narrow plates against the edges, the
+   * seat across on a flat plate in the free middle of the room bar's row (or, when it doesn't
+   * fit there, under the bar). The pattern frames the play area between them, down to just over
+   * your hand, and the pile sits in it.
    */
-  private geometry({ screen }: Ctx) {
-    const { width, height, top, hud } = screen;
+  private geometry(ctx: Ctx) {
+    const { width, height, top, hud, gap } = ctx.screen;
     const margin = 16;
-    const listRight = 10 * hud + listWidth(width, hud) + margin;
     const buttonW = 150 * hud;
     const buttonH = 60 * hud;
     const handLeft = margin;
     const handRight = width - buttonW - 2 * margin;
     const handSpan = handRight - handLeft;
-    const handWidth = Math.min(140, handSpan / (1 + 12 * 0.42));
+    const handWidth = Math.min(150, handSpan / (1 + 12 * 0.42));
     const handH = handWidth * CARD_RATIO;
-    const handY = height - handH / 2 - 10;
-    const tableLeft = listRight;
-    const tableRight = width - margin;
-    const tableTop = top;
-    const tableH = Math.max(200, handY - handH * 0.2 - tableTop);
-    const tableW = Math.max(tableH * 1.2, tableRight - tableLeft);
-    const cx = (tableLeft + tableRight) / 2;
-    const cy = tableTop + tableH / 2;
-    const end = tableH * 0.3;
+    // The hand runs a little off the bottom edge: its ranks and suits stay in sight.
+    const handY = height - handH * 0.32;
+    const lift = 30 * hud;
+
+    const slots = new Set(ctx.players.map((_, seat) => this.slotOf(ctx, seat)));
+    const side = { w: 104 * hud, h: 128 * hud };
+    const flat = { w: 250 * hud, h: 64 * hud };
+    const across = slots.has('top');
+    const statusH = 52 * hud;
+    // The same side margins without side seats: clear of "Điểm" and the buttons' column.
+    const inset = margin + side.w + 14;
+    const cx = width / 2;
+    // The seat across: in the room bar's row when the plate fits there (in the middle if it
+    // can), else under the bar, where the pattern's top edge runs through it.
+    const room = 16;
+    const free = gap ? gap.right - gap.left - 2 * room : 0;
+    const fitsRow = gap !== null && free >= 200 * hud;
+    // Narrower in a tight row (the name is cut), never wider than it needs.
+    if (fitsRow) flat.w = Math.min(flat.w, free);
+    const acrossX = fitsRow
+      ? Math.min(Math.max(cx, gap.left + room + flat.w / 2), gap.right - room - flat.w / 2)
+      : cx;
+    const acrossY = fitsRow
+      ? Math.max((gap.top + gap.bottom) / 2, gap.top + flat.h / 2)
+      : top + flat.h / 2;
+    const frame = {
+      left: inset,
+      right: width - inset,
+      top: across && !fitsRow ? acrossY : top + 8,
+      bottom: handY - handH / 2 - lift - statusH / 2 - 4,
+    };
+    // The pile keeps clear of the top plate.
+    const pileTop = Math.max(frame.top + 16, across ? acrossY + flat.h / 2 + 8 : 0);
+    const cy = (pileTop + frame.bottom) / 2;
+    const pileWidth = Math.min(handWidth, (frame.bottom - pileTop) / 2.1);
+    const b = { w: buttonW, h: buttonH, x: width - margin - buttonW / 2, y: height - margin };
+    const listSize = 64 * hud;
     return {
       width,
       height,
       top,
       hud,
+      margin,
       cx,
       cy,
+      frame,
       handWidth,
       handSpan,
       handX: (handLeft + handRight) / 2,
       handY,
-      statusY: handY - handH / 2 - 26 * hud,
-      button: { w: buttonW, h: buttonH, x: width - margin - buttonW / 2, y: height - margin },
-      pileWidth: Math.min(96, handWidth * 0.7),
-      tableW,
-      tableH,
+      lift,
+      statusH,
+      side,
+      flat,
+      button: b,
+      list: {
+        size: listSize,
+        x: width - margin - listSize / 2,
+        y: b.y - 2 * b.h - 12 - 14 * hud - listSize / 2,
+      },
+      pileWidth,
+      /** The finished tricks' stack, right of the pile but inside the pattern. */
+      stackDx: Math.min(STACK.dx, (frame.right - cx) / pileWidth - 1),
       slots: {
         bottom: { x: (handLeft + handRight) / 2, y: handY },
-        top: { x: cx, y: tableTop + tableH * 0.16 },
-        left: { x: cx - tableW / 2 + end, y: cy },
-        right: { x: cx + tableW / 2 - end, y: cy },
+        top: { x: acrossX, y: acrossY },
+        left: { x: margin + side.w / 2, y: top + side.h / 2 },
+        right: { x: width - margin - side.w / 2, y: top + side.h / 2 },
       } satisfies Record<Slot, { x: number; y: number }>,
     };
   }
@@ -248,72 +329,80 @@ export class TienLenView extends GameView<View, Options> {
     return SLOTS[n]?.[(seat - this.mySeat(ctx) + n) % n] ?? 'top';
   }
 
-  /** Where a seat's words pop up: near their cards, or above your hand. */
+  /** Where a seat's words pop up: just inside the pattern by their plate, or above your hand. */
   private seatSpot(ctx: Ctx, seat: number) {
     const g = this.geometry(ctx);
     const slot = this.slotOf(ctx, seat);
     const { x, y } = g.slots[slot];
-    if (slot === 'bottom') return { x, y: g.statusY - 60 * g.hud };
-    if (slot === 'top') return { x, y: y + 80 * g.hud };
-    return { x: slot === 'left' ? x + 60 * g.hud : x - 60 * g.hud, y: y + 70 * g.hud };
+    if (slot === 'bottom') return { x, y: g.frame.bottom - 50 * g.hud };
+    if (slot === 'top') return { x, y: y + g.flat.h / 2 + 40 * g.hud };
+    const inside = 130 * g.hud;
+    return {
+      x: slot === 'left' ? g.frame.left + inside : g.frame.right - inside,
+      y: y + 20 * g.hud,
+    };
   }
 
   protected onLayout(ctx: Ctx) {
     const g = this.geometry(ctx);
-    const scale = g.tableH / this.table.height;
-    this.table
-      .setSize(g.tableW / scale, this.table.height)
-      .setScale(scale)
-      .setPosition(g.cx, g.cy);
-    this.status.setFontSize(28 * g.hud).setPosition(g.handX, g.statusY);
+    const { left, top, right, bottom } = this.bleed;
+    this.mat.layout({
+      area: { x: left, y: top, width: right - left, height: bottom - top },
+      frame: g.frame,
+    });
     const b = g.button;
     this.playButton.setSize(b.w, b.h).setPosition(b.x, b.y - b.h / 2);
     this.passButton.setSize(b.w, b.h).setPosition(b.x, b.y - b.h * 1.5 - 12);
-    this.list.layout(10 * g.hud, g.top, g.hud, listWidth(g.width, g.hud));
+    this.layoutList(g);
     this.board.layout({
       cx: g.cx,
       top: g.top,
       // Over the table; the app's result panel sits at the bottom right once the match is over.
-      bottom: g.statusY - 20 * g.hud,
+      bottom: g.frame.bottom,
       width: g.width - 24,
       hud: g.hud,
     });
-    this.placeOpponents(ctx);
+    this.placeSeats(ctx);
+    this.showStatus(ctx);
     for (const p of this.pile) this.placePileCard(p, g);
     this.placeHand(ctx, false);
   }
 
-  private placeOpponents(ctx: Ctx) {
+  private layoutList(g: ReturnType<TienLenView['geometry']>) {
+    const { size, x, y } = g.list;
+    const [plate, icon] = this.listButton.list as [
+      Phaser.GameObjects.NineSlice,
+      Phaser.GameObjects.Image,
+    ];
+    const corner = (20 * g.hud) / 60;
+    plate.setSize(size / corner, size / corner).setScale(corner);
+    icon.setDisplaySize(size * 0.5, size * 0.42).setPosition(0, -2 * g.hud);
+    this.listButton.setPosition(x, y).setSize(size, size);
+    (this.listButton.input?.hitArea as Phaser.Geom.Rectangle | undefined)?.setTo(0, 0, size, size);
+    // Rows are 54 tall (PlayerList); the panel opens left of the right column, under the room bar.
+    const rows = this.ctx?.players.length ?? 4;
+    const w = 300 * g.hud;
+    const h = rows * 54 * g.hud + 24 * g.hud;
+    const px = g.width - g.margin - w;
+    this.listPanel
+      .setSize(w / corner, h / corner)
+      .setScale(corner)
+      .setPosition(px, g.top);
+    this.list.layout(px + 14 * g.hud, g.top + 12 * g.hud, g.hud, w - 28 * g.hud);
+  }
+
+  private placeSeats(ctx: Ctx) {
     const g = this.geometry(ctx);
-    const small = g.handWidth * 0.55;
-    const size = 38 * g.hud;
-    ctx.players.forEach((player, seat) => {
-      const o = this.opponents[seat];
-      if (!o) return;
+    ctx.players.forEach((_, seat) => {
+      const plate = this.seats[seat];
+      if (!plate) return;
       const slot = this.slotOf(ctx, seat);
       // Your own hand has the bottom; a spectator sees seat 0 there like the others.
-      const shown = slot !== 'bottom' || !ctx.me;
+      plate.setVisible(slot !== 'bottom' || !ctx.me);
+      const side = slot === 'left' || slot === 'right';
+      plate.layout(side ? 'side' : 'flat', g.hud, g.flat.w);
       const { x, y } = g.slots[slot];
-      const cardsY = slot === 'bottom' ? y - small : y;
-      // The picture sits beside the cards at the top, above them on the sides.
-      const ax = slot === 'top' ? x + small * 1.5 : x;
-      const ay = slot === 'top' ? cardsY : cardsY - small * CARD_RATIO * 0.5 - size * 0.6;
-      o.avatar
-        .setTexture(this.avatar(player))
-        .setDisplaySize(size, size)
-        .setPosition(ax, ay)
-        .setVisible(shown);
-      o.ringAt = { x: ax, y: ay, r: size / 2 + 2 * g.hud };
-      o.ring.setVisible(shown);
-      o.backs.forEach((back, i) => {
-        back
-          .setCardWidth(small)
-          .setPosition(x + (i - 1) * small * 0.28, cardsY)
-          .setAngle((i - 1) * 8);
-      });
-      o.count.setFontSize(26 * g.hud).setPosition(x, cardsY);
-      const below = cardsY + small * CARD_RATIO * 0.5 + 14 * g.hud;
-      o.tag.setFontSize(20 * g.hud).setPosition(x, below);
+      plate.setPosition(x, slot === 'bottom' ? g.frame.bottom + g.flat.h : y);
     });
   }
 
@@ -331,7 +420,7 @@ export class TienLenView extends GameView<View, Options> {
     }
     for (const card of cards) {
       if (this.hand.has(card)) continue;
-      const sprite = new CardSprite(this, this.cardTextures, card);
+      const sprite = new CardSprite(this, this.art, card);
       sprite.setInteractive({ useHandCursor: true }).on('pointerup', () => this.toggle(card));
       this.hand.set(card, sprite);
     }
@@ -343,7 +432,7 @@ export class TienLenView extends GameView<View, Options> {
     const g = this.geometry(ctx);
     const cards = [...this.hand.keys()].sort((a, b) => a - b);
     const step = Math.min(
-      g.handWidth * 0.62,
+      g.handWidth * 0.7,
       (g.handSpan - g.handWidth) / Math.max(1, cards.length - 1),
     );
     const start = g.handX - (step * (cards.length - 1)) / 2;
@@ -351,7 +440,7 @@ export class TienLenView extends GameView<View, Options> {
       const sprite = this.hand.get(card) as CardSprite;
       sprite.setCardWidth(g.handWidth).setDepth(100 + i);
       const x = start + i * step;
-      const y = g.handY - (this.selected.has(card) ? 22 * g.hud : 0);
+      const y = g.handY - (this.selected.has(card) ? g.lift : 0);
       if (animate) this.tweens.add({ targets: sprite, x, y, duration: 90 });
       else sprite.setPosition(x, y);
     });
@@ -425,7 +514,7 @@ export class TienLenView extends GameView<View, Options> {
       return { x: g.cx + p.dx * g.pileWidth, y: g.cy + p.dy * g.pileWidth, angle: p.angle };
     }
     return {
-      x: g.cx + STACK.dx * g.pileWidth,
+      x: g.cx + g.stackDx * g.pileWidth,
       y: g.cy + STACK.dy * g.pileWidth - p.stacked * 0.6,
       angle: jitter(p.stacked + 11) * 5,
     };
@@ -444,7 +533,7 @@ export class TienLenView extends GameView<View, Options> {
     const g = this.geometry(ctx);
     this.pileSpot(play, index).forEach((spot, i) => {
       const card = play.cards[i] as Card;
-      const sprite = new CardSprite(this, this.cardTextures, card).setDepth(10 + this.pile.length);
+      const sprite = new CardSprite(this, this.art, card).setDepth(10 + this.pile.length);
       const p: PileCard = { sprite, ...spot, trick: play.trick };
       this.pile.push(p);
       this.placePileCard(p, g);
@@ -554,7 +643,7 @@ export class TienLenView extends GameView<View, Options> {
       (seat) => ctx.state.inRound[seat],
     );
     const deck = Array.from({ length: 13 * order.length }, (_, i) =>
-      new CardSprite(this, this.cardTextures, null)
+      new CardSprite(this, this.art, null)
         .setCardWidth(g.pileWidth)
         .setPosition(g.cx - i * 0.15, g.cy - i * 0.3)
         .setDepth(200 + i),
@@ -664,9 +753,9 @@ export class TienLenView extends GameView<View, Options> {
   /** After any change: the round, the pile, places, the players, whose turn, the buttons. */
   protected onState(ctx: Ctx) {
     const { state } = ctx;
-    if (this.opponents.length !== ctx.players.length) {
-      this.makeOpponents(ctx);
-      this.placeOpponents(ctx);
+    if (this.seats.length !== ctx.players.length) {
+      this.makeSeats(ctx);
+      this.onLayout(ctx);
     }
     if (state.round !== this.shownRound) this.startRound(ctx);
     if (!this.dealing) {
@@ -804,21 +893,27 @@ export class TienLenView extends GameView<View, Options> {
     });
   }
 
-  /** The players list, and each seat's cards and tag. */
+  /** Each seat's plate, and the list of players behind "Điểm". */
   private showPlayers(ctx: Ctx) {
     const { state, players, result } = ctx;
     const n = players.length;
     const turn = !result && state.phase === 'play' && !this.dealing ? state.turn : -1;
-    const tagOf = (seat: number): { text: string; color: string } | null => {
-      if (state.gone.includes(seat)) return { text: 'Rời bàn', color: '#c9c9c9' };
+    const tagOf = (seat: number) => {
+      if (state.gone.includes(seat)) {
+        return { text: 'Rời bàn', color: '#c9c9c9', kind: 'gone' as const };
+      }
       const place = state.out.indexOf(seat);
       if (place >= 0) {
         const text =
           state.phase === 'over' ? roundPlace(place, state.out.length) : ROUND_PLACES[place];
-        return { text: text ?? '', color: PLACE_COLORS[place] ?? '#ffffff' };
+        return {
+          text: text ?? '',
+          color: PLACE_COLORS[place] ?? '#ffffff',
+          kind: 'place' as const,
+        };
       }
       if (state.passed[seat] && state.table && state.phase === 'play') {
-        return { text: 'Bỏ lượt', color: '#ffd0d0' };
+        return { text: 'Bỏ lượt', color: '#ffd0d0', kind: 'pass' as const };
       }
       return null;
     };
@@ -839,28 +934,28 @@ export class TienLenView extends GameView<View, Options> {
       };
     });
     this.list.set(rows);
-    players.forEach((_, seat) => {
-      const o = this.opponents[seat];
-      if (!o) return;
-      const cards = state.counts[seat] ?? 0;
-      const shown = o.avatar.visible;
-      const holding = shown && cards > 0 && !this.dealing;
-      for (const back of o.backs) back.setVisible(holding);
-      o.count.setText(String(cards)).setVisible(holding);
-      o.avatar.setAlpha(state.gone.includes(seat) ? 0.4 : 1);
+    players.forEach((player, seat) => {
       const tag = tagOf(seat);
-      o.tag
-        .setText(tag?.text ?? '')
-        .setColor(tag?.color ?? '#ffffff')
-        .setVisible(shown && Boolean(tag));
+      const info: SeatInfo = {
+        name: player.name,
+        avatar: this.avatar(player),
+        points: `${state.points[seat] ?? 0} điểm`,
+        cards: this.dealing ? 0 : (state.counts[seat] ?? 0),
+        turn: seat === turn,
+        dim: tag?.kind === 'pass' || tag?.kind === 'place',
+        gone: tag?.kind === 'gone',
+        stamp: tag ? stampOf(tag) : null,
+      };
+      this.seats[seat]?.show(info);
     });
     this.drawRings(ctx);
   }
 
+  /** The words on the pattern's lower edge, beside your picture (the plate fits the words). */
   private showStatus(ctx: Ctx) {
-    const { state, players, result } = ctx;
+    const { state, players, result, me } = ctx;
     let text = '';
-    let color = '#ffffff';
+    let color = '#fff3d6';
     if (result) text = 'Hết ván đấu!';
     else if (state.phase === 'over') text = `Hết vòng ${state.round}`;
     else if (state.phase === 'play' && !this.dealing) {
@@ -869,14 +964,30 @@ export class TienLenView extends GameView<View, Options> {
       text = this.isMyTurn(ctx)
         ? `Tới lượt bạn!${clock}`
         : `Lượt của ${players[state.turn]?.name ?? ''}${clock}`;
-      if (seconds !== null && seconds <= 5) color = '#ff7a6b';
+      if (seconds !== null && seconds <= 5) color = '#ff9d8a';
     }
+    const g = this.geometry(ctx);
+    const hud = g.hud;
+    const { box, plate, avatar, ring, text: words } = this.status;
+    const h = g.statusH;
+    const a = h - 8 * hud;
+    const pad = 12 * hud;
+    const pictured = Boolean(me);
+    const maxText = g.frame.right - g.frame.left - a - 4 * pad;
+    words.setColor(color).setFontSize(24 * hud);
+    this.fitText(words, text, maxText, 14);
+    const w = (pictured ? 4 * hud + a + 8 * hud : pad) + words.width + pad + 4 * hud;
+    const corner = (20 * hud) / 60;
+    plate.setSize(w / corner, (h + 10 * corner) / corner).setScale(corner);
+    plate.setPosition(0, 5 * corner);
+    const left = -w / 2;
+    avatar.setVisible(pictured).setPosition(left + 4 * hud + a / 2, 0);
+    if (me) avatar.setTexture(this.avatar(players[me.seat] ?? {})).setDisplaySize(a, a);
+    words.setPosition(pictured ? left + 12 * hud + a : left + pad, -1 * hud);
+    ring.setData('at', { x: left + 4 * hud + a / 2, y: 0, r: a / 2 + 1 * hud });
     // The ranking board covers the table: no status under it.
-    this.status
-      .setColor(color)
-      .setFontSize(28 * ctx.screen.hud)
-      .setVisible(!this.board.visible);
-    this.fitText(this.status, text, ctx.screen.width - 24, 14);
+    box.setPosition(g.cx, g.frame.bottom).setVisible(Boolean(text) && !this.board.visible);
+    this.drawRings(ctx);
   }
 
   // ── The turn clock ──────────────────────────────────────────────────────────────────────
@@ -894,16 +1005,15 @@ export class TienLenView extends GameView<View, Options> {
     return Math.max(0, Math.ceil((t.endsAt - Date.now()) / 1000));
   }
 
-  /** The ring around the turn player's picture, at their seat and in the list. */
+  /** The ring around the turn player's picture: on their plate, in the list, or in the status. */
   private drawRings(ctx: Ctx) {
     const left = this.clockLeft(ctx);
-    const turn = !ctx.result && ctx.state.phase === 'play' && !this.dealing ? ctx.state.turn : -1;
-    this.opponents.forEach((o, seat) => {
-      o.ring.clear();
-      if (seat === turn && o.ring.visible)
-        drawRing(o.ring, o.ringAt.x, o.ringAt.y, o.ringAt.r, left);
-    });
+    for (const seat of this.seats) seat.drawClock(left);
     this.list.drawRing(left);
+    const { ring } = this.status;
+    ring.clear();
+    const at = ring.getData('at') as { x: number; y: number; r: number } | undefined;
+    if (at && this.isMyTurn(ctx) && !this.dealing) drawRing(ring, at.x, at.y, at.r, left);
   }
 
   protected onUpdate(ctx: Ctx) {

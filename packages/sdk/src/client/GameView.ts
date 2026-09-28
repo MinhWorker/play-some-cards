@@ -59,9 +59,19 @@ export interface ViewContext<View, Options = unknown> {
   /**
    * The frame in design units (720 tall, 960 to 1600 wide; docs/ui-guide.md): size, center,
    * `top` = first free unit below the app's room bar, and the HUD scale (multiply font and button
-   * sizes by it).
+   * sizes by it). `gap` is the free middle of the room bar's own row (between its buttons and
+   * the room's name), for something small like the seat across; `null` when the bar wrapped
+   * onto more rows or there is none (the sandbox).
    */
-  screen: { width: number; height: number; cx: number; cy: number; top: number; hud: number };
+  screen: {
+    width: number;
+    height: number;
+    cx: number;
+    cy: number;
+    top: number;
+    hud: number;
+    gap: { left: number; right: number; top: number; bottom: number } | null;
+  };
 }
 
 /** An event someone played, as a view hook gets it. */
@@ -133,9 +143,11 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     this.followFrame(onResize);
     this.game.events.on(BOARD_PROPS, onProps);
     this.registry.events.on('changedata-hudTop', onResize);
+    this.registry.events.on('changedata-hudGap', onResize);
     this.events.once('shutdown', () => {
       this.game.events.off(BOARD_PROPS, onProps);
       this.registry.events.off('changedata-hudTop', onResize);
+      this.registry.events.off('changedata-hudGap', onResize);
     });
   }
 
@@ -196,6 +208,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     const { width, height } = this.view;
     const hud = hudScale();
     const top = ((this.registry.get('hudTop') as number | undefined) ?? 110 * hud) + 8 * hud;
+    const gap = (this.registry.get('hudGap') as ViewContext<View>['screen']['gap']) ?? null;
     return {
       state: view,
       me: seats.find((p) => p.id === me) ?? null,
@@ -206,7 +219,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       options: this.pendingOptions ?? options,
       result,
       timer: this.timer,
-      screen: { width, height, cx: width / 2, cy: height / 2, top, hud },
+      screen: { width, height, cx: width / 2, cy: height / 2, top, hud, gap },
     };
   }
 }

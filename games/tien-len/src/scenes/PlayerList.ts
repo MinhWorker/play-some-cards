@@ -1,6 +1,7 @@
 /**
- * The players, listed in the top-left corner like a voice-chat overlay: picture, name, cards in
- * hand and points. Whose turn it is lights up, with the turn clock running around the picture.
+ * The players, listed like a voice-chat overlay: picture, name, cards in hand, points and their
+ * tag ("Bỏ lượt", a place). Whose turn it is lights up, with the turn clock running around the
+ * picture. The table shows it on a panel behind its "Điểm" button.
  */
 import { titleStyle } from '@psc/sdk/client';
 import type Phaser from 'phaser';
@@ -58,6 +59,7 @@ export class PlayerList {
   private objects: RowObjects[] = [];
   private shown: PlayerRow[] = [];
   private place = { x: 0, y: 0, hud: 1, maxWidth: 200 };
+  visible = true;
   /** Where each row's turn ring goes, for `drawRing` (every frame while the clock runs). */
   private rings: { x: number; y: number; r: number }[] = [];
 
@@ -66,12 +68,18 @@ export class PlayerList {
   /** Shows these rows (in this order). */
   set(rows: PlayerRow[]) {
     while (this.objects.length < rows.length) this.objects.push(this.makeRow());
+    this.setVisible(this.visible);
     while (this.objects.length > rows.length) {
       const o = this.objects.pop();
       for (const obj of Object.values(o ?? {})) obj.destroy();
     }
     this.shown = rows;
     this.draw();
+  }
+
+  setVisible(visible: boolean) {
+    this.visible = visible;
+    for (const o of this.objects) for (const obj of Object.values(o)) obj.setVisible(visible);
   }
 
   /** Top-left corner of the list, the HUD scale, and how wide a row may get. */
@@ -113,7 +121,7 @@ export class PlayerList {
         .setFontSize(14 * hud)
         .setText(row.badge ?? '')
         .setColor(row.badgeColor ?? '#ffe066')
-        .setVisible(Boolean(row.badge));
+        .setVisible(this.visible && Boolean(row.badge));
       const nameEnd = textX + Math.max(o.name.width, o.info.width);
       o.badge.setPosition(nameEnd + 8 * hud, cy - 10 * hud);
       const w = Math.max(nameEnd, row.badge ? o.badge.x + o.badge.width : 0) - x + 12 * hud;
