@@ -85,6 +85,7 @@ export function App() {
       round: snapshot.round,
       last: snapshot.last,
       timer: snapshot.timer,
+      played: snapshot.played,
     };
   }, [account.status, session, snapshot, browsing, settingUp, editing]);
 

@@ -85,8 +85,8 @@ let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 /** Decoded effects by URL; `wanted` are URLs asked for before audio was unlocked. */
 const buffers = new Map<string, AudioBuffer>();
-/** Effects asked for before they finished loading (url → when), played once they arrive. */
-const waiting = new Map<string, number>();
+/** Effects asked for before they finished loading (url → when, how), played once they arrive. */
+const waiting = new Map<string, { at: number; options: PlayOptions }>();
 /** How late an effect may still start (a game's sounds load while its board opens). */
 const MAX_DELAY_MS = 1500;
 const wanted = new Set<string>(Object.entries(SFX).map(([name, owner]) => soundUrl(name, owner)));
@@ -111,9 +111,9 @@ function decode(url: string) {
     .then((buffer) => {
       if (!buffer) return;
       buffers.set(url, buffer);
-      const askedAt = waiting.get(url);
+      const asked = waiting.get(url);
       waiting.delete(url);
-      if (askedAt !== undefined && performance.now() - askedAt < MAX_DELAY_MS) start(buffer);
+      if (asked && performance.now() - asked.at < MAX_DELAY_MS) start(buffer, asked.options);
     })
     .catch(() => {});
 }
@@ -180,21 +180,40 @@ export function playSfx(name: Sfx) {
   playSoundUrl(soundUrl(name, SFX[name]));
 }
 
+/** `duck`: the music dips while it plays (a game's win jingle). */
+export interface PlayOptions {
+  duck?: boolean;
+}
+
 /** Plays an effect by URL on the effects channel (one still loading plays as soon as it arrives). */
-export function playSoundUrl(url: string) {
+export function playSoundUrl(url: string, options: PlayOptions = {}) {
   ensureAudio();
   loadSoundUrl(url);
   const buffer = buffers.get(url);
-  if (buffer) start(buffer);
-  else waiting.set(url, performance.now());
+  if (buffer) start(buffer, options);
+  else waiting.set(url, { at: performance.now(), options });
 }
 
-function start(buffer: AudioBuffer) {
+function start(buffer: AudioBuffer, { duck = false }: PlayOptions = {}) {
   if (!ctx || !sfxGain || isSilent(current.sfx) || ctx.state !== 'running') return;
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.connect(sfxGain);
   source.start();
+  if (duck) duckMusic(buffer.duration);
+}
+
+/** Turns the music down for `seconds`, then brings it back up slowly. */
+function duckMusic(seconds: number) {
+  if (!ctx || !musicGain) return;
+  const gain = musicGain.gain;
+  const full = current.music.volume;
+  const now = ctx.currentTime;
+  gain.cancelScheduledValues(now);
+  gain.setValueAtTime(gain.value, now);
+  gain.linearRampToValueAtTime(full * 0.15, now + 0.3);
+  gain.setValueAtTime(full * 0.15, now + seconds);
+  gain.linearRampToValueAtTime(full, now + seconds + 1.5);
 }
 
 type ButtonSoundKind = 'click' | 'hover';

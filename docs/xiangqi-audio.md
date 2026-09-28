@@ -17,10 +17,10 @@ Bộ âm thanh Cờ Tướng dùng tiếng quân gỗ khô với điểm nhấn 
 | Nước đi quyết định thắng | `xiangqi-decisive-move` | Một lần sau khi nước cuối được chấp nhận. |
 | Chiếu bí | `xiangqi-checkmate` | Một lần khi ván chuyển sang kết quả chiếu bí. |
 | Hoà | `xiangqi-draw` | Một lần khi kết quả do server quyết định là hoà. |
-| Người chơi trên máy này thắng | `xiangqi-game-win` hoặc `game-win` dùng chung | Chọn một âm thanh kết quả để tiếng chiến thắng không chồng lên nhau. |
+| Người chơi trên máy này thắng | `xiangqi-victory` | Nhạc chiến thắng khoảng 5 giây (tổng hợp bằng code), nhạc nền nhỏ đi trong lúc phát. |
 
-Bộ hiện có 13 hiệu ứng trong `games/xiangqi/assets/`. Bàn Cờ Tướng (`scenes/XiangqiView.ts`)
+Bộ hiện có 14 hiệu ứng trong `games/xiangqi/assets/`. Bàn Cờ Tướng (`scenes/XiangqiView.ts`)
 đã phát các âm thanh bắt đầu, chọn quân, đi quân, ăn quân (`xiangqi-capture-heavy` khi ăn Xe), quân vỡ (chỉ khi bật hiệu ứng),
 chiếu, tới lượt, chiếu bí, hoà và thắng; `xiangqi-illegal` khi chạm vào điểm quân đang chọn không
-đi tới được. Bàn tự hiện kết quả nên app không phát thêm `game-win` dùng chung. Chưa dùng
-`xiangqi-decisive-move`.
+đi tới được. Nhạc thắng là `xiangqi-victory`. Bàn tự hiện kết quả nên app không phát thêm
+`game-win` dùng chung. Chưa dùng `xiangqi-decisive-move` và `xiangqi-game-win`.

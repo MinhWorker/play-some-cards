@@ -121,8 +121,17 @@ export abstract class GameScene extends Phaser.Scene {
 
   /** Plays `assets/<name>.wav|mp3` on the effects channel (follows the player's volume). */
   protected sfx(name: string) {
+    this.playAsset(name, {});
+  }
+
+  /** Like `sfx`, for a short piece of music (a win): the background music dips while it plays. */
+  protected jingle(name: string) {
+    this.playAsset(name, { duck: true });
+  }
+
+  private playAsset(name: string, options: { duck?: boolean }) {
     const url = clientHost().assets(this.gameId).sounds[name];
-    if (url) clientHost().playSound(url);
+    if (url) clientHost().playSound(url, options);
     else this.warnOnce(`No sound "${name}" in games/${this.gameId}/assets/`);
   }
 

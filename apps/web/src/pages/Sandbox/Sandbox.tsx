@@ -79,6 +79,14 @@ export function Sandbox({ gameId, players: count }: Props) {
     return () => clearTimeout(handle);
   }, [game, timerKey, timerMs]);
 
+  // How long the game has lasted, like the server's `played`.
+  const [startedAt, setStartedAt] = useState(Date.now);
+  const [endedAt, setEndedAt] = useState<number | null>(null);
+  const over = Boolean(result);
+  useEffect(() => {
+    setEndedAt(over ? Date.now() : null);
+  }, [over]);
+
   const restart = useCallback(
     (next: unknown = options) => {
       if (!game) return;
@@ -93,6 +101,7 @@ export function Sandbox({ gameId, players: count }: Props) {
         ),
       );
       setRound((r) => r + 1);
+      setStartedAt(Date.now());
       setLast(null);
       setError('');
     },
@@ -183,6 +192,7 @@ export function Sandbox({ gameId, players: count }: Props) {
         ms: timer.ms,
         left: Math.max(0, timerEnd - Date.now()),
       },
+      played: { ms: (endedAt ?? Date.now()) - startedAt, running: endedAt === null },
     };
   }, [
     game,
@@ -198,6 +208,8 @@ export function Sandbox({ gameId, players: count }: Props) {
     last,
     timer,
     timerEnd,
+    startedAt,
+    endedAt,
   ]);
 
   return (

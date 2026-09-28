@@ -16,7 +16,8 @@ export interface GameAssets {
 export interface ClientHost {
   assets(gameId: string): GameAssets;
   loadSound(url: string): void;
-  playSound(url: string): void;
+  /** `duck`: the music dips while it plays (see `GameScene.jingle`). */
+  playSound(url: string, options?: { duck?: boolean }): void;
   /** Player pictures by avatar name (`boy`, `girl`, …, and `bot` for the computer). */
   avatars(): Record<string, string>;
   /** The app's own button sounds, so buttons in games sound like the app's. */

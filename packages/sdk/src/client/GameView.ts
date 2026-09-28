@@ -12,7 +12,8 @@
  *   onUpdate(ctx, dt)      every frame (browser only; the server has no frames)
  *
  * `ctx` (also `this.ctx`) has everything: the state as you may see it, who you are, the players,
- * host, score, options, result, the game's timer (`ctx.timer`, for a countdown).
+ * host, score, options, result, the game's timer (`ctx.timer`, for a countdown), how long the
+ * game has lasted (`ctx.clock`).
  *
  * The app keeps one instance per game and restarts it for every room (and after "Tuỳ chỉnh"):
  * Phaser destroys the objects when it stops, but fields keep their values. Reset any field that
@@ -57,6 +58,11 @@ export interface ViewContext<View, Options = unknown> {
    */
   timer: { event: string; ms: number; endsAt: number } | null;
   /**
+   * When this game began and ended, on this device's clock (`endedAt` is `null` while it runs):
+   * how long it has been played is `(endedAt ?? Date.now()) - startedAt`. `null`: no game.
+   */
+  clock: { startedAt: number; endedAt: number | null } | null;
+  /**
    * The frame in design units (720 tall, 960 to 1600 wide; docs/ui-guide.md): size, center,
    * `top` = first free unit below the app's room bar, and the HUD scale (multiply font and button
    * sizes by it). `gap` is the free middle of the room bar's own row (between its buttons and
@@ -90,6 +96,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   private props!: BoardProps<View, Options>;
   private lastSeq = 0;
   private timer: ViewContext<View, Options>['timer'] = null;
+  private clock: ViewContext<View, Options>['clock'] = null;
   /** Options sent with `changeOptions` that the server hasn't sent back yet. */
   private pendingOptions: Options | null = null;
 
@@ -127,6 +134,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   create() {
     this.props = this.registry.get('board') as BoardProps<View, Options>;
     this.timer = this.timerOf(this.props);
+    this.clock = this.clockOf(this.props);
     this.ctx = this.makeContext();
     this.lastSeq = this.props.last?.seq ?? 0;
     this.onCreate(this.ctx);
@@ -160,6 +168,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     const before = this.props;
     this.props = props;
     this.timer = this.timerOf(props);
+    this.clock = this.clockOf(props);
     if (JSON.stringify(props.options) === JSON.stringify(this.pendingOptions)) {
       this.pendingOptions = null;
     }
@@ -194,6 +203,20 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     return { event: t.event, ms: t.ms, endsAt };
   }
 
+  /** The game's start and end on this device's clock (the server sends how long it's been). */
+  private clockOf(props: BoardProps<View, Options>) {
+    const played = props.played;
+    if (!played) return null;
+    const now = Date.now();
+    const startedAt = now - played.ms;
+    // Sent again with every change: keep the start steady unless it moved (a new game).
+    const same =
+      this.clock && Math.abs(this.clock.startedAt - startedAt) < 1000 ? this.clock : null;
+    const steady = same?.startedAt ?? startedAt;
+    const endedAt = played.running ? null : (same?.endedAt ?? steady + played.ms);
+    return { startedAt: steady, endedAt };
+  }
+
   private makeContext(): ViewContext<View, Options> {
     const { view, me, players, hostId, score, options, result } = this.props;
     const seats = players.map((p, seat) => ({
@@ -219,6 +242,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       options: this.pendingOptions ?? options,
       result,
       timer: this.timer,
+      clock: this.clock,
       screen: { width, height, cx: width / 2, cy: height / 2, top, hud, gap },
     };
   }

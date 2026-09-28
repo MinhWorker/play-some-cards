@@ -8,7 +8,8 @@ Những khai cuộc hoặc thế đánh được nhận diện chắc chắn có
 
 Hiện đã có luật đầy đủ (nước đi, chiếu, chiếu bí, hết nước, lặp thế cờ, xin hoà, đầu hàng), máy
 chơi ba mức, bàn cờ, 14 quân, pha ăn quân riêng cho từng loại và quân vỡ thành mảnh; xem
-[README](README.md). Còn lại: điểm nhấn khi kết thúc ván và cut-in.
+[README](README.md), cut-in khi chiếu tướng/chiếu bí, bảng kết quả với thời gian đã chơi và nhạc
+thắng. Còn lại: cut-in tên thế cờ.
 
 ## Luật chơi sẽ áp dụng
 
