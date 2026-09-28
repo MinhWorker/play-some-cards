@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/MinhWorker/play-some-cards/compare/v0.7.0...v0.8.0) (2026-09-28)
+
+
+### Features
+
+* **tien-len:** a sedge-mat table with seat plates and swappable card looks ([#47](https://github.com/MinhWorker/play-some-cards/issues/47)) ([74267c8](https://github.com/MinhWorker/play-some-cards/commit/74267c89ae454f2fa04ab0fa157f5a57cf912927))
+
 ## [0.7.0](https://github.com/MinhWorker/play-some-cards/compare/v0.6.1...v0.7.0) (2026-09-28)
 
 
