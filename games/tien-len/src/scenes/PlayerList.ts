@@ -58,6 +58,8 @@ export class PlayerList {
   private objects: RowObjects[] = [];
   private shown: PlayerRow[] = [];
   private place = { x: 0, y: 0, hud: 1, maxWidth: 200 };
+  /** Where each row's turn ring goes, for `drawRing` (every frame while the clock runs). */
+  private rings: { x: number; y: number; r: number }[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {}
 
@@ -69,20 +71,33 @@ export class PlayerList {
       for (const obj of Object.values(o ?? {})) obj.destroy();
     }
     this.shown = rows;
-    this.draw(null);
+    this.draw();
   }
 
   /** Top-left corner of the list, the HUD scale, and how wide a row may get. */
   layout(x: number, y: number, hud: number, maxWidth: number) {
     this.place = { x, y, hud, maxWidth };
-    this.draw(null);
+    this.draw();
   }
 
-  /** Redraws the turn ring with the clock (`left`: 1 → 0, `null` = no clock). */
-  draw(left: number | null) {
+  /**
+   * Redraws the turn ring with the clock (`left`: 1 → 0, `null` = no clock). Only the ring:
+   * cheap enough for every frame, unlike the texts (each change redraws a text's texture).
+   */
+  drawRing(left: number | null) {
+    this.shown.forEach((row, i) => {
+      const o = this.objects[i] as RowObjects;
+      const at = this.rings[i];
+      o.ring.clear();
+      if (row.turn && at) drawRing(o.ring, at.x, at.y, at.r, left);
+    });
+  }
+
+  /** Places and fills every row (when the rows or the layout change). */
+  private draw() {
     const { x, y, hud, maxWidth } = this.place;
-    const size = 40 * hud;
-    const rowH = 48 * hud;
+    const size = 46 * hud;
+    const rowH = 54 * hud;
     this.shown.forEach((row, i) => {
       const o = this.objects[i] as RowObjects;
       const cy = y + i * rowH + rowH / 2;
@@ -90,9 +105,9 @@ export class PlayerList {
       o.avatar.setTexture(row.avatar).setDisplaySize(size, size).setPosition(ax, cy);
       const textX = x + size + 8 * hud;
       const textW = maxWidth - size - 16 * hud;
-      o.name.setFontSize(19 * hud).setPosition(textX, cy - 9 * hud);
+      o.name.setFontSize(21 * hud).setPosition(textX, cy - 10 * hud);
       fit(o.name, row.name, textW);
-      o.info.setFontSize(14 * hud).setPosition(textX, cy + 11 * hud);
+      o.info.setFontSize(18 * hud).setPosition(textX, cy + 12 * hud);
       fit(o.info, row.info, textW);
       o.badge
         .setFontSize(14 * hud)
@@ -100,17 +115,17 @@ export class PlayerList {
         .setColor(row.badgeColor ?? '#ffe066')
         .setVisible(Boolean(row.badge));
       const nameEnd = textX + Math.max(o.name.width, o.info.width);
-      o.badge.setPosition(nameEnd + 8 * hud, cy - 9 * hud);
+      o.badge.setPosition(nameEnd + 8 * hud, cy - 10 * hud);
       const w = Math.max(nameEnd, row.badge ? o.badge.x + o.badge.width : 0) - x + 12 * hud;
       o.back.clear();
       o.back
         .fillStyle(row.turn ? 0x123a22 : 0x000000, row.turn ? 0.78 : 0.45)
         .fillRoundedRect(x - 4 * hud, cy - rowH / 2 + 3 * hud, w, rowH - 6 * hud, rowH / 2);
-      o.ring.clear();
-      if (row.turn) drawRing(o.ring, ax, cy, size / 2 + 2 * hud, left);
+      this.rings[i] = { x: ax, y: cy, r: size / 2 + 2 * hud };
       o.name.setColor(row.turn ? '#ffe066' : '#ffffff');
       for (const obj of Object.values(o)) obj.setAlpha(row.dim ? 0.45 : 1);
     });
+    this.drawRing(null);
   }
 
   private makeRow(): RowObjects {
