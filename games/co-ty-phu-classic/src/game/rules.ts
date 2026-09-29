@@ -1,8 +1,8 @@
 import type { GameContext } from '@psc/sdk';
 import { CHANCE, CHEST, type Deck } from './cards.js';
-import { BOARD, groupSquares, isDeed, type State } from './model.js';
+import { BOARD, groupSquares, isDeed, type Options, type State } from './model.js';
 
-export type Context = GameContext<State>;
+export type Context = GameContext<State, Options>;
 
 export const copy = (state: State): State => ({
   ...state,
@@ -178,6 +178,12 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
   }
   if (creditor !== null && !s.players[creditor]!.bankrupt) {
     s.players[creditor]!.cash += p.cash;
+    s.players[creditor]!.freeCards.push(...p.freeCards);
+  } else {
+    for (const deck of p.freeCards) {
+      const cards = deck === 'chance' ? CHANCE : CHEST;
+      s[deck].push(cards.findIndex((card) => card.kind === 'free'));
+    }
   }
   p.cash = 0;
   for (const deed of s.properties) {

@@ -1,3 +1,10 @@
+import { z } from 'zod';
+
+export const optionsSchema = z.object({
+  bots: z.number().int().min(0).max(3).default(0),
+});
+export type Options = z.infer<typeof optionsSchema>;
+
 export type Group = 'nau' | 'xanh-nhat' | 'hong' | 'cam' | 'do' | 'vang' | 'xanh-la' | 'xanh-dam';
 export type DeedKind = 'street' | 'station' | 'utility';
 export type SquareKind =

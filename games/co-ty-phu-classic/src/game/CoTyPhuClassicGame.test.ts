@@ -105,4 +105,62 @@ describe('Cờ tỷ phú Classic', () => {
     game.leave('b');
     expect(game.result).toEqual({ winners: ['a'] });
   });
+
+  it('keeps an unresolved purchase when the trade recipient leaves', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (3 - a - b + 40) % 40;
+    game.send('a', 'roll');
+    game.send('a', 'offer-trade', { to: 1, give: -1, take: -1, giveCash: 50, takeCash: 0 });
+    game.leave('b');
+    expect(game.state.phase).toBe('buy');
+    expect(game.state.pending).toBe(3);
+    game.send('a', 'buy');
+    expect(game.state.properties[3]?.owner).toBe(0);
+  });
+
+  it('keeps the current bidder when a different bidder leaves', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (3 - a - b + 40) % 40;
+    game.send('a', 'roll').send('a', 'auction').send('a', 'pass');
+    game.send('b', 'bid', { amount: 50 });
+    expect(game.state.auction?.bidder).toBe(2);
+    game.leave('b');
+    expect(game.state.auction?.bidder).toBe(2);
+    game.send('c', 'bid', { amount: 1 });
+    expect(game.state.properties[3]?.owner).toBe(2);
+  });
+
+  it('transfers a held jail card to the creditor after bankruptcy', () => {
+    const game = at(37);
+    game.state.properties[37]!.owner = 1;
+    game.state.players[0]!.cash = 1;
+    game.state.players[0]!.freeCards.push('chance');
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('debt');
+    game.send('a', 'bankrupt');
+    expect(game.state.players[1]?.freeCards).toEqual(['chance']);
+  });
+
+  it('lets computer players handle a long game without a rejected move', () => {
+    const players = ['a', 'b', 'c'];
+    const game = testGame(plugin, players, { bots: players, options: { bots: 3 } });
+    for (let i = 0; i < 800 && !game.result; i++) {
+      const seat = game.state.phase === 'auction' ? game.state.auction!.bidder : game.state.turn;
+      const id = players[seat]!;
+      const move = game.bot(id);
+      expect(move).not.toBeNull();
+      game.send(id, move!.event, move!.payload as object);
+    }
+    expect(game.state.properties.some((deed) => deed.owner !== null)).toBe(true);
+  });
+
+  it('lets a computer accept a favorable trade', () => {
+    const game = testGame(plugin, ['a', 'b'], { bots: ['b'], options: { bots: 1 } });
+    game.state.properties[1]!.owner = 0;
+    game.send('a', 'offer-trade', { to: 1, give: 1, take: -1, giveCash: 0, takeCash: 0 });
+    expect(game.bot('b')?.event).toBe('accept-trade');
+    expect(game.bot('a')).toBeNull();
+  });
 });

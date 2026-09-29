@@ -21,5 +21,6 @@
       "maxSize": 180,
       "prompt": "One single smooth glossy pearl-white wooden game pawn viewed from a high three-quarter angle so its round base and rounded head are clear. Compact upright silhouette, premium tactile 3D cartoon render, warm studio lighting, subtle contact shadow attached to the base, genuinely transparent background. Intended for color tinting. No other objects, text or logo."
     }
-  }
+  },
+  "$tileSymbolStyle": "Tile symbols are procedural, single-ink vector silhouettes in sources/render_board_25d.py. Keep them flat, simple and legible; do not generate a colorful pictorial atlas."
 }

@@ -1,4 +1,5 @@
 import {
+  type BotContext,
   type EventContext,
   Game,
   type GameContext,
@@ -6,8 +7,9 @@ import {
   type StartContext,
 } from '@psc/sdk';
 import { z } from 'zod';
+import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
-import { BOARD, groupSquares, isDeed, type State, type View } from './model.js';
+import { BOARD, groupSquares, isDeed, type Options, type State, type View } from './model.js';
 import {
   bankHotels,
   bankHouses,
@@ -21,7 +23,7 @@ import {
   ownsGroup,
 } from './rules.js';
 
-type Action<T = Record<string, never>> = EventContext<State, T>;
+type Action<T = Record<string, never>> = EventContext<State, T, Options>;
 const squareSchema = z.object({ square: z.number().int().min(0).max(39) });
 
 function requireTurn<T>(ctx: Action<T>, phase?: State['phase']) {
@@ -38,7 +40,7 @@ function requireOwner(ctx: Action<{ square: number }>) {
   return square;
 }
 
-export class CoTyPhuClassicGame extends Game<State, undefined, View> {
+export class CoTyPhuClassicGame extends Game<State, Options, View> {
   events = {
     roll: z.object({}),
     buy: z.object({}),
@@ -65,7 +67,7 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
     'decline-trade': z.object({}),
   };
 
-  onStart({ players, rng }: StartContext): State {
+  onStart({ players, rng }: StartContext<Options>): State {
     return {
       players: players.map(() => ({
         cash: 1500,
@@ -93,9 +95,13 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
     };
   }
 
-  view({ state }: GameContext<State>): View {
+  view({ state }: GameContext<State, Options>): View {
     const { chance: _chance, chest: _chest, ...visible } = state;
     return visible;
+  }
+
+  bot({ state, player }: BotContext<State, Options>) {
+    return player.bot ? botMove(state, player.seat) : null;
   }
 
   onRoll(ctx: Action): State {
@@ -167,7 +173,7 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
     return s;
   }
 
-  private auctionStep(s: State) {
+  private auctionStep(s: State, advance = true) {
     const auction = s.auction!;
     const remaining = s.players.flatMap((p, i) =>
       p.bankrupt || auction.passed.includes(i) ? [] : [i],
@@ -182,7 +188,7 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
       s.auction = null;
       s.pending = null;
       s.phase = s.after;
-    } else {
+    } else if (advance || s.auction!.passed.includes(s.auction!.bidder)) {
       s.auction!.bidder = next(s, auction.bidder);
       while (s.auction!.passed.includes(s.auction!.bidder)) {
         s.auction!.bidder = next(s, s.auction!.bidder);
@@ -414,7 +420,7 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
     return s;
   }
 
-  onLeave(ctx: LeaveContext<State>): State {
+  onLeave(ctx: LeaveContext<State, Options>): State {
     const s = copy(ctx.state);
     if (s.players[ctx.player.seat]!.bankrupt) return s;
     const wasTurn = s.turn === ctx.player.seat;
@@ -422,6 +428,7 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
     if (s.winner === null && !wasTurn) {
       if (ctx.state.trade && [ctx.state.trade.from, ctx.state.trade.to].includes(ctx.player.seat)) {
         s.phase = ctx.state.trade.resume;
+        s.pending = ctx.state.pending;
       } else if (ctx.state.auction) {
         s.auction = {
           ...ctx.state.auction,
@@ -433,7 +440,7 @@ export class CoTyPhuClassicGame extends Game<State, undefined, View> {
         }
         s.phase = 'auction';
         s.pending = ctx.state.pending;
-        if (s.auction.bidder === ctx.player.seat || s.auction.leader === null) this.auctionStep(s);
+        this.auctionStep(s, s.auction.bidder === ctx.player.seat);
       } else {
         s.phase = ctx.state.phase;
         s.pending = ctx.state.pending;

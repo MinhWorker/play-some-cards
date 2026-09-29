@@ -3,6 +3,7 @@
  */
 import { definePlugin } from '@psc/sdk';
 import { CoTyPhuClassicGame } from './game/CoTyPhuClassicGame.js';
+import { optionsSchema } from './game/model.js';
 
 export default definePlugin({
   meta: {
@@ -15,4 +16,5 @@ export default definePlugin({
     portal: { image: 'island' },
   },
   game: new CoTyPhuClassicGame(),
+  room: { options: optionsSchema, bots: (options) => options.bots },
 });
