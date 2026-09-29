@@ -1,0 +1,25 @@
+{
+  "$comment": "The island was generated with the built-in imagegen tool, then resized to assets/island.webp.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A whole floating sky island in polished 3D cartoon mobile-game style: lush vivid grass with tiny white flowers, faceted warm brown rock underside tapering to a point and hanging vines. On top is a compact wooden property-trading board game with a square cream board, a ring of small colored property spaces, glossy colored player pawns, two ivory dice and a stack of paper money. A small Vietnamese townhouse stands behind it. Isometric 3/4 view, warm sunlight, tactile materials, legible at small portal size, genuinely transparent background. No branding, lettering or watermark."
+    },
+    "board": {
+      "transparent": true,
+      "maxSize": 1200,
+      "prompt": "A perfectly square property-trading board seen exactly from above, orthographic and aligned to image edges. Warm ivory playing surface with 40 blank spaces around the outer ring, 11 spaces along each edge including larger corner spaces, fine brown dividers, and a large pale mint green paper center with a very subtle ornamental watermark. Polished 3D cartoon mobile game render with lacquered honey-wood rim, engraved gold trim and tactile paper grain. No labels, text, icons, dice, pawns, buildings or colored bars. Full board visible, transparent outside."
+    },
+    "button": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "One reusable wide horizontal blank game UI button cutout seen exactly from the front, glossy golden-yellow enamel on carved honey wood, subtle bevel, highlight and darker lower edge. Symmetrical with an empty center for programmatic text. Transparent margin, no lettering, icon, logo or watermark."
+    },
+    "pawn": {
+      "transparent": true,
+      "maxSize": 180,
+      "prompt": "One single smooth glossy pearl-white wooden game pawn viewed from a high three-quarter angle so its round base and rounded head are clear. Compact upright silhouette, premium tactile 3D cartoon render, warm studio lighting, subtle contact shadow attached to the base, genuinely transparent background. Intended for color tinting. No other objects, text or logo."
+    }
+  }
+}
