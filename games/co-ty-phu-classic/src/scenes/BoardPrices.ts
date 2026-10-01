@@ -1,22 +1,45 @@
 import type Phaser from 'phaser';
-import { BOARD } from '../game/model.js';
+import { BOARD, type State } from '../game/model.js';
+import { boardAmounts } from './boardAmounts.js';
 import { BOARD_CELLS } from './boardGeometry.js';
 
 let textureId = 0;
 
-/** A single ink overlay with each price projected onto the outer strip of its tile. */
+/** A single ink overlay with each current price or rent projected onto the outer strip of its tile. */
 export class BoardPrices {
   private readonly image: Phaser.GameObjects.Image;
+  private readonly texture: Phaser.Textures.CanvasTexture;
+  private readonly ink: CanvasRenderingContext2D;
+  private amounts: (string | null)[] = [];
+  private amountsKey = '';
 
   constructor(scene: Phaser.Scene, sourceKey: string) {
     const source = scene.textures.get(sourceKey).getSourceImage() as HTMLImageElement;
     const canvas = document.createElement('canvas');
     canvas.width = source.width;
     canvas.height = source.height;
-    const ink = canvas.getContext('2d')!;
-    BOARD.forEach((square, index) => {
-      const amount = square.price ?? square.tax;
-      if (amount === undefined) return;
+    this.ink = canvas.getContext('2d')!;
+    const key = `${sourceKey}.prices.${textureId++}`;
+    this.texture = scene.textures.addCanvas(key, canvas)!;
+    this.image = scene.add.image(0, 0, key).setDepth(-0.8);
+    scene.events.once('shutdown', () => {
+      this.image.destroy();
+      scene.textures.remove(key);
+    });
+  }
+
+  setState(state: Pick<State, 'properties' | 'players'>) {
+    const amounts = boardAmounts(state);
+    const key = amounts.join(',');
+    if (key === this.amountsKey) return;
+    this.amountsKey = key;
+    this.amounts = amounts;
+    const ink = this.ink;
+    const canvas = ink.canvas;
+    ink.clearRect(0, 0, canvas.width, canvas.height);
+    BOARD.forEach((_square, index) => {
+      const amount = amounts[index];
+      if (amount === null || amount === undefined) return;
       const quad = BOARD_CELLS[index]!;
       const point = (u: number, v: number) => {
         const [tl, tr, br, bl] = quad;
@@ -68,13 +91,7 @@ export class BoardPrices {
       ink.fillText(String(amount), 0, 0, 142);
       ink.restore();
     });
-    const key = `${sourceKey}.prices.${textureId++}`;
-    scene.textures.addCanvas(key, canvas);
-    this.image = scene.add.image(0, 0, key).setDepth(-0.8);
-    scene.events.once('shutdown', () => {
-      this.image.destroy();
-      scene.textures.remove(key);
-    });
+    this.texture.update();
   }
 
   layout(x: number, y: number, width: number, height: number) {

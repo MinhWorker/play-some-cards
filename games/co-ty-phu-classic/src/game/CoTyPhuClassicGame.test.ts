@@ -51,7 +51,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'confirm-event');
     expect(game.state.players[0]!.cash).toBe(1400);
     expect(game.state.specialEvent).toBeNull();
-    expect(game.timer).toBeNull();
+    expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     expect(game.error('a', 'confirm-event')).toBe('Thao tác chưa hợp lệ');
   });
 
@@ -156,7 +156,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.fireTimer();
     expect(game.state.players[0]!.cash).toBe(1400);
     expect(game.state.specialEvent).toBeNull();
-    expect(game.timer).toBeNull();
+    expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     const solo = testGame(plugin, ['a'], { seed: 1 });
     const [a, b] = firstRoll();
     solo.state.players[0]!.position = 38 - a - b;

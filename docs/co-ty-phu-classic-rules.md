@@ -39,6 +39,23 @@ không đi theo tổng xúc xắc lần đó. Việc vào tù được áp dụn
 người chơi đi tiến qua Xuất phát cũng nhận thưởng. Chuyển thẳng vào tù không có thưởng cho
 chặng chuyển tới tù; khoản thưởng đã nhận khi đi tới ô rút thẻ trước đó vẫn được giữ.
 
+**Đồng hồ PvP:** màn tạo phòng/tuỳ chỉnh chọn **15, 30, 60 hoặc 90 giây**, mặc định 30 giây.
+Đồng hồ chạy khi còn ít nhất hai người thật chưa phá sản; lượt quyết định của máy và ván
+một người thật với máy không dùng đồng hồ này. Mỗi quyết định mới có thời hạn riêng; xây,
+bán nhà, thế chấp, chuộc hoặc thao tác của người khác không kéo dài thời hạn đang chờ.
+Đồng hồ do server giữ, nên vẫn chạy nếu người chơi mất kết nối hoặc đóng trình duyệt.
+
+| Bước hết hạn | Server tự làm |
+| --- | --- |
+| Gieo | Gieo xúc xắc, kể cả khi đang ở tù |
+| Kết thúc lượt | Hết lượt; không tự xây thêm |
+| Mua đất | Mua nếu đủ tiền; nếu thiếu tiền thì mở đấu giá |
+| Đấu giá | Bỏ giá; không tự tăng giá đã trả |
+| Trao đổi | Từ chối đề nghị; không tự nhận trao đổi |
+| Nợ | Bán công trình, thế chấp đất tới khi đủ tiền rồi trả; không đủ tài sản thì phá sản |
+
+Thời hạn sự kiện Cơ hội/Cộng đồng, thuế và vào tù vẫn dùng quy tắc 8 giây ở mục 3.
+
 ## 3. Các ô đặc biệt và xác nhận sự kiện
 
 | Ô | Hiệu lực |
@@ -63,7 +80,7 @@ Với người thật, khi còn ít nhất hai người chưa phá sản:
 - Sandbox chỉ có một ghế không có thời hạn tự xác nhận.
 
 Cơ hội và Cộng đồng có nhịp rút thẻ trước khi công bố nội dung: bộ thẻ dạng nét mực
-in trên mặt bàn, lá trên trượt ra rồi xoay/lật. Tiếng chia và đánh bài được dùng lại từ
+in trên mặt bàn, lá trên trượt ra rồi xoay/lật. Tiếng chọn lá trên tay và đánh bài được dùng lại từ
 Tiến Lên. Thời hạn 8 giây bắt đầu sau khi nhịp này hoàn tất và nút Xác nhận hiện ra.
 
 Tiền thuê và thưởng Xuất phát được xử lý ngay, không cần xác nhận. Nếu hiệu lực thẻ dẫn đến
@@ -100,6 +117,10 @@ Tài sản mua được gồm **đất phố, ga, điện và nước**.
   thúc lượt.
 
 ## 5. Tiền thuê
+
+Số tiền trên mặt ô chưa bán là giá mua. Khi đã có chủ, số đó chuyển thành tiền thuê
+hiện tại và tăng theo số nhà/khách sạn; bán nhà làm số tiền giảm tương ứng. Điện/nước
+hiển thị hệ số nhân xúc xắc. Chủ ở tù hoặc đất đang thế chấp hiển thị 0.
 
 Đến tài sản của người khác thì trả tiền thuê cho chủ sở hữu. Không trả khi đó là tài sản của
 mình, tài sản đang thế chấp hoặc tài sản có **chủ đang bị giam trong tù**. Quy tắc chủ ở tù
@@ -138,6 +159,9 @@ Thẻ **Tới Ga gần nhất** làm tiền thuê ga đó **gấp đôi** nếu 
   thẻ đưa tới điện/nước.
 
 ## 6. Xây nhà, khách sạn và bán nhà
+
+Dấu nhà và khách sạn dùng màu của chủ đất, nằm phía đối diện số tiền qua biểu tượng
+của ô, tránh dải màu nhóm. Khi xây, cả bàn nghe tiếng mua.
 
 ### Xây dựng
 
@@ -310,6 +334,14 @@ Phí sửa chữa tính mỗi khách sạn một lần theo giá khách sạn, k
 
 Giá mua được in trực tiếp trên mặt các ô tài sản; hai ô thuế in số tiền phải nộp.
 Nút **Gieo xúc xắc** nằm giữa bàn, dùng asset vàng cam riêng có hai viên xúc xắc.
+Nút **Hết lượt** nằm cùng vị trí giữa bàn và giữ ảnh nút vàng gốc.
+Khung đấu giá nhấp nháy viền vàng để các ghế chú ý trả hoặc bỏ giá. Khi nhận đề nghị trao
+đổi, chỉ người nhận nghe tiếng thông báo. Các nút trên máy tính sáng và phát tiếng hover
+mặc định của nền tảng khi rê chuột.
+
+Thẻ ra tù đang giữ và trạng thái ở tù có biểu tượng nhỏ xếp dọc sát ngoài cạnh phải thẻ
+người chơi. Biểu tượng ở tù ghi 3/2/1 lần gieo còn lại trước khi bắt buộc trả bảo lãnh;
+thẻ ra tù không có thời hạn. Nhận thẻ phát tiếng nhặt vật phẩm sau khi công bố sự kiện.
 
 Số ô dưới đây theo chỉ số trong code, từ **0 đến 39**. Dấu `—` nghĩa là ô đó không có giá
 mua. Giá ga là 200; giá điện/nước là 150.
@@ -422,7 +454,8 @@ Các điểm này đều đang có trong triển khai, để dễ chọn chỗ c
 6. Đất trả ngân hàng do phá sản/rời ván không được đấu giá ngay.
 7. Rời ván luôn thanh lý về ngân hàng, kể cả đang nợ người khác.
 8. Trao đổi chỉ hỗ trợ một tài sản mỗi bên, chưa hỗ trợ thẻ ra tù.
-9. Chỉ các sự kiện đặc biệt có tự xác nhận; các quyết định khác có thể chờ người thật vô hạn.
+9. Trong PvP, các quyết định chờ người thật có đồng hồ và thao tác hết hạn ở mục 2;
+   ván một người thật với máy không giới hạn thời gian quyết định thông thường.
 
 ## 15. Ghi chú sửa luật
 

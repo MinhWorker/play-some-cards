@@ -7,7 +7,9 @@ export class Setup extends RoomSetupScene<Options> {
   private panel!: Phaser.GameObjects.Graphics;
   private title!: Phaser.GameObjects.Text;
   private labelText!: Phaser.GameObjects.Text;
+  private clockLabel!: Phaser.GameObjects.Text;
   private choices: Button[] = [];
+  private clockChoices: Button[] = [];
   private submitButton!: Button;
   private sentAt = -Infinity;
 
@@ -20,7 +22,18 @@ export class Setup extends RoomSetupScene<Options> {
       this.button(
         bots === 0 ? 'Không' : `${bots} máy`,
         () => {
-          this.picks = { bots };
+          this.picks = { ...this.picks, bots };
+          this.refresh();
+        },
+        { image: 'button', size: 24 },
+      ),
+    );
+    this.clockLabel = this.label('Thời gian lượt PvP', { size: 26, color: '#ffe8a3' });
+    this.clockChoices = [15, 30, 60, 90].map((turnSeconds) =>
+      this.button(
+        `${turnSeconds} giây`,
+        () => {
+          this.picks = { ...this.picks, turnSeconds };
           this.refresh();
         },
         { image: 'button', size: 24 },
@@ -44,13 +57,18 @@ export class Setup extends RoomSetupScene<Options> {
       choice.container.setAlpha(picked ? 1 : 0.55);
       choice.container.setScale(picked ? 1.06 : 1);
     });
+    this.clockChoices.forEach((choice, i) => {
+      const picked = [15, 30, 60, 90][i] === this.picks.turnSeconds;
+      choice.container.setAlpha(picked ? 1 : 0.55);
+      choice.container.setScale(picked ? 1.06 : 1);
+    });
   }
 
   protected draw() {
     const { width, height } = this.view;
     const top = this.safeTop();
     const panelW = Math.min(560, width - 24);
-    const panelH = 282;
+    const panelH = 388;
     const x = (width - panelW) / 2;
     const y = top + Math.max(0, (height - top - panelH) / 2);
     this.panel.clear();
@@ -63,6 +81,10 @@ export class Setup extends RoomSetupScene<Options> {
     this.choices.forEach((choice, i) => {
       choice.setSize(chipW, 52).setPosition(x + 16 + chipW / 2 + i * (chipW + gap), y + 163);
     });
-    this.submitButton.setSize(Math.min(260, panelW - 32), 58).setPosition(width / 2, y + 236);
+    this.clockLabel.setPosition(width / 2, y + 220);
+    this.clockChoices.forEach((choice, i) => {
+      choice.setSize(chipW, 52).setPosition(x + 16 + chipW / 2 + i * (chipW + gap), y + 270);
+    });
+    this.submitButton.setSize(Math.min(260, panelW - 32), 58).setPosition(width / 2, y + 342);
   }
 }

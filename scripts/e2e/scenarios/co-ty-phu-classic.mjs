@@ -175,6 +175,7 @@ export default async function run(t) {
   }
   if (purchases < 1) throw new Error('No property was purchased through the board controls');
   await page.screenshot({ path: t.shot('12-played.png') });
+  await page.close();
 
   // Force a known opening card through the sandbox's real rules and controls.
   const eventsPage = await t.page(PHONE);
@@ -283,7 +284,7 @@ export default async function run(t) {
       s.ctx.state.players[0].cash === 1700 &&
       s.shownCash[0] === 1700 &&
       s.visualPhase === 'decision' &&
-      s.ctx.timer === null
+      s.ctx.timer?.event === 'turn-timeout'
     );
   });
   await restartEvents();
@@ -425,6 +426,24 @@ export default async function run(t) {
       await idle();
     }
     if (end) {
+      const endControl = await rulesPage.evaluate(() => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        const button = s.main[0];
+        return {
+          label: button.text.text,
+          centered: Math.abs(button.hit.x - (s.geometry.left + s.geometry.size / 2)) < 1,
+          y: Math.abs(button.hit.y - (s.geometry.top + s.geometry.imageH * 0.5)) < 1,
+          asset: button.box.texture.key,
+        };
+      });
+      if (
+        endControl.label !== 'Hết lượt' ||
+        !endControl.centered ||
+        !endControl.y ||
+        !endControl.asset.endsWith('/button')
+      )
+        throw new Error(`End-turn control moved or changed asset: ${JSON.stringify(endControl)}`);
+      if (seat === 0) await rulesPage.screenshot({ path: t.shot('17-end-turn-center.png') });
       await clickCanvas(rulesPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
       await rulesPage.waitForFunction(
         (seat) => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.turn !== seat,

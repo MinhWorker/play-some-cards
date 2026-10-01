@@ -3,6 +3,7 @@ import type { Card, Deck } from './cards.js';
 
 export const optionsSchema = z.object({
   bots: z.number().int().min(0).max(3).default(0),
+  turnSeconds: z.number().int().min(15).max(120).default(30),
 });
 export type Options = z.infer<typeof optionsSchema>;
 
@@ -92,6 +93,8 @@ export type SpecialEventEffect =
 export type SpecialEvent = SpecialEventEffect & { id: number; ready: boolean };
 
 export interface State {
+  /** Last server timeout action, so every viewer can animate its roll exactly once. */
+  lastAutoAction: { id: number; seat: number; event: string } | null;
   specialEvent: SpecialEvent | null;
   moneySequence: number;
   transfers: MoneyTransfer[];

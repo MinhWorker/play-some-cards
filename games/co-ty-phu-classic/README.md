@@ -56,6 +56,12 @@ game, không phải tiền thật.
 Khi tạo phòng, chọn từ **0 đến 3 máy**. Máy tự gieo, mua hoặc đấu giá, xây nhà, xử lý nợ và
 trả lời đề nghị trao đổi. Có thể chơi một mình với máy hoặc cùng bạn bè và máy.
 
+Màn tạo phòng/tuỳ chỉnh có **Thời gian lượt PvP**: 15/30/60/90 giây, mặc định 30 giây.
+Khi còn ít nhất hai người thật, mỗi quyết định có đồng hồ do server giữ; hết hạn tự gieo,
+kết thúc lượt, mua nếu đủ tiền hoặc mở đấu giá, bỏ giá, từ chối trao đổi, hoặc thanh lý
+tài sản để trả nợ/phá sản. Xây, bán nhà, thế chấp và chuộc không kéo dài thời hạn đang chờ.
+Ván một người thật với máy không dùng đồng hồ này. Sự kiện đặc biệt vẫn tự xác nhận sau 8 giây.
+
 Chạm một ô để xem giá, chủ đất, tiền thuê và tình trạng nhà ở cột bên phải. Nút giữa bàn thay
 đổi theo bước hiện tại: gieo xúc xắc, mua/đấu giá, trả nợ hoặc kết thúc lượt. Khi chọn đất của
 mình, cột bên phải hiện các nút xây, bán nhà, thế chấp và chuộc. Nút **Trao đổi** cho phép lần
@@ -99,7 +105,8 @@ và WebP từ các file SVG trong `sources/`.
 HUD dùng thẻ giấy nền kín và viền vàng; quân cờ trong thẻ là hình phẳng cùng màu với quân
 trên bàn, kèm biểu tượng tiền và địa điểm đặt thấp hơn tên để cân đối thẻ. HUD đặt thông tin
 người chơi ở bên trái, ô đang xem ở bên phải. Nút mua, đấu giá, trả giá và quản lý đất
-nằm ngay trong thẻ thông tin ô; nút gieo xúc xắc nằm giữa bàn, các thao tác lượt khác ở góc dưới phải.
+nằm ngay trong thẻ thông tin ô; nút gieo xúc xắc và **Hết lượt** nằm cùng vị trí giữa bàn,
+các thao tác lượt khác ở góc dưới phải. **Hết lượt** giữ ảnh nút vàng gốc.
 Thẻ dùng khoảng cách gọn và xếp dọc các nút thao tác theo toàn bộ chiều rộng thẻ. Nút trong thẻ dùng
 ảnh `tile-button` nền giấy và `tile-button-primary` vàng nhạt, có 9-slice riêng; nút lượt
 chơi giữ ảnh vàng gốc và luôn xếp dọc. Khung hẹp đưa chồng nút lượt vào phần trống phía
@@ -136,6 +143,8 @@ trước khi mua, đấu giá hoặc xây. Kết quả đến ô được giữ 
 Các nút tạm ẩn trong nhịp chuyển tiền, và ô đất sáng lên khi mua
 hoặc xây. Game có nhạc nền cùng hiệu ứng riêng cho lượt, thẻ, đấu giá, xây dựng, nhà tù và kết
 thúc ván. Âm thanh vào tù phát khi quân cờ bắt đầu bay tới ô tù, sau bước xác nhận sự kiện.
+Chuyển động này vẫn được xếp hàng nếu người chơi đã kết thúc lượt trong khi màn hình
+người khác còn chạy xúc xắc, không bỏ qua hoặc chờ tới lượt tiếp theo của người bị giam.
 Danh sách âm thanh và bộ nghe thử nằm trong
 [tài liệu âm thanh](../../docs/co-ty-phu-classic-audio.md).
 
@@ -167,14 +176,32 @@ Số bay lên và mờ dần trong 1,25 giây ở 1×, cùng nhịp thay đổi 
 ## Nút gieo, giá trên bàn và nhịp rút thẻ
 
 Nút **Gieo xúc xắc** nằm giữa bàn, dùng asset `roll-button` vàng cam với hai viên xúc xắc,
-vùng chạm cao 88 đơn vị. Giá mua được in trực tiếp sát mép ngoài của các ô tài sản theo
-phối cảnh mặt bàn; hai ô thuế ghi mức phải nộp.
+vùng chạm cao 88 đơn vị. **Hết lượt** cũng nằm giữa bàn với asset nút hiện có. Ô chưa bán
+in giá mua sát mép ngoài; ô đã có chủ in tiền thuê hiện tại, cập nhật khi xây/bán nhà,
+thế chấp hoặc chủ vào/ra tù. Điện/nước ghi hệ số xúc xắc; hai ô thuế ghi mức phải nộp.
+Dấu nhà/khách sạn theo màu chủ đất, ở phía đối diện số tiền qua biểu tượng, tránh dải màu nhóm.
 
 Bộ Cơ hội và Cộng đồng được vẽ bằng nét mực xanh đậm trên mặt bàn. Khi tới ô rút thẻ, lá trên
-trượt khỏi bộ, xoay/lật rồi mờ đi trước khi thông báo hiện lên. Tiếng chia và đánh bài được
+trượt khỏi bộ, xoay/lật rồi mờ đi trước khi thông báo hiện lên. Tiếng chọn lá trên tay và đánh bài được
 dùng lại từ Tiến Lên. Nhịp này thuộc `runtime`, theo tốc độ 1×/2× và bị hủy khi đổi ván,
 đổi cỡ màn hình hoặc nhận bản chụp mới. Nội dung thẻ và nút Xác nhận chỉ hiện sau hoạt ảnh;
 thời hạn của server bắt đầu khi giao diện báo sẵn sàng.
 
 Asset nút có bản SVG tại `sources/roll-button.svg`. Tạo lại bằng
 `python3 games/co-ty-phu-classic/sources/render_hud_icons.py roll-button`.
+
+Khi đấu giá, viền khung đất nhấp nháy vàng để các ghế chú ý trả hoặc bỏ giá. Người nhận
+đề nghị trao đổi nghe tiếng thông báo riêng một lần. Các nút sáng và dùng tiếng hover
+mặc định của nền tảng khi rê chuột trên máy tính.
+
+Thẻ ra tù đang giữ và trạng thái ở tù hiện thành các biểu tượng nhỏ xếp dọc ngay ngoài
+cạnh phải thẻ người chơi. Góc biểu tượng ở tù ghi số lần gieo còn lại trước khi bắt buộc
+trả bảo lãnh (3/2/1); thẻ ra tù không có thời hạn. Nhận thẻ phát tiếng nhặt vật phẩm sau
+nhịp công bố sự kiện. Không có vật phẩm hoặc hiệu ứng nào ngoài các luật hiện tại.
+
+Cả bàn nghe giao dịch tiền: người nhận nghe tiền vào, người trả và các ghế khác nghe tiền ra;
+tiền từ ngân hàng thì mọi người nghe tiền vào. Riêng xây nhà/khách sạn dùng tiếng mua.
+
+Thẻ trạng thái người phá sản chuyển sang trắng đen, gồm nền, viền, số ghế, quân và các
+biểu tượng tiền/vị trí; bắt đầu ván mới khôi phục màu ghế. Số 0 trên ô chỉ dùng khi thực sự
+miễn phí (thế chấp hoặc chủ đang ở tù); các ô thuế vẫn ghi mức phải nộp.

@@ -111,7 +111,7 @@ export default async function run(t) {
       runtime.motion === 0 &&
       !s.runtime.busy('turn') &&
       s.ctx.state.specialEvent === null &&
-      s.ctx.timer === null &&
+      s.ctx.timer?.event === 'turn-timeout' &&
       s.children.list.filter((object) => object.type === 'Container').length === baseline
     );
   }, baseline);
