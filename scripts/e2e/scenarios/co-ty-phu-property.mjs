@@ -1,9 +1,9 @@
-import sharp from 'sharp';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['co-ty-phu-classic'];
 
 export default async function run(t) {
+  const { default: sharp } = await import('sharp');
   const page = await t.page(DESKTOP);
   const boardShot = async (name) => {
     const clip = await page.evaluate(() => {
