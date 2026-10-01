@@ -45,6 +45,7 @@ assets/                   button.webp, press.wav, island.webp
 | `onLayout(ctx)` | sau onCreate và khi khung đổi: đặt vị trí (`ctx.screen`, đơn vị thiết kế trên khung cao 720; `ctx.screen.gap` = chỗ trống giữa hàng thanh phòng, có thể `null`) |
 | `onStart(ctx)` | một ván mới bắt đầu |
 | `on<Event>(ctx, event)` | sự kiện của ai đó vừa được chơi: làm hiệu ứng (`event.player`, `event.isMe`) |
+| `onResync(ctx)` | mất sự kiện hoặc đổi người xem: dựng snapshot, không phát tiếng cũ |
 | `onState(ctx)` | sau mọi thay đổi: hiện state |
 | `onEnd(ctx)` | ván kết thúc (`ctx.result`) |
 | `onUpdate(ctx, dt)` | mỗi khung hình (chỉ trên trình duyệt) |
@@ -58,3 +59,11 @@ assets/                   button.webp, press.wav, island.webp
 promise này không chờ âm thanh phát xong.
 
 Chơi thử một mình: http://localhost:5033/?play=counter&players=2 (khi đang chạy `npm run dev`).
+
+Hoạt ảnh nút dùng `this.runtime.run(async fx => { await fx.tween(...); })`: engine sở hữu
+việc chờ, tốc độ và hủy. Scope ván đóng trước `onStart`/`onResync`, scope scene đóng khi rời
+phòng; kết thúc ván giữ hoạt ảnh nước cuối. Flow có `done` với kết quả `completed`/`cancelled`/
+`failed`, không tạo unhandled rejection. `fx.wait`, `fx.sound`, `fx.animate`, `fx.frame`,
+`fx.parallel` nối các bước; `fx.defer` dọn object tạm và `fx.checkpoint` chặn continuation cũ
+sau `await`. `runtime.tween`/`after` dành cho phản hồi UI ngắn độc lập. Chi tiết lane, âm thanh
+trễ và timer server: [hướng dẫn tạo game](../../docs/making-a-game.md).

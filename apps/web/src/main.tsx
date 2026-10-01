@@ -11,7 +11,7 @@ import { gameAssets, showWip } from '@/games';
 import { imageUrl } from '@/lib/assetUrl';
 import { devToolsEnabled } from '@/lib/devTools';
 import { installFrame } from '@/lib/frame';
-import { loadSoundUrl, playSfx, playSoundUrl } from '@/lib/sound';
+import { playSfx, playSoundUrl, prepareSoundUrl } from '@/lib/sound';
 import { installWakeLock } from '@/lib/wakeLock';
 import { Sandbox, sandboxFromUrl } from '@/pages/Sandbox/Sandbox';
 
@@ -30,7 +30,7 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 // button sounds (so a game's buttons click like the app's).
 setClientHost({
   assets: gameAssets,
-  loadSound: loadSoundUrl,
+  prepareSound: prepareSoundUrl,
   playSound: (url, options) => playSoundUrl(url, options),
   playUiSound: (kind) => playSfx(kind === 'click' ? 'button-click' : 'button-hover'),
   avatars: () =>

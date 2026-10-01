@@ -1,3 +1,5 @@
+import type { SoundHandle, SoundOptions } from './runtime/SceneAudio.js';
+
 /** Files in a game's `assets/` folder, by file name without the extension. */
 export interface GameAssets {
   images: Record<string, string>;
@@ -15,9 +17,9 @@ export interface GameAssets {
  */
 export interface ClientHost {
   assets(gameId: string): GameAssets;
-  loadSound(url: string): void;
+  prepareSound(url: string): Promise<'ready' | 'unavailable'>;
   /** `duck` dips music during a jingle; resolves at playback start or when audio is unavailable. */
-  playSound(url: string, options?: { duck?: boolean }): Promise<void>;
+  playSound(url: string, options?: SoundOptions): SoundHandle;
   /** Player pictures by avatar name (`boy`, `girl`, …, and `bot` for the computer). */
   avatars(): Record<string, string>;
   /** The app's own button sounds, so buttons in games sound like the app's. */

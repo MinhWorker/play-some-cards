@@ -45,9 +45,16 @@ export class CounterView extends GameView<State> {
   protected onPress(_ctx: Ctx, event: ViewEvent) {
     const button = event.player && this.buttons[event.player.seat];
     if (button) {
-      this.tweens.add({ targets: button.container, scale: 0.9, duration: 60, yoyo: true });
+      this.runtime.run(async (fx) => {
+        await fx.tween({ targets: button.container, scale: 0.9, duration: 60, yoyo: true });
+      });
     }
-    this.counter.setScale(1.3);
+    this.runtime.tween({
+      targets: this.counter,
+      scale: { from: 1.3, to: 1 },
+      duration: 180,
+      ease: 'Sine.easeOut',
+    });
     if (!event.isMe) this.sfx('press');
   }
 
@@ -60,9 +67,12 @@ export class CounterView extends GameView<State> {
     });
   }
 
-  /** Every frame (browser only): ease the number back to its size after a pop. */
-  protected onUpdate(_ctx: Ctx, dt: number) {
-    const scale = this.counter.scale;
-    if (scale !== 1) this.counter.setScale(Math.max(1, scale - (scale - 1) * dt * 0.012));
+  protected onStart() {
+    this.onResync();
+  }
+
+  protected onResync() {
+    this.counter.setScale(1);
+    for (const button of this.buttons) button.container.setScale(1);
   }
 }

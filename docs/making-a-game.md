@@ -121,6 +121,71 @@ export class MyGame extends Game<State, Options> {
 
 ## Màn hình (`GameView`)
 
+Thiết kế phần mở rộng cho quản lý scene, âm thanh, hoạt ảnh và coroutine nằm trong
+[engine-runtime-design.md](engine-runtime-design.md). Các module này đã được triển khai trong SDK trình duyệt; logic và timer server vẫn là nguồn quyết định ván chơi.
+
+### Luồng trình diễn và vòng đời
+
+`this.runtime` có trước `onCreate`/`build`. Dùng `run` cho một hành động gồm nhiều bước:
+
+```ts
+this.runtime.run(async (fx) => {
+  await fx.sound('move');
+  await fx.tween({ targets: pawn, x: destination.x, y: destination.y, duration: 400 });
+  await fx.wait(150);
+  fx.checkpoint();
+  showLanding();
+}, { lane: 'turn', onFailure: () => this.onResync(this.ctx) });
+```
+
+Một lane chạy FIFO, mặc định `policy: 'queue'`; `replace` hủy cả hành động đang chạy và các
+hành động đang chờ, rồi chờ `finally` và cleanup trước khi bắt đầu hành động mới. Không truyền
+lane thì flow chạy độc lập. `pending(lane)` chỉ đếm việc chờ, `busy(lane)` tính cả việc đang chạy.
+Giới hạn mỗi lane là 64 flow chờ; overflow trả `failed`, hủy lane và gọi `onFailure` để dựng lại
+snapshot. Không trộn lifetime `round` và `scene` trong cùng lane.
+
+`FlowHandle.done` luôn resolve với `completed`, `cancelled` (kèm `reason`) hoặc `failed` (kèm
+`error`); `cancel()` và `cancelLane()` an toàn khi gọi nhiều lần. Lỗi được báo qua runtime và
+`onFailure` chỉ chạy khi scope vẫn hiện hành. Hủy bình thường không phải lỗi cần phục hồi.
+
+Các primitive: `fx.wait(ms)`, `fx.tween(config)`, `fx.animate(sprite, key)`, `fx.frame(update)`
+(với delta đã scale; trả `true` để kết thúc), `fx.sound(name)` và `fx.parallel(...factories)`.
+Mỗi nhánh parallel có scope riêng; lỗi một nhánh hủy các nhánh khác và chờ cleanup.
+`fx.defer(cleanup)` dọn object tạm/listener theo thứ tự ngược, kể cả khi hủy. Cleanup chỉ dọn
+tài nguyên, không gửi nước đi hay dựng state mới. Đăng ký cleanup ngay sau khi tạo object tạm.
+
+Một target chỉ có một managed tween; tween mới hủy flow giữ target cũ. Gộp các thuộc tính
+của cùng target trong một config. Tween hữu hạn không nhận `paused`, `persist`, `timeScale`,
+vòng lặp vô hạn hoặc thời gian âm/không hữu hạn. Không dùng tween Phaser trực tiếp trên cùng
+target. `runtime.cancelTweens(targets)` hủy các managed writer trước khi resize/đặt tọa độ lại.
+`runtime.tween(config)` và `runtime.after(ms, callback)` là dạng ngắn cho phản hồi UI độc lập;
+các bước nối nhau dùng `run` và `await`.
+
+Flow mặc định sống trong ván (`round`), còn setup mặc định trong scene. Đổi ván hoặc resync
+hủy scope cũ trước hook; kết thúc ván giữ hoạt ảnh nước cuối và kết quả. Scene shutdown dừng
+mọi tài nguyên đồng bộ, lần chạy tiếp theo có runtime mới. Game vẫn reset field hiển thị của
+mình trong `onCreate`. Với nhiều vòng trong một trận, `runtime.newRound('game-round')` đóng
+scope trình diễn vòng cũ trước khi tạo bài/quân mới. `onResync(ctx)` dựng snapshot hiện tại
+không replay tiếng/nước cũ khi `last.seq` bị nhảy hoặc đổi người xem; hook vẫn đồng bộ.
+
+`setSpeed(0.25–4)` đổi tốc độ cả wait/tween/atlas/frame đang chạy, giữ tốc độ qua ván mới và
+không đổi timer server. Delta tối đa 100 ms mỗi frame; pause/sleep/tab ẩn dừng trình diễn và
+voice ngắn. Khi trở lại bỏ thời gian ẩn. Countdown tiếp tục đọc `ctx.timer.endsAt`, không dùng
+`fx.wait()` để chờ server. Nút DEV có mục Runtime để xem lane, epoch và số tài nguyên.
+
+Sau mỗi `await`, gọi `fx.checkpoint()` trước side effect trực tiếp. Primitive SDK tự kiểm tra
+scope; Promise ngoài SDK phải nhận `fx.signal` nếu có thể và phải checkpoint sau khi chờ.
+Promise ngoài SDK không hỗ trợ abort có thể giữ lane cho tới khi body thoát; runtime không
+cho flow replace chạy chồng lên body đó.
+
+`runtime.audio.prepare(names)` tải/decode trước, không phát, có hạn 3 giây và có thể thử lại.
+`runtime.audio.play(name)` trả handle với `started`, `finished`, `stop()` và thuộc scope ván.
+`fx.sound()` mặc định chờ bắt đầu hoặc skip; `{ wait: 'finished' }` chờ hết tiếng. Mute, chưa
+unlock hay tab ẩn skip ngay; âm thanh chưa decode có hạn bắt đầu mặc định 250 ms
+(`maxStartDelayMs` đổi được). Âm thanh quá trễ bị bỏ, không phát bù sau khi rời phòng hoặc bật
+tiếng. `sfx(): Promise<void>`, `jingle(): void`, `anim(): string` vẫn dùng được; luồng cần hủy
+cả bước tiếp theo dùng `fx.sound()`. Nhạc nền thuộc app; duck dùng token riêng cho từng voice.
+
 ```ts
 export class MyView extends GameView<State, Options> {
   onCreate(ctx) { /* tạo đối tượng: this.label, this.button, this.sprite, hoặc Phaser */ }
@@ -244,3 +309,5 @@ tả chỗ khác đi. Codex sẽ sửa từ hình gốc nên nhân vật và b�
 
 Đặt `status: 'ready'` trong `src/index.ts`. Trước đó game chơi được ở máy dev và bản xem trước của
 PR, còn trên trang thật thì bị khoá ("sắp có"), nên bạn có thể merge phần làm dở bất cứ lúc nào.
+
+Snapshot khi vừa mở scene đã có nước đi hoặc kết quả cũng gọi `onResync` trước `onState`, để dựng bàn hiện tại và không phát lại trình diễn/âm thanh cũ. `npm run e2e -- --changed origin/main` tính cả thay đổi chưa commit trong working tree.

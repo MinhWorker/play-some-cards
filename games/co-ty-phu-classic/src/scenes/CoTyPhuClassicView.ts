@@ -1,4 +1,4 @@
-import { GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import { type FlowContext, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import {
   BOARD,
@@ -42,12 +42,8 @@ type MoneyBeat = {
 };
 type ActiveMoney = {
   beat: MoneyBeat;
-  startedAt: number;
   before: number[];
   resume: 'landing' | 'decision' | 'moving';
-  thinkingUntil: number;
-  soundRequested: boolean;
-  animationStarted: boolean;
 };
 type RollBeat = {
   id: number;
@@ -95,9 +91,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private rentCloseButton!: TapButton;
   private nextBuilding!: Phaser.GameObjects.Text;
   private propertyPresentation = new PropertyPresentation();
-  private effectivePlaybackSpeed = 1;
   private playbackSpeed: 1 | 2 = 1;
-  private beatClock = 0;
   private speedButton!: TapButton;
   private previewTile: number | null = null;
   private tileTooltip!: TileTooltip;
@@ -116,7 +110,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private readySubtitle!: Phaser.GameObjects.Text;
   private readyNames: Phaser.GameObjects.Text[] = [];
   private readyCash: Phaser.GameObjects.Text[] = [];
-  private readyStartedAt = 0;
+  private readyElapsed = 0;
   private readyAmounts: number[] = [];
   private moneyIcons: Phaser.GameObjects.Image[] = [];
   private locationIcons: Phaser.GameObjects.Image[] = [];
@@ -126,12 +120,11 @@ export class CoTyPhuClassicView extends GameView<View> {
   private moneySequence = 0;
   private rollSequence = 0;
   private completedRoll = 0;
-  private moneyQueue: MoneyBeat[] = [];
+  private payments: MoneyBeat[] = [];
   private activeMoney: ActiveMoney | null = null;
-  private rollQueue: RollBeat[] = [];
+  private projectedPositions: number[] = [];
+  private passedStart = 0;
   private activeRoll: RollBeat | null = null;
-  private resultUntil = 0;
-  private landingUntil = 0;
   private landingBeat: RollBeat | null = null;
   private lastLandedSquare: number | null = null;
   private visualPhase:
@@ -151,7 +144,6 @@ export class CoTyPhuClassicView extends GameView<View> {
   private shownNotice = '';
   private movingTiles: (number | null)[] = [];
   private moving: boolean[] = [];
-  private moveTweens: (Phaser.Tweens.Tween | null)[] = [];
   private lastPending: number | null = null;
   private people: Phaser.GameObjects.Text[] = [];
   private playerBadges: Phaser.GameObjects.Text[] = [];
@@ -182,8 +174,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private geometry = { left: 0, top: 0, size: 500, imageH: 430, tile: 45, sideW: 150 };
 
   protected onCreate(ctx: Ctx) {
-    this.beatClock = 0;
-    this.tweens.timeScale = this.playbackSpeed;
+    this.runtime.setSpeed(this.playbackSpeed);
     this.selected = null;
     this.tileActionCount = 0;
     this.tradeOpen = false;
@@ -200,12 +191,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.shownNotice = ctx.state.notice;
     this.movingTiles = ctx.state.players.map(() => null);
     this.moving = ctx.state.players.map(() => false);
-    this.moveTweens = ctx.state.players.map(() => null);
     this.lastPending = ctx.state.pending;
-    this.rollQueue = [];
+    this.projectedPositions = ctx.state.players.map((player) => player.position);
+    this.passedStart = 0;
     this.activeRoll = null;
-    this.resultUntil = 0;
-    this.landingUntil = 0;
     this.landingBeat = null;
     this.lastLandedSquare = null;
     this.visualPhase = 'decision';
@@ -274,7 +263,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.moneyIcons = PLAYER_COLORS.map(() => this.sprite('hud-money').setDepth(8));
     this.locationIcons = PLAYER_COLORS.map(() => this.sprite('hud-location').setDepth(8));
     this.readyMoneyIcons = PLAYER_COLORS.map(() => this.sprite('hud-money').setDepth(26));
-    this.readyStartedAt = 0;
+    this.readyElapsed = 0;
     this.readyAmounts = [];
   }
 
@@ -298,23 +287,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.previewTile = null;
     this.rentTable.hide();
     this.hide([this.rentCloseButton]);
-    const interruptedMove = this.visualPhase === 'moving' ? this.activeRoll : null;
-    this.moveTweens.forEach((tween) => {
-      tween?.stop();
-    });
-    this.moving.fill(false);
-    this.movingTiles.fill(null);
-    this.tileEffects.forEach((effect) => {
-      effect.setMovingColors([]);
-    });
-    if (interruptedMove) {
-      this.shownPositions[interruptedMove.seat] = interruptedMove.to;
-      this.completedRoll = interruptedMove.id;
-      this.activeRoll = null;
-      this.resultUntil = 0;
-      this.visualPhase = 'decision';
-      this.dice.hide();
-    }
+    if (this.runtime.busy('turn') || this.runtime.busy('money')) this.onResync(ctx);
     const { width, height, top, hud } = ctx.screen;
     const size = Math.min((height - top - 8) * BOARD_IMAGE_RATIO, width - 2 * 140 * hud);
     const imageH = size / BOARD_IMAGE_RATIO;
@@ -380,10 +353,6 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.selected ?? ctx.state.pending ?? ctx.state.players[ctx.state.turn]!.position,
     );
     this.drawBoard(ctx);
-    if (interruptedMove) {
-      this.activeRoll = interruptedMove;
-      this.finishRoll();
-    }
   }
 
   private layoutReady(ctx: Ctx) {
@@ -445,7 +414,7 @@ export class CoTyPhuClassicView extends GameView<View> {
 
   private updateReadyMoney(ctx: Ctx) {
     // Use the shared round clock so every seat follows the same opening sequence.
-    const progress = Math.min(1, Math.max(0, (Date.now() - this.readyStartedAt) / 1800));
+    const progress = Math.min(1, Math.max(0, this.readyElapsed / 1800));
     ctx.state.players.forEach((_, seat) => {
       const amount = Math.floor(progress * 50) * 30;
       if (this.readyAmounts[seat] === amount) return;
@@ -460,7 +429,6 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (this.visualPhase !== 'ready') return;
     this.visualPhase = 'decision';
     this.showReady(false);
-    this.startNextRoll();
     this.onState(this.ctx);
   }
 
@@ -541,30 +509,19 @@ export class CoTyPhuClassicView extends GameView<View> {
       : base;
   }
 
-  private startMoneyTransfer(active: ActiveMoney) {
-    if (this.activeMoney !== active || active.animationStarted) return;
-    active.startedAt = this.beatClock;
-    active.animationStarted = true;
-    this.pawnCashEffect.begin(active.beat.transfer);
-  }
-
-  private syncMoneyTransferStart(active: ActiveMoney) {
-    if (active.soundRequested) return;
-    active.soundRequested = true;
-    const reason = active.beat.transfer.reason;
-    const sound = /^(Mua |Chuộc )/.test(reason)
+  private moneySound(transfer: MoneyTransfer) {
+    const reason = transfer.reason;
+    return /^(Mua |Chuộc )/.test(reason)
       ? 'tycoon-buy'
       : /^Đấu giá /.test(reason)
         ? 'tycoon-auction'
         : /^Xây ở /.test(reason)
           ? 'tycoon-build'
-          : active.beat.transfer.to === this.ctx.me?.seat
+          : transfer.to === this.ctx.me?.seat
             ? 'tycoon-coin'
-            : active.beat.transfer.from === this.ctx.me?.seat
+            : transfer.from === this.ctx.me?.seat
               ? 'tycoon-rent'
               : null;
-    if (sound) void this.sfx(sound).then(() => this.startMoneyTransfer(active));
-    else this.startMoneyTransfer(active);
   }
 
   private drawBoard(ctx: Ctx) {
@@ -584,8 +541,8 @@ export class CoTyPhuClassicView extends GameView<View> {
       effect?.setActionable(
         this.visualPhase === 'decision' &&
           !this.activeMoney &&
-          !this.moneyQueue.length &&
-          !this.rollQueue.length &&
+          !this.payments.length &&
+          !this.runtime.pending('turn') &&
           !this.tradeOpen &&
           tileActions(ctx.state, ctx.me?.seat ?? null, i).length > 0,
       );
@@ -999,15 +956,14 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
   }
 
-  private travelPawn(
+  private async travelPawn(
+    fx: FlowContext,
     seat: number,
     from: number,
     to: number,
     jailed: boolean,
-    done?: () => void,
     onStartReached?: () => void,
   ) {
-    this.moveTweens[seat]?.stop();
     const token = this.tokens[seat]!;
     const shadow = this.pawnShadows[seat]!;
     const name = this.tokenNames[seat]!;
@@ -1018,7 +974,6 @@ export class CoTyPhuClassicView extends GameView<View> {
       ? [this.pawnSpot(to, seat)]
       : Array.from({ length: steps }, (_, i) => this.pawnSpot((from + i + 1) % BOARD.length, seat));
     if (!points.length) {
-      done?.();
       return;
     }
     const cursor = { value: 0 };
@@ -1030,8 +985,9 @@ export class CoTyPhuClassicView extends GameView<View> {
       onStartReached?.();
     };
     this.moving[seat] = true;
-    if (direct) this.sfx('tycoon-jail');
-    this.moveTweens[seat] = this.tweens.add({
+    if (direct) await fx.sound('tycoon-jail');
+    fx.checkpoint();
+    await fx.tween({
       targets: cursor,
       value: points.length,
       duration: direct ? 500 : Math.min(2000, points.length * 260),
@@ -1075,44 +1031,60 @@ export class CoTyPhuClassicView extends GameView<View> {
         name.setPosition(target.x, target.y + target.nameY);
         this.setMovingTile(seat, null);
         this.moving[seat] = false;
-        this.moveTweens[seat] = null;
-        done?.();
       },
     });
   }
 
-  private startNextRoll() {
-    if (
-      this.visualPhase === 'ready' ||
-      this.visualPhase === 'landing' ||
-      this.activeMoney ||
-      this.moneyQueue.some((beat) => beat.afterRoll <= this.completedRoll) ||
-      this.activeRoll ||
-      !this.rollQueue.length
-    )
-      return;
-    this.activeRoll = this.rollQueue.shift()!;
-    this.lastLandedSquare = null;
-    this.visualPhase = 'rolling';
-    this.dice.roll(...this.activeRoll.dice);
-    this.sfx('tycoon-dice');
-    this.onState(this.ctx);
-  }
-
-  private finishRoll() {
-    const beat = this.activeRoll;
-    if (!beat) return;
-    this.shownPositions[beat.seat] = beat.to;
-    this.selected = null;
-    this.completedRoll = beat.id;
-    this.activeRoll = null;
-    this.dice.hide();
-    this.landingBeat = beat;
-    this.lastLandedSquare = beat.from === beat.to ? null : beat.to;
-    this.visualPhase = 'landing';
-    this.landingUntil = this.beatClock + 850;
-    this.tileEffects[beat.to]?.pulse(PLAYER_COLORS[beat.seat]!, 900);
-    this.onState(this.ctx);
+  private enqueueRoll(beat: RollBeat, dice = true) {
+    this.runtime.run(
+      async (fx) => {
+        this.activeRoll = beat;
+        await fx.frame(
+          () => this.visualPhase !== 'ready' && !this.payments.some((p) => p.afterRoll < beat.id),
+        );
+        fx.checkpoint();
+        this.activeRoll = beat;
+        this.lastLandedSquare = null;
+        if (dice) {
+          this.visualPhase = 'rolling';
+          this.dice.roll(...beat.dice);
+          this.sfx('tycoon-dice');
+          this.onState(this.ctx);
+          await fx.frame((delta) => {
+            this.dice.update(delta);
+            return this.dice.settled;
+          });
+          fx.checkpoint();
+          this.visualPhase = 'result';
+          this.onState(this.ctx);
+          await fx.wait(700);
+        }
+        fx.checkpoint();
+        this.visualPhase = 'moving';
+        this.onState(this.ctx);
+        await this.travelPawn(fx, beat.seat, beat.from, beat.to, beat.jailed, () => {
+          this.passedStart = Math.max(this.passedStart, beat.id);
+        });
+        fx.checkpoint();
+        this.shownPositions[beat.seat] = beat.to;
+        this.selected = null;
+        this.completedRoll = Math.max(this.completedRoll, beat.id);
+        this.activeRoll = null;
+        this.dice.hide();
+        this.landingBeat = beat;
+        this.lastLandedSquare = beat.from === beat.to ? null : beat.to;
+        this.visualPhase = 'landing';
+        this.tileEffects[beat.to]?.pulse(PLAYER_COLORS[beat.seat]!, 900);
+        this.onState(this.ctx);
+        await fx.wait(850);
+        await fx.frame(() => !this.payments.some((p) => p.afterRoll <= beat.id));
+        fx.checkpoint();
+        this.visualPhase = 'decision';
+        this.landingBeat = null;
+        this.onState(this.ctx);
+      },
+      { lane: 'turn', onFailure: () => this.onResync(this.ctx) },
+    );
   }
 
   private flashSquare(square: number, color: number) {
@@ -1123,44 +1095,72 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.moneySequence = ctx.state.moneySequence ?? 0;
     this.rollSequence = 0;
     this.completedRoll = 0;
-    this.moneyQueue = [];
+    this.payments = [];
     this.propertyPresentation.reset();
     this.activeMoney = null;
     this.moneyEffect.hide();
     this.pawnCashEffect.hide();
   }
 
-  private activateMoney(beat: MoneyBeat, resume: ActiveMoney['resume']) {
-    const botThinking =
-      resume !== 'moving' &&
-      beat.transfer.from !== null &&
-      this.ctx.players[beat.transfer.from]?.bot &&
-      /^(Mua |Đấu giá |Xây ở )/.test(beat.transfer.reason);
-    const thinkingUntil = this.beatClock + (botThinking ? 500 : 0);
-    const active: ActiveMoney = {
-      beat,
-      startedAt: thinkingUntil,
-      before: [...this.shownCash],
-      soundRequested: false,
-      animationStarted: false,
-      resume,
-      thinkingUntil,
-    };
-    this.activeMoney = active;
-    if (resume !== 'moving')
-      this.visualPhase = thinkingUntil > this.beatClock ? 'thinking' : 'payment';
-    this.onState(this.ctx);
-    this.syncMoneyTransferStart(active);
-  }
-
-  private startPassStartMoney(rollId: number) {
-    const index = this.moneyQueue.findIndex(
-      (beat) => beat.afterRoll === rollId && beat.trigger === 'pass-start',
+  private enqueueMoney(beat: MoneyBeat) {
+    this.payments.push(beat);
+    this.runtime.run(
+      async (fx) => {
+        await fx.frame(
+          () =>
+            this.visualPhase !== 'ready' &&
+            (this.completedRoll >= beat.afterRoll ||
+              (beat.trigger === 'pass-start' && this.passedStart >= beat.afterRoll)),
+        );
+        fx.checkpoint();
+        const resume =
+          this.visualPhase === 'moving'
+            ? 'moving'
+            : this.visualPhase === 'landing'
+              ? 'landing'
+              : 'decision';
+        const active: ActiveMoney = { beat, before: [...this.shownCash], resume };
+        this.activeMoney = active;
+        const moneyEffect = this.moneyEffect;
+        const cashEffect = this.pawnCashEffect;
+        fx.defer(() => {
+          moneyEffect.hide();
+          cashEffect.hide();
+          if (this.activeMoney === active) this.activeMoney = null;
+          this.payments = this.payments.filter((payment) => payment !== beat);
+        });
+        const botThinking =
+          resume !== 'moving' &&
+          beat.transfer.from !== null &&
+          this.ctx.players[beat.transfer.from]?.bot &&
+          /^(Mua |Đấu giá |Xây ở )/.test(beat.transfer.reason);
+        if (botThinking) {
+          this.visualPhase = 'thinking';
+          this.onState(this.ctx);
+          await fx.wait(500);
+        }
+        const sound = this.moneySound(beat.transfer);
+        if (sound) await fx.sound(sound);
+        fx.checkpoint();
+        if (resume !== 'moving') this.visualPhase = 'payment';
+        cashEffect.begin(beat.transfer);
+        this.onState(this.ctx);
+        let elapsed = 0;
+        await fx.frame((delta) => {
+          elapsed += delta;
+          this.drawMoney(active, elapsed);
+          return elapsed >= 1250;
+        });
+        fx.checkpoint();
+        if (this.visualPhase === 'payment') this.visualPhase = active.resume;
+        this.activeMoney = null;
+        this.payments = this.payments.filter((payment) => payment !== beat);
+        moneyEffect.hide();
+        cashEffect.hide();
+        this.onState(this.ctx);
+      },
+      { lane: 'money', onFailure: () => this.onResync(this.ctx) },
     );
-    if (index < 0 || this.activeMoney) return;
-    const [beat] = this.moneyQueue.splice(index, 1);
-    if (!beat) return;
-    this.activateMoney(beat, 'moving');
   }
 
   private observeMoney(ctx: Ctx) {
@@ -1172,20 +1172,18 @@ export class CoTyPhuClassicView extends GameView<View> {
       properties: ctx.state.properties,
       notice: ctx.state.notice,
     });
-    this.moneyQueue.push(
-      ...(ctx.state.transfers ?? []).map((transfer) => ({
+    for (const transfer of ctx.state.transfers ?? [])
+      this.enqueueMoney({
         sequence: this.moneySequence,
         transfer: { ...transfer },
         afterRoll: this.rollSequence,
-        trigger:
-          transfer.reason === 'Qua Xuất phát' ? ('pass-start' as const) : ('after-roll' as const),
-      })),
-    );
+        trigger: transfer.reason === 'Qua Xuất phát' ? 'pass-start' : 'after-roll',
+      });
   }
 
   private syncPropertyPresentation() {
     const blockedSequence =
-      this.activeMoney?.beat.sequence ?? this.moneyQueue[0]?.sequence ?? Infinity;
+      this.activeMoney?.beat.sequence ?? this.payments[0]?.sequence ?? Infinity;
     for (const snapshot of this.propertyPresentation.drain(this.completedRoll, blockedSequence)) {
       snapshot.properties.forEach((property, square) => {
         const before = this.shownProperties[square];
@@ -1207,23 +1205,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
   }
 
-  private updateMoney() {
-    if (!this.activeMoney && (this.visualPhase === 'landing' || this.visualPhase === 'decision')) {
-      const beat = this.moneyQueue[0];
-      if (beat?.trigger === 'after-roll' && beat.afterRoll <= this.completedRoll) {
-        this.moneyQueue.shift();
-        this.activateMoney(beat, this.visualPhase);
-      }
-    }
-    const active = this.activeMoney;
-    if (!active) return;
-    if (this.beatClock < active.thinkingUntil) return;
-    if (this.visualPhase === 'thinking') {
-      this.visualPhase = 'payment';
-      this.onState(this.ctx);
-    }
-    if (!active.animationStarted) return;
-    const elapsed = this.beatClock - active.startedAt;
+  private drawMoney(active: ActiveMoney, elapsed: number) {
     this.pawnCashEffect.draw(
       elapsed / 1250,
       this.tokens.map((token) => ({ x: token.x, y: token.y - token.displayHeight - 18 })),
@@ -1258,13 +1240,6 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.ctx.players.map((player) => player.name),
       size * 0.5,
     );
-    if (elapsed >= 1250) {
-      if (this.visualPhase === 'payment') this.visualPhase = active.resume;
-      this.activeMoney = null;
-      this.moneyEffect.hide();
-      this.pawnCashEffect.hide();
-      this.onState(this.ctx);
-    }
   }
 
   protected onStart(ctx: Ctx) {
@@ -1273,9 +1248,8 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.previewTile = null;
     this.rentTable.hide();
     this.hide([this.rentCloseButton]);
-    this.moveTweens.forEach((tween) => {
-      tween?.stop();
-    });
+    this.runtime.cancelLane('turn');
+    this.runtime.cancelLane('money');
     this.moving.fill(false);
     this.movingTiles.fill(null);
     this.tileEffects.forEach((effect) => {
@@ -1289,35 +1263,67 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.shownNotice = ctx.state.notice;
     this.selected = null;
     this.dice.hide();
-    this.rollQueue = [];
+    this.projectedPositions = ctx.state.players.map((player) => player.position);
+    this.passedStart = 0;
     this.activeRoll = null;
-    this.resultUntil = 0;
     this.landingBeat = null;
-    this.landingUntil = 0;
     this.lastLandedSquare = null;
     this.tileEffects.forEach((effect) => {
       effect.reset();
     });
     this.eventReadySent = -1;
-    this.readyStartedAt = ctx.clock?.startedAt ?? Date.now();
+    this.readyElapsed = ctx.clock ? Date.now() - ctx.clock.startedAt : 0;
     this.readyAmounts = ctx.state.players.map(() => 0);
-    this.visualPhase = Date.now() - this.readyStartedAt < 2800 ? 'ready' : 'decision';
+    this.visualPhase = this.readyElapsed < 2800 ? 'ready' : 'decision';
     this.readyCash.forEach((cash) => {
       cash.setText('0 ₫');
     });
     this.layoutReady(ctx);
+    if (this.visualPhase === 'ready')
+      this.runtime.run(
+        async (fx) => {
+          await fx.frame((delta) => {
+            this.readyElapsed += delta;
+            this.updateReadyMoney(this.ctx);
+            return this.readyElapsed >= 2800;
+          });
+          fx.checkpoint();
+          this.finishReady();
+        },
+        { lane: 'ready', policy: 'replace' },
+      );
     this.sfx('tycoon-turn');
+  }
+
+  protected onResync(ctx: Ctx) {
+    this.runtime.cancelLane('turn');
+    this.runtime.cancelLane('money');
+    this.runtime.cancelLane('ready');
+    this.resetMoney(ctx);
+    this.projectedPositions = ctx.state.players.map((player) => player.position);
+    this.shownPositions = [...this.projectedPositions];
+    this.shownCash = ctx.state.players.map((player) => player.cash);
+    this.shownProperties = ctx.state.properties.map((property) => ({ ...property }));
+    this.shownOwners = ctx.state.properties.map((property) => property.owner);
+    this.shownNotice = ctx.state.notice;
+    this.shownCard = ctx.state.lastCard;
+    this.activeRoll = null;
+    this.landingBeat = null;
+    this.moving.fill(false);
+    this.movingTiles.fill(null);
+    this.visualPhase = 'decision';
+    this.dice.hide();
+    this.eventReadySent = -1;
   }
 
   protected onRoll(ctx: Ctx, event: ViewEvent) {
     if (!ctx.state.dice) return;
     const seat = event.player?.seat ?? ctx.state.turn;
-    const from =
-      [...this.rollQueue].reverse().find((beat) => beat.seat === seat)?.to ??
-      (this.activeRoll?.seat === seat ? this.activeRoll.to : (this.shownPositions[seat] ?? 0));
+    const from = this.projectedPositions[seat] ?? this.shownPositions[seat] ?? 0;
+    this.projectedPositions[seat] = ctx.state.players[seat]!.position;
     this.rollSequence++;
     this.observeMoney(ctx);
-    this.rollQueue.push({
+    this.enqueueRoll({
       id: this.rollSequence,
       seat,
       from,
@@ -1327,35 +1333,31 @@ export class CoTyPhuClassicView extends GameView<View> {
       notice: ctx.state.notice,
       card: ctx.state.lastCard,
     });
-    this.startNextRoll();
   }
 
   protected onConfirmEvent(ctx: Ctx) {
     const seat = ctx.state.turn;
-    const from = this.shownPositions[seat] ?? ctx.state.players[seat]!.position;
+    const from =
+      this.projectedPositions[seat] ??
+      this.shownPositions[seat] ??
+      ctx.state.players[seat]!.position;
     const to = ctx.state.players[seat]!.position;
-    if (from === to || this.activeRoll || this.rollQueue.length) return;
+    if (from === to || this.runtime.busy('turn')) return;
+    this.projectedPositions[seat] = to;
     this.observeMoney(ctx);
-    this.activeRoll = {
-      id: this.completedRoll,
-      seat,
-      from,
-      to,
-      jailed: ctx.state.players[seat]!.jailed,
-      dice: ctx.state.dice ?? [1, 1],
-      notice: ctx.state.notice,
-      card: ctx.state.lastCard,
-    };
-    this.visualPhase = 'moving';
-    this.travelPawn(
-      seat,
-      from,
-      to,
-      ctx.state.players[seat]!.jailed,
-      () => this.finishRoll(),
-      () => this.startPassStartMoney(this.completedRoll),
+    this.enqueueRoll(
+      {
+        id: this.rollSequence,
+        seat,
+        from,
+        to,
+        jailed: ctx.state.players[seat]!.jailed,
+        dice: ctx.state.dice ?? [1, 1],
+        notice: ctx.state.notice,
+        card: ctx.state.lastCard,
+      },
+      false,
     );
-    this.onState(ctx);
   }
 
   protected onAutoConfirmEvent(ctx: Ctx) {
@@ -1374,7 +1376,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       ctx.players[ctx.state.turn]?.bot ||
       this.visualPhase !== 'decision' ||
       this.activeMoney ||
-      this.rollQueue.length ||
+      this.runtime.pending('turn') ||
       ctx.timer?.event !== 'auto-confirm-event'
     )
       return;
@@ -1390,17 +1392,14 @@ export class CoTyPhuClassicView extends GameView<View> {
         .fillRoundedRect(x, y, width * remaining, 10, 5);
   }
 
-  protected onUpdate(_ctx: Ctx, delta: number) {
-    this.effectivePlaybackSpeed =
-      this.rollQueue.length > 2 ? Math.max(3, this.playbackSpeed) : this.playbackSpeed;
-    this.tweens.timeScale = this.effectivePlaybackSpeed;
-    this.beatClock += delta * this.effectivePlaybackSpeed;
-    this.dice.update(delta * this.effectivePlaybackSpeed);
+  protected onUpdate(_ctx: Ctx) {
+    this.runtime.setSpeed(
+      this.runtime.pending('turn') > 2 ? Math.max(3, this.playbackSpeed) : this.playbackSpeed,
+    );
     if (this.tileTooltip.update()) {
       this.previewTile = null;
       this.drawBoard(this.ctx);
     }
-    this.updateMoney();
     this.drawEventCountdown(this.ctx);
     const event = this.ctx.state.specialEvent;
     if (
@@ -1409,47 +1408,13 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.ctx.me &&
       this.visualPhase === 'decision' &&
       !this.activeMoney &&
-      !this.rollQueue.length &&
+      !this.runtime.pending('turn') &&
       this.eventReadySent !== event.id &&
       this.ctx.me.seat === this.ctx.state.turn &&
       !this.ctx.players[this.ctx.state.turn]?.bot
     ) {
       this.eventReadySent = event.id;
       this.send('event-ready', { id: event.id });
-    }
-    if (this.visualPhase === 'decision' && !this.activeMoney) this.startNextRoll();
-    if (this.visualPhase === 'ready') {
-      this.updateReadyMoney(this.ctx);
-      if (Date.now() - this.readyStartedAt >= 2800) this.finishReady();
-    }
-    if (this.visualPhase === 'rolling' && this.dice.settled && this.activeRoll) {
-      this.visualPhase = 'result';
-      this.resultUntil = this.beatClock + 700;
-      this.onState(this.ctx);
-    }
-    if (this.visualPhase === 'result' && this.beatClock >= this.resultUntil && this.activeRoll) {
-      const beat = this.activeRoll;
-      this.visualPhase = 'moving';
-      this.travelPawn(
-        beat.seat,
-        beat.from,
-        beat.to,
-        beat.jailed,
-        () => this.finishRoll(),
-        () => this.startPassStartMoney(beat.id),
-      );
-      this.onState(this.ctx);
-    }
-    if (
-      this.visualPhase === 'landing' &&
-      this.beatClock >= this.landingUntil &&
-      !this.activeMoney &&
-      !this.moneyQueue.some((beat) => beat.afterRoll <= this.completedRoll)
-    ) {
-      this.visualPhase = 'decision';
-      this.landingBeat = null;
-      if (this.rollQueue.length) this.startNextRoll();
-      else this.onState(this.ctx);
     }
   }
 
@@ -1474,7 +1439,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.visualPhase === 'decision' &&
       !this.activeMoney &&
       !this.activeRoll &&
-      !this.rollQueue.length &&
+      !this.runtime.pending('turn') &&
       this.shownPositions[state.turn] !== state.players[state.turn]!.position &&
       !state.players[state.turn]!.bankrupt
     ) {
@@ -1482,16 +1447,17 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
     const presenting =
       Boolean(this.activeMoney) ||
-      this.moneyQueue.some((beat) => beat.afterRoll <= this.completedRoll) ||
+      Boolean(this.activeRoll) ||
+      this.payments.some((beat) => beat.afterRoll <= this.completedRoll) ||
       this.visualPhase !== 'decision' ||
-      this.rollQueue.length > 0;
+      this.runtime.pending('turn') > 0;
     if (!presenting && state.moneySequence === undefined) {
       this.shownProperties = state.properties.map((property) => ({ ...property }));
     }
     state.players.forEach((player, seat) => {
       const previous = this.shownPositions[seat];
       if (!presenting && previous !== undefined && previous !== player.position && !player.bankrupt)
-        this.travelPawn(seat, previous, player.position, player.jailed);
+        this.projectedPositions[seat] = player.position;
       if (!presenting) {
         this.shownPositions[seat] = player.position;
         this.shownCash[seat] = player.cash;
@@ -1589,7 +1555,7 @@ export class CoTyPhuClassicView extends GameView<View> {
                     : ''
             : eventNotice(notice, state.lastCard, BOARD[state.players[state.turn]!.position]!.name),
     );
-    if (this.effectivePlaybackSpeed > this.playbackSpeed && this.visualPhase === 'rolling')
+    if (this.runtime.pending('turn') > 2 && this.visualPhase === 'rolling')
       this.notice.setText(`${this.notice.text} · Theo kịp ván…`);
     const trade = state.trade;
     // Event cards share the notice line; the third text slot is only for trade details.
@@ -1746,7 +1712,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       84,
       () => {
         this.playbackSpeed = this.playbackSpeed === 1 ? 2 : 1;
-        this.tweens.timeScale = this.playbackSpeed;
+        this.runtime.setSpeed(this.playbackSpeed);
         this.onState(this.ctx);
       },
       44,

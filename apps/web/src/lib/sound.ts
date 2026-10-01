@@ -4,6 +4,12 @@
  * (iOS ignores `audio.volume`, so volume must go through gain nodes). Music is a streamed <audio> element, so it starts
  * before the whole file downloads. Settings are remembered per browser.
  */
+import {
+  type SoundFinish,
+  type SoundHandle,
+  type SoundOptions,
+  type SoundStart,
+} from '@psc/sdk/client';
 import { type AssetOwner, soundUrl } from '@/lib/assetUrl';
 
 const KEY = 'psc:sound';
@@ -85,8 +91,14 @@ let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 /** Decoded effects by URL; `wanted` are URLs asked for before audio was unlocked. */
 const buffers = new Map<string, AudioBuffer>();
-/** Effects waiting for decode; resolve each caller when playback starts. */
-const waiting = new Map<string, Array<{ options: PlayOptions; resolve: () => void }>>();
+const decoding = new Map<string, Promise<AudioBuffer | null>>();
+const voices = new Set<SoundHandle>();
+const ducks = new Set<symbol>();
+let pendingStarts = 0;
+let activeVoices = 0;
+const skipped: Record<string, number> = {};
+let cacheBytes = 0;
+const MAX_CACHE_BYTES = 64 * 1024 * 1024;
 const wanted = new Set<string>(Object.entries(SFX).map(([name, owner]) => soundUrl(name, owner)));
 let current = loadSound();
 
@@ -99,38 +111,81 @@ function ensureAudio() {
   musicGain.connect(ctx.destination);
   sfxGain.connect(ctx.destination);
   ctx.createMediaElementSource(music).connect(musicGain);
-  for (const url of wanted) decode(url);
+  syncGains();
+  for (const url of wanted) void decode(url);
 }
 
-function decode(url: string) {
-  void fetch(url)
-    .then((res) => res.arrayBuffer())
-    .then((data) => ctx?.decodeAudioData(data))
-    .then((buffer) => {
-      const asked = waiting.get(url) ?? [];
-      waiting.delete(url);
-      if (!buffer) {
-        for (const request of asked) request.resolve();
-        return;
-      }
-      buffers.set(url, buffer);
-      for (const request of asked) {
-        start(buffer, request.options);
-        request.resolve();
-      }
+function decode(url: string): Promise<AudioBuffer | null> {
+  const cached = buffers.get(url);
+  if (cached) {
+    buffers.delete(url);
+    buffers.set(url, cached);
+    return Promise.resolve(cached);
+  }
+  const pending = decoding.get(url);
+  if (pending) return pending;
+  const audio = ctx;
+  if (!audio) return Promise.resolve(null);
+  const request = fetch(url)
+    .then((res) => {
+      if (!res.ok) throw new Error('Sound unavailable');
+      return res.arrayBuffer();
     })
-    .catch(() => {
-      const asked = waiting.get(url) ?? [];
-      waiting.delete(url);
-      for (const request of asked) request.resolve();
+    .then((data) => audio.decodeAudioData(data))
+    .then((buffer) => {
+      const bytes = buffer.length * buffer.numberOfChannels * 4;
+      while (cacheBytes + bytes > MAX_CACHE_BYTES && buffers.size) {
+        const first = buffers.entries().next().value;
+        if (!first) break;
+        buffers.delete(first[0]);
+        cacheBytes -= first[1].length * first[1].numberOfChannels * 4;
+      }
+      if (bytes <= MAX_CACHE_BYTES) {
+        buffers.set(url, buffer);
+        cacheBytes += bytes;
+      }
+      return buffer;
+    })
+    .catch(() => null)
+    .finally(() => {
+      decoding.delete(url);
     });
+  decoding.set(url, request);
+  return request;
 }
 
-/** Downloads an effect ahead of time (games' sounds, when their board opens). */
-export function loadSoundUrl(url: string) {
-  if (wanted.has(url)) return;
+/** Prepares without playback. Late completion warms the cache but cannot start a voice. */
+export async function prepareSoundUrl(url: string): Promise<'ready' | 'unavailable'> {
   wanted.add(url);
-  if (ctx) decode(url);
+  ensureAudio();
+  if (!ctx) return 'unavailable';
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const buffer = await Promise.race([
+      decode(url),
+      new Promise<null>((resolve) => {
+        timeout = setTimeout(() => resolve(null), 3000);
+      }),
+    ]);
+    return buffer ? 'ready' : 'unavailable';
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/** Downloads an effect ahead of time. */
+export function loadSoundUrl(url: string) {
+  void prepareSoundUrl(url);
+}
+
+function syncGains() {
+  if (sfxGain) sfxGain.gain.value = isSilent(current.sfx) ? 0 : current.sfx.volume;
+  if (ctx && musicGain) {
+    const gain = musicGain.gain;
+    gain.cancelScheduledValues(ctx.currentTime);
+    const value = isSilent(current.music) ? 0 : current.music.volume * (ducks.size ? 0.15 : 1);
+    gain.setTargetAtTime(value, ctx.currentTime, 0.08);
+  }
 }
 
 /** Starts or pauses the music to match settings; throws (async) while audio is still locked. */
@@ -165,8 +220,8 @@ export function applySound(settings: SoundSettings) {
     localStorage.setItem(KEY, JSON.stringify(settings));
   } catch {}
   ensureAudio();
-  if (musicGain) musicGain.gain.value = settings.music.volume;
-  if (sfxGain) sfxGain.gain.value = settings.sfx.volume;
+  syncGains();
+  if (isSilent(settings.sfx)) for (const voice of voices) voice.stop();
   void syncMusic().catch(() => {});
 }
 
@@ -188,50 +243,139 @@ export function playSfx(name: Sfx) {
   playSoundUrl(soundUrl(name, SFX[name]));
 }
 
-/** `duck`: the music dips while it plays (a game's win jingle). */
-export interface PlayOptions {
-  duck?: boolean;
-}
+export type PlayOptions = SoundOptions;
 
-/** Plays an effect and resolves at playback start; a not-yet-decoded effect starts when ready. */
-export function playSoundUrl(url: string, options: PlayOptions = {}): Promise<void> {
-  ensureAudio();
-  loadSoundUrl(url);
-  const buffer = buffers.get(url);
-  if (buffer) {
-    start(buffer, options);
-    return Promise.resolve();
-  }
-  if (!ctx) return Promise.resolve();
-  return new Promise((resolve) => {
-    waiting.set(url, [...(waiting.get(url) ?? []), { options, resolve }]);
+/** Every request owns its source, start deadline and duck token. Handles never reject. */
+export function playSoundUrl(url: string, options: PlayOptions = {}): SoundHandle {
+  const delay = options.maxStartDelayMs ?? 250;
+  if (!Number.isFinite(delay) || delay < 0) throw new Error('Invalid sound start deadline');
+  let startResolve!: (result: SoundStart) => void;
+  let finishResolve!: (result: SoundFinish) => void;
+  const started = new Promise<SoundStart>((resolve) => {
+    startResolve = resolve;
   });
-}
-
-function start(buffer: AudioBuffer, { duck = false }: PlayOptions = {}) {
-  if (!ctx || !sfxGain || isSilent(current.sfx) || ctx.state !== 'running') return;
-  try {
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(sfxGain);
-    source.start();
-    if (duck) duckMusic(buffer.duration);
-  } catch {
-    // Audio may become unavailable while a scene is waiting for a decoded effect.
+  const finished = new Promise<SoundFinish>((resolve) => {
+    finishResolve = resolve;
+  });
+  const deadline = performance.now() + delay;
+  let source: AudioBufferSourceNode | null = null;
+  let ended = false;
+  let began = false;
+  let queued = false;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const duck = Symbol('voice');
+  const complete = (result: SoundFinish, start?: SoundStart) => {
+    if (ended) return;
+    ended = true;
+    clearTimeout(timeout);
+    if (queued) {
+      pendingStarts--;
+      queued = false;
+    }
+    if (!began) startResolve(start ?? { status: 'cancelled' });
+    if (began) activeVoices--;
+    if (source) {
+      source.onended = null;
+      if (result.status === 'stopped') {
+        try {
+          source.stop();
+        } catch {}
+      }
+      source.disconnect();
+      source = null;
+    }
+    ducks.delete(duck);
+    syncGains();
+    voices.delete(handle);
+    finishResolve(result);
+  };
+  const handle: SoundHandle = { started, finished, stop: () => complete({ status: 'stopped' }) };
+  const skip = (reason: Extract<SoundStart, { status: 'skipped' }>['reason']) => {
+    if (!ended) skipped[reason] = (skipped[reason] ?? 0) + 1;
+    complete({ status: 'skipped' }, { status: 'skipped', reason });
+  };
+  const unavailable = () => {
+    if (isSilent(current.sfx)) return 'muted' as const;
+    if (document.hidden || !ctx || ctx.state !== 'running') return 'blocked' as const;
+    return null;
+  };
+  const blocked = unavailable();
+  if (blocked) {
+    skip(blocked);
+    return handle;
   }
+  if (activeVoices >= 32 || pendingStarts >= 64) {
+    skip('unavailable');
+    return handle;
+  }
+  voices.add(handle);
+  const start = (buffer: AudioBuffer | null) => {
+    if (ended) return;
+    if (performance.now() > deadline) {
+      skip('late');
+      return;
+    }
+    if (activeVoices >= 32) {
+      skip('unavailable');
+      return;
+    }
+    const reason = unavailable();
+    if (reason) {
+      skip(reason);
+      return;
+    }
+    if (!buffer || !ctx || !sfxGain) {
+      skip('unavailable');
+      return;
+    }
+    try {
+      source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(sfxGain);
+      source.onended = () => complete({ status: 'ended' });
+      source.start();
+      began = true;
+      activeVoices++;
+      if (queued) {
+        pendingStarts--;
+        queued = false;
+      }
+      clearTimeout(timeout);
+      if (options.duck) {
+        ducks.add(duck);
+        syncGains();
+      }
+      startResolve({ status: 'started' });
+    } catch {
+      skip('unavailable');
+    }
+  };
+  const cached = buffers.get(url);
+  if (cached) start(cached);
+  else {
+    queued = true;
+    pendingStarts++;
+    timeout = setTimeout(() => skip('late'), delay);
+    void decode(url).then(start);
+  }
+  return handle;
 }
 
-/** Turns the music down for `seconds`, then brings it back up slowly. */
-function duckMusic(seconds: number) {
-  if (!ctx || !musicGain) return;
-  const gain = musicGain.gain;
-  const full = current.music.volume;
-  const now = ctx.currentTime;
-  gain.cancelScheduledValues(now);
-  gain.setValueAtTime(gain.value, now);
-  gain.linearRampToValueAtTime(full * 0.15, now + 0.3);
-  gain.setValueAtTime(full * 0.15, now + seconds);
-  gain.linearRampToValueAtTime(full, now + seconds + 1.5);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) for (const voice of voices) voice.stop();
+});
+
+/** Metadata for developer diagnostics. */
+export function soundDiagnostics() {
+  return {
+    voices: activeVoices,
+    pending: pendingStarts,
+    buffers: buffers.size,
+    cacheBytes,
+    ducks: ducks.size,
+    skipped: { ...skipped },
+    musicGain: musicGain?.gain.value ?? 0,
+  };
 }
 
 type ButtonSoundKind = 'click' | 'hover';

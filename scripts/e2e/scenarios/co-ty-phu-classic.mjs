@@ -278,12 +278,12 @@ export default async function run(t) {
     s.shownPositions[seat] = 30;
     const start = s.pawnSpot(30, seat);
     s.tokens[seat].setPosition(start.x, start.y);
-    const originalSfx = s.sfx;
+    const originalPlay = s.runtime.audio.playIn;
     s.jailSounds = [];
-    s.sfx = function (key, ...args) {
+    s.runtime.audio.playIn = function (scope, key, ...args) {
       if (key === 'tycoon-jail')
-        this.jailSounds.push({ moving: this.moving[seat], phase: this.visualPhase });
-      return originalSfx.call(this, key, ...args);
+        s.jailSounds.push({ moving: s.moving[seat], phase: s.visualPhase });
+      return originalPlay.call(this, scope, key, ...args);
     };
     s.onRoll(s.ctx, { player: { seat } });
     s.onState(s.ctx);
