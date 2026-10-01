@@ -85,10 +85,8 @@ let musicGain: GainNode | null = null;
 let sfxGain: GainNode | null = null;
 /** Decoded effects by URL; `wanted` are URLs asked for before audio was unlocked. */
 const buffers = new Map<string, AudioBuffer>();
-/** Effects asked for before they finished loading (url → when, how), played once they arrive. */
-const waiting = new Map<string, { at: number; options: PlayOptions }>();
-/** How late an effect may still start (a game's sounds load while its board opens). */
-const MAX_DELAY_MS = 1500;
+/** Effects waiting for decode; resolve each caller when playback starts. */
+const waiting = new Map<string, Array<{ options: PlayOptions; resolve: () => void }>>();
 const wanted = new Set<string>(Object.entries(SFX).map(([name, owner]) => soundUrl(name, owner)));
 let current = loadSound();
 
@@ -109,13 +107,23 @@ function decode(url: string) {
     .then((res) => res.arrayBuffer())
     .then((data) => ctx?.decodeAudioData(data))
     .then((buffer) => {
-      if (!buffer) return;
-      buffers.set(url, buffer);
-      const asked = waiting.get(url);
+      const asked = waiting.get(url) ?? [];
       waiting.delete(url);
-      if (asked && performance.now() - asked.at < MAX_DELAY_MS) start(buffer, asked.options);
+      if (!buffer) {
+        for (const request of asked) request.resolve();
+        return;
+      }
+      buffers.set(url, buffer);
+      for (const request of asked) {
+        start(buffer, request.options);
+        request.resolve();
+      }
     })
-    .catch(() => {});
+    .catch(() => {
+      const asked = waiting.get(url) ?? [];
+      waiting.delete(url);
+      for (const request of asked) request.resolve();
+    });
 }
 
 /** Downloads an effect ahead of time (games' sounds, when their board opens). */
@@ -185,22 +193,32 @@ export interface PlayOptions {
   duck?: boolean;
 }
 
-/** Plays an effect by URL on the effects channel (one still loading plays as soon as it arrives). */
-export function playSoundUrl(url: string, options: PlayOptions = {}) {
+/** Plays an effect and resolves at playback start; a not-yet-decoded effect starts when ready. */
+export function playSoundUrl(url: string, options: PlayOptions = {}): Promise<void> {
   ensureAudio();
   loadSoundUrl(url);
   const buffer = buffers.get(url);
-  if (buffer) start(buffer, options);
-  else waiting.set(url, { at: performance.now(), options });
+  if (buffer) {
+    start(buffer, options);
+    return Promise.resolve();
+  }
+  if (!ctx) return Promise.resolve();
+  return new Promise((resolve) => {
+    waiting.set(url, [...(waiting.get(url) ?? []), { options, resolve }]);
+  });
 }
 
 function start(buffer: AudioBuffer, { duck = false }: PlayOptions = {}) {
   if (!ctx || !sfxGain || isSilent(current.sfx) || ctx.state !== 'running') return;
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(sfxGain);
-  source.start();
-  if (duck) duckMusic(buffer.duration);
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(sfxGain);
+    source.start();
+    if (duck) duckMusic(buffer.duration);
+  } catch {
+    // Audio may become unavailable while a scene is waiting for a decoded effect.
+  }
 }
 
 /** Turns the music down for `seconds`, then brings it back up slowly. */

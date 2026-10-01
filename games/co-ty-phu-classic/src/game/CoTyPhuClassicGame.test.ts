@@ -1,0 +1,371 @@
+import { seededRng, testGame } from '@psc/sdk';
+import { describe, expect, it } from 'vitest';
+import plugin from '../index.js';
+import { BOARD, SPECIAL_EVENT_TIMEOUT } from './model.js';
+import { rent } from './rules.js';
+
+/** The first dice after both decks are shuffled with seed 1. */
+const firstRoll = () => {
+  const rng = seededRng(1);
+  for (let i = 0; i < 22; i++) rng();
+  return [1 + Math.floor(rng() * 6), 1 + Math.floor(rng() * 6)] as const;
+};
+
+const at = (target: number) => {
+  const game = testGame(plugin, ['a', 'b'], { seed: 1 });
+  const [a, b] = firstRoll();
+  game.state.players[0]!.position = (target - a - b + 40) % 40;
+  return game;
+};
+
+describe('Cờ tỷ phú Classic', () => {
+  it('starts with 40 squares, 1500 each and hidden card order', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    expect(BOARD).toHaveLength(40);
+    expect(game.state.properties).toHaveLength(40);
+    expect(game.state.players.map((p) => p.cash)).toEqual([1500, 1500]);
+    expect(game.error('b', 'roll')).toBe('Chưa tới lượt bạn');
+    expect(game.view('a')).not.toHaveProperty('chance');
+    expect(game.view(null)).not.toHaveProperty('chest');
+  });
+
+  it('reveals tax before charging, rejects other seats and applies it once', () => {
+    const game = at(38);
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('event');
+    expect(game.state.players[0]!.cash).toBe(1500);
+    expect(game.state.transfers).toEqual([]);
+    expect(game.timer?.event).toBe('prepare-event');
+    expect(game.error('b', 'event-ready', { id: game.state.specialEvent!.id })).toBe(
+      'Chưa tới lượt bạn',
+    );
+    game.send('a', 'event-ready', { id: game.state.specialEvent!.id });
+    expect(game.timer).toMatchObject({ event: 'auto-confirm-event', ms: SPECIAL_EVENT_TIMEOUT });
+    expect(game.error('b', 'confirm-event')).toBe('Chưa tới lượt bạn');
+    expect(game.error('a', 'end-turn')).toBe('Thao tác chưa hợp lệ');
+    game.state.properties[1]!.owner = 0;
+    expect(game.error('a', 'mortgage', { square: 1 })).toBe('Hãy xác nhận sự kiện trước');
+    expect(
+      game.error('a', 'offer-trade', { to: 1, give: -1, take: -1, giveCash: 50, takeCash: 0 }),
+    ).toBe('Hãy xác nhận sự kiện trước');
+    game.send('a', 'confirm-event');
+    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.specialEvent).toBeNull();
+    expect(game.timer).toBeNull();
+    expect(game.error('a', 'confirm-event')).toBe('Thao tác chưa hợp lệ');
+  });
+
+  it('starts the countdown when the event is displayed and does not restart it', () => {
+    const game = at(38);
+    game.send('a', 'roll');
+    const id = game.state.specialEvent!.id;
+    expect(game.state.specialEvent?.ready).toBe(false);
+    expect(game.error('a', 'event-ready', { id: id + 1 })).toBe('Sự kiện đã thay đổi');
+    game.send('a', 'event-ready', { id });
+    expect(game.state.specialEvent?.ready).toBe(true);
+    const timer = game.timer;
+    game.send('a', 'event-ready', { id });
+    expect(game.timer).toEqual(timer);
+    expect(game.state.players[0]!.cash).toBe(1500);
+    game.fireTimer();
+    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.error('a', 'event-ready', { id })).toBe('Sự kiện đã thay đổi');
+  });
+
+  it('confirms repair charges and three consecutive doubles before applying them', () => {
+    const game = at(22);
+    game.state.chance = [8];
+    game.state.properties[1] = { owner: 0, houses: 2, mortgaged: false };
+    game.send('a', 'roll');
+    expect(game.state.players[0]!.cash).toBe(1500);
+    game.send('a', 'confirm-event');
+    expect(game.state.players[0]!.cash).toBe(1450);
+    // Seed 8 rolls 5 + 5 after shuffling both decks.
+    const jailed = testGame(plugin, ['a', 'b'], { seed: 8 });
+    jailed.state.doubles = 2;
+    jailed.send('a', 'roll');
+    expect(jailed.state.phase).toBe('event');
+    expect(jailed.state.players[0]!.jailed).toBe(false);
+    jailed.send('a', 'confirm-event');
+    expect(jailed.state.players[0]!.jailed).toBe(true);
+    expect(jailed.state.phase).toBe('end');
+  });
+
+  it('enters debt only after confirming an unaffordable special event', () => {
+    const game = at(38);
+    game.state.players[0]!.cash = 1;
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('event');
+    expect(game.state.debt).toBeNull();
+    game.send('a', 'confirm-event');
+    expect(game.state.phase).toBe('debt');
+    expect(game.state.players[0]!.cash).toBe(1);
+    expect(game.state.debt?.amount).toBe(100);
+  });
+
+  it.each([
+    [5, 50],
+    [7, -15],
+  ])('waits before applying chance card %s', (card, amount) => {
+    const game = at(22);
+    game.state.chance = [card];
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('event');
+    expect(game.state.players[0]!.cash).toBe(1500);
+    expect(game.state.chance).toEqual([card]);
+    game.send('a', 'confirm-event');
+    expect(game.state.players[0]!.cash).toBe(1500 + amount);
+    expect(game.state.transfers[0]?.amount).toBe(Math.abs(amount));
+  });
+
+  it('waits before card movement, then collects Start and continues the landing', () => {
+    const game = at(22);
+    game.state.chance = [4];
+    game.send('a', 'roll');
+    expect(game.state.players[0]!.position).toBe(22);
+    game.send('a', 'confirm-event');
+    expect(game.state.players[0]!.position).toBe(18);
+    expect(game.state.players[0]!.cash).toBe(1700);
+    expect(game.state.phase).toBe('buy');
+    expect(game.state.pending).toBe(18);
+    expect(game.state.specialEvent).toBeNull();
+  });
+
+  it('waits before granting a free jail card or moving to jail', () => {
+    const game = at(22);
+    game.state.chance = [10];
+    game.send('a', 'roll');
+    expect(game.state.players[0]!.freeCards).toEqual([]);
+    game.send('a', 'confirm-event');
+    expect(game.state.players[0]!.freeCards).toEqual(['chance']);
+    expect(game.state.chance).toEqual([]);
+    const jailed = at(30);
+    jailed.send('a', 'roll');
+    expect(jailed.state.players[0]!.position).toBe(30);
+    expect(jailed.state.players[0]!.jailed).toBe(false);
+    jailed.send('a', 'confirm-event');
+    expect(jailed.state.players[0]!.position).toBe(10);
+    expect(jailed.state.players[0]!.jailed).toBe(true);
+  });
+
+  it('auto-confirms multiplayer events, but has no countdown for a single seat', () => {
+    const game = at(38);
+    game.send('a', 'roll');
+    game.fireTimer();
+    expect(game.state.phase).toBe('event');
+    game.fireTimer();
+    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.specialEvent).toBeNull();
+    expect(game.timer).toBeNull();
+    const solo = testGame(plugin, ['a'], { seed: 1 });
+    const [a, b] = firstRoll();
+    solo.state.players[0]!.position = 38 - a - b;
+    solo.send('a', 'roll');
+    expect(solo.state.phase).toBe('event');
+    expect(solo.timer).toBeNull();
+  });
+
+  it('keeps the countdown when another seat leaves and cancels it when the owner leaves', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = 38 - a - b;
+    game.send('a', 'roll');
+    game.leave('c');
+    expect(game.state.phase).toBe('event');
+    expect(game.timer).not.toBeNull();
+    game.fireTimer();
+    expect(game.state.phase).toBe('event');
+    game.fireTimer();
+    expect(game.state.players[0]!.cash).toBe(1400);
+    const leaving = at(22);
+    leaving.state.chance = [10];
+    leaving.send('a', 'roll');
+    leaving.leave('a');
+    expect(leaving.state.chance).toEqual([10]);
+    expect(leaving.state.specialEvent).toBeNull();
+    expect(leaving.timer).toBeNull();
+  });
+
+  it('buys an unowned street after a roll', () => {
+    const game = at(3);
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('buy');
+    expect(game.state.pending).toBe(3);
+    const cash = game.state.players[0]!.cash;
+    game.send('a', 'buy');
+    expect(game.state.properties[3]?.owner).toBe(0);
+    expect(game.state.players[0]!.cash).toBe(cash - 60);
+    expect(game.view(null)).toMatchObject({
+      transfers: [{ from: 0, to: null, amount: 60, reason: 'Mua Hàng Đào' }],
+    });
+    expect(game.error('b', 'end-turn')).toBe('Chưa tới lượt bạn');
+  });
+
+  it('records Start salary and rent separately in their actual order', () => {
+    const game = at(1);
+    game.state.properties[1]!.owner = 1;
+    game.send('a', 'roll');
+    expect(game.view(null)).toMatchObject({
+      transfers: [
+        { from: null, to: 0, amount: 200, reason: 'Qua Xuất phát' },
+        { from: 0, to: 1, amount: 2, reason: 'Tiền thuê Phố Cổ' },
+      ],
+    });
+    expect(game.state.players.map((p) => p.cash)).toEqual([1698, 1502]);
+    const sequence = game.state.moneySequence;
+    game.send('a', 'end-turn');
+    expect(game.state.transfers).toEqual([]);
+    expect(game.state.moneySequence).toBeGreaterThan(sequence);
+  });
+
+  it('does not animate an unpaid debt as money already transferred', () => {
+    const game = at(37);
+    game.state.properties[37]!.owner = 1;
+    game.state.players[0]!.cash = 1;
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('debt');
+    expect(game.state.transfers).toEqual([]);
+  });
+
+  it('auctions a declined street to the highest bidder', () => {
+    const game = at(3);
+    game.send('a', 'roll').send('a', 'auction');
+    game.send('a', 'bid', { amount: 50 });
+    expect(game.error('b', 'bid', { amount: 50 })).toBe(
+      'Giá đấu phải cao hơn và trong số tiền bạn có',
+    );
+    game.send('b', 'bid', { amount: 60 });
+    game.send('a', 'pass');
+    expect(game.state.properties[3]?.owner).toBe(1);
+    expect(game.state.players[1]?.cash).toBe(1440);
+    expect(game.state.auction).toBeNull();
+  });
+
+  it('charges rent and pauses for liquidation if cash is short', () => {
+    const game = at(37);
+    game.state.properties[37]!.owner = 1;
+    game.state.properties[1]!.owner = 0;
+    game.state.properties[3]!.owner = 0;
+    game.state.players[0]!.cash = 1;
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('debt');
+    expect(game.state.debt?.creditor).toBe(1);
+    game.send('a', 'mortgage', { square: 1 });
+    game.send('a', 'mortgage', { square: 3 });
+    game.send('a', 'pay-debt');
+    expect(game.state.debt).toBeNull();
+    expect(game.state.players[1]!.cash).toBe(1535);
+    expect(game.state.properties[1]?.mortgaged).toBe(true);
+  });
+
+  it('requires even building and stops rent on mortgaged land', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.state.properties[1]!.owner = 0;
+    game.state.properties[3]!.owner = 0;
+    game.send('a', 'build', { square: 1 });
+    expect(game.error('a', 'build', { square: 1 })).toBe('Phải xây đều trên cả bộ màu');
+    game.send('a', 'build', { square: 3 });
+    expect(game.error('a', 'mortgage', { square: 1 })).toBe('Phải bán hết nhà trong bộ màu trước');
+    game.send('a', 'sell-house', { square: 1 });
+    game.send('a', 'sell-house', { square: 3 });
+    game.send('a', 'mortgage', { square: 1 });
+    expect(rent(game.state, 1, 7)).toBe(0);
+    game.send('a', 'redeem', { square: 1 });
+    expect(rent(game.state, 1, 7)).toBe(4);
+  });
+
+  it('exchanges deeds only after the other player accepts', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.state.properties[1]!.owner = 0;
+    game.state.properties[3]!.owner = 1;
+    game.send('a', 'offer-trade', { to: 1, give: 1, take: 3, giveCash: 50, takeCash: 0 });
+    expect(game.state.properties[1]?.owner).toBe(0);
+    game.send('b', 'accept-trade');
+    expect(game.state.properties[1]?.owner).toBe(1);
+    expect(game.state.properties[3]?.owner).toBe(0);
+    expect(game.state.players.map((p) => p.cash)).toEqual([1450, 1550]);
+  });
+
+  it('gives the last remaining player the win when someone leaves', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.leave('b');
+    expect(game.result).toEqual({ winners: ['a'] });
+  });
+
+  it('keeps an unresolved purchase when the trade recipient leaves', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (3 - a - b + 40) % 40;
+    game.send('a', 'roll');
+    game.send('a', 'offer-trade', { to: 1, give: -1, take: -1, giveCash: 50, takeCash: 0 });
+    game.leave('b');
+    expect(game.state.phase).toBe('buy');
+    expect(game.state.pending).toBe(3);
+    game.send('a', 'buy');
+    expect(game.state.properties[3]?.owner).toBe(0);
+  });
+
+  it('keeps the current bidder when a different bidder leaves', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (3 - a - b + 40) % 40;
+    game.send('a', 'roll').send('a', 'auction').send('a', 'pass');
+    game.send('b', 'bid', { amount: 50 });
+    expect(game.state.auction?.bidder).toBe(2);
+    game.leave('b');
+    expect(game.state.auction?.bidder).toBe(2);
+    game.send('c', 'bid', { amount: 1 });
+    expect(game.state.properties[3]?.owner).toBe(2);
+  });
+
+  it('transfers a held jail card to the creditor after bankruptcy', () => {
+    const game = at(37);
+    game.state.properties[37]!.owner = 1;
+    game.state.players[0]!.cash = 1;
+    game.state.players[0]!.freeCards.push('chance');
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('debt');
+    game.send('a', 'bankrupt');
+    expect(game.state.players[1]?.freeCards).toEqual(['chance']);
+  });
+
+  it('lets computer players handle a long game without a rejected move', () => {
+    const players = ['a', 'b', 'c'];
+    const game = testGame(plugin, players, { bots: players, options: { bots: 3 } });
+    for (let i = 0; i < 800 && !game.result; i++) {
+      const seat = game.state.phase === 'auction' ? game.state.auction!.bidder : game.state.turn;
+      const id = players[seat]!;
+      const move = game.bot(id);
+      expect(move).not.toBeNull();
+      game.send(id, move!.event, move!.payload as object);
+    }
+    expect(game.state.properties.some((deed) => deed.owner !== null)).toBe(true);
+  });
+
+  it('lets a computer confirm special events without starting a countdown', () => {
+    const game = testGame(plugin, ['a', 'b'], { bots: ['a'], seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (38 - a - b + 40) % 40;
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('event');
+    expect(game.timer).toBeNull();
+    const id = game.state.specialEvent!.id;
+    expect(game.error('b', 'event-ready', { id })).toBe('Chưa tới lượt bạn');
+    game.send('a', 'event-ready', { id });
+    expect(game.timer).toBeNull();
+    expect(game.state.players[0]!.cash).toBe(1500);
+    expect(game.bot('a')?.event).toBe('confirm-event');
+    game.send('a', 'confirm-event');
+    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.specialEvent).toBeNull();
+    expect(game.timer).toBeNull();
+  });
+
+  it('lets a computer accept a favorable trade', () => {
+    const game = testGame(plugin, ['a', 'b'], { bots: ['b'], options: { bots: 1 } });
+    game.state.properties[1]!.owner = 0;
+    game.send('a', 'offer-trade', { to: 1, give: 1, take: -1, giveCash: 0, takeCash: 0 });
+    expect(game.bot('b')?.event).toBe('accept-trade');
+    expect(game.bot('a')).toBeNull();
+  });
+});
