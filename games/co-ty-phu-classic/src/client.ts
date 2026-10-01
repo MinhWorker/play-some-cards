@@ -5,4 +5,4 @@ import { defineClient } from '@psc/sdk/client';
 import { CoTyPhuClassicView } from './scenes/CoTyPhuClassicView.js';
 import { Setup } from './scenes/Setup.js';
 
-export default defineClient({ scene: CoTyPhuClassicView, setup: Setup });
+export default defineClient({ scene: CoTyPhuClassicView, setup: Setup, showsPlayers: true });

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="112" viewBox="0 0 320 112">
+  <title>Thao tác ô</title>
+  <rect x="4" y="10" width="312" height="98" rx="20" fill="#bd8b47"/>
+  <rect x="4" y="4" width="312" height="98" rx="20" fill="#fff4d5" stroke="#c28d43" stroke-width="4"/>
+  <rect x="10" y="10" width="300" height="84" rx="15" fill="none" stroke="#fffbed" stroke-width="3"/>
+</svg>

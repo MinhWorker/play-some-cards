@@ -73,7 +73,17 @@ export interface Trade {
   resume: Phase;
 }
 
+export interface MoneyTransfer {
+  /** null represents the bank. */
+  from: number | null;
+  to: number | null;
+  amount: number;
+  reason: string;
+}
+
 export interface State {
+  moneySequence: number;
+  transfers: MoneyTransfer[];
   players: TycoonPlayer[];
   properties: Property[];
   turn: number;

@@ -6,6 +6,8 @@ export type Context = GameContext<State, Options>;
 
 export const copy = (state: State): State => ({
   ...state,
+  moneySequence: (state.moneySequence ?? 0) + 1,
+  transfers: [],
   players: state.players.map((p) => ({ ...p, freeCards: [...p.freeCards] })),
   properties: state.properties.map((p) => ({ ...p })),
   chance: [...state.chance],
@@ -25,21 +27,27 @@ export function next(s: State, from: number): number {
   return from;
 }
 
-export function ownsGroup(s: State, owner: number, square: number): boolean {
+export function ownsGroup(s: Pick<State, 'properties'>, owner: number, square: number): boolean {
   const group = BOARD[square]?.group;
   return Boolean(group && groupSquares(group).every((i) => s.properties[i]?.owner === owner));
 }
 
-export function buildingsInGroup(s: State, square: number): boolean {
+export function buildingsInGroup(s: Pick<State, 'properties'>, square: number): boolean {
   const group = BOARD[square]?.group;
   return group ? groupSquares(group).some((i) => (s.properties[i]?.houses ?? 0) > 0) : false;
 }
 
-export const bankHouses = (s: State) =>
+export const bankHouses = (s: Pick<State, 'properties'>) =>
   32 - s.properties.reduce((sum, p) => sum + (p.houses === 5 ? 0 : p.houses), 0);
-export const bankHotels = (s: State) => 12 - s.properties.filter((p) => p.houses === 5).length;
+export const bankHotels = (s: Pick<State, 'properties'>) =>
+  12 - s.properties.filter((p) => p.houses === 5).length;
 
-export function rent(s: State, square: number, roll: number, multiplier = 1): number {
+export function rent(
+  s: Pick<State, 'properties'>,
+  square: number,
+  roll: number,
+  multiplier = 1,
+): number {
   const cell = BOARD[square]!;
   const deed = s.properties[square]!;
   if (deed.owner === null || deed.mortgaged) return 0;
@@ -57,6 +65,20 @@ export function rent(s: State, square: number, roll: number, multiplier = 1): nu
   );
 }
 
+/** Record the same public transfer that changes the authoritative balances. */
+export function transferMoney(
+  s: State,
+  from: number | null,
+  to: number | null,
+  amount: number,
+  reason: string,
+) {
+  if (amount <= 0) return;
+  if (from !== null) s.players[from]!.cash -= amount;
+  if (to !== null) s.players[to]!.cash += amount;
+  s.transfers.push({ from, to, amount, reason });
+}
+
 export function charge(
   s: State,
   payer: number,
@@ -71,8 +93,7 @@ export function charge(
     s.notice = `${reason}: cần trả ${amount}. Bán nhà hoặc thế chấp để trả nợ.`;
     return;
   }
-  s.players[payer]!.cash -= amount;
-  if (creditor !== null) s.players[creditor]!.cash += amount;
+  transferMoney(s, payer, creditor, amount, reason);
   s.notice = `${reason}: −${amount}`;
 }
 
@@ -96,7 +117,7 @@ export function move(
   multiplier = 1,
 ) {
   const p = s.players[seat]!;
-  if (collectStart && target <= p.position) p.cash += 200;
+  if (collectStart && target <= p.position) transferMoney(s, null, seat, 200, 'Qua Xuất phát');
   p.position = target;
   land(s, seat, roll, multiplier);
 }
@@ -110,7 +131,7 @@ function draw(s: State, deck: Deck, seat: number, roll: number) {
   if (card.kind !== 'free') s[deck].push(id);
   switch (card.kind) {
     case 'cash':
-      if (card.amount > 0) s.players[seat]!.cash += card.amount;
+      if (card.amount > 0) transferMoney(s, null, seat, card.amount, card.text);
       else charge(s, seat, -card.amount, null, card.text);
       break;
     case 'move':
@@ -174,10 +195,11 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
   const p = s.players[seat]!;
   p.bankrupt = true;
   for (const [i, deed] of s.properties.entries()) {
-    if (deed.owner === seat && deed.houses) p.cash += (deed.houses * BOARD[i]!.houseCost!) / 2;
+    if (deed.owner === seat && deed.houses)
+      transferMoney(s, null, seat, (deed.houses * BOARD[i]!.houseCost!) / 2, 'Thanh lý nhà');
   }
   if (creditor !== null && !s.players[creditor]!.bankrupt) {
-    s.players[creditor]!.cash += p.cash;
+    transferMoney(s, seat, creditor, p.cash, 'Thanh lý tài sản');
     s.players[creditor]!.freeCards.push(...p.freeCards);
   } else {
     for (const deck of p.freeCards) {
@@ -185,7 +207,7 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
       s[deck].push(cards.findIndex((card) => card.kind === 'free'));
     }
   }
-  p.cash = 0;
+  if (p.cash > 0) transferMoney(s, seat, null, p.cash, 'Thanh lý tài sản');
   for (const deed of s.properties) {
     if (deed.owner !== seat) continue;
     deed.owner = creditor;

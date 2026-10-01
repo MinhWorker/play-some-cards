@@ -20,7 +20,30 @@
       "transparent": true,
       "maxSize": 180,
       "prompt": "One single smooth glossy pearl-white wooden game pawn viewed from a high three-quarter angle so its round base and rounded head are clear. Compact upright silhouette, premium tactile 3D cartoon render, warm studio lighting, subtle contact shadow attached to the base, genuinely transparent background. Intended for color tinting. No other objects, text or logo."
+    },
+    "hud-money": {
+      "transparent": true,
+      "maxSize": 192,
+      "prompt": "Flat colorful cartoon HUD icon: two rounded green banknotes, thick dark-green outline, one large cream-yellow circle and two short side strokes. Front view. No text, gradients, highlights, texture or fine ornament. Clear at 23 by 19 design units. Transparent background."
+    },
+    "hud-location": {
+      "transparent": true,
+      "maxSize": 128,
+      "prompt": "Flat colorful cartoon HUD icon: a rounded coral-red map pin with a thick dark-red outline and one large cream center circle. Front view. No text, gradients, highlights, texture or fine ornament. Clear at 17 by 23 design units. Transparent background."
+    },
+    "tile-button": {
+      "transparent": true,
+      "maxSize": 320,
+      "preserveCanvas": true,
+      "prompt": "Compact flat cartoon paper-panel button, rounded corners, warm gold outline, small lower edge, blank center. Cream secondary face. No ornament, text or icons. Designed as a 320 by 112 nine-slice with 24 pixel corner slices. Editable SVG source tile-button.svg; render with render_hud_icons.py."
+    },
+    "tile-button-primary": {
+      "transparent": true,
+      "maxSize": 320,
+      "preserveCanvas": true,
+      "prompt": "Compact flat cartoon paper-panel button, rounded corners, warm gold outline, small lower edge, blank center. Warm yellow primary face. No ornament, text or icons. Designed as a 320 by 112 nine-slice with 24 pixel corner slices. Editable SVG source tile-button-primary.svg; render with render_hud_icons.py."
     }
   },
-  "$tileSymbolStyle": "Tile symbols are procedural, single-ink vector silhouettes in sources/render_board_25d.py. Keep them flat, simple and legible; do not generate a colorful pictorial atlas."
+  "$tileSymbolStyle": "Tile symbols are procedural, single-ink vector silhouettes in sources/render_board_25d.py. Keep them flat, simple and legible; do not generate a colorful pictorial atlas.",
+  "$hudIconStyle": "The HUD icons are drawn in hud-money.svg and hud-location.svg. Run python3 games/co-ty-phu-classic/sources/render_hud_icons.py to render PNG originals and app-ready WebP files."
 }

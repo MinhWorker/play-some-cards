@@ -46,41 +46,88 @@ trả lời đề nghị trao đổi. Có thể chơi một mình với máy ho�
 Chạm một ô để xem giá, chủ đất, tiền thuê và tình trạng nhà ở cột bên phải. Nút giữa bàn thay
 đổi theo bước hiện tại: gieo xúc xắc, mua/đấu giá, trả nợ hoặc kết thúc lượt. Khi chọn đất của
 mình, cột bên phải hiện các nút xây, bán nhà, thế chấp và chuộc. Nút **Trao đổi** cho phép lần
-lượt chọn người nhận, đất hai bên và số tiền; mỗi lần chạm vào một mục sẽ chuyển lựa chọn.
+lượt chọn người nhận rồi chọn đất trong hai cột **Bạn đưa** và **Bạn nhận**. Nút mũi tên
+đổi người hoặc đất; mỗi cột có số tiền và nút **−50 / +50**, giới hạn theo số dư của bên đó.
+Nút **Gửi đề nghị** xác nhận lựa chọn; người nhận đọc được đất và tiền của cả hai bên trước
+khi chấp nhận.
 
 Mặt bàn dùng biểu tượng đơn sắc thay cho tên ô: nhà phố, ga, điện, nước, thẻ, thuế, tù và các ô
 đặc biệt có dấu hiệu riêng. Biểu tượng và dải màu bộ đất được in theo phối cảnh trên mặt bàn;
 game vẽ huy hiệu chủ đất, nhà, khách sạn và dấu thế chấp theo đúng mặt phẳng của từng ô. Sau khi
-quân cờ đáp xuống, tên địa điểm được giữ trong bảng giữa bàn trước khi hiện quyết định hoặc lượt
+quân cờ đáp xuống, tên địa điểm được giữ ở giữa mặt bàn trước khi hiện quyết định hoặc lượt
 gieo tiếp của máy. Bảng bên phải tự chuyển sang ô vừa đến; chạm ô bất kỳ để đọc chi tiết ô khác.
+Ô có thao tác hợp lệ cho bạn có huy hiệu dấu cộng vàng; viền vàng sáng hơn khi xem thẻ nổi; nút trong thẻ chỉ hiện
+những thao tác đang đủ điều kiện về tiền, bộ màu, số nhà và nguồn cung ngân hàng.
+Chạm ô trên điện thoại hoặc bấm ô trên máy tính mở thẻ nổi ghi tên, giá, chủ,
+tiền thuê và tình trạng nhà; thẻ tự đóng sau 2 giây, đồng thời tắt viền lựa chọn của ô.
+Viền theo quân đang đứng vẫn được giữ.
 
 Chơi thử cùng nhiều ghế tại `/?play=co-ty-phu-classic&players=2` khi chạy `npm run dev`.
 
 ## Hình
 
 Ảnh đảo, mặt bàn trống và nút gốc được tạo bằng imagegen theo `sources/prompts.json`. Script Blender
-thu nhỏ lòng bàn, mở rộng mặt các ô, in biểu tượng vector một màu cùng dải màu bộ đất lên đó, rồi
+thu nhỏ lòng bàn, dựng lại mặt bàn đủ 40 ô (chín ô thường giữa hai góc trên mỗi cạnh), in biểu tượng
+vector một màu cùng dải màu bộ đất lên đó, rồi
 kết xuất với mô hình gỗ thành `assets/board-25d.webp`. Dấu sở hữu, nhà, khách sạn và thế chấp được
-vẽ lúc chơi theo tọa độ ô do cùng camera Blender tạo ra.
+vẽ lúc chơi theo tọa độ ô do cùng camera Blender tạo ra. Viền ô, biểu tượng và tọa độ quân cờ
+dùng chung bố cục để các dấu trên bàn luôn khớp với mặt ô.
 Chạy `blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py` từ gốc repo
 để tạo lại ảnh và tọa độ 40 ô. File Blender chỉnh sửa được nằm ở
 `.blender/co-ty-phu-classic-board.blend` (đã bỏ qua trong git). Tên địa danh, số tiền và dấu sở
 hữu do game vẽ theo trạng thái server để mọi người thấy cùng một ván.
 
-HUD đặt thông tin người chơi ở bên trái, ô đang xem và các thao tác đất ở bên phải. Lượt chơi,
-thông báo và nút hành động nằm trong lòng bàn cờ; ô đặc biệt dùng thẻ thông tin ngắn để không
+Biểu tượng tiền và địa điểm trong HUD dùng hình SVG phẳng, màu tươi và nét viền dày để rõ
+khi thu nhỏ. Chạy `python3 games/co-ty-phu-classic/sources/render_hud_icons.py` để tạo lại ảnh PNG
+và WebP từ các file SVG trong `sources/`.
+
+HUD dùng thẻ giấy nền kín và viền vàng; quân cờ trong thẻ là hình phẳng cùng màu với quân
+trên bàn, kèm biểu tượng tiền và địa điểm đặt thấp hơn tên để cân đối thẻ. HUD đặt thông tin
+người chơi ở bên trái, ô đang xem ở bên phải. Nút mua, đấu giá, trả giá và quản lý đất
+nằm ngay trong thẻ thông tin ô; gieo xúc xắc và thao tác lượt chơi nằm ở góc dưới phải.
+Thẻ dùng khoảng cách gọn và xếp dọc các nút thao tác theo toàn bộ chiều rộng thẻ. Nút trong thẻ dùng
+ảnh `tile-button` nền giấy và `tile-button-primary` vàng nhạt, có 9-slice riêng; nút lượt
+chơi giữ ảnh vàng gốc và luôn xếp dọc. Khung hẹp đưa chồng nút lượt vào phần trống phía
+dưới trong lòng bàn khi thẻ thông tin cần thêm chiều cao. Bảng soạn trao đổi vẫn nằm giữa bàn. Lượt chơi và
+thông báo được vẽ trực tiếp lên lòng bàn cờ bằng chữ màu mực dịu, hơi dẹt theo
+góc nhìn mặt bàn, tự xuống dòng và không có nền hay khung; ô đặc biệt dùng thẻ thông tin ngắn để không
 che bớt nền. Bảng tự co theo khung ngang của điện thoại, máy tính bảng và máy tính.
 
 Đầu ván, bảng giữa bàn cờ giới thiệu tất cả người chơi bằng màu quân và số tiền khởi điểm;
-chọn **Vào ván** để bắt đầu xem lượt chơi.
+tiền tăng từ 0 đến 1.500 trong 1,8 giây, giữ lại một giây rồi bảng tự đóng. Mọi ghế dùng
+chung thời điểm bắt đầu ván, không cần bấm nút. Danh sách trên cùng được ẩn vì các thẻ
+bên trái đã hiển thị tên, quân cờ, tiền và địa điểm của từng người.
+Mỗi ô có lớp hiệu ứng riêng qua `BoardTileEffect`: viền màu theo quân đang đứng,
+xung sáng khi quân đáp xuống, lựa chọn và hiệu ứng mua/xây/thế chấp. Nhiều quân cùng ô
+chia sẻ viền theo màu từng người; hiệu ứng bám đúng tứ giác chiếu từ Blender khi đổi cỡ màn hình.
 Mỗi lượt đi theo nhịp **gieo xúc xắc → đọc kết quả → nhảy từng ô → hiện kết quả đến ô và
-lựa chọn**. Hai xúc xắc đứng yên thêm 1,5 giây trước khi quân bắt đầu đi; mỗi ô có một cú
-nhảy và một nhịp đáp riêng. Trong lúc đó, các nút hành động tạm ẩn.
+lựa chọn**. Hai xúc xắc đứng yên thêm 0,7 giây trước khi quân bắt đầu đi; mỗi ô có một cú
+nhảy và một nhịp đáp riêng; thời gian đi là 0,26 giây mỗi ô và tối đa 2 giây cho cả đường đi; khi kết thúc di chuyển, quân giữ nguyên kích thước, không phóng lớn. Trong lúc đó, các nút hành động tạm ẩn.
 
 Hai khối xúc xắc xoay trong không gian 3D rồi dừng đúng mặt mà server đã gieo. Bốn quân cờ
 men màu đỏ, xanh dương, xanh lá và vàng được dựng, chiếu sáng và kết xuất riêng trong Blender.
 File chỉnh sửa nằm ở `.blender/co-ty-phu-classic-pawns.blend`; chạy
 `blender -b -t 4 --python games/co-ty-phu-classic/sources/render_pawns.py` để tạo lại ảnh.
-Quân cờ nhảy theo góc nhìn của bàn, tiền nổi lên khi số dư đổi, và ô đất sáng lên khi mua
+Quân cờ nhảy theo góc nhìn của bàn. Mỗi khoản tiền được server ghi rõ bên trả, bên nhận,
+số tiền và lý do; ngân hàng có biểu tượng riêng trong lòng bàn. Hình tiền bay giữa các bên,
+số dư đếm trong 0,75 giây rồi giữ kết quả 0,5 giây trước thao tác kế tiếp. Thưởng qua Xuất phát
+và tiền thuê trong cùng lượt vẫn được hiển thị riêng theo thứ tự. Tiền chưa đủ để trả nợ
+không được hiển thị như đã chuyển. Khi vào lại ván, số dư hiện ngay, không phát lại giao dịch cũ.
+Dấu sở hữu và số nhà chỉ cập nhật sau toàn bộ giao dịch của cùng một sự kiện, theo
+hàng đợi bản chụp trạng thái riêng. Khi hơn hai lượt gieo đang chờ, trình bày tạm tăng
+đến 3× để theo kịp ván, vẫn giữ thứ tự các lượt và giao dịch. Máy có nhịp cân nhắc 0,5 giây
+trước khi mua, đấu giá hoặc xây. Kết quả đến ô được giữ 0,85 giây ở tốc độ 1×.
+Các nút tạm ẩn trong nhịp chuyển tiền, và ô đất sáng lên khi mua
 hoặc xây. Game có nhạc nền cùng hiệu ứng riêng cho lượt, thẻ, đấu giá, xây dựng, nhà tù và kết
 thúc ván. Danh sách âm thanh nằm trong [tài liệu âm thanh](../../docs/co-ty-phu-classic-audio.md).
+
+Nút **1× / 2×** trên mép gỗ dưới bàn đổi tốc độ trình bày riêng của người xem: xúc xắc,
+di chuyển, giao dịch tiền và các quãng giữ kết quả. Đổi giữa một hiệu ứng không làm nhảy
+số tiền hoặc quân cờ. Luật, kết quả server, bảng tiền đầu ván và thẻ nổi 2 giây giữ nguyên.
+
+Thẻ ô bên phải ưu tiên tiền thuê hiện tại và giá cấp nhà tiếp theo. **Bảng thuê** mở riêng
+bảng đủ các cấp nhà, ga hoặc điện/nước; **Đóng** quay về bàn. Giá thuê đất trống phản ánh
+trọn bộ màu, và thẻ đất thế chấp ghi tiền thuê bằng 0.
+`BoardTileEffect` có các lớp độc lập cho lựa chọn, quân đứng, quân đang đi, chủ đất, nhà,
+thế chấp, huy hiệu thao tác, hiệu ứng sự kiện và viền nhấn nhóm màu. `setLayerVisible`
+điều khiển từng lớp mà không tắt các lớp khác; dải nhóm màu gốc vẫn thuộc ảnh bàn Blender.

@@ -21,6 +21,7 @@ import {
   move,
   next,
   ownsGroup,
+  transferMoney,
 } from './rules.js';
 
 type Action<T = Record<string, never>> = EventContext<State, T, Options>;
@@ -69,6 +70,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
 
   onStart({ players, rng }: StartContext<Options>): State {
     return {
+      moneySequence: 0,
+      transfers: [],
       players: players.map(() => ({
         cash: 1500,
         position: 0,
@@ -129,7 +132,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
           p.jailRolls = 0;
           return s;
         }
-        p.cash -= 50;
+        transferMoney(s, s.turn, null, 50, 'Tiền bảo lãnh ra tù');
       }
       p.jailed = false;
       p.jailRolls = 0;
@@ -156,7 +159,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const square = s.pending!;
     const price = BOARD[square]!.price!;
     if (s.players[s.turn]!.cash < price) ctx.reject('Không đủ tiền mua đất');
-    s.players[s.turn]!.cash -= price;
+    transferMoney(s, s.turn, null, price, `Mua ${BOARD[square]!.name}`);
     s.properties[square]!.owner = s.turn;
     s.pending = null;
     s.phase = s.after;
@@ -181,7 +184,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (remaining.length === 0 || (remaining.length === 1 && auction.leader === remaining[0])) {
       if (auction.leader !== null) {
         const winner = auction.leader;
-        s.players[winner]!.cash -= auction.highest;
+        transferMoney(s, winner, null, auction.highest, `Đấu giá ${BOARD[auction.square]!.name}`);
         s.properties[auction.square]!.owner = winner;
         s.notice = `${BOARD[auction.square]!.name} bán giá ${auction.highest}.`;
       } else s.notice = 'Không ai mua đất trong phiên đấu giá.';
@@ -250,7 +253,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       ctx.reject('Ngân hàng đã hết nhà hoặc khách sạn');
     const price = cell.houseCost!;
     if (s.players[ctx.player.seat]!.cash < price) ctx.reject('Không đủ tiền xây');
-    s.players[ctx.player.seat]!.cash -= price;
+    transferMoney(s, ctx.player.seat, null, price, `Xây ở ${cell.name}`);
     deed.houses++;
     s.notice = `Xây ở ${cell.name}: ${deed.houses === 5 ? 'khách sạn' : `${deed.houses} nhà`}.`;
     return s;
@@ -267,7 +270,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (deed.houses === 5 && bankHouses(s) < 4)
       ctx.reject('Ngân hàng thiếu 4 nhà để đổi khách sạn');
     deed.houses--;
-    s.players[ctx.player.seat]!.cash += cell.houseCost! / 2;
+    transferMoney(s, null, ctx.player.seat, cell.houseCost! / 2, `Bán nhà ở ${cell.name}`);
     s.notice = `Bán nhà ở ${cell.name}, nhận ${cell.houseCost! / 2}.`;
     return s;
   }
@@ -279,7 +282,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (buildingsInGroup(s, square)) ctx.reject('Phải bán hết nhà trong bộ màu trước');
     s.properties[square]!.mortgaged = true;
     const amount = BOARD[square]!.price! / 2;
-    s.players[ctx.player.seat]!.cash += amount;
+    transferMoney(s, null, ctx.player.seat, amount, `Thế chấp ${BOARD[square]!.name}`);
     s.notice = `Thế chấp ${BOARD[square]!.name}, nhận ${amount}.`;
     return s;
   }
@@ -290,7 +293,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (!s.properties[square]!.mortgaged) ctx.reject('Đất này chưa thế chấp');
     const amount = Math.ceil((BOARD[square]!.price! / 2) * 1.1);
     if (s.players[ctx.player.seat]!.cash < amount) ctx.reject('Không đủ tiền chuộc đất');
-    s.players[ctx.player.seat]!.cash -= amount;
+    transferMoney(s, ctx.player.seat, null, amount, `Chuộc ${BOARD[square]!.name}`);
     s.properties[square]!.mortgaged = false;
     s.notice = `Chuộc ${BOARD[square]!.name} với ${amount}.`;
     return s;
@@ -301,8 +304,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const s = copy(ctx.state);
     const debt = s.debt!;
     if (s.players[s.turn]!.cash < debt.amount) ctx.reject('Bạn chưa đủ tiền trả nợ');
-    s.players[s.turn]!.cash -= debt.amount;
-    if (debt.creditor !== null) s.players[debt.creditor]!.cash += debt.amount;
+    transferMoney(s, s.turn, debt.creditor, debt.amount, debt.reason);
     s.debt = null;
     s.phase = debt.after;
     s.notice = `Đã trả ${debt.amount}: ${debt.reason}.`;
@@ -326,7 +328,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const p = s.players[s.turn]!;
     if (!p.jailed) ctx.reject('Bạn không ở trong tù');
     if (p.cash < 50) ctx.reject('Không đủ tiền bảo lãnh');
-    p.cash -= 50;
+    transferMoney(s, s.turn, null, 50, 'Tiền bảo lãnh ra tù');
     p.jailed = false;
     p.jailRolls = 0;
     s.notice = 'Đã trả 50 để ra tù.';
@@ -401,8 +403,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       ctx.reject('Tài sản trao đổi đã thay đổi');
     if (t.give !== null) s.properties[t.give]!.owner = t.to;
     if (t.take !== null) s.properties[t.take]!.owner = t.from;
-    s.players[t.from]!.cash += t.takeCash - t.giveCash;
-    s.players[t.to]!.cash += t.giveCash - t.takeCash;
+    transferMoney(s, t.from, t.to, t.giveCash, 'Trao đổi tài sản');
+    transferMoney(s, t.to, t.from, t.takeCash, 'Trao đổi tài sản');
     s.trade = null;
     s.phase = t.resume;
     s.notice = 'Hai bên đã trao đổi tài sản.';

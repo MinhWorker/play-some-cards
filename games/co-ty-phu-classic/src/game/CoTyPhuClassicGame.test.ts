@@ -38,7 +38,36 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'buy');
     expect(game.state.properties[3]?.owner).toBe(0);
     expect(game.state.players[0]!.cash).toBe(cash - 60);
+    expect(game.view(null)).toMatchObject({
+      transfers: [{ from: 0, to: null, amount: 60, reason: 'Mua Hàng Đào' }],
+    });
     expect(game.error('b', 'end-turn')).toBe('Chưa tới lượt bạn');
+  });
+
+  it('records Start salary and rent separately in their actual order', () => {
+    const game = at(1);
+    game.state.properties[1]!.owner = 1;
+    game.send('a', 'roll');
+    expect(game.view(null)).toMatchObject({
+      transfers: [
+        { from: null, to: 0, amount: 200, reason: 'Qua Xuất phát' },
+        { from: 0, to: 1, amount: 2, reason: 'Tiền thuê Phố Cổ' },
+      ],
+    });
+    expect(game.state.players.map((p) => p.cash)).toEqual([1698, 1502]);
+    const sequence = game.state.moneySequence;
+    game.send('a', 'end-turn');
+    expect(game.state.transfers).toEqual([]);
+    expect(game.state.moneySequence).toBeGreaterThan(sequence);
+  });
+
+  it('does not animate an unpaid debt as money already transferred', () => {
+    const game = at(37);
+    game.state.properties[37]!.owner = 1;
+    game.state.players[0]!.cash = 1;
+    game.send('a', 'roll');
+    expect(game.state.phase).toBe('debt');
+    expect(game.state.transfers).toEqual([]);
   });
 
   it('auctions a declined street to the highest bidder', () => {

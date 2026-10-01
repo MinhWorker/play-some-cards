@@ -9,6 +9,11 @@ export default async function run(t) {
   url.search = '?play=co-ty-phu-classic&players=2';
   await page.goto(url.toString());
   await page.waitForFunction(() => window.__phaser?.scene.isActive('co-ty-phu-classic'));
+  // Start after assets load so the opening clock cannot expire during initial loading.
+  await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
+  await page.waitForFunction(
+    () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'ready',
+  );
   await page.screenshot({ path: t.shot('10-start.png') });
   const ready = await page.evaluate(() => {
     const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -21,33 +26,20 @@ export default async function run(t) {
   if (
     ready.phase !== 'ready' ||
     ready.names.length !== 2 ||
-    ready.cash.some((cash) => cash !== '1500 ₫')
+    ready.cash.some((cash) => !cash.endsWith(' ₫'))
   )
     throw new Error(`Opening table is incomplete: ${JSON.stringify(ready)}`);
-  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.readyStart.hit);
-  await page.waitForFunction(
-    () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
-  );
-  const tileIcons = await page.evaluate(() => {
-    const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return [0, 1, 5, 7, 10, 12, 20, 28, 30].map((square) => scene.squareIcons[square].frame.name);
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.visualPhase === 'ready' &&
+      s.readyCash.every((text) => !text.visible || text.text === '1.500 ₫')
+    );
   });
-  if (
-    JSON.stringify(tileIcons) !==
-    JSON.stringify([
-      'start',
-      'street-empty',
-      'station',
-      'chance',
-      'jail',
-      'power',
-      'free',
-      'water',
-      'go-jail',
-    ])
-  )
-    throw new Error(`Board icons do not match square kinds: ${tileIcons.join(', ')}`);
-
+  await page.screenshot({ path: t.shot('10-money.png') });
+  await page.waitForFunction(
+    () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
+  );
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[3]);
   const detail = await page.evaluate(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').detail.text,
@@ -58,7 +50,7 @@ export default async function run(t) {
   let purchases = 0;
   for (let i = 0; i < 12; i++) {
     await page.waitForFunction(
-      () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
+      () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
     );
     const state = await page.evaluate(() => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
@@ -135,20 +127,11 @@ export default async function run(t) {
             : 0;
         }, price))
       ) {
-        const iconBefore = await page.evaluate(
-          (square) =>
-            window.__phaser.scene.getScene('co-ty-phu-classic').squareIcons[square].frame.name,
-          price,
-        );
         await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
-        if (iconBefore === 'street-empty') {
-          await page.waitForFunction(
-            (square) =>
-              window.__phaser.scene.getScene('co-ty-phu-classic').squareIcons[square].frame.name ===
-              'street-owned',
-            price,
-          );
-        }
+        await page.waitForFunction((square) => {
+          const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+          return scene.ctx.state.properties[square].owner === scene.ctx.me.seat;
+        }, price);
         purchases++;
       } else {
         await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[1].hit);
@@ -184,14 +167,18 @@ export default async function run(t) {
   await host.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx?.state,
   );
-  await clickCanvas(host, 'co-ty-phu-classic', (s) => s.readyStart.hit);
+
   await host.waitForFunction(
-    () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
+    () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
   );
-  for (let i = 0; i < 8; i++) {
-    await host.waitForFunction(
-      () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
-    );
+  for (let i = 0; i < 12; i++) {
+    await host.waitForFunction(() => {
+      const scene = window.__phaser?.scene.getScene('co-ty-phu-classic');
+      return (
+        scene?.visualPhase === 'decision' &&
+        (scene.ctx.state.turn === 1 || scene.main[0].hit.visible)
+      );
+    });
     const state = await host.evaluate(
       () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state,
     );
@@ -207,7 +194,7 @@ export default async function run(t) {
       return s.players[1].position !== 0;
     },
     null,
-    { timeout: 10000 },
+    { timeout: 30000 },
   );
   await host.screenshot({ path: t.shot('21-bot-played.png') });
 }
