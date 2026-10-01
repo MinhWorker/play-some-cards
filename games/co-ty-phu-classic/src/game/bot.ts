@@ -1,6 +1,6 @@
 import type { GameEvent } from '@psc/sdk';
-import { BOARD, groupSquares, isDeed, type State } from './model.js';
-import { bankHotels, bankHouses, buildingsInGroup, ownsGroup } from './rules.js';
+import { BOARD, isDeed, type State } from './model.js';
+import { bankHotels, bankHouses } from './rules.js';
 
 const event = (name: string, payload?: object): GameEvent => ({ event: name, payload });
 const deedValue = (square: number | null) =>
@@ -29,11 +29,6 @@ export function botMove(state: State, seat: number): GameEvent | null {
 
   if (state.turn !== seat) return null;
   if (state.phase === 'event') return event('confirm-event');
-  if (state.phase === 'roll') {
-    if (me.jailed && me.freeCards.length) return event('use-card');
-    if (me.jailed && me.jailRolls >= 2 && me.cash >= 50) return event('pay-bail');
-    return event('roll');
-  }
   if (state.phase === 'buy') {
     const price = BOARD[state.pending ?? -1]?.price ?? Infinity;
     return event(me.cash >= price + 100 ? 'buy' : 'auction');
@@ -41,12 +36,10 @@ export function botMove(state: State, seat: number): GameEvent | null {
   if (state.phase === 'debt') {
     if (me.cash >= state.debt!.amount) return event('pay-debt');
     const house = state.properties.findIndex(
-      (property, square) =>
+      (property) =>
         property.owner === seat &&
         property.houses > 0 &&
-        (property.houses !== 5 || bankHouses(state) >= 4) &&
-        property.houses ===
-          Math.max(...groupSquares(BOARD[square]!.group!).map((i) => state.properties[i]!.houses)),
+        (property.houses !== 5 || bankHouses(state) >= 4),
     );
     if (house >= 0) return event('sell-house', { square: house });
     const mortgage = state.properties.findIndex(
@@ -54,22 +47,25 @@ export function botMove(state: State, seat: number): GameEvent | null {
         property.owner === seat &&
         !property.mortgaged &&
         isDeed(BOARD[square]!) &&
-        !buildingsInGroup(state, square),
+        !property.houses,
     );
     return mortgage >= 0 ? event('mortgage', { square: mortgage }) : event('bankrupt');
   }
-  if (state.phase === 'end') {
+  if (state.phase === 'end' || state.phase === 'roll') {
     const build = state.properties.findIndex((property, square) => {
       const cell = BOARD[square]!;
       if (property.owner !== seat || cell.kind !== 'street' || property.houses >= 5) return false;
-      if (!ownsGroup(state, seat, square) || me.cash < cell.houseCost! + 200) return false;
-      const group = groupSquares(cell.group!);
-      if (group.some((i) => state.properties[i]!.mortgaged)) return false;
-      if (property.houses > Math.min(...group.map((i) => state.properties[i]!.houses)))
-        return false;
+      if (state.buildable !== square || me.position !== square || property.mortgaged) return false;
+      if (me.cash < cell.houseCost! + 200) return false;
       return property.houses === 4 ? bankHotels(state) > 0 : bankHouses(state) > 0;
     });
-    return build >= 0 ? event('build', { square: build }) : event('end-turn');
+    if (build >= 0) return event('build', { square: build });
+    if (state.phase === 'end') return event('end-turn');
+  }
+  if (state.phase === 'roll') {
+    if (me.jailed && me.freeCards.length) return event('use-card');
+    if (me.jailed && me.jailRolls >= 2 && me.cash >= 50) return event('pay-bail');
+    return event('roll');
   }
   return null;
 }

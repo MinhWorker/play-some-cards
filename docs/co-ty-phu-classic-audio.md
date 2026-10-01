@@ -14,7 +14,8 @@ nhạc nền và tiếng thắng là MP3.
 | `tycoon-rent.wav` | Người chơi trả tiền |
 | `tycoon-buy.wav` | Mua hoặc chuộc đất |
 | `tycoon-auction.wav` | Chốt đấu giá thành công |
-| `tycoon-card.wav` | Rút thẻ Cơ hội hoặc Cộng đồng |
+| `tycoon-card.wav` | Bắt đầu trượt lá Cơ hội/Cộng đồng; dùng lại `tien-len-deal.wav` |
+| `tycoon-card-flip.wav` | Lật lá trước khi công bố; dùng lại `tien-len-card-play.wav` |
 | `tycoon-build.wav` | Xây nhà hoặc khách sạn |
 | `tycoon-jail.wav` | Bị đưa vào tù |
 | `tycoon-bankrupt.wav` | Phá sản |
@@ -41,3 +42,8 @@ sang WAV và cân mức âm. Nhạc thắng lấy từ `games/tien-len/assets/ti
 không chồng thêm tiếng trả tiền.
 
 Tiếng xúc xắc ở bộ nghe thử dùng các va chạm khô, ngắn, hạn chế cộng hưởng rỗng.
+
+Âm thanh rút thẻ hiện tại được sao chép từ hai asset game Tiến Lên nêu trên, giữ nguyên
+chất lượng và thời lượng. `make_audio.py` vẫn lưu cách dựng tiếng rút thẻ cũ; chạy lại script
+đó sẽ ghi đè tiếng đã chọn. Hai tiếng rút/lật đi cùng flow rút thẻ, không phát lại khi
+vào lại ván hoặc đổi người xem.

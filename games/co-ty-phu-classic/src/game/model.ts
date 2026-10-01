@@ -104,6 +104,8 @@ export interface State {
   doubles: number;
   dice: [number, number] | null;
   pending: number | null;
+  /** One building upgrade after landing on an already-owned street. */
+  buildable: number | null;
   auction: Auction | null;
   debt: Debt | null;
   trade: Trade | null;

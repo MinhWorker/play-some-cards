@@ -23,7 +23,15 @@ export class RentTable {
     this.hide();
   }
 
-  show(cell: Square, deed: Property, doubleRent: boolean, x: number, y: number, width: number) {
+  show(
+    cell: Square,
+    deed: Property,
+    doubleRent: boolean,
+    x: number,
+    y: number,
+    width: number,
+    ownerJailed = false,
+  ) {
     this.hide();
     this.visible = true;
     const schedule =
@@ -57,6 +65,7 @@ export class RentTable {
       });
     });
     if (deed.mortgaged) this.title.setText(`${cell.name} · Thế chấp`);
+    else if (ownerJailed) this.title.setText(`${cell.name} · Chủ ở tù, thuê 0 ₫`);
     return { height };
   }
 

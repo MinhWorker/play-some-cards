@@ -5,6 +5,9 @@ cuối cùng sau khi các đối thủ phá sản thắng ván. Đây là phiên
 riêng của Chơi chút bài; [luật Monopoly Classic của Hasbro](https://instructions.hasbro.com/en-ca/instruction/monopoly-game)
 là tham khảo cho cấu trúc bàn và các cơ chế chính.
 
+[Bản luật hiện tại đầy đủ](../../docs/co-ty-phu-classic-rules.md) ghi các điều kiện theo code,
+bảng giá mua/thuê, hai bộ thẻ và chỗ để ghi đề xuất sửa luật.
+
 ## Một lượt chơi
 
 - Mỗi người bắt đầu ở **Xuất phát** với 1.500. Gieo hai xúc xắc và đi theo chiều tăng số ô.
@@ -14,7 +17,8 @@ là tham khảo cho cấu trúc bàn và các cơ chế chính.
   người tăng giá hoặc bỏ cuộc. Người trả cao nhất trong số tiền mình có nhận đất.
 - Đến đất người khác sở hữu và chưa thế chấp, trả tiền thuê. Đất cùng màu được một người sở hữu
   trọn bộ thì tiền thuê đất trống gấp đôi. Ga thu 25, 50, 100 hoặc 200 theo số ga cùng chủ;
-  điện/nước thu 4 hoặc 10 lần tổng xúc xắc theo số đơn vị cùng chủ.
+  điện/nước thu 4 hoặc 10 lần tổng xúc xắc theo số đơn vị cùng chủ. Chủ đang bị giam trong
+  tù thì đất, ga và điện/nước của họ không thu tiền thuê cho tới khi ra tù.
 - **Cơ hội** và **Cộng đồng** rút thẻ theo thứ tự bí mật. Thuế nộp cho ngân hàng. **Bãi đỗ miễn
   phí** không phát tiền. Ô **Vào tù** chuyển thẳng tới nhà tù, không nhận 200.
 - Trong tù, bạn có thể trả 50, dùng thẻ ra tù, hoặc thử gieo đôi. Nếu lần thứ ba vẫn không ra
@@ -30,13 +34,14 @@ Nếu người chơi thật không báo sẵn sàng trong 30 giây, server vẫn
 
 ## Tài sản và nợ
 
-- Khi sở hữu đủ bộ màu chưa thế chấp, có thể xây đều trên các ô của bộ. Mỗi ô tối đa bốn nhà,
-  sau đó là một khách sạn. Ngân hàng có 32 nhà và 12 khách sạn. Bán nhà thu lại nửa giá xây,
-  cũng phải bán đều.
-- Thế chấp đất sau khi đã bán hết nhà trong bộ màu: nhận nửa giá đất, không thu tiền thuê trong
+- Quay lại đúng đất phố đã sở hữu và chưa thế chấp thì được xây **một cấp mỗi lần ghé**,
+  trong lượt mình. Lần vừa mua chưa được xây. Không cần đủ bộ màu hoặc xây/bán đều.
+  Mỗi ô tối đa bốn nhà, sau đó là một khách sạn. Ngân hàng có 32 nhà và 12 khách sạn.
+  Bán từng cấp công trình thu lại nửa giá xây.
+- Thế chấp đất sau khi đã bán hết nhà trên chính ô đó: nhận nửa giá đất, không thu tiền thuê trong
   lúc thế chấp. Chuộc với 110% tiền đã vay.
 - Người đang có lượt có thể đề nghị trao đổi đất và tiền với một người khác. Hai bên phải xác
-  nhận; đất có nhà trong bộ màu không được đổi.
+  nhận; ô đất đem đổi phải không còn công trình.
 - Khi thiếu tiền trả, ván tạm ở bước **Nợ**. Bán nhà hoặc thế chấp để đủ tiền rồi chọn **Trả**;
   nếu không thể trả, chọn **Phá sản**. Tài sản của người phá sản chuyển cho chủ nợ; nếu nợ ngân
   hàng hoặc rời ván, đất trở lại ngân hàng. Nhà được thanh lý theo nửa giá xây. Thẻ ra tù được
@@ -94,7 +99,7 @@ và WebP từ các file SVG trong `sources/`.
 HUD dùng thẻ giấy nền kín và viền vàng; quân cờ trong thẻ là hình phẳng cùng màu với quân
 trên bàn, kèm biểu tượng tiền và địa điểm đặt thấp hơn tên để cân đối thẻ. HUD đặt thông tin
 người chơi ở bên trái, ô đang xem ở bên phải. Nút mua, đấu giá, trả giá và quản lý đất
-nằm ngay trong thẻ thông tin ô; gieo xúc xắc và thao tác lượt chơi nằm ở góc dưới phải.
+nằm ngay trong thẻ thông tin ô; nút gieo xúc xắc nằm giữa bàn, các thao tác lượt khác ở góc dưới phải.
 Thẻ dùng khoảng cách gọn và xếp dọc các nút thao tác theo toàn bộ chiều rộng thẻ. Nút trong thẻ dùng
 ảnh `tile-button` nền giấy và `tile-button-primary` vàng nhạt, có 9-slice riêng; nút lượt
 chơi giữ ảnh vàng gốc và luôn xếp dọc. Khung hẹp đưa chồng nút lượt vào phần trống phía
@@ -158,3 +163,18 @@ tự dịch xuống theo chiều cao tên, tránh chồng chữ.
 Mỗi giao dịch tiền hiện số **+ xanh / − đỏ** phía trên quân của người nhận/trả.
 Số bay lên và mờ dần trong 1,25 giây ở 1×, cùng nhịp thay đổi số dư. Hai quân
 đứng cùng ô vẫn có hai số tách nhau; hiệu ứng được xoá khi bắt đầu ván mới.
+
+## Nút gieo, giá trên bàn và nhịp rút thẻ
+
+Nút **Gieo xúc xắc** nằm giữa bàn, dùng asset `roll-button` vàng cam với hai viên xúc xắc,
+vùng chạm cao 88 đơn vị. Giá mua được in trực tiếp sát mép ngoài của các ô tài sản theo
+phối cảnh mặt bàn; hai ô thuế ghi mức phải nộp.
+
+Bộ Cơ hội và Cộng đồng được vẽ bằng nét mực xanh đậm trên mặt bàn. Khi tới ô rút thẻ, lá trên
+trượt khỏi bộ, xoay/lật rồi mờ đi trước khi thông báo hiện lên. Tiếng chia và đánh bài được
+dùng lại từ Tiến Lên. Nhịp này thuộc `runtime`, theo tốc độ 1×/2× và bị hủy khi đổi ván,
+đổi cỡ màn hình hoặc nhận bản chụp mới. Nội dung thẻ và nút Xác nhận chỉ hiện sau hoạt ảnh;
+thời hạn của server bắt đầu khi giao diện báo sẵn sàng.
+
+Asset nút có bản SVG tại `sources/roll-button.svg`. Tạo lại bằng
+`python3 games/co-ty-phu-classic/sources/render_hud_icons.py roll-button`.

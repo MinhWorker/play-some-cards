@@ -43,6 +43,21 @@ export default async function run(t) {
   await page.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
   );
+  const rollControl = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const button = s.main[0];
+    return {
+      center: Math.abs(button.hit.x - (s.geometry.left + s.geometry.size / 2)) < 1,
+      asset: button.box.texture.key.endsWith('roll-button'),
+      height: button.hit.height,
+      prices:
+        s.boardPrices.image.texture.getSourceImage().width ===
+        s.boardImage.texture.getSourceImage().width,
+    };
+  });
+  if (!rollControl.center || !rollControl.asset || rollControl.height < 88 || !rollControl.prices)
+    throw new Error(`Board prices/roll control are incomplete: ${JSON.stringify(rollControl)}`);
+  await page.screenshot({ path: t.shot('10-roll-button.png') });
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[3]);
   const detail = await page.evaluate(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').detail.text,
@@ -165,8 +180,11 @@ export default async function run(t) {
   const eventsPage = await t.page(PHONE);
   await eventsPage.goto(url.toString());
   await eventsPage.waitForFunction(() => window.__phaser?.scene.isActive('co-ty-phu-classic'));
-  const restartEvents = async () =>
-    eventsPage.evaluate(() => {
+  const restartEvents = async () => {
+    const epoch = await eventsPage.evaluate(
+      () => window.__phaser.scene.getScene('co-ty-phu-classic').runtime.inspect().epoch,
+    );
+    await eventsPage.evaluate(() => {
       const original = Math.random;
       try {
         Math.random = () => 0;
@@ -177,6 +195,12 @@ export default async function run(t) {
         Math.random = original;
       }
     });
+    await eventsPage.waitForFunction(
+      (epoch) =>
+        window.__phaser.scene.getScene('co-ty-phu-classic').runtime.inspect().epoch > epoch,
+      epoch,
+    );
+  };
   const rollEvent = async () =>
     eventsPage.evaluate(() => {
       const original = Math.random;
@@ -192,6 +216,37 @@ export default async function run(t) {
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
   );
   await rollEvent();
+  await eventsPage.waitForFunction(
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'result',
+  );
+  if (
+    await eventsPage.evaluate(
+      () =>
+        window.__phaser.scene.getScene('co-ty-phu-classic').ctx.timer?.event !== 'prepare-event',
+    )
+  )
+    throw new Error('Card countdown started during the dice result, before the draw');
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.visualPhase === 'drawing' && s.eventDeck.active === 'chest';
+  });
+  const drawing = await eventsPage.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return {
+      hidden: s.main.every((b) => !b.hit.visible),
+      text: s.notice.text,
+      timer: s.ctx.timer?.event,
+      cash: s.ctx.state.players[0].cash,
+    };
+  });
+  if (!drawing.hidden || drawing.text || drawing.timer !== 'prepare-event' || drawing.cash !== 1500)
+    throw new Error(`Card leaked before its draw finished: ${JSON.stringify(drawing)}`);
+  await eventsPage.screenshot({ path: t.shot('13-card-draw.png') });
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.visualPhase === 'reveal' && s.notice.text.includes('200');
+  });
+  await eventsPage.screenshot({ path: t.shot('13-card-reveal.png') });
   await eventsPage.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return (
@@ -316,6 +371,119 @@ export default async function run(t) {
   if (jailSounds.length !== 1 || !jailSounds[0].moving || jailSounds[0].phase !== 'moving')
     throw new Error(`Jail sound did not match pawn flight: ${JSON.stringify(jailSounds)}`);
   await eventsPage.close();
+
+  // Return to a purchased street through real rolls: one upgrade without the rest of its color.
+  const rulesPage = await t.page(PHONE);
+  await rulesPage.goto(url.toString());
+  await rulesPage.waitForFunction(
+    () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx?.state,
+  );
+  await rulesPage.getByRole('button', { name: 'Ván mới', exact: true }).click();
+  const idle = () =>
+    rulesPage.waitForFunction(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        s.visualPhase === 'decision' &&
+        !s.activeMoney &&
+        !s.runtime.busy('turn') &&
+        !s.runtime.busy('money')
+      );
+    });
+  const takeTurn = async (seat, dice, end = true) => {
+    await idle();
+    await rulesPage.getByRole('button', { name: `Người ${seat + 1}`, exact: true }).click();
+    const sequence = await rulesPage.evaluate(
+      ({ dice }) => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        const seq = s.ctx.state.moneySequence;
+        const original = Math.random;
+        let i = 0;
+        try {
+          Math.random = () => (dice[i++] - 0.5) / 6;
+          s.main[0].action();
+        } finally {
+          Math.random = original;
+        }
+        return seq;
+      },
+      { dice },
+    );
+    await rulesPage.waitForFunction(
+      (seq) => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.moneySequence > seq,
+      sequence,
+    );
+    await idle();
+    if (
+      await rulesPage.evaluate(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'buy',
+      )
+    ) {
+      await clickCanvas(rulesPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
+      await rulesPage.waitForFunction(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase !== 'buy',
+      );
+      await idle();
+    }
+    if (end) {
+      await clickCanvas(rulesPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
+      await rulesPage.waitForFunction(
+        (seat) => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.turn !== seat,
+        seat,
+      );
+    }
+  };
+  await takeTurn(0, [1, 2], false);
+  if (
+    await rulesPage.evaluate(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        s.ctx.state.buildable !== null ||
+        s.tools.some((b) => b.hit.visible && b.text.text.startsWith('Xây'))
+      );
+    })
+  )
+    throw new Error('A newly purchased street can be built on the same visit');
+  await clickCanvas(rulesPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
+  await rulesPage.waitForFunction(
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.turn === 1,
+  );
+  for (const [index, dice] of [
+    [5, 6],
+    [5, 6],
+    [4, 6],
+    [3, 5],
+  ].entries()) {
+    await takeTurn(1, [1, 2]);
+    await takeTurn(0, dice, index < 3);
+  }
+  const returnVisit = await rulesPage.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return {
+      position: s.ctx.state.players[0].position,
+      buildable: s.ctx.state.buildable,
+      otherOwner: s.ctx.state.properties[1].owner,
+    };
+  });
+  if (returnVisit.position !== 3 || returnVisit.buildable !== 3 || returnVisit.otherOwner !== null)
+    throw new Error(`Return visit failed: ${JSON.stringify(returnVisit)}`);
+  await clickCanvas(
+    rulesPage,
+    'co-ty-phu-classic',
+    (s) => s.tools.find((b) => b.hit.visible && b.text.text === 'Xây nhà').hit,
+  );
+  await rulesPage.waitForFunction(
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.properties[3].houses === 1,
+  );
+  await idle();
+  if (
+    await rulesPage.evaluate(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return s.tools.some((b) => b.hit.visible && b.text.text.startsWith('Xây'));
+    })
+  )
+    throw new Error('The return visit permits a second upgrade');
+  await rulesPage.screenshot({ path: t.shot('17-return-build.png') });
+  await rulesPage.close();
 
   const host = await t.page(DESKTOP);
   await signUp(t, host, 'TyPhu');

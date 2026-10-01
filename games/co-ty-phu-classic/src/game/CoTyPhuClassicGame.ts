@@ -12,7 +12,6 @@ import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
 import {
   BOARD,
-  groupSquares,
   isDeed,
   type Options,
   SPECIAL_EVENT_TIMEOUT,
@@ -24,12 +23,10 @@ import {
   bankHotels,
   bankHouses,
   bankrupt,
-  buildingsInGroup,
   charge,
   copy,
   move,
   next,
-  ownsGroup,
   resolveSpecialEvent,
   transferMoney,
 } from './rules.js';
@@ -101,6 +98,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       doubles: 0,
       dice: null,
       pending: null,
+      buildable: null,
       auction: null,
       debt: null,
       trade: null,
@@ -126,6 +124,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const s = copy(ctx.state);
     const seat = s.turn;
     const p = s.players[seat]!;
+    s.buildable = null;
     const a = 1 + Math.floor(ctx.rng() * 6);
     const b = 1 + Math.floor(ctx.rng() * 6);
     s.dice = [a, b];
@@ -297,28 +296,29 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     s.doubles = 0;
     s.dice = null;
     s.lastCard = null;
+    s.buildable = null;
     s.notice = `Tới lượt ${ctx.players[s.turn]!.name}.`;
     return s;
   }
 
   onBuild(ctx: Action<{ square: number }>): State {
+    requireTurn(ctx);
     const square = requireOwner(ctx);
     const s = copy(ctx.state);
     const cell = BOARD[square]!;
     const deed = s.properties[square]!;
-    if (cell.kind !== 'street' || !ownsGroup(s, ctx.player.seat, square))
-      ctx.reject('Cần sở hữu đủ bộ màu để xây');
-    const group = groupSquares(cell.group!);
-    if (group.some((i) => s.properties[i]!.mortgaged)) ctx.reject('Bộ màu còn đất thế chấp');
+    if (cell.kind !== 'street') ctx.reject('Chỉ xây trên đất phố');
+    if (s.buildable !== square || s.players[s.turn]!.position !== square)
+      ctx.reject('Chỉ xây một lần khi quay lại ô đất của mình');
+    if (deed.mortgaged) ctx.reject('Đất này đang thế chấp');
     if (deed.houses >= 5) ctx.reject('Đã có khách sạn');
-    if (deed.houses > Math.min(...group.map((i) => s.properties[i]!.houses)))
-      ctx.reject('Phải xây đều trên cả bộ màu');
     if (deed.houses === 4 ? bankHotels(s) < 1 : bankHouses(s) < 1)
       ctx.reject('Ngân hàng đã hết nhà hoặc khách sạn');
     const price = cell.houseCost!;
     if (s.players[ctx.player.seat]!.cash < price) ctx.reject('Không đủ tiền xây');
     transferMoney(s, ctx.player.seat, null, price, `Xây ở ${cell.name}`);
     deed.houses++;
+    s.buildable = null;
     s.notice = `Xây ở ${cell.name}: ${deed.houses === 5 ? 'khách sạn' : `${deed.houses} nhà`}.`;
     return s;
   }
@@ -329,8 +329,6 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const deed = s.properties[square]!;
     const cell = BOARD[square]!;
     if (!deed.houses) ctx.reject('Ô này không có nhà');
-    if (Math.max(...groupSquares(cell.group!).map((i) => s.properties[i]!.houses)) > deed.houses)
-      ctx.reject('Phải bán đều trên cả bộ màu');
     if (deed.houses === 5 && bankHouses(s) < 4)
       ctx.reject('Ngân hàng thiếu 4 nhà để đổi khách sạn');
     deed.houses--;
@@ -343,7 +341,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const square = requireOwner(ctx);
     const s = copy(ctx.state);
     if (s.properties[square]!.mortgaged) ctx.reject('Đất này đã thế chấp');
-    if (buildingsInGroup(s, square)) ctx.reject('Phải bán hết nhà trong bộ màu trước');
+    if (s.properties[square]!.houses) ctx.reject('Phải bán hết nhà trên ô đất này trước');
     s.properties[square]!.mortgaged = true;
     const amount = BOARD[square]!.price! / 2;
     transferMoney(s, null, ctx.player.seat, amount, `Thế chấp ${BOARD[square]!.name}`);
@@ -431,10 +429,10 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (take !== -1 && ctx.state.properties[take]?.owner !== to)
       ctx.reject('Người kia không sở hữu đất yêu cầu');
     if (
-      (give !== -1 && buildingsInGroup(ctx.state, give)) ||
-      (take !== -1 && buildingsInGroup(ctx.state, take))
+      (give !== -1 && ctx.state.properties[give]!.houses > 0) ||
+      (take !== -1 && ctx.state.properties[take]!.houses > 0)
     )
-      ctx.reject('Phải bán hết nhà trong bộ màu trước khi đổi đất');
+      ctx.reject('Phải bán hết nhà trên ô đất trước khi đổi');
     if (
       ctx.state.players[ctx.player.seat]!.cash < giveCash ||
       ctx.state.players[to]!.cash < takeCash

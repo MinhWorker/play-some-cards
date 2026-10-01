@@ -1,5 +1,5 @@
-import { BOARD, groupSquares, isDeed, type View } from '../game/model.js';
-import { bankHotels, bankHouses, buildingsInGroup, ownsGroup } from '../game/rules.js';
+import { BOARD, isDeed, type View } from '../game/model.js';
+import { bankHotels, bankHouses } from '../game/rules.js';
 
 export type TileAction = { label: string; event: string; payload: Record<string, number> };
 
@@ -35,13 +35,11 @@ export function tileActions(state: View, seat: number | null, square: number): T
   const actions: TileAction[] = [];
   const payload = { square };
   const cash = state.players[seat]!.cash;
-  const buildings = groupSquares(cell.group ?? 'nau').map((i) => state.properties[i]!.houses);
-  if (cell.kind === 'street' && ownsGroup(state, seat, square)) {
-    const mortgaged = groupSquares(cell.group!).some((i) => state.properties[i]!.mortgaged);
+  if (cell.kind === 'street' && state.turn === seat && state.buildable === square) {
     if (
-      !mortgaged &&
+      !deed.mortgaged &&
       deed.houses < 5 &&
-      deed.houses === Math.min(...buildings) &&
+      state.players[seat]!.position === square &&
       cash >= cell.houseCost! &&
       (deed.houses === 4 ? bankHotels(state) > 0 : bankHouses(state) > 0)
     )
@@ -51,17 +49,12 @@ export function tileActions(state: View, seat: number | null, square: number): T
         payload,
       });
   }
-  if (
-    cell.kind === 'street' &&
-    deed.houses > 0 &&
-    deed.houses === Math.max(...buildings) &&
-    (deed.houses !== 5 || bankHouses(state) >= 4)
-  )
+  if (cell.kind === 'street' && deed.houses > 0 && (deed.houses !== 5 || bankHouses(state) >= 4))
     actions.push({ label: 'Bán nhà', event: 'sell-house', payload });
   if (deed.mortgaged) {
     if (cash >= Math.ceil((cell.price! / 2) * 1.1))
       actions.push({ label: 'Chuộc đất', event: 'redeem', payload });
-  } else if (!buildingsInGroup(state, square)) {
+  } else if (!deed.houses) {
     actions.push({ label: 'Thế chấp', event: 'mortgage', payload });
   }
   return actions;

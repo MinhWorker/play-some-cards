@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="192" viewBox="0 0 640 192">
+  <title>Golden roll button with two ivory dice</title>
+  <defs>
+    <linearGradient id="gold" x2="0" y2="1">
+      <stop stop-color="#ffe17b"/>
+      <stop offset=".55" stop-color="#ffc849"/>
+      <stop offset="1" stop-color="#efa129"/>
+    </linearGradient>
+  </defs>
+  <rect x="7" y="19" width="626" height="167" rx="46" fill="#714025"/>
+  <rect x="7" y="6" width="626" height="169" rx="46" fill="url(#gold)" stroke="#ad6327" stroke-width="8"/>
+  <rect x="18" y="16" width="604" height="146" rx="36" fill="none" stroke="#fff0ab" stroke-width="5"/>
+  <g transform="translate(87 86) rotate(-15)">
+    <rect x="-38" y="-40" width="76" height="76" rx="16" fill="#fdf8db" stroke="#435e65" stroke-width="6"/>
+    <g fill="#435e65"><circle cx="-17" cy="-19" r="6"/><circle cx="17" cy="-19" r="6"/><circle cx="0" cy="-2" r="6"/><circle cx="-17" cy="15" r="6"/><circle cx="17" cy="15" r="6"/></g>
+  </g>
+  <g transform="translate(145 106) rotate(13)">
+    <rect x="-30" y="-31" width="60" height="60" rx="13" fill="#fdf8db" stroke="#435e65" stroke-width="5"/>
+    <g fill="#435e65"><circle cx="-13" cy="-14" r="5"/><circle cx="13" cy="12" r="5"/></g>
+  </g>
+</svg>
