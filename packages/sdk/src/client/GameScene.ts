@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { followFrame } from './followFrame.js';
 import { currentFrame, FRAME, type Frame } from './frame.js';
 import { clientHost } from './host.js';
+import { SceneRuntime } from './runtime/SceneRuntime.js';
 import { hudScale, titleStyle } from './text.js';
 
 /** A scene's frame (a function, not a method: games name their own methods freely). */
@@ -30,6 +31,13 @@ export interface Button {
  */
 export abstract class GameScene extends Phaser.Scene {
   private warned = new Set<string>();
+  /** Presentation flows and resources for this scene run. Available before game hooks. */
+  runtime!: SceneRuntime;
+
+  protected startRuntime(lifetime: 'round' | 'scene') {
+    this.runtime?.dispose();
+    this.runtime = new SceneRuntime(this, clientHost(), lifetime);
+  }
 
   /**
    * The frame in design units (720 tall, 960 to 1600 wide; docs/ui-guide.md): lay the scene out
@@ -74,7 +82,7 @@ export abstract class GameScene extends Phaser.Scene {
     }
     // `music*` files are the game's background music: the app streams one, no need to preload.
     for (const [name, url] of Object.entries(sounds)) {
-      if (!name.startsWith('music')) clientHost().loadSound(url);
+      if (!name.startsWith('music')) void clientHost().prepareSound(url);
     }
   }
 
@@ -103,12 +111,15 @@ export abstract class GameScene extends Phaser.Scene {
 
   /**
    * An animation of every frame of atlas `assets/<name>` (image + same-name .json), in the
-   * frames' name order (`hop-01`, `hop-02`…). Made once; returns its key for `sprite.play()`:
-   *   this.sprite('horse-hop').play(this.anim('horse-hop', { frameRate: 30 }))
+   * frames' name order (`hop-01`, `hop-02`…). Made once; await it inside a runtime flow:
+   *   await fx.animate(horse, this.anim('horse-hop', { frameRate: 30 }))
    */
   protected anim(name: string, { frameRate = 24, repeat = 0 } = {}) {
     const key = this.texture(name);
-    if (!this.anims.exists(key)) {
+    const existing = this.anims.get(key);
+    if (existing && (existing.frameRate !== frameRate || existing.repeat !== repeat))
+      throw new Error(`Conflicting animation configuration: ${key}`);
+    if (!existing) {
       const frames = this.textures
         .get(key)
         .getFrameNames()
@@ -130,10 +141,7 @@ export abstract class GameScene extends Phaser.Scene {
   }
 
   private playAsset(name: string, options: { duck?: boolean }): Promise<void> {
-    const url = clientHost().assets(this.gameId).sounds[name];
-    if (url) return clientHost().playSound(url, options);
-    this.warnOnce(`No sound "${name}" in games/${this.gameId}/assets/`);
-    return Promise.resolve();
+    return this.runtime.audio.play(name, options).started.then(() => {});
   }
 
   // ── Ready-made objects (Phaser objects underneath; use Phaser for anything else) ────────

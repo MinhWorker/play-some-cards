@@ -173,9 +173,11 @@ export function Sandbox({ gameId, players: count }: Props) {
 
   const stage = useMemo<Stage>(() => {
     if (!game || state === undefined) return { mode: 'sky' };
-    if (settingUp) return { mode: 'setup', gameId, current: options };
+    if (settingUp)
+      return { mode: 'setup', instance: `sandbox:${gameId}`, gameId, current: options };
     return {
       mode: 'board',
+      instance: `sandbox:${gameId}`,
       gameId,
       view: game.getView(state, me, room),
       me: me ?? 'spectator',

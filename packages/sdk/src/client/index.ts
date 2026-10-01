@@ -12,6 +12,7 @@ export * from './GameView.js';
 export * from './host.js';
 export * from './props.js';
 export * from './RoomSetupScene.js';
+export * from './SceneDirector.js';
 export * from './text.js';
 
 /** What `games/<id>/src/client.ts` exports by default. */
@@ -57,3 +58,15 @@ export interface LeaveConfirm {
 export function defineClient(client: GameClient): GameClient {
   return client;
 }
+
+export type { FlowContext, FlowHandle, FlowResult, RunOptions } from './runtime/Flow.js';
+export type {
+  PreparedSound,
+  SceneAudio,
+  SoundFinish,
+  SoundHandle,
+  SoundOptions,
+  SoundStart,
+} from './runtime/SceneAudio.js';
+export type { FiniteTweenConfig } from './runtime/SceneMotion.js';
+export { SceneRuntime } from './runtime/SceneRuntime.js';

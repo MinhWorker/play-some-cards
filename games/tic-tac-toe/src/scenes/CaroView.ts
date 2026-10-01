@@ -106,12 +106,17 @@ export class CaroView extends GameView<State, Options> {
     const mark = at(ctx.state.board, p);
     if (!mark || this.pieces.has(keyOf(p))) return;
     const piece = this.addPiece(p, mark).setScale(0);
-    this.tweens.add({
-      targets: piece,
-      scale: this.pieceScale(piece),
-      duration: 260,
-      ease: 'Back.easeOut',
-    });
+    this.runtime.run(
+      async (fx) => {
+        await fx.tween({
+          targets: piece,
+          scale: this.pieceScale(piece),
+          duration: 260,
+          ease: 'Back.easeOut',
+        });
+      },
+      { lane: 'placement' },
+    );
     this.sfx(MARKS[mark].sound);
   }
 
@@ -142,6 +147,10 @@ export class CaroView extends GameView<State, Options> {
     this.layoutNext(ctx);
   }
 
+  protected onResync() {
+    this.clearBoard();
+  }
+
   protected onEnd(ctx: Ctx) {
     this.sfx(winningLine(ctx.state.board) ? 'caro-line-complete' : 'caro-draw');
   }
@@ -154,7 +163,7 @@ export class CaroView extends GameView<State, Options> {
    */
   private clearBoard() {
     for (const piece of this.pieces.values()) {
-      this.tweens.killTweensOf(piece);
+      this.runtime.cancelTweens(piece);
       piece.destroy();
     }
     this.pieces.clear();
@@ -187,7 +196,7 @@ export class CaroView extends GameView<State, Options> {
         p.y - (old.top + old.rows - 1),
       );
       tile.setAlpha(0);
-      this.tweens.add({
+      this.runtime.tween({
         targets: tile,
         alpha: 1,
         duration: 320,
@@ -239,19 +248,25 @@ export class CaroView extends GameView<State, Options> {
     const scale = size / Math.max(board.cols, board.rows) / UNIT;
     const x = cx - (board.left + (board.cols - 1) / 2) * UNIT * scale;
     const y = cy - (board.top + (board.rows - 1) / 2) * UNIT * scale;
-    this.tweens.killTweensOf(this.layer);
+    this.runtime.cancelLane('camera');
+    this.runtime.cancelTweens(this.layer);
     if (!smooth) {
       this.layer.setPosition(x, y).setScale(scale);
       return;
     }
-    this.tweens.add({
-      targets: this.layer,
-      x,
-      y,
-      scale,
-      duration: GLIDE_MS,
-      ease: 'Cubic.easeInOut',
-    });
+    this.runtime.run(
+      async (fx) => {
+        await fx.tween({
+          targets: this.layer,
+          x,
+          y,
+          scale,
+          duration: GLIDE_MS,
+          ease: 'Cubic.easeInOut',
+        });
+      },
+      { lane: 'camera', policy: 'replace' },
+    );
   }
 
   /** Gold under the winning line, light under the mouse when you may play there, else plain. */
@@ -291,17 +306,21 @@ export class CaroView extends GameView<State, Options> {
       if (!piece) return;
       piece.enableFilters().filters?.internal.addGlow(0xffe066, 6, 0, 1.2, false, 12, 12);
       const scale = this.pieceScale(piece);
-      this.tweens.killTweensOf(piece);
+      this.runtime.cancelTweens(piece);
       piece.setScale(scale);
-      this.tweens.add({
-        targets: piece,
-        scale: scale * 1.18,
-        duration: 420,
-        delay: 300 + i * 120,
-        ease: 'Sine.easeInOut',
-        yoyo: true,
-        repeat: -1,
-      });
+      this.runtime.run(
+        async (fx) => {
+          await fx.frame(() => !this.runtime.busy('placement'));
+          await fx.wait(300 + i * 120);
+          let elapsed = 0;
+          await fx.frame((delta) => {
+            elapsed += delta;
+            piece.setScale(scale * (1 + 0.18 * (0.5 - 0.5 * Math.cos((elapsed * Math.PI) / 420))));
+            return !piece.active;
+          });
+        },
+        { lane: `result:${keyOf(p)}`, policy: 'replace' },
+      );
     });
   }
 

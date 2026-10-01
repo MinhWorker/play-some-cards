@@ -1,3 +1,4 @@
+import type { FlowHandle, GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 
 export type TilePoint = { x: number; y: number };
@@ -20,9 +21,9 @@ export class BoardTileEffect {
   private movingColors: number[] = [];
   private occupants: number[] = [];
   private pulseColor = 0xffd568;
-  private pulseTween: Phaser.Tweens.Tween | null = null;
+  private pulseTween: FlowHandle | null = null;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(private readonly scene: GameScene) {
     this.group = scene.add.graphics().setDepth(0.2);
     this.buildings = scene.add.graphics().setDepth(0.5);
     this.mortgage = scene.add.graphics().setDepth(0.6);
@@ -147,11 +148,11 @@ export class BoardTileEffect {
   }
 
   pulse(color: number, duration = 650) {
-    this.pulseTween?.stop();
+    this.pulseTween?.cancel();
     this.pulseColor = color;
     this.drawPulse();
     this.flash.setAlpha(1);
-    this.pulseTween = this.scene.tweens.add({
+    this.pulseTween = (this.scene as GameScene).runtime.tween({
       targets: this.flash,
       alpha: 0,
       duration,
@@ -163,7 +164,7 @@ export class BoardTileEffect {
   }
 
   reset() {
-    this.pulseTween?.stop();
+    this.pulseTween?.cancel();
     this.pulseTween = null;
     this.flash.setAlpha(0);
     this.selected = false;

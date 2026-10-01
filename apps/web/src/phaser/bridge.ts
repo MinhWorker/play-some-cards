@@ -8,8 +8,8 @@ export type Stage =
   | { mode: 'hub' }
   | { mode: 'sky' }
   /** The game's own settings screen (`setup` in its client.ts); `current` when editing a room. */
-  | { mode: 'setup'; gameId: string; current: unknown }
-  | ({ mode: 'board'; gameId: string } & BoardProps);
+  | { mode: 'setup'; instance: string; gameId: string; current: unknown }
+  | ({ mode: 'board'; instance: string; gameId: string } & BoardProps);
 
 /**
  * The only link between React and Phaser.

@@ -3,7 +3,7 @@
  * side by side to be compared, each with a label (name, hand, points). MauBinhView flies the
  * cards in and out; this only draws the panel and the labels and works out where things go.
  */
-import { titleStyle } from '@psc/sdk/client';
+import { type GameScene, titleStyle } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { CARD_RATIO } from './Card.js';
 
@@ -32,7 +32,7 @@ export class Arena {
   private panel: Phaser.GameObjects.Graphics;
   private labels: Phaser.GameObjects.Text[] = [];
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(private readonly scene: GameScene) {
     this.panel = scene.add.graphics().setDepth(740).setVisible(false);
   }
 
@@ -77,12 +77,17 @@ export class Arena {
     this.panel.lineStyle(3, 0xf2c14e, 0.9).strokeRoundedRect(area.x, area.y, area.w, area.h, r);
     if (this.panel.visible) return;
     this.panel.setVisible(true).setAlpha(0);
-    this.scene.tweens.add({ targets: this.panel, alpha: 1, duration: 200 });
+    (this.scene as GameScene).runtime.tween({ targets: this.panel, alpha: 1, duration: 200 });
   }
 
-  hide() {
+  hide(animate = true) {
     this.clearLabels();
-    this.scene.tweens.add({
+    if (!animate) {
+      (this.scene as GameScene).runtime.cancelTweens(this.panel);
+      this.panel.setVisible(false).setAlpha(0);
+      return;
+    }
+    (this.scene as GameScene).runtime.tween({
       targets: this.panel,
       alpha: 0,
       duration: 200,
@@ -98,7 +103,12 @@ export class Arena {
       .setOrigin(0.5)
       .setDepth(790)
       .setScale(0.3);
-    this.scene.tweens.add({ targets: label, scale: 1, duration: 180, ease: 'Back.easeOut' });
+    (this.scene as GameScene).runtime.tween({
+      targets: label,
+      scale: 1,
+      duration: 180,
+      ease: 'Back.easeOut',
+    });
     this.labels.push(label);
   }
 
