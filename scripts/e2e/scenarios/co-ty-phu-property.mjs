@@ -37,6 +37,7 @@ export default async function run(t) {
       [13, 1, 2],
       [23, 2, 3],
       [34, 3, 5],
+      [9, 3, 4],
     ])
       game.state.properties[square] = { owner, houses, mortgaged: false };
     const props = {
@@ -77,10 +78,28 @@ export default async function run(t) {
     s.propertyGame = game;
     s.propertyProps = props;
   }, root);
-  await page.waitForFunction(() => {
-    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return !s.runtime.busy('money') && s.shownProperties[3].houses === 1;
-  });
+  try {
+    await page.waitForFunction(
+      () => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        return !s.runtime.busy('money') && s.shownProperties[3].houses === 1;
+      },
+      null,
+      { timeout: 60000 },
+    );
+  } catch (error) {
+    await page.screenshot({ path: t.shot('build-timeout.png') });
+    const state = await page.evaluate(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return {
+        phase: s.visualPhase,
+        properties: s.shownProperties[3],
+        payments: s.payments,
+        flow: s.runtime.inspect(),
+      };
+    });
+    throw new Error(`${error.message}\nPresentation: ${JSON.stringify(state)}`);
+  }
   await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     s.selected = 3;
@@ -90,22 +109,25 @@ export default async function run(t) {
     if (s.propertySounds.join() !== 'tycoon-buy')
       throw new Error('Building did not play purchase sound only');
     const colors = [0xdf6554, 0x5793d3, 0x60af72, 0xe6be52];
-    for (const [square, owner] of [
-      [3, 0],
-      [13, 1],
-      [23, 2],
-      [34, 3],
+    for (const [square, owner, houses] of [
+      [3, 0, 1],
+      [13, 1, 2],
+      [23, 2, 3],
+      [34, 3, 5],
+      [9, 3, 4],
     ]) {
-      const decals = s.decals.filter((d) => d.square === square);
+      const decals = s.decals
+        .filter((d) => d.square === square)
+        .slice(-(houses === 5 ? 2 : houses * 2));
+      const fills = decals.filter((d) => d.color !== 0xfff4db);
       if (
         !decals.length ||
-        decals.some(
-          (d) => d.color !== colors[owner] || d.coords.some((p) => p[1] <= 0.5 || p[1] >= 0.82),
-        )
+        decals.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945)) ||
+        fills.length !== (houses === 5 ? 1 : houses) ||
+        fills.some((d) => d.color !== (houses === 5 ? 0x64676b : colors[owner])) ||
+        fills.some((d) => d.coords.length !== (houses === 5 ? 4 : 24))
       )
-        throw new Error(
-          `Building marks overlap price/badge or use the wrong owner color on ${square}`,
-        );
+        throw new Error(`House dots or gray hotel bars do not fit their color band on ${square}`);
     }
   });
   await page.screenshot({ path: t.shot('houses-rent-desktop.png') });

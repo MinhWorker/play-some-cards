@@ -680,30 +680,39 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.fillSurfacePolygon(
         square,
         [
-          [0.3, 0.66],
-          [0.5, 0.79],
-          [0.7, 0.7],
-          [0.7, 0.66],
-          [0.3, 0.66],
+          [0.16, 0.851],
+          [0.84, 0.851],
+          [0.84, 0.922],
+          [0.16, 0.922],
         ],
-        color,
+        0xfff4db,
+        layers.buildings,
+      );
+      this.fillSurfacePolygon(
+        square,
+        [
+          [0.185, 0.864],
+          [0.815, 0.864],
+          [0.815, 0.909],
+          [0.185, 0.909],
+        ],
+        0x64676b,
         layers.buildings,
       );
     } else if (BOARD[square]!.kind === 'street') {
       for (let house = 0; house < deed.houses; house++) {
-        const center = 0.245 + house * 0.17;
-        this.fillSurfacePolygon(
-          square,
-          [
-            [center - 0.065, 0.7],
-            [center, 0.78],
-            [center + 0.065, 0.7],
-            [center + 0.065, 0.66],
-            [center - 0.065, 0.66],
-          ],
-          color,
-          layers.buildings,
-        );
+        const center = 0.5 + (house - (deed.houses - 1) / 2) * 0.185;
+        // Project circles onto the board plane, with a light rim separating owner/group hues.
+        for (const [radius, fill] of [
+          [0.081, 0xfff4db],
+          [0.06, color],
+        ]) {
+          const coords: [number, number][] = Array.from({ length: 24 }, (_, step) => {
+            const angle = (step * Math.PI * 2) / 24;
+            return [center + Math.cos(angle) * radius!, 0.886 + Math.sin(angle) * radius! * 0.55];
+          });
+          this.fillSurfacePolygon(square, coords, fill!, layers.buildings);
+        }
       }
     }
 
@@ -962,10 +971,10 @@ export class CoTyPhuClassicView extends GameView<View> {
         start: 'Qua hoặc dừng: +200 ₫',
         tax: `Nộp thuế: ${cell.tax} ₫`,
         chance: 'Rút thẻ Cơ hội',
-        chest: 'Rút thẻ Cộng đồng',
+        chest: 'Rút thẻ Khí vận',
         jail: 'Dừng ở đây: ghé thăm.\nBị đưa vào đây: ở tù.',
         'go-jail': 'Bị đưa vào tù, không nhận thưởng Xuất phát.',
-        free: 'Nghỉ chân, không thu phí.',
+        airport: 'Bay đến một ô ngẫu nhiên; xử lý ô đến như bình thường.',
       };
       lines.push(descriptions[cell.kind] ?? '');
     }
@@ -1023,13 +1032,14 @@ export class CoTyPhuClassicView extends GameView<View> {
     to: number,
     jailing: boolean,
     onStartReached?: () => void,
+    flying = false,
   ) {
     const token = this.tokens[seat]!;
     const shadow = this.pawnShadows[seat]!;
     const name = this.tokenNames[seat]!;
     const start = { x: token.x, y: token.y };
     const steps = (to - from + BOARD.length) % BOARD.length;
-    const direct = jailing && to === 10;
+    const direct = (jailing && to === 10) || flying;
     const points = direct
       ? [this.pawnSpot(to, seat)]
       : Array.from({ length: steps }, (_, i) => this.pawnSpot((from + i + 1) % BOARD.length, seat));
@@ -1045,12 +1055,12 @@ export class CoTyPhuClassicView extends GameView<View> {
       onStartReached?.();
     };
     this.moving[seat] = true;
-    if (direct) await fx.sound('tycoon-jail');
+    if (jailing && to === 10) await fx.sound('tycoon-jail');
     fx.checkpoint();
     await fx.tween({
       targets: cursor,
       value: points.length,
-      duration: direct ? 500 : Math.min(2000, points.length * 260),
+      duration: flying ? 800 : direct ? 500 : Math.min(2000, points.length * 260),
       ease: 'Linear',
       onUpdate: () => {
         const step = Math.min(points.length - 1, Math.floor(cursor.value));
@@ -1058,7 +1068,9 @@ export class CoTyPhuClassicView extends GameView<View> {
         const after = points[step]!;
         // Each square has its own jump and a short planted beat before the next one.
         const fraction = Math.min(1, (cursor.value - step) / 0.76);
-        const hop = Math.sin(fraction * Math.PI) * Math.min(16, this.geometry.tile * 0.28);
+        const hop =
+          Math.sin(fraction * Math.PI) *
+          Math.min(flying ? 64 : 16, this.geometry.tile * (flying ? 1.1 : 0.28));
         const x = before.x + (after.x - before.x) * fraction;
         const groundY = before.y + (after.y - before.y) * fraction;
         const perspective = this.pawnScale(groundY);
@@ -1077,8 +1089,11 @@ export class CoTyPhuClassicView extends GameView<View> {
           .setAlpha(1 - hop * 0.035);
         name.setPosition(x, groundY - hop - this.geometry.tile * 1.22 * perspective);
         if (step !== sounded) {
+          // A slow frame or faster playback can skip several squares at once.
+          for (let crossed = Math.max(1, sounded + 1); !direct && crossed <= step; crossed++) {
+            if ((from + crossed) % BOARD.length === 0) reachStart();
+          }
           sounded = step;
-          if (!direct && step > 0 && (from + step) % BOARD.length === 0) reachStart();
           this.setMovingTile(seat, direct ? to : (from + step + 1) % BOARD.length);
           this.sfx('tycoon-step');
         }
@@ -1122,9 +1137,17 @@ export class CoTyPhuClassicView extends GameView<View> {
         fx.checkpoint();
         this.visualPhase = 'moving';
         this.onState(this.ctx);
-        await this.travelPawn(fx, beat.seat, beat.from, beat.to, beat.jailing, () => {
-          this.passedStart = Math.max(this.passedStart, beat.id);
-        });
+        await this.travelPawn(
+          fx,
+          beat.seat,
+          beat.from,
+          beat.to,
+          beat.jailing,
+          () => {
+            this.passedStart = Math.max(this.passedStart, beat.id);
+          },
+          !dice && BOARD[beat.from]!.kind === 'airport',
+        );
         fx.checkpoint();
         this.shownPositions[beat.seat] = beat.to;
         this.selected = null;
@@ -1676,7 +1699,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         : this.visualPhase === 'drawing' || this.visualPhase === 'reveal'
           ? this.landingBeat?.deck === 'chance'
             ? 'Cơ hội'
-            : 'Cộng đồng'
+            : 'Khí vận'
           : this.visualPhase === 'thinking'
             ? `${players[this.activeMoney?.beat.transfer.from ?? state.turn]?.name ?? ''} đang cân nhắc`
             : result
@@ -1703,8 +1726,8 @@ export class CoTyPhuClassicView extends GameView<View> {
         event.kind === 'card'
           ? event.deck === 'chance'
             ? 'Cơ hội'
-            : 'Cộng đồng'
-          : event.kind === 'tax'
+            : 'Khí vận'
+          : event.kind === 'tax' || event.kind === 'airport'
             ? BOARD[state.players[state.turn]!.position]!.name
             : 'Bị đưa vào tù!',
       );

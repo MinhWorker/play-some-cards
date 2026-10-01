@@ -1,7 +1,8 @@
 # Luật hiện tại — Cờ tỷ phú Classic
 
-Bản ghi này mô tả code hiện tại sau cập nhật luật và giao diện ngày 01/10/2026:
-chủ đất ở tù không thu tiền thuê; xây một cấp khi quay lại đất phố đã sở hữu.
+Bản ghi này mô tả code hiện tại sau cập nhật luật và giao diện ngày 02/10/2026:
+chủ đất ở tù không thu tiền thuê; xây một cấp khi quay lại đất phố đã sở hữu;
+bộ Khí vận thay tên Cộng đồng và Sân bay thay ô nghỉ ở góc trên trái.
 Dùng bản này để đọc và đề xuất sửa luật tiếp. Số tiền là đơn vị quy ước trong game, dù giao diện hiển thị ký hiệu ₫.
 
 Nguồn đối chiếu:
@@ -19,10 +20,10 @@ Nguồn đối chiếu:
 - Mỗi người bắt đầu với **1.500 tiền mặt**, đứng tại ô **0 — Xuất phát**, chưa có đất hoặc thẻ.
 - Toàn bộ tài sản ban đầu thuộc ngân hàng, chưa xây dựng và chưa thế chấp.
 - Người ở ghế đầu tiên đi trước; lượt tiếp theo theo thứ tự ghế, bỏ qua người đã phá sản.
-- Hai bộ Cơ hội và Cộng đồng được xáo riêng một lần ở đầu ván. Thứ tự thẻ không công khai.
+- Hai bộ Cơ hội và Khí vận được xáo riêng một lần ở đầu ván. Thứ tự thẻ không công khai.
 - Khi chỉ còn **một người chưa phá sản**, người đó thắng ván.
 - Chưa có giới hạn số lượt, giới hạn thời gian cả ván hoặc cách thắng theo tổng tài sản.
-- Tùy chọn phòng hiện chỉ có số máy; chưa tùy chỉnh tiền khởi đầu hoặc các luật kinh tế.
+- Tùy chọn phòng gồm số máy và thời gian hành động PvP; chưa tùy chỉnh tiền khởi đầu hoặc các luật kinh tế.
 
 ## 2. Một lượt chơi
 
@@ -54,7 +55,7 @@ bán nhà, thế chấp, chuộc hoặc thao tác của người khác không k�
 | Trao đổi | Từ chối đề nghị; không tự nhận trao đổi |
 | Nợ | Bán công trình, thế chấp đất tới khi đủ tiền rồi trả; không đủ tài sản thì phá sản |
 
-Thời hạn sự kiện Cơ hội/Cộng đồng, thuế và vào tù vẫn dùng quy tắc 8 giây ở mục 3.
+Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù vẫn dùng quy tắc 8 giây ở mục 3.
 
 ## 3. Các ô đặc biệt và xác nhận sự kiện
 
@@ -62,14 +63,14 @@ Thời hạn sự kiện Cơ hội/Cộng đồng, thuế và vào tù vẫn dù
 | --- | --- |
 | Xuất phát | Nhận 200 khi đi qua hoặc dừng ở đây |
 | Cơ hội | Rút một thẻ Cơ hội |
-| Cộng đồng | Rút một thẻ Cộng đồng |
+| Khí vận | Rút một thẻ Khí vận |
 | Thuế thu nhập | Nộp ngân hàng 200 cố định |
 | Thuế xa xỉ | Nộp ngân hàng 100 cố định |
 | Nhà tù / Thăm | Đến bằng di chuyển thông thường chỉ là ghé thăm, không bị giam |
-| Bãi đỗ miễn phí | Không nhận tiền và không có tác động khác |
+| Sân bay | Sau khi xác nhận, bay tới một trong 39 ô khác ngẫu nhiên và xử lý ô đến |
 | Vào tù | Chuyển tới ô 10, bị giam và mất quyền gieo thêm |
 
-Thẻ, thuế và sự kiện bị đưa vào tù có bước **Xác nhận** trước khi áp dụng hiệu lực. Chỉ người
+Thẻ, chuyến bay, thuế và sự kiện bị đưa vào tù có bước **Xác nhận** trước khi áp dụng hiệu lực. Chỉ người
 đang có lượt được xác nhận. Có thể xác nhận sớm; không cần chờ hết thời hạn.
 
 Với người thật, khi còn ít nhất hai người chưa phá sản:
@@ -79,15 +80,21 @@ Với người thật, khi còn ít nhất hai người chưa phá sản:
 - Máy tự xác nhận bằng quyết định của máy, không dùng thời hạn này.
 - Sandbox chỉ có một ghế không có thời hạn tự xác nhận.
 
-Cơ hội và Cộng đồng có nhịp rút thẻ trước khi công bố nội dung: bộ thẻ dạng nét mực
+Cơ hội và Khí vận có nhịp rút thẻ trước khi công bố nội dung: bộ thẻ dạng nét mực
 in trên mặt bàn, lá trên trượt ra rồi xoay/lật. Tiếng chọn lá trên tay và đánh bài được dùng lại từ
 Tiến Lên. Thời hạn 8 giây bắt đầu sau khi nhịp này hoàn tất và nút Xác nhận hiện ra.
+
+Sân bay nằm ở ô 20, góc trên trái, có biểu tượng máy bay. Server chọn đều một trong 39 ô
+khác khi xác nhận chuyến bay, không quay lại Sân bay. Bay không nhận thưởng đi qua Xuất phát;
+đáp đúng ô Xuất phát nhận 200. Ô đến vẫn mua/đấu giá, xây, thu tiền thuê, rút thẻ, nộp thuế
+hoặc vào tù theo luật hiện tại; điện/nước dùng tổng xúc xắc của lượt dẫn tới Sân bay.
+Nếu đã gieo đôi thì vẫn giữ quyền gieo thêm, trừ khi bị đưa vào tù.
 
 Tiền thuê và thưởng Xuất phát được xử lý ngay, không cần xác nhận. Nếu hiệu lực thẻ dẫn đến
 một ô sự kiện khác, ô mới tiếp tục có bước xác nhận riêng.
 
-Các bước gieo, mua, đấu giá, trả nợ, trao đổi và kết thúc lượt hiện **không có thời hạn tự
-quyết định cho người thật**. Tốc độ trình bày 1×/2× không đổi luật hay thời hạn của server.
+Các bước gieo, mua, đấu giá, trả nợ, trao đổi và kết thúc lượt dùng đồng hồ PvP ở mục 2
+khi đủ điều kiện. Tốc độ trình bày 1×/2× không đổi luật hay thời hạn của server.
 
 ## 4. Mua tài sản và đấu giá
 
@@ -160,8 +167,10 @@ Thẻ **Tới Ga gần nhất** làm tiền thuê ga đó **gấp đôi** nếu 
 
 ## 6. Xây nhà, khách sạn và bán nhà
 
-Dấu nhà và khách sạn dùng màu của chủ đất, nằm phía đối diện số tiền qua biểu tượng
-của ô, tránh dải màu nhóm. Khi xây, cả bàn nghe tiếng mua.
+Mỗi nhà được đánh dấu bằng một chấm tròn màu chủ đất có viền sáng trên dải màu nhóm.
+Khách sạn là thanh chữ nhật màu ghi có viền sáng, nhỏ hơn dải màu phía dưới. Tên địa danh
+nằm giữa biểu tượng đã thu nhỏ và dải màu; tên tự chia dòng và co chữ để vừa ô.
+Khi xây, cả bàn nghe tiếng mua.
 
 ### Xây dựng
 
@@ -228,7 +237,7 @@ Trong tù **không thu tiền thuê**. Vẫn có thể bán công trình, thế 
 theo các điều kiện ở mục 6–7. Có thể
 đề nghị trao đổi nếu đang có lượt và không ở bước bị khóa.
 
-## 9. Cơ hội và Cộng đồng
+## 9. Cơ hội và Khí vận
 
 Mỗi bộ có **12 thẻ**, rút từ đầu bộ. Sau khi xác nhận, thẻ thông thường được đưa xuống cuối
 bộ, không xáo lại. Thẻ ra tù được giữ ngoài bộ cho đến khi dùng hoặc được trả về do phá sản.
@@ -256,7 +265,7 @@ chặng đó.
 | Giữ thẻ ra tù miễn phí. | Giữ thẻ để dùng sau |
 | Được thưởng 150. | Nhận 150 từ ngân hàng |
 
-### Bộ Cộng đồng
+### Bộ Khí vận
 
 | Thẻ | Hiệu lực |
 | --- | --- |
@@ -350,7 +359,7 @@ mua. Giá ga là 200; giá điện/nước là 150.
 | ---: | --- | --- | ---: |
 | 0 | Xuất phát | Xuất phát | — |
 | 1 | Phố Cổ | Nâu | 60 |
-| 2 | Cộng đồng | Rút thẻ | — |
+| 2 | Khí vận | Rút thẻ | — |
 | 3 | Hàng Đào | Nâu | 60 |
 | 4 | Thuế thu nhập | Thuế 200 | — |
 | 5 | Ga Bắc | Ga | 200 |
@@ -365,10 +374,10 @@ mua. Giá ga là 200; giá điện/nước là 150.
 | 14 | Sông Hàn | Hồng | 160 |
 | 15 | Ga Trung | Ga | 200 |
 | 16 | Đại Nội | Cam | 180 |
-| 17 | Cộng đồng | Rút thẻ | — |
+| 17 | Khí vận | Rút thẻ | — |
 | 18 | Tràng Tiền | Cam | 180 |
 | 19 | Sông Hương | Cam | 200 |
-| 20 | Bãi đỗ miễn phí | Nghỉ | — |
+| 20 | Sân bay | Bay tới ô ngẫu nhiên | — |
 | 21 | Hồ Xuân Hương | Đỏ | 220 |
 | 22 | Cơ hội | Rút thẻ | — |
 | 23 | Chợ Đà Lạt | Đỏ | 220 |
@@ -381,7 +390,7 @@ mua. Giá ga là 200; giá điện/nước là 150.
 | 30 | Vào tù | Chuyển vào tù | — |
 | 31 | Vịnh Hạ Long | Xanh lá | 300 |
 | 32 | Đảo Cát Bà | Xanh lá | 300 |
-| 33 | Cộng đồng | Rút thẻ | — |
+| 33 | Khí vận | Rút thẻ | — |
 | 34 | Bãi Cháy | Xanh lá | 320 |
 | 35 | Ga Đông | Ga | 200 |
 | 36 | Cơ hội | Rút thẻ | — |

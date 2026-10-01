@@ -5,7 +5,7 @@ import { BOARD_CELLS } from './boardGeometry.js';
 
 let textureId = 0;
 
-/** A single ink overlay with each current price or rent projected onto the outer strip of its tile. */
+/** Prices and place names printed into the board plane without covering symbols or color bands. */
 export class BoardPrices {
   private readonly image: Phaser.GameObjects.Image;
   private readonly texture: Phaser.Textures.CanvasTexture;
@@ -37,9 +37,8 @@ export class BoardPrices {
     const ink = this.ink;
     const canvas = ink.canvas;
     ink.clearRect(0, 0, canvas.width, canvas.height);
-    BOARD.forEach((_square, index) => {
+    BOARD.forEach((square, index) => {
       const amount = amounts[index];
-      if (amount === null || amount === undefined) return;
       const quad = BOARD_CELLS[index]!;
       const point = (u: number, v: number) => {
         const [tl, tr, br, bl] = quad;
@@ -75,20 +74,71 @@ export class BoardPrices {
         : right
           ? point(0.95, 0.5)
           : point(0.5, top ? 0.3 : 0.97);
+      if (amount !== null && amount !== undefined) {
+        ink.save();
+        ink.setTransform(
+          (along.x - center.x) / 80,
+          (along.y - center.y) / 80,
+          (across.x - center.x) / 24,
+          (across.y - center.y) / 24,
+          center.x,
+          center.y,
+        );
+        ink.font = 'bold 44px "Baloo 2", sans-serif';
+        ink.fillStyle = '#514432';
+        ink.textAlign = 'center';
+        ink.textBaseline = 'middle';
+        ink.fillText(amount, 0, 0, 142);
+        ink.restore();
+      }
+
+      const corner = index % 10 === 0;
+      const nameCenter = point(
+        left ? 0.67 : right ? 0.33 : 0.5,
+        top ? 0.67 : left || right ? 0.5 : corner ? 0.7 : 0.33,
+      );
+      const nameAlong = left
+        ? point(0.67, 0.95)
+        : right
+          ? point(0.33, 0.05)
+          : point(0.95, top ? 0.67 : corner ? 0.7 : 0.33);
+      const nameAcross = left
+        ? point(0.54, 0.5)
+        : right
+          ? point(0.46, 0.5)
+          : point(0.5, top ? 0.8 : corner ? 0.83 : 0.46);
       ink.save();
       ink.setTransform(
-        (along.x - center.x) / 80,
-        (along.y - center.y) / 80,
-        (across.x - center.x) / 24,
-        (across.y - center.y) / 24,
-        center.x,
-        center.y,
+        (nameAlong.x - nameCenter.x) / 80,
+        (nameAlong.y - nameCenter.y) / 80,
+        (nameAcross.x - nameCenter.x) / 24,
+        (nameAcross.y - nameCenter.y) / 24,
+        nameCenter.x,
+        nameCenter.y,
       );
-      ink.font = 'bold 44px "Baloo 2", sans-serif';
       ink.fillStyle = '#514432';
       ink.textAlign = 'center';
       ink.textBaseline = 'middle';
-      ink.fillText(String(amount), 0, 0, 142);
+      ink.font = 'bold 30px "Baloo 2", sans-serif';
+      const words = square.name.split(' ');
+      let lines = [square.name];
+      if (ink.measureText(square.name).width > 154 && words.length > 1) {
+        let narrowest = Number.POSITIVE_INFINITY;
+        for (let split = 1; split < words.length; split++) {
+          const candidate = [words.slice(0, split).join(' '), words.slice(split).join(' ')];
+          const width = Math.max(...candidate.map((line) => ink.measureText(line).width));
+          if (width < narrowest) {
+            narrowest = width;
+            lines = candidate;
+          }
+        }
+      }
+      const widest = Math.max(...lines.map((line) => ink.measureText(line).width));
+      const fontSize = Math.min(30, (30 * 154) / widest);
+      ink.font = `bold ${fontSize}px "Baloo 2", sans-serif`;
+      lines.forEach((line, row) => {
+        ink.fillText(line, 0, (row - (lines.length - 1) / 2) * 28);
+      });
       ink.restore();
     });
     this.texture.update();

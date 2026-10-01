@@ -16,7 +16,7 @@ export type SquareKind =
   | 'chest'
   | 'tax'
   | 'jail'
-  | 'free'
+  | 'airport'
   | 'go-jail';
 
 export interface Square {
@@ -88,6 +88,7 @@ export const SPECIAL_EVENT_TIMEOUT = 8000;
 export type SpecialEventEffect =
   | { kind: 'card'; card: Card; deck: Deck; roll: number }
   | { kind: 'tax'; amount: number; reason: string }
+  | { kind: 'airport'; roll: number; reason: string }
   | { kind: 'jail'; reason: string };
 
 export type SpecialEvent = SpecialEventEffect & { id: number; ready: boolean };
@@ -137,7 +138,7 @@ const utility = (name: string): Square => ({ name, kind: 'utility', price: 150 }
 export const BOARD: readonly Square[] = [
   { name: 'Xuất phát', kind: 'start' },
   street('Phố Cổ', 'nau', 60, [2, 10, 30, 90, 160, 250], 50),
-  { name: 'Cộng đồng', kind: 'chest' },
+  { name: 'Khí vận', kind: 'chest' },
   street('Hàng Đào', 'nau', 60, [4, 20, 60, 180, 320, 450], 50),
   { name: 'Thuế thu nhập', kind: 'tax', tax: 200 },
   station('Ga Bắc'),
@@ -152,10 +153,10 @@ export const BOARD: readonly Square[] = [
   street('Sông Hàn', 'hong', 160, [12, 60, 180, 500, 700, 900], 100),
   station('Ga Trung'),
   street('Đại Nội', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
-  { name: 'Cộng đồng', kind: 'chest' },
+  { name: 'Khí vận', kind: 'chest' },
   street('Tràng Tiền', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
   street('Sông Hương', 'cam', 200, [16, 80, 220, 600, 800, 1000], 100),
-  { name: 'Bãi đỗ miễn phí', kind: 'free' },
+  { name: 'Sân bay', kind: 'airport' },
   street('Hồ Xuân Hương', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
   { name: 'Cơ hội', kind: 'chance' },
   street('Chợ Đà Lạt', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
@@ -168,7 +169,7 @@ export const BOARD: readonly Square[] = [
   { name: 'Vào tù', kind: 'go-jail' },
   street('Vịnh Hạ Long', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
   street('Đảo Cát Bà', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
-  { name: 'Cộng đồng', kind: 'chest' },
+  { name: 'Khí vận', kind: 'chest' },
   street('Bãi Cháy', 'xanh-la', 320, [28, 150, 450, 1000, 1200, 1400], 200),
   station('Ga Đông'),
   { name: 'Cơ hội', kind: 'chance' },

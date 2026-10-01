@@ -221,14 +221,14 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   onConfirmEvent(ctx: Action): State {
     requireTurn(ctx, 'event');
     const s = copy(ctx.state);
-    resolveSpecialEvent(s);
+    resolveSpecialEvent(s, ctx.rng);
     return this.complete(s, ctx);
   }
 
   onAutoConfirmEvent(ctx: TimerContext<State, number, Options>): State {
     if (ctx.state.phase !== 'event' || ctx.state.specialEvent?.id !== ctx.payload) return ctx.state;
     const s = copy(ctx.state);
-    resolveSpecialEvent(s);
+    resolveSpecialEvent(s, ctx.rng);
     return this.complete(s, ctx);
   }
 

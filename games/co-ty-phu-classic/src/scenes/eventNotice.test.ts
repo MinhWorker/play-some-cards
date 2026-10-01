@@ -8,9 +8,9 @@ it('avoids repeating arrival and turn context', () => {
 
 it('presents a card once and retains its charge or debt outcome', () => {
   const card = 'Phí khám bệnh 50.';
-  expect(eventNotice(card, card, 'Cộng đồng')).toBe('Khoẻ người, nhẹ ví: khám bệnh 50 ₫.');
+  expect(eventNotice(card, card, 'Khí vận')).toBe('Khoẻ người, nhẹ ví: khám bệnh 50 ₫.');
   expect(
-    eventNotice(`${card}: cần trả 50. Bán nhà hoặc thế chấp để trả nợ.`, card, 'Cộng đồng'),
+    eventNotice(`${card}: cần trả 50. Bán nhà hoặc thế chấp để trả nợ.`, card, 'Khí vận'),
   ).toContain('Chưa đủ tiền: cần trả 50 ₫.');
   expect(eventNotice('Đến Xuất phát.', 'Tiến về Xuất phát. Nhận 200.', 'Xuất phát')).toContain(
     '200',

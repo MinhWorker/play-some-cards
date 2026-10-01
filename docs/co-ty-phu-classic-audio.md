@@ -14,7 +14,7 @@ nhạc nền, tiếng thắng và hai tiếng thông báo sao chép nguyên bả
 | `tycoon-rent.wav` | Khi một người trả tiền, mọi người còn lại nghe tiếng tiền ra, kể cả khán giả |
 | `tycoon-buy.wav` | Xây nhà hoặc khách sạn; cả bàn nghe tiếng mua |
 | `tycoon-auction.wav` | Giữ trong bộ nghe thử |
-| `tycoon-card.wav` | Bắt đầu trượt lá Cơ hội/Cộng đồng; dùng lại tiếng chọn lá trên tay `tien-len-card-select.wav` |
+| `tycoon-card.wav` | Bắt đầu trượt lá Cơ hội/Khí vận; dùng lại tiếng chọn lá trên tay `tien-len-card-select.wav` |
 | `tycoon-card-flip.wav` | Lật lá trước khi công bố; dùng lại `tien-len-card-play.wav` |
 | `tycoon-build.wav` | Giữ trong bộ nghe thử |
 | `tycoon-jail.wav` | Bị đưa vào tù |

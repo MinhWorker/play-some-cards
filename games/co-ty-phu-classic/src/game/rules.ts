@@ -146,12 +146,20 @@ export function awaitSpecialEvent(s: State, event: SpecialEventEffect) {
 }
 
 /** Apply a revealed event only once its owner or the server timer confirms it. */
-export function resolveSpecialEvent(s: State) {
+export function resolveSpecialEvent(s: State, rng: () => number) {
   const event = s.specialEvent;
   if (!event) return;
   s.specialEvent = null;
   s.phase = s.after;
   const seat = s.turn;
+  if (event.kind === 'airport') {
+    // Uniformly choose among the other 39 squares; a flight never loops into the airport.
+    const choice = Math.floor(rng() * (BOARD.length - 1));
+    const target = choice >= 20 ? choice + 1 : choice;
+    if (target === 0) transferMoney(s, null, seat, 200, 'Đáp Xuất phát');
+    move(s, seat, target, false, event.roll);
+    return;
+  }
   if (event.kind === 'tax') {
     charge(s, seat, event.amount, null, event.reason);
     return;
@@ -223,6 +231,8 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
     draw(s, cell.kind, seat, roll);
   } else if (cell.kind === 'go-jail') {
     awaitSpecialEvent(s, { kind: 'jail', reason: 'Bị đưa vào tù!' });
+  } else if (cell.kind === 'airport') {
+    awaitSpecialEvent(s, { kind: 'airport', roll, reason: 'Chuyến bay đến một ô ngẫu nhiên.' });
   }
 }
 

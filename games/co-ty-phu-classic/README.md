@@ -19,12 +19,14 @@ bảng giá mua/thuê, hai bộ thẻ và chỗ để ghi đề xuất sửa lu�
   trọn bộ thì tiền thuê đất trống gấp đôi. Ga thu 25, 50, 100 hoặc 200 theo số ga cùng chủ;
   điện/nước thu 4 hoặc 10 lần tổng xúc xắc theo số đơn vị cùng chủ. Chủ đang bị giam trong
   tù thì đất, ga và điện/nước của họ không thu tiền thuê cho tới khi ra tù.
-- **Cơ hội** và **Cộng đồng** rút thẻ theo thứ tự bí mật. Thuế nộp cho ngân hàng. **Bãi đỗ miễn
-  phí** không phát tiền. Ô **Vào tù** chuyển thẳng tới nhà tù, không nhận 200.
+- **Cơ hội** và **Khí vận** rút thẻ theo thứ tự bí mật. Thuế nộp cho ngân hàng. **Sân bay**
+  ở góc trên trái đưa tới một trong 39 ô khác ngẫu nhiên sau khi xác nhận, rồi xử lý ô đến
+  như bình thường. Chuyến bay không nhận thưởng đi qua Xuất phát; đáp đúng Xuất phát nhận 200.
+  Ô **Vào tù** chuyển thẳng tới nhà tù, không nhận 200.
 - Trong tù, bạn có thể trả 50, dùng thẻ ra tù, hoặc thử gieo đôi. Nếu lần thứ ba vẫn không ra
   đôi, phải trả 50 rồi đi theo xúc xắc vừa gieo. Ra đôi để thoát tù không được gieo thêm.
 
-Các sự kiện **Cơ hội**, **Cộng đồng**, **Thuế** và **Bị đưa vào tù** hiện thông báo cùng nút
+Các sự kiện **Cơ hội**, **Khí vận**, **Sân bay**, **Thuế** và **Bị đưa vào tù** hiện thông báo cùng nút
 **Xác nhận** ngay trên mặt bàn trước khi áp dụng tiền, di chuyển quân hoặc nhận thẻ. Tiền thuê
 đất của người khác và thưởng qua **Xuất phát** vẫn xử lý liền mạch. Khi ván còn ít nhất hai
 người, lượt của người chơi thật có thanh màu đếm ngược theo thời hạn 8 giây của server; có
@@ -159,7 +161,7 @@ trọn bộ màu, và thẻ đất thế chấp ghi tiền thuê bằng 0.
 huy hiệu thao tác, hiệu ứng sự kiện và viền nhấn nhóm màu. Biểu tượng đất được tô theo màu chủ
 trên ảnh bàn, còn dải nhóm màu gốc vẫn thuộc ảnh Blender.
 
-Thông báo giữa bàn chỉ có một nội dung sự kiện: thẻ Cơ hội/Cộng đồng dùng chung dòng
+Thông báo giữa bàn chỉ có một nội dung sự kiện: thẻ Cơ hội/Khí vận dùng chung dòng
 thông báo, không lặp lại ở dòng thứ ba. Kết quả xúc xắc chỉ hiện trong nhịp gieo;
 tên ô và thông báo tới lượt không được nhắc lại. Lời dẫn vui nhẹ, giữ rõ số tiền
 và kết quả; thông báo nợ vẫn giữ đầy đủ số tiền cần trả.
@@ -179,9 +181,12 @@ Nút **Gieo xúc xắc** nằm giữa bàn, dùng asset `roll-button` vàng cam 
 vùng chạm cao 88 đơn vị. **Hết lượt** cũng nằm giữa bàn với asset nút hiện có. Ô chưa bán
 in giá mua sát mép ngoài; ô đã có chủ in tiền thuê hiện tại, cập nhật khi xây/bán nhà,
 thế chấp hoặc chủ vào/ra tù. Điện/nước ghi hệ số xúc xắc; hai ô thuế ghi mức phải nộp.
-Dấu nhà/khách sạn theo màu chủ đất, ở phía đối diện số tiền qua biểu tượng, tránh dải màu nhóm.
+Mỗi nhà là một chấm tròn màu chủ đất có viền sáng, đặt trên dải màu nhóm; khách sạn là
+một thanh chữ nhật màu ghi có viền sáng, nhỏ hơn dải màu phía dưới. Biểu tượng trên các ô
+được thu nhỏ để dành chỗ in tên địa danh giữa biểu tượng và dải màu. Tên tự chia tối đa
+hai dòng và co cỡ chữ theo chiều rộng ô, giữ nguyên dấu tiếng Việt và phối cảnh mặt bàn.
 
-Bộ Cơ hội và Cộng đồng được vẽ bằng nét mực xanh đậm trên mặt bàn. Khi tới ô rút thẻ, lá trên
+Bộ Cơ hội và Khí vận được vẽ bằng nét mực xanh đậm trên mặt bàn. Khi tới ô rút thẻ, lá trên
 trượt khỏi bộ, xoay/lật rồi mờ đi trước khi thông báo hiện lên. Tiếng chọn lá trên tay và đánh bài được
 dùng lại từ Tiến Lên. Nhịp này thuộc `runtime`, theo tốc độ 1×/2× và bị hủy khi đổi ván,
 đổi cỡ màn hình hoặc nhận bản chụp mới. Nội dung thẻ và nút Xác nhận chỉ hiện sau hoạt ảnh;
