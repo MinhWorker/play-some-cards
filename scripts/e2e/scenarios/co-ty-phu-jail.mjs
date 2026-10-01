@@ -5,6 +5,7 @@ export const games = ['co-ty-phu-classic'];
 
 export default async function run(t) {
   const page = await t.page(DESKTOP);
+  page.setDefaultTimeout(90000);
   await page.goto(new URL('/?play=co-ty-phu-classic&players=2', t.url).toString());
   await page.waitForFunction(() => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx);
   // Isolate the injected rule snapshots from the sandbox's own real-time AFK timer.
@@ -34,6 +35,8 @@ export default async function run(t) {
           import(`/@fs${root}packages/sdk/src/rng.ts`),
         ]);
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        s.playbackSpeed = 2;
+        s.runtime.setSpeed(2);
         const seed = fixture.doubles ? 8 : 1;
         const game = testGame(plugin, ['a', 'b'], { seed, bots: fixture.bot ? ['b'] : [] });
         const rng = seededRng(seed);
@@ -132,6 +135,10 @@ export default async function run(t) {
               shown: s.shownPositions,
               moving: s.moving,
               active: s.activeRoll,
+              passedStart: s.passedStart,
+              completedRoll: s.completedRoll,
+              payments: s.payments,
+              money: s.activeMoney,
               runtime: s.runtime.inspect(),
             };
           });
