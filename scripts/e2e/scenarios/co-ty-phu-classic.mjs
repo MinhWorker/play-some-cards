@@ -9,12 +9,17 @@ export default async function run(t) {
   url.search = '?play=co-ty-phu-classic&players=2';
   await page.goto(url.toString());
   await page.waitForFunction(() => window.__phaser?.scene.isActive('co-ty-phu-classic'));
+  const symbolsMatchBoard = await page.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const source = scene.boardImage.texture.getSourceImage();
+    return scene.ownerSymbols.width === source.width && scene.ownerSymbols.height === source.height;
+  });
+  if (!symbolsMatchBoard) throw new Error('Owner symbols did not use the loaded board artwork');
   // Start after assets load so the opening clock cannot expire during initial loading.
   await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
   await page.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'ready',
   );
-  await page.screenshot({ path: t.shot('10-start.png') });
   const ready = await page.evaluate(() => {
     const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
     return {
@@ -29,12 +34,10 @@ export default async function run(t) {
     ready.cash.some((cash) => !cash.endsWith(' ₫'))
   )
     throw new Error(`Opening table is incomplete: ${JSON.stringify(ready)}`);
+  await page.screenshot({ path: t.shot('10-start.png') });
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return (
-      s.visualPhase === 'ready' &&
-      s.readyCash.every((text) => !text.visible || text.text === '1.500 ₫')
-    );
+    return s.readyAmounts.length === 2 && s.readyAmounts.every((amount) => amount === 1500);
   });
   await page.screenshot({ path: t.shot('10-money.png') });
   await page.waitForFunction(
@@ -95,8 +98,11 @@ export default async function run(t) {
           return (
             scene.visualPhase === 'landing' &&
             scene.selected === null &&
-            scene.heading.text.startsWith('Đến ') &&
-            scene.heading.text.slice(4).startsWith(scene.detail.text.replace(/…$/, ''))
+            (scene.landingBeat.to === 10
+              ? scene.heading.text ===
+                (scene.landingBeat.jailed ? 'Bị đưa vào tù!' : 'Ghé thăm nhà tù')
+              : scene.heading.text.startsWith('Đến ') &&
+                scene.heading.text.slice(4).startsWith(scene.detail.text.replace(/…$/, '')))
           );
         });
         const repeatedCard = await page.evaluate(() => {
@@ -114,6 +120,8 @@ export default async function run(t) {
           );
         });
       }
+    } else if (state.phase === 'event') {
+      await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
     } else if (state.phase === 'buy') {
       const price = await page.evaluate(
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.pending,
@@ -153,6 +161,162 @@ export default async function run(t) {
   if (purchases < 1) throw new Error('No property was purchased through the board controls');
   await page.screenshot({ path: t.shot('12-played.png') });
 
+  // Force a known opening card through the sandbox's real rules and controls.
+  const eventsPage = await t.page(PHONE);
+  await eventsPage.goto(url.toString());
+  await eventsPage.waitForFunction(() => window.__phaser?.scene.isActive('co-ty-phu-classic'));
+  const restartEvents = async () =>
+    eventsPage.evaluate(() => {
+      const original = Math.random;
+      try {
+        Math.random = () => 0;
+        [...document.querySelectorAll('button')]
+          .find((button) => button.textContent === 'Ván mới')
+          .click();
+      } finally {
+        Math.random = original;
+      }
+    });
+  const rollEvent = async () =>
+    eventsPage.evaluate(() => {
+      const original = Math.random;
+      try {
+        Math.random = () => 0;
+        window.__phaser.scene.getScene('co-ty-phu-classic').send('roll');
+      } finally {
+        Math.random = original;
+      }
+    });
+  await restartEvents();
+  await eventsPage.waitForFunction(
+    () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
+  );
+  await rollEvent();
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.ctx.state.phase === 'event' &&
+      s.visualPhase === 'decision' &&
+      s.main[0].hit.visible &&
+      s.ctx.timer?.event === 'auto-confirm-event' &&
+      s.eventCountdown.commandBuffer.length > 0
+    );
+  });
+  const preview = await eventsPage.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return {
+      cash: s.ctx.state.players[0].cash,
+      shownCash: s.shownCash[0],
+      label: s.main[0].text.text,
+      countdown: s.eventCountdown.commandBuffer.length,
+      notice: s.notice.text,
+    };
+  });
+  if (
+    preview.cash !== 1500 ||
+    preview.shownCash !== 1500 ||
+    preview.label !== 'Xác nhận' ||
+    !preview.countdown ||
+    !preview.notice.includes('200 ₫')
+  )
+    throw new Error(`Event did not pause before payment: ${JSON.stringify(preview)}`);
+  await eventsPage.screenshot({ path: t.shot('13-event-confirm.png') });
+  await clickCanvas(eventsPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.ctx.state.players[0].cash === 1700 &&
+      s.shownCash[0] === 1700 &&
+      s.visualPhase === 'decision' &&
+      s.ctx.timer === null
+    );
+  });
+  await restartEvents();
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.visualPhase === 'decision' && s.ctx.state.players[0].cash === 1500;
+  });
+  await rollEvent();
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.ctx.state.phase === 'event' &&
+      s.visualPhase === 'decision' &&
+      s.ctx.timer?.event === 'auto-confirm-event'
+    );
+  });
+  await eventsPage.getByRole('button', { name: 'Khán giả', exact: true }).click();
+  if (
+    await eventsPage.evaluate(
+      () => window.__phaser.scene.getScene('co-ty-phu-classic').main[0].hit.visible,
+    )
+  )
+    throw new Error('Spectators can confirm a special event');
+  await eventsPage.screenshot({ path: t.shot('14-event-countdown.png') });
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.ctx.state.specialEvent === null && s.ctx.state.players[0].cash === 1700;
+  });
+  await eventsPage.screenshot({ path: t.shot('15-event-auto-confirm.png') });
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.visualPhase === 'decision' && !s.activeMoney;
+  });
+  // Receive a jail move while dice presentation still precedes the pawn flight.
+  await eventsPage.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const seat = 1;
+    const state = structuredClone(s.ctx.state);
+    state.turn = seat;
+    state.phase = 'end';
+    state.dice = [3, 4];
+    state.players[seat].position = 10;
+    state.players[seat].jailed = true;
+    state.lastCard = null;
+    state.notice = 'Bị đưa vào tù!';
+    s.ctx = { ...s.ctx, state };
+    s.shownPositions[seat] = 30;
+    const start = s.pawnSpot(30, seat);
+    s.tokens[seat].setPosition(start.x, start.y);
+    const originalSfx = s.sfx;
+    s.jailSounds = [];
+    s.sfx = function (key, ...args) {
+      if (key === 'tycoon-jail')
+        this.jailSounds.push({ moving: this.moving[seat], phase: this.visualPhase });
+      return originalSfx.call(this, key, ...args);
+    };
+    s.onRoll(s.ctx, { player: { seat } });
+    s.onState(s.ctx);
+    if (s.jailSounds.length) throw new Error('Jail sound played before pawn flight');
+  });
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.visualPhase === 'result';
+  });
+  if (
+    await eventsPage.evaluate(
+      () => window.__phaser.scene.getScene('co-ty-phu-classic').jailSounds.length,
+    )
+  )
+    throw new Error('Jail sound played during dice presentation');
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.jailSounds.length === 1 && s.moving[1];
+  });
+  await eventsPage.screenshot({ path: t.shot('16-jail-flight.png') });
+  await eventsPage.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.shownPositions[1] === 10 && !s.moving[1];
+  });
+  const jailSounds = await eventsPage.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.onState(s.ctx);
+    return s.jailSounds;
+  });
+  if (jailSounds.length !== 1 || !jailSounds[0].moving || jailSounds[0].phase !== 'moving')
+    throw new Error(`Jail sound did not match pawn flight: ${JSON.stringify(jailSounds)}`);
+  await eventsPage.close();
+
   const host = await t.page(DESKTOP);
   await signUp(t, host, 'TyPhu');
   await openRooms(host, 'co-ty-phu-classic');
@@ -183,7 +347,7 @@ export default async function run(t) {
       () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state,
     );
     if (state.turn === 1) break;
-    if (!['roll', 'buy', 'end'].includes(state.phase))
+    if (!['roll', 'buy', 'end', 'event'].includes(state.phase))
       throw new Error(`Unexpected phase: ${state.phase}`);
     await clickCanvas(host, 'co-ty-phu-classic', (s) => s.main[0].hit);
     await host.waitForTimeout(160);

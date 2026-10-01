@@ -53,4 +53,8 @@ assets/                   button.webp, press.wav, island.webp
 `options`; trên server có thêm `rng`, `finish()`, `lastResult` (kết quả ván trước) và, trong hook sự kiện, `player`, `payload`,
 `reject()`; trên trình duyệt có `me`, `isHost`, `result` và `screen`.
 
+`this.sfx('press')` phát âm thanh theo âm lượng hiệu ứng và trả về promise hoàn thành khi
+âm thanh bắt đầu hoặc không thể phát. Có thể `await this.sfx('press')` trước khi chạy hoạt ảnh;
+promise này không chờ âm thanh phát xong.
+
 Chơi thử một mình: http://localhost:5033/?play=counter&players=2 (khi đang chạy `npm run dev`).

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Card, Deck } from './cards.js';
 
 export const optionsSchema = z.object({
   bots: z.number().int().min(0).max(3).default(0),
@@ -43,7 +44,7 @@ export interface TycoonPlayer {
   bankrupt: boolean;
 }
 
-export type Phase = 'roll' | 'buy' | 'auction' | 'debt' | 'trade' | 'end';
+export type Phase = 'roll' | 'buy' | 'auction' | 'debt' | 'trade' | 'event' | 'end';
 
 export interface Auction {
   square: number;
@@ -81,7 +82,17 @@ export interface MoneyTransfer {
   reason: string;
 }
 
+export const SPECIAL_EVENT_TIMEOUT = 8000;
+
+export type SpecialEventEffect =
+  | { kind: 'card'; card: Card; deck: Deck; roll: number }
+  | { kind: 'tax'; amount: number; reason: string }
+  | { kind: 'jail'; reason: string };
+
+export type SpecialEvent = SpecialEventEffect & { id: number; ready: boolean };
+
 export interface State {
+  specialEvent: SpecialEvent | null;
   moneySequence: number;
   transfers: MoneyTransfer[];
   players: TycoonPlayer[];

@@ -20,6 +20,14 @@ là tham khảo cho cấu trúc bàn và các cơ chế chính.
 - Trong tù, bạn có thể trả 50, dùng thẻ ra tù, hoặc thử gieo đôi. Nếu lần thứ ba vẫn không ra
   đôi, phải trả 50 rồi đi theo xúc xắc vừa gieo. Ra đôi để thoát tù không được gieo thêm.
 
+Các sự kiện **Cơ hội**, **Cộng đồng**, **Thuế** và **Bị đưa vào tù** hiện thông báo cùng nút
+**Xác nhận** ngay trên mặt bàn trước khi áp dụng tiền, di chuyển quân hoặc nhận thẻ. Tiền thuê
+đất của người khác và thưởng qua **Xuất phát** vẫn xử lý liền mạch. Khi ván còn ít nhất hai
+người, lượt của người chơi thật có thanh màu đếm ngược theo thời hạn 8 giây của server; có
+thể xác nhận sớm, hết hạn thì tự xác nhận. Thời hạn bắt đầu khi thông báo và nút đã hiện sau
+khi quân đi xong. Máy tự xác nhận sự kiện và không có thanh đếm ngược.
+Nếu người chơi thật không báo sẵn sàng trong 30 giây, server vẫn bắt đầu đếm ngược để ván không bị kẹt.
+
 ## Tài sản và nợ
 
 - Khi sở hữu đủ bộ màu chưa thế chấp, có thể xây đều trên các ô của bộ. Mỗi ô tối đa bốn nhà,
@@ -53,7 +61,8 @@ khi chấp nhận.
 
 Mặt bàn dùng biểu tượng đơn sắc thay cho tên ô: nhà phố, ga, điện, nước, thẻ, thuế, tù và các ô
 đặc biệt có dấu hiệu riêng. Biểu tượng và dải màu bộ đất được in theo phối cảnh trên mặt bàn;
-game vẽ huy hiệu chủ đất, nhà, khách sạn và dấu thế chấp theo đúng mặt phẳng của từng ô. Sau khi
+biểu tượng đất đổi sang màu người sở hữu để dễ nhận biết; nhà, khách sạn và dấu thế chấp được vẽ
+theo đúng mặt phẳng của từng ô. Sau khi
 quân cờ đáp xuống, tên địa điểm được giữ ở giữa mặt bàn trước khi hiện quyết định hoặc lượt
 gieo tiếp của máy. Bảng bên phải tự chuyển sang ô vừa đến; chạm ô bất kỳ để đọc chi tiết ô khác.
 Ô có thao tác hợp lệ cho bạn có huy hiệu dấu cộng vàng; viền vàng sáng hơn khi xem thẻ nổi; nút trong thẻ chỉ hiện
@@ -69,8 +78,9 @@ Chơi thử cùng nhiều ghế tại `/?play=co-ty-phu-classic&players=2` khi c
 Ảnh đảo, mặt bàn trống và nút gốc được tạo bằng imagegen theo `sources/prompts.json`. Script Blender
 thu nhỏ lòng bàn, dựng lại mặt bàn đủ 40 ô (chín ô thường giữa hai góc trên mỗi cạnh), in biểu tượng
 vector một màu cùng dải màu bộ đất lên đó, rồi
-kết xuất với mô hình gỗ thành `assets/board-25d.webp`. Dấu sở hữu, nhà, khách sạn và thế chấp được
-vẽ lúc chơi theo tọa độ ô do cùng camera Blender tạo ra. Viền ô, biểu tượng và tọa độ quân cờ
+kết xuất với mô hình gỗ thành `assets/board-25d.webp`. Lúc chơi, biểu tượng tài sản được tô theo
+màu chủ trực tiếp từ ảnh bàn đã tải, giữ nguyên nét in và phối cảnh; nhà, khách sạn và dấu thế chấp được vẽ theo tọa độ ô do cùng camera Blender tạo ra. Viền ô,
+biểu tượng và tọa độ quân cờ
 dùng chung bố cục để các dấu trên bàn luôn khớp với mặt ô.
 Chạy `blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py` từ gốc repo
 để tạo lại ảnh và tọa độ 40 ô. File Blender chỉnh sửa được nằm ở
@@ -110,8 +120,9 @@ File chỉnh sửa nằm ở `.blender/co-ty-phu-classic-pawns.blend`; chạy
 `blender -b -t 4 --python games/co-ty-phu-classic/sources/render_pawns.py` để tạo lại ảnh.
 Quân cờ nhảy theo góc nhìn của bàn. Mỗi khoản tiền được server ghi rõ bên trả, bên nhận,
 số tiền và lý do; ngân hàng có biểu tượng riêng trong lòng bàn. Hình tiền bay giữa các bên,
-số dư đếm trong 0,75 giây rồi giữ kết quả 0,5 giây trước thao tác kế tiếp. Thưởng qua Xuất phát
-và tiền thuê trong cùng lượt vẫn được hiển thị riêng theo thứ tự. Tiền chưa đủ để trả nợ
+số dư đếm trong 0,75 giây rồi giữ kết quả 0,5 giây trước thao tác kế tiếp. Thưởng Xuất phát
+bắt đầu khi quân chạm ô, song song với phần di chuyển còn lại; tiền thuê sau đó vẫn hiển thị riêng.
+Tiền chưa đủ để trả nợ
 không được hiển thị như đã chuyển. Khi vào lại ván, số dư hiện ngay, không phát lại giao dịch cũ.
 Dấu sở hữu và số nhà chỉ cập nhật sau toàn bộ giao dịch của cùng một sự kiện, theo
 hàng đợi bản chụp trạng thái riêng. Khi hơn hai lượt gieo đang chờ, trình bày tạm tăng
@@ -119,7 +130,9 @@ hàng đợi bản chụp trạng thái riêng. Khi hơn hai lượt gieo đang 
 trước khi mua, đấu giá hoặc xây. Kết quả đến ô được giữ 0,85 giây ở tốc độ 1×.
 Các nút tạm ẩn trong nhịp chuyển tiền, và ô đất sáng lên khi mua
 hoặc xây. Game có nhạc nền cùng hiệu ứng riêng cho lượt, thẻ, đấu giá, xây dựng, nhà tù và kết
-thúc ván. Danh sách âm thanh nằm trong [tài liệu âm thanh](../../docs/co-ty-phu-classic-audio.md).
+thúc ván. Âm thanh vào tù phát khi quân cờ bắt đầu bay tới ô tù, sau bước xác nhận sự kiện.
+Danh sách âm thanh và bộ nghe thử nằm trong
+[tài liệu âm thanh](../../docs/co-ty-phu-classic-audio.md).
 
 Nút **1× / 2×** trên mép gỗ dưới bàn đổi tốc độ trình bày riêng của người xem: xúc xắc,
 di chuyển, giao dịch tiền và các quãng giữ kết quả. Đổi giữa một hiệu ứng không làm nhảy
@@ -128,6 +141,20 @@ số tiền hoặc quân cờ. Luật, kết quả server, bảng tiền đầu 
 Thẻ ô bên phải ưu tiên tiền thuê hiện tại và giá cấp nhà tiếp theo. **Bảng thuê** mở riêng
 bảng đủ các cấp nhà, ga hoặc điện/nước; **Đóng** quay về bàn. Giá thuê đất trống phản ánh
 trọn bộ màu, và thẻ đất thế chấp ghi tiền thuê bằng 0.
-`BoardTileEffect` có các lớp độc lập cho lựa chọn, quân đứng, quân đang đi, chủ đất, nhà,
-thế chấp, huy hiệu thao tác, hiệu ứng sự kiện và viền nhấn nhóm màu. `setLayerVisible`
-điều khiển từng lớp mà không tắt các lớp khác; dải nhóm màu gốc vẫn thuộc ảnh bàn Blender.
+`BoardTileEffect` có các lớp độc lập cho lựa chọn, quân đứng, quân đang đi, nhà, thế chấp,
+huy hiệu thao tác, hiệu ứng sự kiện và viền nhấn nhóm màu. Biểu tượng đất được tô theo màu chủ
+trên ảnh bàn, còn dải nhóm màu gốc vẫn thuộc ảnh Blender.
+
+Thông báo giữa bàn chỉ có một nội dung sự kiện: thẻ Cơ hội/Cộng đồng dùng chung dòng
+thông báo, không lặp lại ở dòng thứ ba. Kết quả xúc xắc chỉ hiện trong nhịp gieo;
+tên ô và thông báo tới lượt không được nhắc lại. Lời dẫn vui nhẹ, giữ rõ số tiền
+và kết quả; thông báo nợ vẫn giữ đầy đủ số tiền cần trả.
+
+Thông báo phân biệt **Ghé thăm nhà tù** và **Bị đưa vào tù!**, dựa trên trạng thái
+giam giữ của lượt đang trình bày. Tiền thuê, thuế và tiền còn nợ ghi rõ số tiền
+với đơn vị ₫. Tên ô trong thẻ bên phải xuống dòng; các dòng giá/chủ/thuê và nút
+tự dịch xuống theo chiều cao tên, tránh chồng chữ.
+
+Mỗi giao dịch tiền hiện số **+ xanh / − đỏ** phía trên quân của người nhận/trả.
+Số bay lên và mờ dần trong 1,25 giây ở 1×, cùng nhịp thay đổi số dư. Hai quân
+đứng cùng ô vẫn có hai số tách nhau; hiệu ứng được xoá khi bắt đầu ván mới.

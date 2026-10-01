@@ -28,6 +28,7 @@ export function botMove(state: State, seat: number): GameEvent | null {
   }
 
   if (state.turn !== seat) return null;
+  if (state.phase === 'event') return event('confirm-event');
   if (state.phase === 'roll') {
     if (me.jailed && me.freeCards.length) return event('use-card');
     if (me.jailed && me.jailRolls >= 2 && me.cash >= 50) return event('pay-bail');

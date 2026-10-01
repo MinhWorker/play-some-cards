@@ -15,7 +15,7 @@ tiền hoặc đổi chủ đất do server kiểm tra.
 4. Hai chồng thẻ được xáo trộn phía server, thẻ ra tù, đề nghị trao đổi cần hai bên đồng ý,
    xử lý nợ và phá sản.
 5. Bàn 2.5D kết xuất từ Blender; biểu tượng đơn sắc và dải màu được in theo phối cảnh lên mặt bàn,
-   còn dấu chủ đất, nhà, khách sạn và thế chấp được vẽ bám theo mặt phẳng từng ô.
+   biểu tượng đất đổi màu theo chủ sở hữu; nhà, khách sạn và dấu thế chấp được vẽ bám theo từng ô.
 6. Tuỳ chọn 0–3 máy; máy tự xử lý lượt, đấu giá, nợ và trao đổi.
 7. Xúc xắc và quân cờ chuyển động, phản hồi hình ảnh cho tài sản và tiền; nhạc nền cùng hiệu ứng
    âm thanh riêng được tạo bằng code.

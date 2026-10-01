@@ -31,7 +31,7 @@ export function tileActions(state: View, seat: number | null, square: number): T
       { label: 'Bỏ giá', event: 'pass', payload: {} },
     ];
   }
-  if (state.phase === 'trade' || deed.owner !== seat) return [];
+  if (state.phase === 'event' || state.phase === 'trade' || deed.owner !== seat) return [];
   const actions: TileAction[] = [];
   const payload = { square };
   const cash = state.players[seat]!.cash;

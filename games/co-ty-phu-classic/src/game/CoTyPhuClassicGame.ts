@@ -5,22 +5,32 @@ import {
   type GameContext,
   type LeaveContext,
   type StartContext,
+  type TimerContext,
 } from '@psc/sdk';
 import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
-import { BOARD, groupSquares, isDeed, type Options, type State, type View } from './model.js';
 import {
+  BOARD,
+  groupSquares,
+  isDeed,
+  type Options,
+  SPECIAL_EVENT_TIMEOUT,
+  type State,
+  type View,
+} from './model.js';
+import {
+  awaitSpecialEvent,
   bankHotels,
   bankHouses,
   bankrupt,
   buildingsInGroup,
   charge,
   copy,
-  jail,
   move,
   next,
   ownsGroup,
+  resolveSpecialEvent,
   transferMoney,
 } from './rules.js';
 
@@ -33,6 +43,7 @@ function requireTurn<T>(ctx: Action<T>, phase?: State['phase']) {
 }
 
 function requireOwner(ctx: Action<{ square: number }>) {
+  if (ctx.state.phase === 'event') ctx.reject('Hãy xác nhận sự kiện trước');
   if (ctx.state.phase === 'trade' || ctx.state.phase === 'auction')
     ctx.reject('Hãy hoàn tất trao đổi hoặc đấu giá trước');
   const square = ctx.payload.square;
@@ -44,6 +55,8 @@ function requireOwner(ctx: Action<{ square: number }>) {
 export class CoTyPhuClassicGame extends Game<State, Options, View> {
   events = {
     roll: z.object({}),
+    'confirm-event': z.object({}),
+    'event-ready': z.object({ id: z.number().int().nonnegative() }),
     buy: z.object({}),
     auction: z.object({}),
     bid: z.object({ amount: z.number().int().min(1).max(100000) }),
@@ -70,6 +83,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
 
   onStart({ players, rng }: StartContext<Options>): State {
     return {
+      specialEvent: null,
       moneySequence: 0,
       transfers: [],
       players: players.map(() => ({
@@ -141,8 +155,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     } else if (a === b) {
       s.doubles++;
       if (s.doubles === 3) {
-        jail(s, seat);
-        s.notice = 'Ba lần xúc xắc đôi: vào tù!';
+        awaitSpecialEvent(s, { kind: 'jail', reason: 'Ba lần xúc xắc đôi: vào tù!' });
+        this.scheduleSpecialEvent(s, ctx);
         return s;
       }
       s.after = 'roll';
@@ -150,6 +164,56 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       s.after = 'end';
     }
     move(s, seat, (p.position + a + b) % BOARD.length, true, a + b);
+    this.scheduleSpecialEvent(s, ctx);
+    return s;
+  }
+
+  private scheduleSpecialEvent(s: State, ctx: GameContext<State, Options>) {
+    ctx.clearTimer();
+    if (
+      s.specialEvent &&
+      !ctx.players[s.turn]?.bot &&
+      s.players.filter((player) => !player.bankrupt).length >= 2
+    )
+      ctx.setTimer(30000, 'prepare-event', s.specialEvent.id);
+  }
+
+  onEventReady(ctx: Action<{ id: number }>): State {
+    if (ctx.player.seat !== ctx.state.turn) ctx.reject('Chưa tới lượt bạn');
+    if (ctx.state.phase !== 'event' || ctx.state.specialEvent?.id !== ctx.payload.id)
+      ctx.reject('Sự kiện đã thay đổi');
+    if (ctx.players[ctx.state.turn]?.bot || ctx.state.specialEvent.ready) return ctx.state;
+    return this.startEventCountdown(ctx);
+  }
+
+  private startEventCountdown(ctx: GameContext<State, Options>): State {
+    const s = copy(ctx.state);
+    if (!s.specialEvent || ctx.players[s.turn]?.bot) return s;
+    s.specialEvent = { ...s.specialEvent, ready: true };
+    ctx.clearTimer();
+    if (s.players.filter((player) => !player.bankrupt).length >= 2)
+      ctx.setTimer(SPECIAL_EVENT_TIMEOUT, 'auto-confirm-event', s.specialEvent.id);
+    return s;
+  }
+
+  onPrepareEvent(ctx: TimerContext<State, number, Options>): State {
+    if (ctx.state.phase !== 'event' || ctx.state.specialEvent?.id !== ctx.payload) return ctx.state;
+    return this.startEventCountdown(ctx);
+  }
+
+  onConfirmEvent(ctx: Action): State {
+    requireTurn(ctx, 'event');
+    const s = copy(ctx.state);
+    resolveSpecialEvent(s);
+    this.scheduleSpecialEvent(s, ctx);
+    return s;
+  }
+
+  onAutoConfirmEvent(ctx: TimerContext<State, number, Options>): State {
+    if (ctx.state.phase !== 'event' || ctx.state.specialEvent?.id !== ctx.payload) return ctx.state;
+    const s = copy(ctx.state);
+    resolveSpecialEvent(s);
+    this.scheduleSpecialEvent(s, ctx);
     return s;
   }
 
@@ -308,8 +372,10 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     s.debt = null;
     s.phase = debt.after;
     s.notice = `Đã trả ${debt.amount}: ${debt.reason}.`;
-    if (debt.moveAfter !== undefined)
+    if (debt.moveAfter !== undefined) {
       move(s, s.turn, debt.moveAfter, true, (s.dice?.[0] ?? 0) + (s.dice?.[1] ?? 0));
+      this.scheduleSpecialEvent(s, ctx);
+    }
     return s;
   }
 
@@ -352,6 +418,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     ctx: Action<{ to: number; give: number; take: number; giveCash: number; takeCash: number }>,
   ): State {
     requireTurn(ctx);
+    if (ctx.state.phase === 'event') ctx.reject('Hãy xác nhận sự kiện trước');
     if (ctx.state.phase === 'auction' || ctx.state.phase === 'debt' || ctx.state.phase === 'trade')
       ctx.reject('Không thể trao đổi lúc này');
     const { to, give, take, giveCash, takeCash } = ctx.payload;
@@ -445,6 +512,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         this.auctionStep(s, s.auction.bidder === ctx.player.seat);
       } else {
         s.phase = ctx.state.phase;
+        if (s.specialEvent) s.notice = ctx.state.notice;
         s.pending = ctx.state.pending;
         s.debt = ctx.state.debt && {
           ...ctx.state.debt,
@@ -452,6 +520,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         };
       }
     }
+    if (wasTurn || s.winner !== null) ctx.clearTimer();
     return s;
   }
 }

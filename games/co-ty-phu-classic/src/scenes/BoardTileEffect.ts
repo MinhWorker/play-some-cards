@@ -6,7 +6,6 @@ export type TilePoint = { x: number; y: number };
 export class BoardTileEffect {
   readonly occupancy: Phaser.GameObjects.Graphics;
   readonly movement: Phaser.GameObjects.Graphics;
-  readonly ownership: Phaser.GameObjects.Graphics;
   readonly buildings: Phaser.GameObjects.Graphics;
   readonly mortgage: Phaser.GameObjects.Graphics;
   readonly group: Phaser.GameObjects.Graphics;
@@ -25,7 +24,6 @@ export class BoardTileEffect {
 
   constructor(private readonly scene: Phaser.Scene) {
     this.group = scene.add.graphics().setDepth(0.2);
-    this.ownership = scene.add.graphics().setDepth(0.4);
     this.buildings = scene.add.graphics().setDepth(0.5);
     this.mortgage = scene.add.graphics().setDepth(0.6);
     this.occupancy = scene.add.graphics().setDepth(1.1);
@@ -49,7 +47,6 @@ export class BoardTileEffect {
       | 'selection'
       | 'occupancy'
       | 'movement'
-      | 'ownership'
       | 'buildings'
       | 'mortgage'
       | 'group'
@@ -61,7 +58,6 @@ export class BoardTileEffect {
       selection: this.surface,
       occupancy: this.occupancy,
       movement: this.movement,
-      ownership: this.ownership,
       buildings: this.buildings,
       mortgage: this.mortgage,
       group: this.group,
@@ -175,7 +171,6 @@ export class BoardTileEffect {
     this.action.clear();
     this.movingColors = [];
     this.movement.clear();
-    this.ownership.clear();
     this.buildings.clear();
     this.mortgage.clear();
     this.group.clear();
@@ -246,10 +241,10 @@ export class BoardTileEffect {
     this.flash.clear();
     if (this.corners.length !== 4) return;
     const points = this.inset();
-    this.flash.fillStyle(this.pulseColor, 0.35);
+    this.flash.fillStyle(this.pulseColor, 0.05);
     this.path(this.flash, points);
     this.flash.fillPath();
-    this.flash.lineStyle(5, this.pulseColor, 1);
+    this.flash.lineStyle(3, this.pulseColor, 0.9);
     this.path(this.flash, points);
     this.flash.strokePath();
   }

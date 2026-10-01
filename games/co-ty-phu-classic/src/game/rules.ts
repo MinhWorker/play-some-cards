@@ -1,6 +1,13 @@
 import type { GameContext } from '@psc/sdk';
 import { CHANCE, CHEST, type Deck } from './cards.js';
-import { BOARD, groupSquares, isDeed, type Options, type State } from './model.js';
+import {
+  BOARD,
+  groupSquares,
+  isDeed,
+  type Options,
+  type SpecialEventEffect,
+  type State,
+} from './model.js';
 
 export type Context = GameContext<State, Options>;
 
@@ -122,12 +129,45 @@ export function move(
   land(s, seat, roll, multiplier);
 }
 
-function draw(s: State, deck: Deck, seat: number, roll: number) {
-  const id = s[deck].shift();
+function draw(s: State, deck: Deck, _seat: number, roll: number) {
+  const id = s[deck][0];
   if (id === undefined) throw new Error('Empty card deck');
   const card = (deck === 'chance' ? CHANCE : CHEST)[id]!;
   s.lastCard = card.text;
   s.notice = card.text;
+  awaitSpecialEvent(s, { kind: 'card', card, deck, roll });
+}
+
+export function awaitSpecialEvent(s: State, event: SpecialEventEffect) {
+  s.specialEvent = { ...event, id: s.moneySequence, ready: false };
+  s.phase = 'event';
+  s.notice =
+    event.kind === 'card'
+      ? event.card.text
+      : event.kind === 'tax'
+        ? `${event.reason}: cần nộp ${event.amount.toLocaleString('vi-VN')} ₫.`
+        : event.reason;
+}
+
+/** Apply a revealed event only once its owner or the server timer confirms it. */
+export function resolveSpecialEvent(s: State) {
+  const event = s.specialEvent;
+  if (!event) return;
+  s.specialEvent = null;
+  s.phase = s.after;
+  const seat = s.turn;
+  if (event.kind === 'tax') {
+    charge(s, seat, event.amount, null, event.reason);
+    return;
+  }
+  if (event.kind === 'jail') {
+    jail(s, seat);
+    s.notice = event.reason;
+    return;
+  }
+  const { card, deck, roll } = event;
+  const id = s[deck].shift();
+  if (id === undefined) throw new Error('Empty card deck');
   if (card.kind !== 'free') s[deck].push(id);
   switch (card.kind) {
     case 'cash':
@@ -175,11 +215,15 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
       charge(s, seat, rent(s, square, roll, multiplier), owner, `Tiền thuê ${cell.name}`);
     }
   } else if (cell.kind === 'tax') {
-    charge(s, seat, cell.tax!, null, cell.name);
+    awaitSpecialEvent(s, {
+      kind: 'tax',
+      amount: cell.tax!,
+      reason: cell.name,
+    });
   } else if (cell.kind === 'chance' || cell.kind === 'chest') {
     draw(s, cell.kind, seat, roll);
   } else if (cell.kind === 'go-jail') {
-    jail(s, seat);
+    awaitSpecialEvent(s, { kind: 'jail', reason: 'Bị đưa vào tù!' });
   }
 }
 
@@ -215,6 +259,7 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
     if (creditor === null) deed.mortgaged = false;
   }
   p.freeCards = [];
+  if (s.turn === seat) s.specialEvent = null;
   s.trade = null;
   s.auction = null;
   s.debt = null;

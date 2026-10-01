@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import random
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -133,3 +134,23 @@ def music() -> None:
 
 
 music()
+
+# Keep the selected preview choices as the app-ready game assets when rebuilding this pack.
+PREVIEW = Path(__file__).resolve().parent / "audio-preview"
+selected = {
+    "01-turn.wav": "tycoon-turn.wav",
+    "02-dice.wav": "tycoon-dice.wav",
+    "03-step.wav": "tycoon-step.wav",
+    "04-money-in.wav": "tycoon-coin.wav",
+    "05-money-out.wav": "tycoon-rent.wav",
+    "06-purchase.wav": "tycoon-buy.wav",
+    "07-build.wav": "tycoon-build.wav",
+    "08-card.wav": "tycoon-card.wav",
+    "09-auction.wav": "tycoon-auction.wav",
+    "10-jail.wav": "tycoon-jail.wav",
+    "11-bankrupt.wav": "tycoon-bankrupt.wav",
+}
+for source, destination in selected.items():
+    shutil.copyfile(PREVIEW / source, ASSETS / destination)
+shutil.copyfile(PREVIEW / "tien-len-standings.mp3", ASSETS / "tycoon-win.mp3")
+(ASSETS / "tycoon-win.wav").unlink(missing_ok=True)

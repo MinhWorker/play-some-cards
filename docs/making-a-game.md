@@ -150,7 +150,9 @@ export class MyView extends GameView<State, Options> {
 - `this.avatar(player)` cho ảnh đại diện của người chơi (máy có ảnh robot), dùng với
   `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
-  `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi;
+  `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi và trả về
+  một promise hoàn thành khi âm thanh bắt đầu. Dùng `await this.sfx('deal')` để đồng bộ hoạt ảnh
+  với lúc phát tiếng;
   `this.jingle('victory')` cũng vậy, nhưng nhạc nền nhỏ đi trong lúc nó phát (nhạc thắng).
 - `this.button('Đánh', onTap, { image: 'button' })` là nút có nền `assets/button.webp`. Nền là
   9-slice: nút to nhỏ, dài ngắn thế nào thì bốn góc vẫn giữ nguyên hình, chỉ phần giữa giãn ra.
