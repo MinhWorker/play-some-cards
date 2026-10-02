@@ -169,7 +169,6 @@ export default async function run(t) {
         turn: s.ctx.state.turn,
         items: s.inventory[1].freeCards,
         itemSounds: s.itemSounds,
-        jailCount: s.playerItems.counts[1].visible ? s.playerItems.counts[1].text : null,
       };
     });
     if (fixture.item) {

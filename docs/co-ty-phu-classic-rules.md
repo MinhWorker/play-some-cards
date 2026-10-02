@@ -51,11 +51,11 @@ bán nhà, thế chấp, chuộc hoặc thao tác của người khác không k�
 | Gieo | Gieo xúc xắc, kể cả khi đang ở tù |
 | Kết thúc lượt | Hết lượt; không tự xây thêm |
 | Mua đất | Mua nếu đủ tiền; nếu thiếu tiền thì mở đấu giá |
-| Đấu giá | Bỏ giá; không tự tăng giá đã trả |
 | Trao đổi | Từ chối đề nghị; không tự nhận trao đổi |
 | Nợ | Bán công trình, thế chấp đất tới khi đủ tiền rồi trả; không đủ tài sản thì phá sản |
 
 Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù vẫn dùng quy tắc 8 giây ở mục 3.
+Đấu giá không dùng đồng hồ PvP mà có đồng hồ riêng của phiên (mục 4).
 
 ## 3. Các ô đặc biệt và xác nhận sự kiện
 
@@ -66,7 +66,7 @@ Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù v�
 | Khí vận | Rút một thẻ Khí vận |
 | Thuế thu nhập | Nộp 10% tiền mặt, tối thiểu 200 |
 | Thuế xa xỉ | Nộp 10% tiền mặt, tối thiểu 200 |
-| Nhà tù / Thăm | Đến bằng di chuyển thông thường chỉ là ghé thăm, không bị giam |
+| Nhà tù | Đến bằng di chuyển thông thường chỉ là ghé thăm, không bị giam |
 | Sân bay | Sau khi xác nhận, bay tới một trong 39 ô khác ngẫu nhiên và xử lý ô đến |
 | Vào tù | Chuyển tới ô 10, bị giam và mất quyền gieo thêm |
 
@@ -93,7 +93,7 @@ Nếu đã gieo đôi thì vẫn giữ quyền gieo thêm, trừ khi bị đưa 
 Tiền thuê và thưởng Xuất phát được xử lý ngay, không cần xác nhận. Nếu hiệu lực thẻ dẫn đến
 một ô sự kiện khác, ô mới tiếp tục có bước xác nhận riêng.
 
-Các bước gieo, mua, đấu giá, trả nợ, trao đổi và kết thúc lượt dùng đồng hồ PvP ở mục 2
+Các bước gieo, mua, trả nợ, trao đổi và kết thúc lượt dùng đồng hồ PvP ở mục 2
 khi đủ điều kiện. Tốc độ trình bày 1×/2× không đổi luật hay thời hạn của server.
 
 ## 4. Mua tài sản và đấu giá
@@ -109,16 +109,22 @@ Tài sản mua được gồm **đất phố, ga, điện và nước**.
 
 ### Đấu giá
 
-- Đất phố từ chối mua vẫn đấu giá thông thường: tăng ít nhất 1, trả giá thắng khi còn người
-  giữ giá cao nhất. Người đang giữ giá cao nhất không được bỏ giá; tất cả bỏ mà chưa có giá thì không bán.
-- Bến xe mở đấu giá ngay khi đến, không có nút mua trực tiếp. Người đến là người đặt đầu tiên.
+- Đấu giá là sự kiện chung của cả bàn, không theo lượt: mọi ghế chưa bỏ đều trả giá được bất cứ
+  lúc nào. Phiên có đồng hồ do server giữ: **10 giây** từ lúc mở, mỗi lần trả giá đặt lại về
+  **6 giây**. Bỏ giá không đặt lại đồng hồ. Hết giờ thì người giữ giá cao nhất thắng; chưa ai trả
+  giá thì không bán. Máy cũng tham gia trong cùng đồng hồ.
+- Đất phố từ chối mua: mỗi lần trả tăng ít nhất 1 so với giá cao nhất. Người đang giữ giá cao
+  nhất không được bỏ giá. Mọi người khác bỏ thì người dẫn đầu thắng ngay; tất cả bỏ mà chưa có
+  giá thì không bán.
+- Bến xe mở đấu giá ngay khi đến, không có nút mua trực tiếp; ai cũng có thể đặt trước.
 - Bến xe bắt đầu từ 0, mỗi lần đặt tăng **đúng 10 ₫**. Tiền đặt bị trừ khỏi tiền mặt ngay;
   khi đặt lại, chỉ trừ chênh lệch với số đang giữ. Muốn đặt phải có ít nhất 200 ₫ tính cả tiền đang giữ.
 - Rút/bỏ cuộc hoàn tiền đặt ngay và loại người đó khỏi phiên. Người giữ giá cao nhất cũng được rút.
-- Khi chỉ còn một người chưa bỏ, hoàn tất cả tiền đặt rồi người thắng trả **giá niêm yết 200 ₫**,
-  không trả giá đặt cao nhất. Nếu người còn lại không đủ giá niêm yết, bến vẫn thuộc ngân hàng.
+- Khi hết giờ hoặc chỉ còn một người chưa bỏ, hoàn tất cả tiền đặt rồi người thắng (người đặt
+  cao nhất, hoặc người còn lại) trả **giá niêm yết 200 ₫**, không trả giá đặt cao nhất. Nếu người
+  thắng không đủ giá niêm yết, bến vẫn thuộc ngân hàng.
 - Chấm tròn màu người chơi trên bến hiển thị các ghế đang có tiền đặt.
-- Hết hạn quyết định bến xe thì rút/bỏ cuộc; người đã bỏ không quay lại phiên đó.
+- Người đã bỏ không quay lại phiên đó.
 - Không quản lý tài sản hay trao đổi khi đấu giá. Sau phiên, tiếp tục gieo nếu trước đó ra đôi,
   nếu không thì kết thúc lượt. Chủ lượt rời ván hủy phiên và hoàn toàn bộ tiền đặt; ghế khác
   rời ván được hoàn tiền đặt của mình trước thanh lý tài sản, phiên tiếp tục với các ghế còn lại.
@@ -368,7 +374,7 @@ mua. Giá bến xe là 200; điện/nước không bán.
 | 7 | Cơ hội | Ô đặc biệt | — |
 | 8 | Đồng Nai | vang | 260 |
 | 9 | Hưng Yên | do | 220 |
-| 10 | Nhà tù / Thăm | Ô đặc biệt | — |
+| 10 | Nhà tù | Ô đặc biệt | — |
 | 11 | Tp. Đà Nẵng | xanh-nhat | 100 |
 | 12 | Điện lực | Thuế công cộng 100 / 200 | — |
 | 13 | Đồng Tháp | xanh-dam | 350 |

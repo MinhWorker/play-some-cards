@@ -25,8 +25,8 @@ it('keeps purchase price and unfamiliar events intact', () => {
 });
 
 it('distinguishes visiting jail, imprisonment and failed release', () => {
-  expect(landingHeading(10, 'Nhà tù / Thăm', false)).toBe('Ghé thăm nhà tù');
-  expect(landingHeading(10, 'Nhà tù / Thăm', true)).toBe('Bị đưa vào tù!');
+  expect(landingHeading(10, 'Nhà tù', false)).toBe('Ghé thăm nhà tù');
+  expect(landingHeading(10, 'Nhà tù', true)).toBe('Bị đưa vào tù!');
   expect(eventNotice('Chưa ra tù: 2 + 3.', null, '')).toBe('Chưa tung được đôi: vẫn ở trong tù.');
   expect(eventNotice('Ba lần xúc xắc đôi: vào tù!', null, '')).toContain('3 lần liên tiếp');
 });

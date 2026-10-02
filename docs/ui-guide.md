@@ -52,9 +52,13 @@ khung, nhân với cỡ HUD người chơi chọn. Cỡ chữ và nút nhân v�
 
 ## HUD
 
-- **Góc trên trái**: nút quay lại, tên phòng hoặc hồ sơ. **Góc trên phải**: âm thanh, cài đặt. Hai
-  góc cao 88, cách mép một **lề** (mặc định 24).
-- Giữa hai góc để trống cho bàn chơi: HUD không phủ ngang cả màn hình.
+- **Góc trên trái**: nút quay lại (←, chỉ biểu tượng) và 🏠, hoặc hồ sơ ở trang chủ. **Góc trên
+  phải**: âm thanh, cài đặt. Hai góc cao 88, cách mép một **lề** (mặc định 24).
+- Không ghi tên game hay tên phòng trong ván: người chơi biết mình đang ở đâu, chỗ đó dành cho bàn.
+  Chủ phòng có 👑 trong danh sách người chơi; game tự vẽ người chơi thì tự thể hiện chủ phòng.
+- Giữa hai góc để trống cho bàn chơi: HUD không phủ ngang cả màn hình. `ctx.screen.gap` cho biết
+  khoảng trống giữa hai góc; bàn vuông lọt vừa khoảng đó thì được cao gần trọn khung, lên tận mép
+  trên.
 - Người chơi chỉnh được **cỡ giao diện** (80–130%, chữ và nút) và **lề màn hình** (0–32 điểm CSS:
   cả khung lùi vào khỏi mép, trời lấp chỗ trống) trong bảng cài đặt (nút bánh răng), lưu theo từng máy
   (`apps/web/src/lib/frame.ts`).

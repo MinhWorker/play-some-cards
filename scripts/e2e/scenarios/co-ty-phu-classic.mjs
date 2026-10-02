@@ -162,10 +162,16 @@ export default async function run(t) {
     } else if (state.phase === 'end') {
       await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
     } else if (state.phase === 'auction') {
+      // Open to everyone: this seat leaves, and the auction's own clock closes it.
       await clickCanvas(
         page,
         'co-ty-phu-classic',
         (s) => s.main.find((b) => b.hit.visible && b.text.text.includes('Bỏ')).hit,
+      );
+      await page.waitForFunction(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase !== 'auction',
+        null,
+        { timeout: 15000 },
       );
     } else if (state.phase === 'debt') {
       const enough = await page.evaluate(() => {
@@ -429,6 +435,45 @@ export default async function run(t) {
       );
       await idle();
     }
+    // A utility (or a card) asks to confirm its event first.
+    while (
+      await rulesPage.evaluate(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'event',
+      )
+    ) {
+      const seq = await rulesPage.evaluate(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.moneySequence,
+      );
+      await clickCanvas(rulesPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
+      await rulesPage.waitForFunction((seq) => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
+        return s.phase !== 'event' || s.moneySequence > seq;
+      }, seq);
+      await idle();
+    }
+    // A station opens an auction for the whole table: the seat that rolled drops out (the
+    // other is then the last one in, and buys it at its listed price).
+    const auction = () =>
+      rulesPage.evaluate(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'auction',
+      );
+    if (await auction()) {
+      for (const who of [seat, 1 - seat]) {
+        if (!(await auction())) break;
+        await rulesPage.getByRole('button', { name: `Người ${who + 1}`, exact: true }).click();
+        await idle();
+        await clickCanvas(
+          rulesPage,
+          'co-ty-phu-classic',
+          (s) => s.main.find((b) => b.hit.visible && b.text.text.endsWith('Bỏ giá')).hit,
+        );
+      }
+      await rulesPage.waitForFunction(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase !== 'auction',
+      );
+      await rulesPage.getByRole('button', { name: `Người ${seat + 1}`, exact: true }).click();
+      await idle();
+    }
     if (end) {
       const endControl = await rulesPage.evaluate(() => {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -436,7 +481,7 @@ export default async function run(t) {
         return {
           label: button.text.text,
           centered: Math.abs(button.hit.x - (s.geometry.left + s.geometry.size / 2)) < 1,
-          y: Math.abs(button.hit.y - (s.geometry.top + s.geometry.imageH * 0.69)) < 1,
+          y: Math.abs(button.hit.y - (s.geometry.top + s.geometry.imageH * 0.645)) < 1,
           asset: button.box.texture.key,
         };
       });

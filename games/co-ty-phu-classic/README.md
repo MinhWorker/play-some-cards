@@ -13,14 +13,17 @@ bảng giá mua/thuê và hai bộ thẻ.
 - Mỗi người bắt đầu ở **Xuất phát** với 1.500. Gieo hai xúc xắc và đi theo chiều tăng số ô.
   Đi qua hoặc dừng ở Xuất phát nhận 200. Nếu ra đôi, giải quyết ô đang đứng rồi gieo thêm;
   ra đôi ba lần liên tiếp thì vào tù ngay.
-- Đến đất chưa có chủ, chọn **Mua** theo giá ghi trên ô hoặc **Đấu giá**. Khi đấu giá, từng
-  người tăng giá hoặc bỏ cuộc. Người trả cao nhất trong số tiền mình có nhận đất.
+- Đến đất chưa có chủ, chọn **Mua** theo giá ghi trên ô hoặc **Đấu giá**. Đấu giá là sự kiện
+  chung của cả bàn: ai cũng trả giá bất cứ lúc nào, không chờ lượt. Thanh đếm ngược màu trung
+  tính chạy 10 giây từ lúc mở và 6 giây sau mỗi lần trả giá; hết giờ thì người giữ giá cao nhất
+  nhận đất. Mọi người khác bỏ giá thì phiên kết thúc sớm.
 - Đến đất người khác sở hữu và chưa thế chấp, trả tiền thuê. Đất cùng màu được một người sở hữu
   trọn bộ thì tiền thuê đất trống gấp đôi. Bến xe thu 25, 50, 100 hoặc 600 theo số bến cùng chủ. Chủ đang bị giam trong
   tù thì đất và bến xe của họ không thu tiền thuê cho tới khi ra tù.
-- Bến xe chỉ được sở hữu qua đấu giá. Giá đặt tăng đúng 10 ₫ mỗi lần và được giữ từ tiền mặt;
-  rút/bỏ cuộc được hoàn tiền và không được quay lại phiên. Khi còn một người, hoàn tất cả
-  tiền đặt rồi người thắng trả giá bến 200 ₫. Người tham gia phải đủ 200 ₫ tính cả tiền đang giữ.
+- Bến xe chỉ được sở hữu qua đấu giá, cùng kiểu đếm ngược như đất. Giá đặt tăng đúng 10 ₫ mỗi
+  lần và được giữ từ tiền mặt; rút/bỏ cuộc được hoàn tiền và không được quay lại phiên. Khi hết
+  giờ hoặc chỉ còn một người, hoàn tất cả tiền đặt rồi người thắng trả giá bến 200 ₫. Người tham
+  gia phải đủ 200 ₫ tính cả tiền đang giữ.
 - Hai ô thuế thu 10% tiền mặt tại lúc đến ô, làm tròn xuống, tối thiểu 200 ₫. Điện lực và Cấp nước
   không được mua, thu cố định 100 ₫. Thẻ thiếu điện/nước làm thuế ô tương ứng thành 200 ₫
   trong vòng bàn kế tiếp (từ lúc lượt quay về ghế đầu tiên còn chơi tới lần quay về sau đó).
@@ -65,9 +68,10 @@ trả lời đề nghị trao đổi. Có thể chơi một mình với máy ho�
 
 Màn tạo phòng/tuỳ chỉnh có **Thời gian lượt PvP**: 15/30/60/90 giây, mặc định 30 giây.
 Khi còn ít nhất hai người thật, mỗi quyết định có đồng hồ do server giữ; hết hạn tự gieo,
-kết thúc lượt, mua nếu đủ tiền hoặc mở đấu giá, bỏ giá, từ chối trao đổi, hoặc thanh lý
+kết thúc lượt, mua nếu đủ tiền hoặc mở đấu giá, từ chối trao đổi, hoặc thanh lý
 tài sản để trả nợ/phá sản. Xây, bán nhà, thế chấp và chuộc không kéo dài thời hạn đang chờ.
-Ván một người thật với máy không dùng đồng hồ này. Sự kiện đặc biệt vẫn tự xác nhận sau 8 giây.
+Ván một người thật với máy không dùng đồng hồ này. Sự kiện đặc biệt vẫn tự xác nhận sau 8 giây;
+đấu giá có đồng hồ riêng của phiên, kể cả khi chơi với máy.
 
 Chạm một ô để xem giá, chủ đất, tiền thuê và tình trạng nhà ở cột bên phải. Nút giữa bàn thay
 đổi theo bước hiện tại: mua/đấu giá, trả nợ hoặc kết thúc lượt. Chạm hai viên xúc xắc để gieo;
@@ -110,12 +114,17 @@ Biểu tượng tiền và địa điểm trong HUD dùng hình SVG phẳng, mà
 khi thu nhỏ. Chạy `python3 games/co-ty-phu-classic/sources/render_hud_icons.py` để tạo lại ảnh PNG
 và WebP từ các file SVG trong `sources/`.
 
-HUD đặt bốn dòng trạng thái gọn ở góc trên phải trong lòng bàn, chỉ hiện tên, màu quân và tiền.
-Góc trên trái có ảnh đại diện, tên và tiền của người đang có lượt. Thông tin vị trí được bỏ khỏi
-HUD; quân cờ và thẻ ô cho biết địa điểm. Thẻ thông tin bên phải hẹp hơn 30%; viền bàn mỏng.
+Bàn chiếm tối đa khung hình: trong phòng thật, bàn dùng cả khoảng trống giữa thanh phòng
+(`ctx.screen.gap`) nếu cách đó cho bàn lớn hơn. Kích thước tính theo phần bàn nhìn thấy (ảnh
+`board-25d` có viền trong suốt), nên viền trong suốt được phép tràn ra ngoài khung. Chữ và nút
+trong lòng bàn tự thu nhỏ theo cỡ bàn; thẻ thông tin bên phải bắt đầu dưới nút cài đặt.
+Người chơi xếp lưới 2×2 ở góc trên phải lòng bàn, không ghi tên: huy hiệu số ghế màu quân và
+tiền; chủ phòng có vương miện trên huy hiệu. Góc trên trái có ảnh đại diện, tên và tiền của người
+đang có lượt. Thông tin vị trí, thẻ ra tù và trạng thái trong tù không có biểu tượng riêng; quân
+cờ và thẻ ô cho biết địa điểm. Thẻ thông tin bên phải hẹp hơn 30%; viền bàn mỏng.
 Nút mua, đấu giá, trả giá và quản lý đất nằm trong thẻ thông tin ô. Hai xúc xắc là vùng chạm để gieo;
 **Hết lượt** nằm giữa bàn, thao tác lượt khác ở góc dưới phải. Bảng trao đổi nằm trong lòng bàn,
-dùng màu giấy và chữ mực như thông báo sự kiện. Tên game được ẩn khỏi HUD khi bàn tự hiển thị người chơi.
+dùng màu giấy và chữ mực như thông báo sự kiện.
 Thẻ dùng khoảng cách gọn và xếp dọc các nút thao tác theo toàn bộ chiều rộng thẻ. Nút trong thẻ dùng
 ảnh `tile-button` nền giấy và `tile-button-primary` vàng nhạt, có 9-slice riêng; nút lượt
 chơi giữ ảnh vàng gốc và luôn xếp dọc. Khung hẹp đưa chồng nút lượt vào phần trống phía
@@ -157,7 +166,7 @@ người khác còn chạy xúc xắc, không bỏ qua hoặc chờ tới lượ
 Danh sách âm thanh và bộ nghe thử nằm trong
 [tài liệu âm thanh](../../docs/co-ty-phu-classic-audio.md).
 
-Nút **1× / 2×** nhỏ ở góc dưới phải lòng bàn đổi tốc độ trình bày riêng của người xem: xúc xắc,
+Nút **1× / 2×** nhỏ ở góc dưới cột bên phải, ngoài bàn, đổi tốc độ trình bày riêng của người xem: xúc xắc,
 di chuyển, giao dịch tiền và các quãng giữ kết quả. Đổi giữa một hiệu ứng không làm nhảy
 số tiền hoặc quân cờ. Luật, kết quả server, bảng tiền đầu ván và thẻ nổi 2 giây giữ nguyên.
 
@@ -189,7 +198,8 @@ vùng chạm cao 88 đơn vị. **Hết lượt** cũng nằm giữa bàn với 
 in giá mua sát mép ngoài; ô đã có chủ in tiền thuê hiện tại, cập nhật khi xây/bán nhà,
 thế chấp hoặc chủ vào/ra tù. Điện/nước ghi hệ số xúc xắc; hai ô thuế ghi mức phải nộp.
 Mỗi nhà là một chấm tròn màu chủ đất có viền sáng, đặt trên dải màu nhóm; khách sạn là
-một thanh chữ nhật màu ghi có viền sáng, nhỏ hơn dải màu phía dưới. Biểu tượng trên các ô
+một viên capsule màu ghi có viền sáng, nhỏ hơn dải màu phía dưới. Ô đang thế chấp được đóng
+dấu mộc ngân hàng màu son, nghiêng theo mặt ô, thay cho nét gạch. Biểu tượng trên các ô
 được thu nhỏ để dành chỗ in tên địa danh giữa biểu tượng và giá ô. Tên tự chia tối đa
 hai dòng và co cỡ chữ theo chiều rộng ô, giữ nguyên dấu tiếng Việt và phối cảnh mặt bàn.
 

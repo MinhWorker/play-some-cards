@@ -232,8 +232,10 @@ export class MyView extends GameView<State, Options> {
   Game tự vẽ bảng xếp hạng thì đặt `defineClient({ showsResult: true })`: bảng của ứng dụng chỉ
   còn các nút. Game tự vẽ danh sách người chơi thì đặt `showsPlayers: true` để thanh phòng ẩn
   danh sách của nó trong lúc chơi.
-- Thanh phòng có "Rời phòng" (về danh sách phòng của game) và nút 🏠 (rời phòng, về thẳng trang
-  chủ). Bấm một trong hai giữa ván sẽ được hỏi lại "Bỏ dở ván này?" (rời đi là dừng ván cho cả
+- Thanh phòng chỉ có hai nút ở góc trái: ← (về danh sách phòng của game) và 🏠 (rời phòng, về
+  thẳng trang chủ), cùng danh sách người chơi (👑 cạnh chủ phòng) nếu game không tự vẽ danh sách
+  đó. Thanh không ghi tên game hay "Phòng của …": game nào tự vẽ người chơi thì tự thể hiện chủ
+  phòng theo kiểu của mình (`ctx.hostId`, `ctx.isHost`). Bấm ← hoặc 🏠 giữa ván sẽ được hỏi lại "Bỏ dở ván này?" (rời đi là dừng ván cho cả
   bàn). Đổi chữ trong `client.ts`:
   `defineClient({ scene, leaveConfirm: { title, message, stay, leave } })` (chỗ nào không ghi thì
   giữ chữ mặc định), hoặc `leaveConfirm: false` để tắt, như Bấm Nút.

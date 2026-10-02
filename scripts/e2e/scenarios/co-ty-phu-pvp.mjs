@@ -12,7 +12,7 @@ export default async function run(t) {
   await clickCanvas(host, 'co-ty-phu-classic:setup', (s) => s.clockChoices[2].container);
   await host.screenshot({ path: t.shot('setup-clock.png') });
   await clickCanvas(host, 'co-ty-phu-classic:setup', (s) => s.submitButton.container);
-  await host.getByText('Phòng của ClockHost').waitFor();
+  await host.getByRole('heading', { name: 'Đang chờ người chơi' }).waitFor();
   await openRooms(guest, 'co-ty-phu-classic');
   await guest
     .locator('.room-row', { hasText: 'Phòng của ClockHost' })

@@ -237,14 +237,40 @@ describe('Cờ tỷ phú Classic', () => {
     const game = at(3);
     game.send('a', 'roll').send('a', 'auction');
     game.send('a', 'bid', { amount: 50 });
-    expect(game.error('b', 'bid', { amount: 50 })).toBe(
-      'Giá đấu phải cao hơn và trong số tiền bạn có',
-    );
+    expect(game.error('a', 'bid', { amount: 60 })).toBe('Giá bạn đã trả vẫn đang cao nhất');
+    expect(game.error('b', 'bid', { amount: 50 })).toBe('Giá đã thay đổi, hãy trả lại');
     game.send('b', 'bid', { amount: 60 });
+    expect(game.error('b', 'pass')).toBe('Giá bạn đã trả vẫn đang cao nhất');
     game.send('a', 'pass');
     expect(game.state.properties[3]?.owner).toBe(1);
     expect(game.state.players[1]?.cash).toBe(1440);
     expect(game.state.auction).toBeNull();
+  });
+
+  it('lets everyone bid at any time, restarting the clock, and sells when it runs out', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (3 - a - b + 40) % 40;
+    game.send('a', 'roll').send('a', 'auction');
+    expect(game.timer).toEqual({ event: 'auction-end', ms: 10000 });
+    // No turns: c bids before b, and b answers.
+    game.send('c', 'bid', { amount: 40 }).send('b', 'bid', { amount: 50 });
+    expect(game.timer).toEqual({ event: 'auction-end', ms: 6000 });
+    expect(game.state.auction).toMatchObject({ leader: 1, highest: 50, round: 2 });
+    // Leaving doesn't restart it; the clock running out sells to the leader.
+    game.send('a', 'pass');
+    game.fireTimer();
+    expect(game.state.properties[3]?.owner).toBe(1);
+    expect(game.state.players[1]?.cash).toBe(1450);
+    expect(game.state.auction).toBeNull();
+  });
+
+  it('sells nothing when the clock runs out before a bid', () => {
+    const game = at(3);
+    game.send('a', 'roll').send('a', 'auction');
+    game.fireTimer();
+    expect(game.state.properties[3]?.owner).toBeNull();
+    expect(game.state.notice).toBe('Không ai mua đất trong phiên đấu giá.');
   });
 
   it('charges rent and pauses for liquidation if cash is short', () => {
@@ -433,15 +459,14 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.properties[3]?.owner).toBe(0);
   });
 
-  it('keeps the current bidder when a different bidder leaves', () => {
+  it('starts the street over when its leader leaves the table', () => {
     const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
     const [a, b] = firstRoll();
     game.state.players[0]!.position = (3 - a - b + 40) % 40;
     game.send('a', 'roll').send('a', 'auction').send('a', 'pass');
     game.send('b', 'bid', { amount: 50 });
-    expect(game.state.auction?.bidder).toBe(2);
     game.leave('b');
-    expect(game.state.auction?.bidder).toBe(2);
+    expect(game.state.auction).toMatchObject({ leader: null, highest: 0 });
     game.send('c', 'bid', { amount: 1 });
     expect(game.state.properties[3]?.owner).toBe(2);
   });
@@ -461,11 +486,15 @@ describe('Cờ tỷ phú Classic', () => {
     const players = ['a', 'b', 'c'];
     const game = testGame(plugin, players, { bots: players, options: { bots: 3 } });
     for (let i = 0; i < 800 && !game.result; i++) {
-      const seat = game.state.phase === 'auction' ? game.state.auction!.bidder : game.state.turn;
-      const id = players[seat]!;
-      const move = game.bot(id);
-      expect(move).not.toBeNull();
-      game.send(id, move!.event, move!.payload as object);
+      // In an auction any computer may move; once none wants to, its clock ends it.
+      const id = players.find((p) => game.bot(p)) ?? null;
+      if (id === null) {
+        expect(game.state.phase).toBe('auction');
+        game.fireTimer();
+        continue;
+      }
+      const move = game.bot(id)!;
+      game.send(id, move.event, move.payload as object);
     }
     expect(game.state.properties.some((deed) => deed.owner !== null)).toBe(true);
   });

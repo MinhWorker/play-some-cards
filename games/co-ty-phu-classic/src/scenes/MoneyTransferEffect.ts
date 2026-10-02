@@ -3,56 +3,24 @@ import type { MoneyTransfer } from '../game/model.js';
 
 type Point = { x: number; y: number };
 
-/** One readable transfer, with a bill travelling between the two endpoints. */
+/**
+ * One transfer as a picture: a bill travelling between the two ends (the bank is a small
+ * facade). The amount itself shows once, over the pawns (PawnCashEffect), and the notice line
+ * says why: no other words here.
+ */
 export class MoneyTransferEffect {
   private graphics: Phaser.GameObjects.Graphics;
   private bill: Phaser.GameObjects.Image;
-  private caption: Phaser.GameObjects.Text;
-  private amount: Phaser.GameObjects.Text;
-  private deltas: Phaser.GameObjects.Text[];
 
   constructor(scene: Phaser.Scene, moneyTexture: string) {
     this.graphics = scene.add.graphics().setDepth(13);
     this.bill = scene.add.image(0, 0, moneyTexture).setDepth(14).setDisplaySize(32, 26);
-    const style = {
-      fontFamily: '"Baloo 2"',
-      fontSize: '24px',
-      fontStyle: 'bold',
-      color: '#57533f',
-      align: 'center',
-    };
-    this.caption = scene.add.text(0, 0, '', style).setOrigin(0.5).setDepth(13);
-    this.amount = scene.add
-      .text(0, 0, '', { ...style, color: '#78531f' })
-      .setOrigin(0.5)
-      .setDepth(14);
-    this.deltas = ['#a44937', '#427349'].map((color) =>
-      scene.add
-        .text(0, 0, '', { ...style, color, fontSize: '20px' })
-        .setOrigin(0, 0.5)
-        .setDepth(14),
-    );
     this.hide();
   }
 
-  draw(
-    transfer: MoneyTransfer,
-    from: Point,
-    to: Point,
-    progress: number,
-    center: Point,
-    names: string[],
-    width: number,
-  ) {
+  draw(transfer: MoneyTransfer, from: Point, to: Point, progress: number) {
     this.graphics.clear().setVisible(true);
     this.bill.setVisible(progress < 1);
-    this.caption
-      .setVisible(true)
-      .setPosition(center.x, center.y + 35)
-      .setWordWrapWidth(width, true)
-      .setText(
-        `${transfer.from === null ? 'Ngân hàng' : names[transfer.from]} → ${transfer.to === null ? 'Ngân hàng' : names[transfer.to]}`,
-      );
     // A simple bank facade stays legible at phone scale and uses the board's ink palette.
     const bank = transfer.from === null ? from : transfer.to === null ? to : null;
     if (bank) {
@@ -79,27 +47,13 @@ export class MoneyTransferEffect {
           .lineStyle(3, seat === transfer.from ? 0xbf6651 : 0x528357)
           .strokeCircle(point.x, point.y, 10);
     }
-    [from, to].forEach((point, i) => {
-      this.deltas[i]!.setVisible(true)
-        .setPosition(point.x + 14, point.y - 22)
-        .setText(`${i === 0 ? '−' : '+'}${transfer.amount.toLocaleString('vi-VN')} ₫`);
-    });
     const x = from.x + (to.x - from.x) * progress;
     const y = from.y + (to.y - from.y) * progress - Math.sin(progress * Math.PI) * 35;
     this.bill.setPosition(x, y);
-    this.amount
-      .setVisible(true)
-      .setPosition(center.x, center.y - 48)
-      .setText(`${transfer.amount.toLocaleString('vi-VN')} ₫`);
   }
 
   hide() {
     this.graphics.clear().setVisible(false);
     this.bill.setVisible(false);
-    this.caption.setVisible(false);
-    this.amount.setVisible(false);
-    this.deltas.forEach((label) => {
-      label.setVisible(false);
-    });
   }
 }

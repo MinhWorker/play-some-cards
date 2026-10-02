@@ -48,14 +48,26 @@ export interface TycoonPlayer {
 
 export type Phase = 'roll' | 'buy' | 'auction' | 'debt' | 'trade' | 'event' | 'end';
 
+/**
+ * An open auction: every player still in it may bid at any time while its clock runs (no turns).
+ * Each bid restarts the clock; when it runs out the leader buys. A station is mandatory and its
+ * bids are deposits held by the bank: all are refunded and the winner pays the listed price.
+ */
 export interface Auction {
   square: number;
-  bidder: number;
   highest: number;
   leader: number | null;
+  /** Players who left the auction (they may not bid again). */
   passed: number[];
+  /** Station deposits held by the bank, per seat. */
   bids: number[];
+  /** Bids so far: the clock's timer is tied to it, so an older timer never closes the auction. */
+  round: number;
 }
+
+/** How long an auction runs before its first bid, and after each bid (ms). */
+export const AUCTION_OPEN_MS = 10_000;
+export const AUCTION_BID_MS = 6_000;
 
 export interface Debt {
   amount: number;
@@ -151,7 +163,7 @@ export const BOARD: readonly Square[] = [
   { name: 'Cơ hội', kind: 'chance' },
   street('Đồng Nai', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
   street('Hưng Yên', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
-  { name: 'Nhà tù / Thăm', kind: 'jail' },
+  { name: 'Nhà tù', kind: 'jail' },
   street('Tp. Đà Nẵng', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
   utility('Điện lực'),
   street('Đồng Tháp', 'xanh-dam', 350, [35, 175, 500, 1100, 1300, 1500], 200),

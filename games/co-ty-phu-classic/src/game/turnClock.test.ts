@@ -29,13 +29,12 @@ describe('PvP turn clock', () => {
     expect(game.error('a', 'turn-timeout')).toBeTruthy();
   });
 
-  it('opens an auction when a timed-out buyer cannot afford the property, then passes AFK bidders', () => {
+  it('opens an auction when a timed-out buyer cannot afford the property, run by its own clock', () => {
     const game = gameAt(3, 1);
     game.send('a', 'roll');
     game.fireTimer();
     expect(game.state.phase).toBe('auction');
-    game.fireTimer();
-    expect(game.state.auction?.bidder).toBe(1);
+    expect(game.timer).toEqual({ event: 'auction-end', ms: 10000 });
     game.fireTimer();
     expect(game.state.phase).toBe('end');
     expect(game.state.properties[3]!.owner).toBeNull();

@@ -125,9 +125,11 @@ export default async function run(t) {
         decals.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945)) ||
         fills.length !== (houses === 5 ? 1 : houses) ||
         fills.some((d) => d.color !== (houses === 5 ? 0x64676b : colors[owner])) ||
-        fills.some((d) => d.coords.length !== (houses === 5 ? 4 : 24))
+        fills.some((d) => d.coords.length !== (houses === 5 ? 26 : 24))
       )
-        throw new Error(`House dots or gray hotel bars do not fit their color band on ${square}`);
+        throw new Error(
+          `House dots or gray hotel capsules do not fit their color band on ${square}`,
+        );
     }
   });
   await page.screenshot({ path: t.shot('houses-rent-desktop.png') });
@@ -152,9 +154,12 @@ export default async function run(t) {
       timer: { event: 'turn-timeout', ms: 30000, left: 30000 },
       last: { seq: 2, player: 'a', move: { event: 'offer-trade', payload } },
     });
+    // The answer clock sits under the heading and the offer's lines.
+    const clock = s.countdownLabel.getBounds();
     if (
       !s.countdownLabel.visible ||
-      s.countdownLabel.getBounds().bottom >= s.heading.getBounds().top
+      clock.top < s.heading.getBounds().bottom ||
+      (s.card.visible && clock.top < s.card.getBounds().bottom)
     )
       throw new Error('Trade countdown overlaps its heading or offer text');
   });
@@ -239,8 +244,6 @@ export default async function run(t) {
       throw new Error('The eliminated player retained colored text or icons');
     if (s.moneyIcons[0].renderFilters || s.people[0].style.color !== '#3d2b20')
       throw new Error('An active player lost their colors');
-    if (s.playerItems.counts[1].visible)
-      throw new Error('An eliminated player retained a jail countdown');
     const { left, top, size, imageH } = s.geometry;
     const y = top + imageH * 0.19 + 44;
     const a = window.__toScreen('co-ty-phu-classic', left + size * 0.51, y - 4);

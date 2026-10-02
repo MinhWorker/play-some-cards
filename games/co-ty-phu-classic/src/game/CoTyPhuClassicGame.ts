@@ -11,6 +11,8 @@ import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
 import {
+  AUCTION_BID_MS,
+  AUCTION_OPEN_MS,
   AUCTION_STEP,
   BOARD,
   isDeed,
@@ -28,6 +30,7 @@ import {
   copy,
   move,
   next,
+  openAuction,
   resolveSpecialEvent,
   transferMoney,
 } from './rules.js';
@@ -182,6 +185,15 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         ctx.setTimer(30000, 'prepare-event', s.specialEvent.id);
       return;
     }
+    // An auction is open to everyone: its own clock, bots included, restarts on every bid.
+    if (s.phase === 'auction' && s.auction) {
+      ctx.setTimer(
+        s.auction.round ? AUCTION_BID_MS : AUCTION_OPEN_MS,
+        'auction-end',
+        s.auction.round,
+      );
+      return;
+    }
     const seat = decisionSeat(s);
     if (hasPvpClock(s, ctx.players) && !ctx.players[seat]?.bot)
       ctx.setTimer(ctx.options.turnSeconds * 1000, 'turn-timeout', decisionKey(s));
@@ -269,12 +281,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         s = event === 'buy' ? this.onBuy(action(s, {})) : this.onAuction(action(s, {}));
         break;
       case 'auction':
-        event = 'pass';
-        if (s.auction!.leader === seat && BOARD[s.auction!.square]!.kind !== 'station') {
-          s = copy(s);
-          this.auctionStep(s);
-        } else s = this.onPass(action(s, {}));
-        break;
+        // An auction runs on its own clock (onAuctionEnd), never on a turn's.
+        return ctx.state;
       case 'trade':
         event = 'decline-trade';
         s = this.onDeclineTrade(action(s, {}));
@@ -333,99 +341,122 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   onAuction(ctx: Action): State {
     requireTurn(ctx, 'buy');
     const s = copy(ctx.state);
-    s.phase = 'auction';
-    s.auction = {
-      square: s.pending!,
-      bidder: s.turn,
-      highest: 0,
-      leader: null,
-      passed: [],
-      bids: s.players.map(() => 0),
-    };
+    openAuction(s, s.pending!);
     s.notice = `Đấu giá ${BOARD[s.pending!]!.name}.`;
     return this.complete(s, ctx);
   }
 
-  private auctionStep(s: State, advance = true) {
+  /** Who may still bid: at the table, not bankrupt, not out of this auction. */
+  private bidders(s: State) {
     const auction = s.auction!;
-    const remaining = s.players.flatMap((p, i) =>
-      p.bankrupt || auction.passed.includes(i) ? [] : [i],
-    );
-    if (
-      remaining.length === 0 ||
-      (remaining.length === 1 &&
-        (BOARD[auction.square]!.kind === 'station' || auction.leader === remaining[0]))
-    ) {
-      const station = BOARD[auction.square]!.kind === 'station';
-      if (station) {
-        auction.bids.forEach((amount, seat) => {
-          transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
-        });
-        auction.leader = remaining[0] ?? null;
-        auction.highest = BOARD[auction.square]!.price!;
-      }
-      if (auction.leader !== null && s.players[auction.leader]!.cash >= auction.highest) {
-        const winner = auction.leader;
-        transferMoney(s, winner, null, auction.highest, `Đấu giá ${BOARD[auction.square]!.name}`);
-        s.properties[auction.square]!.owner = winner;
-        s.notice = `${BOARD[auction.square]!.name} bán giá ${auction.highest}.`;
-      } else s.notice = 'Không ai mua đất trong phiên đấu giá.';
-      s.auction = null;
-      s.pending = null;
-      s.phase = s.after;
-    } else if (advance || s.auction!.passed.includes(s.auction!.bidder)) {
-      s.auction!.bidder = next(s, auction.bidder);
-      while (s.auction!.passed.includes(s.auction!.bidder)) {
-        s.auction!.bidder = next(s, s.auction!.bidder);
-      }
-    }
+    return s.players.flatMap((p, i) => (p.bankrupt || auction.passed.includes(i) ? [] : [i]));
   }
 
+  /**
+   * The auction is decided once nobody but the leader (or nobody at all) can still bid. A station
+   * must be sold: the last one left in it buys, bid or not.
+   */
+  private decided(s: State) {
+    const remaining = this.bidders(s);
+    const { leader, square } = s.auction!;
+    if (remaining.length === 0) return true;
+    return remaining.length === 1 && (remaining[0] === leader || BOARD[square]!.kind === 'station');
+  }
+
+  /**
+   * Ends the auction: the leader buys at the highest bid. A station refunds every deposit
+   * first, and its winner pays the listed price.
+   */
+  private settleAuction(s: State) {
+    const auction = s.auction!;
+    const cell = BOARD[auction.square]!;
+    let price = auction.highest;
+    let winner = auction.leader;
+    if (cell.kind === 'station') {
+      auction.bids.forEach((amount, seat) => {
+        transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
+      });
+      price = cell.price!;
+      const remaining = this.bidders(s);
+      if (winner === null && remaining.length === 1) winner = remaining[0]!;
+    }
+    if (winner !== null && !s.players[winner]!.bankrupt && s.players[winner]!.cash >= price) {
+      transferMoney(s, winner, null, price, `Đấu giá ${cell.name}`);
+      s.properties[auction.square]!.owner = winner;
+      s.notice = `${cell.name} bán giá ${price}.`;
+    } else s.notice = 'Không ai mua đất trong phiên đấu giá.';
+    s.auction = null;
+    s.pending = null;
+    s.phase = s.after;
+  }
+
+  /** The auction's clock ran out: the leader buys. */
+  onAuctionEnd(ctx: TimerContext<State, number, Options>): State {
+    if (ctx.state.phase !== 'auction' || ctx.state.auction?.round !== ctx.payload) return ctx.state;
+    const s = copy(ctx.state);
+    this.settleAuction(s);
+    return this.complete(s, ctx, true);
+  }
+
+  /** Anyone still in the auction raises the highest bid; the clock starts again. */
   onBid(ctx: Action<{ amount: number }>): State {
-    if (ctx.state.phase !== 'auction' || ctx.state.auction?.bidder !== ctx.player.seat)
-      ctx.reject('Chưa tới lượt đấu giá của bạn');
-    const s = copy(ctx.state);
+    const auction = ctx.state.auction;
+    const seat = ctx.player.seat;
+    if (ctx.state.phase !== 'auction' || !auction) return ctx.reject('Không có phiên đấu giá');
+    if (ctx.state.players[seat]!.bankrupt || auction.passed.includes(seat))
+      ctx.reject('Bạn đã rời phiên đấu giá');
+    if (auction.leader === seat) ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
+    const station = BOARD[auction.square]!.kind === 'station';
     const amount = ctx.payload.amount;
-    if (
-      (BOARD[s.auction!.square]!.kind === 'station'
-        ? amount !== s.auction!.highest + AUCTION_STEP
-        : amount <= s.auction!.highest) ||
-      amount > s.players[ctx.player.seat]!.cash + s.auction!.bids[ctx.player.seat]! ||
-      (BOARD[s.auction!.square]!.kind === 'station' &&
-        s.players[ctx.player.seat]!.cash + s.auction!.bids[ctx.player.seat]! <
-          BOARD[s.auction!.square]!.price!)
-    )
-      ctx.reject('Giá đấu phải cao hơn và trong số tiền bạn có');
-    if (BOARD[s.auction!.square]!.kind === 'station') {
-      transferMoney(
-        s,
-        ctx.player.seat,
-        null,
-        amount - s.auction!.bids[ctx.player.seat]!,
-        'Đặt tiền đấu giá',
-      );
-      s.auction!.bids[ctx.player.seat] = amount;
+    const available = ctx.state.players[seat]!.cash + auction.bids[seat]!;
+    if (station ? amount !== auction.highest + AUCTION_STEP : amount <= auction.highest)
+      ctx.reject('Giá đã thay đổi, hãy trả lại');
+    if (amount > available || (station && available < BOARD[auction.square]!.price!))
+      ctx.reject('Không đủ tiền cho giá này');
+    const s = copy(ctx.state);
+    const a = s.auction!;
+    if (station) {
+      transferMoney(s, seat, null, amount - a.bids[seat]!, 'Đặt tiền đấu giá');
+      a.bids[seat] = amount;
     }
-    s.auction!.highest = amount;
-    s.auction!.leader = ctx.player.seat;
+    a.highest = amount;
+    a.leader = seat;
+    a.round++;
     s.notice = `${ctx.player.name} trả ${amount}.`;
-    this.auctionStep(s);
-    return this.complete(s, ctx);
+    if (this.decided(s)) this.settleAuction(s);
+    return this.complete(s, ctx, true);
   }
 
+  /** Leave the auction (a station's deposit comes back). The leader of a street may not. */
   onPass(ctx: Action): State {
-    if (ctx.state.phase !== 'auction' || ctx.state.auction?.bidder !== ctx.player.seat)
-      ctx.reject('Chưa tới lượt đấu giá của bạn');
+    const auction = ctx.state.auction;
+    const seat = ctx.player.seat;
+    if (ctx.state.phase !== 'auction' || !auction) return ctx.reject('Không có phiên đấu giá');
+    if (auction.passed.includes(seat)) ctx.reject('Bạn đã rời phiên đấu giá');
+    const station = BOARD[auction.square]!.kind === 'station';
+    if (auction.leader === seat && !station) ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
     const s = copy(ctx.state);
-    if (s.auction!.leader === ctx.player.seat && BOARD[s.auction!.square]!.kind !== 'station')
-      ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
-    transferMoney(s, null, ctx.player.seat, s.auction!.bids[ctx.player.seat]!, 'Rút tiền đấu giá');
-    s.auction!.bids[ctx.player.seat] = 0;
-    if (s.auction!.leader === ctx.player.seat) s.auction!.leader = null;
-    s.auction!.passed.push(ctx.player.seat);
+    this.leaveAuction(s, seat);
     s.notice = `${ctx.player.name} bỏ đấu giá.`;
-    this.auctionStep(s);
-    return this.complete(s, ctx);
+    if (this.decided(s)) {
+      this.settleAuction(s);
+      return this.complete(s, ctx, true);
+    }
+    // The clock keeps running: leaving doesn't give the others more time.
+    return s;
+  }
+
+  /** `seat` is out of the auction: its deposit comes back; a station's lead goes to the next deposit. */
+  private leaveAuction(s: State, seat: number) {
+    const a = s.auction!;
+    if (a.bids[seat]) transferMoney(s, null, seat, a.bids[seat]!, 'Rút tiền đấu giá');
+    a.bids[seat] = 0;
+    a.passed.push(seat);
+    if (a.leader !== seat) return;
+    const best = Math.max(0, ...a.bids);
+    a.leader = best > 0 ? a.bids.indexOf(best) : null;
+    // A station keeps its price ladder; a street starts over from nothing.
+    if (BOARD[a.square]!.kind !== 'station') a.highest = 0;
   }
 
   onEndTurn(ctx: Action): State {
@@ -642,20 +673,22 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         s.phase = ctx.state.trade.resume;
         s.pending = ctx.state.pending;
       } else if (ctx.state.auction) {
+        // bankrupt() refunded the leaver's deposit; the others' deposits stay with the bank.
         s.auction = {
           ...ctx.state.auction,
-          passed: [...ctx.state.auction.passed, ctx.player.seat],
-          bids: ctx.state.auction.bids.map((amount, seat) =>
-            seat === ctx.player.seat ? 0 : amount,
-          ),
+          passed: [...ctx.state.auction.passed],
+          bids: [...ctx.state.auction.bids],
         };
+        s.auction.bids[ctx.player.seat] = 0;
+        s.auction.passed.push(ctx.player.seat);
         if (s.auction.leader === ctx.player.seat) {
-          s.auction.leader = null;
+          const best = Math.max(0, ...s.auction.bids);
+          s.auction.leader = best > 0 ? s.auction.bids.indexOf(best) : null;
           if (BOARD[s.auction.square]!.kind !== 'station') s.auction.highest = 0;
         }
         s.phase = 'auction';
         s.pending = ctx.state.pending;
-        this.auctionStep(s, s.auction.bidder === ctx.player.seat);
+        if (this.decided(s)) this.settleAuction(s);
       } else {
         s.phase = ctx.state.phase;
         if (s.specialEvent) s.notice = ctx.state.notice;

@@ -173,9 +173,10 @@ export default async function run(t) {
   });
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.visualPhase === 'decision' && s.main[0].hit.visible;
+    return s.visualPhase === 'decision' && s.diceHit.visible;
   });
-  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
+  // The dice themselves are the roll control.
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.diceHit);
   await page.waitForFunction(() =>
     window.__phaser.scene.getScene('co-ty-phu-classic').runtime.busy('turn'),
   );

@@ -50,7 +50,7 @@ export class EventDeck {
     this.center = { x: left + size / 2, y: top + imageH * 0.47 };
     this.stacks.forEach((stack, index) => {
       stack
-        .setPosition(left + size * (index === 0 ? 0.36 : 0.64), top + imageH * 0.655)
+        .setPosition(left + size * (index === 0 ? 0.33 : 0.67), top + imageH * 0.655)
         .setScale(this.width / 60, (this.width / 60) * 0.72)
         .setAngle(index === 0 ? -12 : 12);
     });
