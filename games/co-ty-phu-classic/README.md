@@ -155,6 +155,13 @@ Mỗi lượt đi theo nhịp **gieo xúc xắc → đọc kết quả → nhả
 lựa chọn**. Hai xúc xắc đứng yên thêm 0,7 giây trước khi quân bắt đầu đi; mỗi ô có một cú
 nhảy và một nhịp đáp riêng; thời gian đi là 0,26 giây mỗi ô và tối đa 2 giây cho cả đường đi; khi kết thúc di chuyển, quân giữ nguyên kích thước, không phóng lớn. Trong lúc đó, các nút hành động tạm ẩn.
 
+Chuyến bay từ **Sân bay** là một cảnh riêng: một chiếc máy bay hoạt hình bay ngang bàn không dừng
+lại, lướt qua ô Sân bay thì chộp quân (vòng sáng loé, quân thu nhỏ và khuất dưới thân máy bay),
+lượn qua lòng bàn tới ô đích thì thả quân rơi xuống nảy nhẹ, rồi bay tiếp ra ngoài. Bóng máy bay
+in lệch trên mặt bàn cho thấy độ cao. Ảnh `assets/plane.webp` là mô hình 3D nhìn từ trên xuống
+(chỉ dựng phần nhìn thấy), tạo lại bằng
+`blender -b -t 4 --python games/co-ty-phu-classic/sources/render_plane.py`.
+
 Hai khối xúc xắc xoay trong không gian 3D rồi dừng đúng mặt mà server đã gieo. Bốn quân cờ
 men màu đỏ, xanh dương, xanh lá và vàng được dựng, chiếu sáng và kết xuất riêng trong Blender.
 File chỉnh sửa nằm ở `.blender/co-ty-phu-classic-pawns.blend`; chạy

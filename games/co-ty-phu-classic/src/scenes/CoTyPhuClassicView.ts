@@ -126,6 +126,10 @@ export class CoTyPhuClassicView extends GameView<View> {
   private tileEffects: BoardTileEffect[] = [];
   private tokens: Phaser.GameObjects.Image[] = [];
   private pawnShadows: Phaser.GameObjects.Ellipse[] = [];
+  /** The airport's plane, its shadow on the board and the beam that lifts a pawn. */
+  private plane!: Phaser.GameObjects.Image;
+  private planeShadow!: Phaser.GameObjects.Image;
+  private planeBeam!: Phaser.GameObjects.Graphics;
   private tokenNames: Phaser.GameObjects.Text[] = [];
   private dice!: Dice3D;
   private diceHit!: Phaser.GameObjects.Zone;
@@ -295,6 +299,14 @@ export class CoTyPhuClassicView extends GameView<View> {
           this.showTileTooltip(i);
         }),
     );
+    this.planeShadow = this.sprite('plane')
+      .setTint(0x2b1d10)
+      .setTintMode(1 /* Phaser.TintModes.FILL */)
+      .setAlpha(0.22)
+      .setDepth(19)
+      .setVisible(false);
+    this.planeBeam = this.add.graphics().setDepth(19.5);
+    this.plane = this.sprite('plane').setDepth(21).setVisible(false);
     this.pawnShadows = PLAYER_COLORS.map(() =>
       this.add.ellipse(0, 0, 10, 5, 0x302014, 0.25).setDepth(4),
     );
@@ -1243,6 +1255,129 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
   }
 
+  /**
+   * The airport's flight: a plane sweeps across the board without stopping, snatches the pawn
+   * in a short beam as it passes over it, and drops it on `to` as it passes there, then flies on
+   * off the board. Its shadow runs along the board below it.
+   */
+  private async airlift(fx: FlowContext, seat: number, to: number) {
+    const token = this.tokens[seat]!;
+    const pawnShadow = this.pawnShadows[seat]!;
+    const name = this.tokenNames[seat]!;
+    const { tile, size } = this.geometry;
+    const pick = { x: token.x, y: token.y };
+    const drop = this.pawnSpot(to, seat);
+    // In from beyond the pick-up, out beyond the drop, bowing in over the board's middle so the
+    // whole flight stays on screen (a corner or an edge row is near the frame's edge).
+    const { left, top: boardTop, imageH } = this.geometry;
+    const middle = { x: left + size / 2, y: boardTop + imageH * 0.45 };
+    let dx = pick.x - drop.x;
+    let dy = pick.y - drop.y;
+    const length = Math.hypot(dx, dy) || 1;
+    dx /= length;
+    dy /= length;
+    const far = size * 0.75;
+    const toward = (point: { x: number; y: number }, share: number) => ({
+      x: point.x + (middle.x - point.x) * share,
+      y: point.y + (middle.y - point.y) * share,
+    });
+    const halfway = { x: (pick.x + drop.x) / 2, y: (pick.y + drop.y) / 2 };
+    const entry = toward({ x: pick.x + dx * far, y: pick.y + dy * far }, 0.55);
+    const exit = toward({ x: drop.x - dx * far, y: drop.y - dy * far }, 0.55);
+    const path = sweep([entry, pick, toward(halfway, 0.8), drop, exit]);
+    const total = path.length;
+    // Where along the path (0–1, by distance) the plane is over the pick-up and the drop.
+    const at = (point: { x: number; y: number }) => {
+      let best = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (let i = 0; i <= 200; i++) {
+        const p = path.at(i / 200);
+        const d = Math.hypot(p.x - point.x, p.y - point.y);
+        if (d < bestDistance) {
+          bestDistance = d;
+          best = i / 200;
+        }
+      }
+      return best;
+    };
+    const tPick = at(pick);
+    const tDrop = at(drop);
+    // Seen from above, the plane is right over its path; its height shows in its shadow's
+    // offset. A snatched pawn rises a little and shrinks away under the plane.
+    const rise = tile * 0.3;
+    const span = tile * 2.4;
+    const planeScale = span / this.plane.width;
+    const lift = 0.07;
+    this.moving[seat] = true;
+    // The destination is ringed in the pawn's color for the whole flight, as for a walk.
+    this.setMovingTile(seat, to);
+    this.plane.setVisible(true).setScale(planeScale);
+    this.planeShadow.setVisible(true).setScale(planeScale * 0.8);
+    const cursor = { value: 0 };
+    const ease = (f: number) => 1 - (1 - f) ** 3;
+    const ring = (at: { x: number; y: number }, f: number) => {
+      // A flash of light round the pawn as it is taken or set down.
+      if (f <= 0 || f >= 1) return;
+      this.planeBeam
+        .lineStyle(tile * 0.08, 0xfff3b0, 0.8 * (1 - f))
+        .strokeEllipse(at.x, at.y, tile * (0.5 + 0.9 * f), tile * (0.25 + 0.45 * f));
+    };
+    await fx.tween({
+      targets: cursor,
+      value: 1,
+      duration: Math.min(3600, Math.max(2200, (total / size) * 1100)),
+      ease: 'Linear',
+      onUpdate: () => {
+        const t = cursor.value;
+        const ground = path.at(t);
+        const ahead = path.at(Math.min(1, t + 0.01));
+        const behind = path.at(Math.max(0, t - 0.01));
+        const angle = Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
+        this.plane.setPosition(ground.x, ground.y).setRotation(angle);
+        this.planeShadow
+          .setPosition(ground.x + tile * 0.7, ground.y + tile * 0.55)
+          .setRotation(angle);
+        this.planeBeam.clear();
+        // Snatched on the fly, then carried along hidden under the plane.
+        let carried = 0;
+        let x = pick.x;
+        let y = pick.y;
+        if (t >= tPick - lift / 2 && t < tDrop) {
+          carried = ease(Math.min(1, (t - (tPick - lift / 2)) / lift));
+          x = pick.x + (ground.x - pick.x) * carried;
+          y = pick.y + (ground.y - pick.y) * carried;
+          ring(pick, carried);
+        }
+        let height = rise * carried;
+        let shown = 1 - carried;
+        if (t >= tDrop) {
+          // Let go over the drop: it grows back as it falls, with a little bounce.
+          const fall = Math.min(1, (t - tDrop) / 0.09);
+          const bounce = Math.min(1, Math.max(0, (t - tDrop - 0.09) / 0.05));
+          x = drop.x;
+          y = drop.y;
+          height = rise * (1 - fall * fall) + Math.sin(bounce * Math.PI) * tile * 0.2;
+          shown = fall;
+          ring(drop, fall);
+        }
+        const perspective = this.pawnScale(y);
+        const shrink = 0.45 + 0.55 * shown;
+        token
+          .setPosition(x, y - height)
+          .setDepth(shown < 1 ? 20.5 : 5 + y / 1000)
+          .setDisplaySize(tile * 0.76 * perspective * shrink, tile * 1.05 * perspective * shrink);
+        pawnShadow.setPosition(x, y + 2).setAlpha(shown);
+        name.setPosition(x, y - height - tile * 1.22 * perspective * shrink).setAlpha(shown);
+      },
+    });
+    fx.checkpoint();
+    this.plane.setVisible(false);
+    this.planeShadow.setVisible(false);
+    this.planeBeam.clear();
+    this.setMovingTile(seat, null);
+    this.moving[seat] = false;
+  }
+
   private async travelPawn(
     fx: FlowContext,
     seat: number,
@@ -1250,14 +1385,13 @@ export class CoTyPhuClassicView extends GameView<View> {
     to: number,
     jailing: boolean,
     onStartReached?: () => void,
-    flying = false,
   ) {
     const token = this.tokens[seat]!;
     const shadow = this.pawnShadows[seat]!;
     const name = this.tokenNames[seat]!;
     const start = { x: token.x, y: token.y };
     const steps = (to - from + BOARD.length) % BOARD.length;
-    const direct = (jailing && to === 10) || flying;
+    const direct = jailing && to === 10;
     const points = direct
       ? [this.pawnSpot(to, seat)]
       : Array.from({ length: steps }, (_, i) => this.pawnSpot((from + i + 1) % BOARD.length, seat));
@@ -1278,7 +1412,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     await fx.tween({
       targets: cursor,
       value: points.length,
-      duration: flying ? 800 : direct ? 500 : Math.min(2000, points.length * 260),
+      duration: direct ? 500 : Math.min(2000, points.length * 260),
       ease: 'Linear',
       onUpdate: () => {
         const step = Math.min(points.length - 1, Math.floor(cursor.value));
@@ -1286,9 +1420,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         const after = points[step]!;
         // Each square has its own jump and a short planted beat before the next one.
         const fraction = Math.min(1, (cursor.value - step) / 0.76);
-        const hop =
-          Math.sin(fraction * Math.PI) *
-          Math.min(flying ? 64 : 16, this.geometry.tile * (flying ? 1.1 : 0.28));
+        const hop = Math.sin(fraction * Math.PI) * Math.min(16, this.geometry.tile * 0.28);
         const x = before.x + (after.x - before.x) * fraction;
         const groundY = before.y + (after.y - before.y) * fraction;
         const perspective = this.pawnScale(groundY);
@@ -1355,17 +1487,12 @@ export class CoTyPhuClassicView extends GameView<View> {
         fx.checkpoint();
         this.visualPhase = 'moving';
         this.onState(this.ctx);
-        await this.travelPawn(
-          fx,
-          beat.seat,
-          beat.from,
-          beat.to,
-          beat.jailing,
-          () => {
+        if (!dice && BOARD[beat.from]!.kind === 'airport' && beat.from !== beat.to)
+          await this.airlift(fx, beat.seat, beat.to);
+        else
+          await this.travelPawn(fx, beat.seat, beat.from, beat.to, beat.jailing, () => {
             this.passedStart = Math.max(this.passedStart, beat.id);
-          },
-          !dice && BOARD[beat.from]!.kind === 'airport',
-        );
+          });
         fx.checkpoint();
         this.shownPositions[beat.seat] = beat.to;
         this.selected = null;
@@ -2545,5 +2672,52 @@ export function boardPlace(screen: {
     sideW: Math.max(SIDE.min, Math.min(SIDE.max, width - MARGIN - (seenLeft + w + MARGIN))),
     /** Where the column starts: right of the board's drawn part. */
     sideLeft: seenLeft + w + MARGIN,
+  };
+}
+
+/**
+ * A smooth path through `points` (Catmull-Rom), walked by distance: `at(0…1)` goes at an even
+ * speed from the first point to the last; `length` is its length.
+ */
+function sweep(points: { x: number; y: number }[]) {
+  const samples: { x: number; y: number }[] = [];
+  const pick = (i: number) => points[Math.max(0, Math.min(points.length - 1, i))]!;
+  for (let segment = 0; segment < points.length - 1; segment++) {
+    const [p0, p1, p2, p3] = [
+      pick(segment - 1),
+      pick(segment),
+      pick(segment + 1),
+      pick(segment + 2),
+    ];
+    for (let step = 0; step < 40; step++) {
+      const t = step / 40;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const blend = (a: number, b: number, c: number, d: number) =>
+        0.5 *
+        (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      samples.push({ x: blend(p0.x, p1.x, p2.x, p3.x), y: blend(p0.y, p1.y, p2.y, p3.y) });
+    }
+  }
+  samples.push(points[points.length - 1]!);
+  const distance = [0];
+  for (let i = 1; i < samples.length; i++)
+    distance.push(
+      distance[i - 1]! +
+        Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.y - samples[i - 1]!.y),
+    );
+  const length = distance[distance.length - 1]!;
+  return {
+    length,
+    at(share: number) {
+      const target = Math.max(0, Math.min(1, share)) * length;
+      let i = 1;
+      while (i < distance.length - 1 && distance[i]! < target) i++;
+      const span = distance[i]! - distance[i - 1]! || 1;
+      const f = (target - distance[i - 1]!) / span;
+      const a = samples[i - 1]!;
+      const b = samples[i]!;
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+    },
   };
 }
