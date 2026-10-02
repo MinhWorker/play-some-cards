@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.10.0](https://github.com/MinhWorker/play-some-cards/compare/v0.9.0...v0.10.0) (2026-10-02)
+
+
+### Features
+
+* **co-ty-phu-classic:** real-time auctions and a roomier board UI ([#62](https://github.com/MinhWorker/play-some-cards/issues/62)) ([0036c29](https://github.com/MinhWorker/play-some-cards/commit/0036c29f1710a5dac469cf1b0145c107171f757e))
+* **sdk:** add scoped scene runtime and migrate games ([#58](https://github.com/MinhWorker/play-some-cards/issues/58)) ([b36a0b7](https://github.com/MinhWorker/play-some-cards/commit/b36a0b76bcaa21a8233c7bc9c39cb9cbe43a135e))
+* **tycoon:** add airport travel, PvP timers and board feedback ([#60](https://github.com/MinhWorker/play-some-cards/issues/60)) ([23df0da](https://github.com/MinhWorker/play-some-cards/commit/23df0da22ac7772b095da6f6dce202976e6796ae))
+
 ## [0.9.0](https://github.com/MinhWorker/play-some-cards/compare/v0.8.0...v0.9.0) (2026-10-01)
 
 
