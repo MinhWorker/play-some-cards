@@ -37,10 +37,17 @@ export default async function run(t) {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
         s.playbackSpeed = 2;
         s.runtime.setSpeed(2);
-        const seed = fixture.doubles ? 8 : 1;
+        const doubleSeed = Array.from({ length: 100 }, (_, i) => i + 1).find((seed) => {
+          const rng = seededRng(seed);
+          for (let i = 0; i < 24; i++) rng();
+          const first = Math.floor(rng() * 6);
+          const second = Math.floor(rng() * 6);
+          return first === second;
+        });
+        const seed = fixture.doubles ? doubleSeed : 1;
         const game = testGame(plugin, ['a', 'b'], { seed, bots: fixture.bot ? ['b'] : [] });
         const rng = seededRng(seed);
-        for (let i = 0; i < 22; i++) rng();
+        for (let i = 0; i < 24; i++) rng();
         const sum = 2 + Math.floor(rng() * 6) + Math.floor(rng() * 6);
         game.state.turn = 1;
         game.state.players[1].position =
@@ -162,7 +169,6 @@ export default async function run(t) {
         turn: s.ctx.state.turn,
         items: s.inventory[1].freeCards,
         itemSounds: s.itemSounds,
-        jailCount: s.playerItems.counts[1].visible ? s.playerItems.counts[1].text : null,
       };
     });
     if (fixture.item) {

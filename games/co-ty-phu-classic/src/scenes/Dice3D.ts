@@ -131,6 +131,14 @@ export class Dice3D {
     this.render();
   }
 
+  showIdle() {
+    this.values = [1, 1];
+    this.elapsed = Dice3D.rollDuration;
+    this.settled = true;
+    this.graphics.setVisible(true).setAlpha(1);
+    this.render();
+  }
+
   hide() {
     this.elapsed = Infinity;
     this.settled = false;

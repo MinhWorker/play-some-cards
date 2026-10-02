@@ -25,7 +25,7 @@ export default async function run(t) {
         };
         const game = testGame(plugin, ['a', 'b'], { seed: 1 });
         const rng = seededRng(1);
-        for (let i = 0; i < 22; i++) rng();
+        for (let i = 0; i < 24; i++) rng();
         const sum = 2 + Math.floor(rng() * 6) + Math.floor(rng() * 6);
         game.state.turn = 1;
         game.state.players[1].position = 20 - sum;

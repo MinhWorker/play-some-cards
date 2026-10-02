@@ -18,17 +18,25 @@ export function tileActions(state: View, seat: number | null, square: number): T
     ];
   }
   if (state.phase === 'auction') {
+    // Open to everyone still in the auction; the leader waits (a station's leader may withdraw).
     const auction = state.auction;
-    if (auction?.square !== square || auction.bidder !== seat) return [];
+    if (auction?.square !== square || auction.passed.includes(seat)) return [];
+    if (auction.leader === seat && cell.kind !== 'station') return [];
     return [
-      ...[1, 10, 50]
-        .filter((plus) => auction.highest + plus <= state.players[seat]!.cash)
+      ...(cell.kind === 'station' ? [10] : [1, 10, 50])
+        .filter(
+          (plus) =>
+            auction.highest + plus <= state.players[seat]!.cash + auction.bids[seat]! &&
+            (cell.kind !== 'station' ||
+              state.players[seat]!.cash + auction.bids[seat]! >= cell.price!),
+        )
+        .filter(() => auction.leader !== seat)
         .map((plus) => ({
           label: `+${plus} (${auction.highest + plus})`,
           event: 'bid',
           payload: { amount: auction.highest + plus },
         })),
-      { label: 'Bỏ giá', event: 'pass', payload: {} },
+      { label: cell.kind === 'station' ? 'Rút / Bỏ giá' : 'Bỏ giá', event: 'pass', payload: {} },
     ];
   }
   if (state.phase === 'event' || state.phase === 'trade' || deed.owner !== seat) return [];

@@ -7,7 +7,7 @@ import { bankHotels, bankHouses, move, rent } from './rules.js';
 /** The first dice after both decks are shuffled with seed 1. */
 const firstRoll = () => {
   const rng = seededRng(1);
-  for (let i = 0; i < 22; i++) rng();
+  for (let i = 0; i < 24; i++) rng();
   return [1 + Math.floor(rng() * 6), 1 + Math.floor(rng() * 6)] as const;
 };
 
@@ -49,7 +49,7 @@ describe('Cờ tỷ phú Classic', () => {
       game.error('a', 'offer-trade', { to: 1, give: -1, take: -1, giveCash: 50, takeCash: 0 }),
     ).toBe('Hãy xác nhận sự kiện trước');
     game.send('a', 'confirm-event');
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.state.specialEvent).toBeNull();
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     expect(game.error('a', 'confirm-event')).toBe('Thao tác chưa hợp lệ');
@@ -68,7 +68,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.timer).toEqual(timer);
     expect(game.state.players[0]!.cash).toBe(1500);
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.error('a', 'event-ready', { id })).toBe('Sự kiện đã thay đổi');
   });
 
@@ -80,8 +80,14 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.players[0]!.cash).toBe(1500);
     game.send('a', 'confirm-event');
     expect(game.state.players[0]!.cash).toBe(1450);
-    // Seed 8 rolls 5 + 5 after shuffling both decks.
-    const jailed = testGame(plugin, ['a', 'b'], { seed: 8 });
+    const doubleSeed = Array.from({ length: 100 }, (_, i) => i + 1).find((seed) => {
+      const rng = seededRng(seed);
+      for (let i = 0; i < 24; i++) rng();
+      const first = Math.floor(rng() * 6);
+      const second = Math.floor(rng() * 6);
+      return first === second;
+    });
+    const jailed = testGame(plugin, ['a', 'b'], { seed: doubleSeed });
     jailed.state.doubles = 2;
     jailed.send('a', 'roll');
     expect(jailed.state.phase).toBe('event');
@@ -100,7 +106,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'confirm-event');
     expect(game.state.phase).toBe('debt');
     expect(game.state.players[0]!.cash).toBe(1);
-    expect(game.state.debt?.amount).toBe(100);
+    expect(game.state.debt?.amount).toBe(200);
   });
 
   it.each([
@@ -154,7 +160,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.fireTimer();
     expect(game.state.phase).toBe('event');
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.state.specialEvent).toBeNull();
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     const solo = testGame(plugin, ['a'], { seed: 1 });
@@ -176,7 +182,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.fireTimer();
     expect(game.state.phase).toBe('event');
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     const leaving = at(22);
     leaving.state.chance = [10];
     leaving.send('a', 'roll');
@@ -194,9 +200,9 @@ describe('Cờ tỷ phú Classic', () => {
     const cash = game.state.players[0]!.cash;
     game.send('a', 'buy');
     expect(game.state.properties[3]?.owner).toBe(0);
-    expect(game.state.players[0]!.cash).toBe(cash - 60);
+    expect(game.state.players[0]!.cash).toBe(cash - BOARD[3]!.price!);
     expect(game.view(null)).toMatchObject({
-      transfers: [{ from: 0, to: null, amount: 60, reason: 'Mua Hàng Đào' }],
+      transfers: [{ from: 0, to: null, amount: BOARD[3]!.price!, reason: `Mua ${BOARD[3]!.name}` }],
     });
     expect(game.error('b', 'end-turn')).toBe('Chưa tới lượt bạn');
   });
@@ -208,7 +214,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.view(null)).toMatchObject({
       transfers: [
         { from: null, to: 0, amount: 200, reason: 'Qua Xuất phát' },
-        { from: 0, to: 1, amount: 2, reason: 'Tiền thuê Phố Cổ' },
+        { from: 0, to: 1, amount: 2, reason: 'Tiền thuê Tp. Hà Nội' },
       ],
     });
     expect(game.state.players.map((p) => p.cash)).toEqual([1698, 1502]);
@@ -231,14 +237,40 @@ describe('Cờ tỷ phú Classic', () => {
     const game = at(3);
     game.send('a', 'roll').send('a', 'auction');
     game.send('a', 'bid', { amount: 50 });
-    expect(game.error('b', 'bid', { amount: 50 })).toBe(
-      'Giá đấu phải cao hơn và trong số tiền bạn có',
-    );
+    expect(game.error('a', 'bid', { amount: 60 })).toBe('Giá bạn đã trả vẫn đang cao nhất');
+    expect(game.error('b', 'bid', { amount: 50 })).toBe('Giá đã thay đổi, hãy trả lại');
     game.send('b', 'bid', { amount: 60 });
+    expect(game.error('b', 'pass')).toBe('Giá bạn đã trả vẫn đang cao nhất');
     game.send('a', 'pass');
     expect(game.state.properties[3]?.owner).toBe(1);
     expect(game.state.players[1]?.cash).toBe(1440);
     expect(game.state.auction).toBeNull();
+  });
+
+  it('lets everyone bid at any time, restarting the clock, and sells when it runs out', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
+    const [a, b] = firstRoll();
+    game.state.players[0]!.position = (3 - a - b + 40) % 40;
+    game.send('a', 'roll').send('a', 'auction');
+    expect(game.timer).toEqual({ event: 'auction-end', ms: 10000 });
+    // No turns: c bids before b, and b answers.
+    game.send('c', 'bid', { amount: 40 }).send('b', 'bid', { amount: 50 });
+    expect(game.timer).toEqual({ event: 'auction-end', ms: 6000 });
+    expect(game.state.auction).toMatchObject({ leader: 1, highest: 50, round: 2 });
+    // Leaving doesn't restart it; the clock running out sells to the leader.
+    game.send('a', 'pass');
+    game.fireTimer();
+    expect(game.state.properties[3]?.owner).toBe(1);
+    expect(game.state.players[1]?.cash).toBe(1450);
+    expect(game.state.auction).toBeNull();
+  });
+
+  it('sells nothing when the clock runs out before a bid', () => {
+    const game = at(3);
+    game.send('a', 'roll').send('a', 'auction');
+    game.fireTimer();
+    expect(game.state.properties[3]?.owner).toBeNull();
+    expect(game.state.notice).toBe('Không ai mua đất trong phiên đấu giá.');
   });
 
   it('charges rent and pauses for liquidation if cash is short', () => {
@@ -254,7 +286,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'mortgage', { square: 3 });
     game.send('a', 'pay-debt');
     expect(game.state.debt).toBeNull();
-    expect(game.state.players[1]!.cash).toBe(1535);
+    expect(game.state.players[1]!.cash).toBe(1500 + BOARD[37]!.rent![0]!);
     expect(game.state.properties[1]?.mortgaged).toBe(true);
   });
 
@@ -330,7 +362,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.error('a', 'build', { square: 1 })).toBe('Ngân hàng đã hết nhà hoặc khách sạn');
   });
 
-  it.each([1, 5, 12])(
+  it.each([1, 5])(
     'waives rent on square %s while the owner is jailed, then resumes after release',
     (square) => {
       const game = at(square);
@@ -427,15 +459,14 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.properties[3]?.owner).toBe(0);
   });
 
-  it('keeps the current bidder when a different bidder leaves', () => {
+  it('starts the street over when its leader leaves the table', () => {
     const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
     const [a, b] = firstRoll();
     game.state.players[0]!.position = (3 - a - b + 40) % 40;
     game.send('a', 'roll').send('a', 'auction').send('a', 'pass');
     game.send('b', 'bid', { amount: 50 });
-    expect(game.state.auction?.bidder).toBe(2);
     game.leave('b');
-    expect(game.state.auction?.bidder).toBe(2);
+    expect(game.state.auction).toMatchObject({ leader: null, highest: 0 });
     game.send('c', 'bid', { amount: 1 });
     expect(game.state.properties[3]?.owner).toBe(2);
   });
@@ -455,11 +486,15 @@ describe('Cờ tỷ phú Classic', () => {
     const players = ['a', 'b', 'c'];
     const game = testGame(plugin, players, { bots: players, options: { bots: 3 } });
     for (let i = 0; i < 800 && !game.result; i++) {
-      const seat = game.state.phase === 'auction' ? game.state.auction!.bidder : game.state.turn;
-      const id = players[seat]!;
-      const move = game.bot(id);
-      expect(move).not.toBeNull();
-      game.send(id, move!.event, move!.payload as object);
+      // In an auction any computer may move; once none wants to, its clock ends it.
+      const id = players.find((p) => game.bot(p)) ?? null;
+      if (id === null) {
+        expect(game.state.phase).toBe('auction');
+        game.fireTimer();
+        continue;
+      }
+      const move = game.bot(id)!;
+      game.send(id, move.event, move.payload as object);
     }
     expect(game.state.properties.some((deed) => deed.owner !== null)).toBe(true);
   });
@@ -478,7 +513,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.players[0]!.cash).toBe(1500);
     expect(game.bot('a')?.event).toBe('confirm-event');
     game.send('a', 'confirm-event');
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.state.specialEvent).toBeNull();
     expect(game.timer).toBeNull();
   });

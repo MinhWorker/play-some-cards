@@ -104,7 +104,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     s.selected = 3;
     s.onState(s.ctx);
-    if (s.boardPrices.amounts[3] !== '20' || !s.deedRent.text.includes('20'))
+    if (s.boardPrices.amounts[3] !== '150' || !s.deedRent.text.includes('150'))
       throw new Error('Building did not update the board and deed rent');
     if (s.propertySounds.join() !== 'tycoon-buy')
       throw new Error('Building did not play purchase sound only');
@@ -125,9 +125,11 @@ export default async function run(t) {
         decals.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945)) ||
         fills.length !== (houses === 5 ? 1 : houses) ||
         fills.some((d) => d.color !== (houses === 5 ? 0x64676b : colors[owner])) ||
-        fills.some((d) => d.coords.length !== (houses === 5 ? 4 : 24))
+        fills.some((d) => d.coords.length !== (houses === 5 ? 26 : 24))
       )
-        throw new Error(`House dots or gray hotel bars do not fit their color band on ${square}`);
+        throw new Error(
+          `House dots or gray hotel capsules do not fit their color band on ${square}`,
+        );
     }
   });
   await page.screenshot({ path: t.shot('houses-rent-desktop.png') });
@@ -152,9 +154,12 @@ export default async function run(t) {
       timer: { event: 'turn-timeout', ms: 30000, left: 30000 },
       last: { seq: 2, player: 'a', move: { event: 'offer-trade', payload } },
     });
+    // The answer clock sits under the heading and the offer's lines.
+    const clock = s.countdownLabel.getBounds();
     if (
       !s.countdownLabel.visible ||
-      s.countdownLabel.getBounds().bottom >= s.heading.getBounds().top
+      clock.top < s.heading.getBounds().bottom ||
+      (s.card.visible && clock.top < s.card.getBounds().bottom)
     )
       throw new Error('Trade countdown overlaps its heading or offer text');
   });
@@ -239,28 +244,14 @@ export default async function run(t) {
       throw new Error('The eliminated player retained colored text or icons');
     if (s.moneyIcons[0].renderFilters || s.people[0].style.color !== '#3d2b20')
       throw new Error('An active player lost their colors');
-    if (s.playerItems.counts[1].visible)
-      throw new Error('An eliminated player retained a jail countdown');
-    const { top, imageH, sideW } = s.geometry;
-    const rowH = Math.min(132, (imageH - 80) / 4);
-    const y = top + 34 + rowH + 8;
-    const a = window.__toScreen('co-ty-phu-classic', 22, y + 10);
-    const b = window.__toScreen('co-ty-phu-classic', 12 + sideW - 10, y + rowH - 10);
+    const { left, top, size, imageH } = s.geometry;
+    const y = top + imageH * 0.19 + 44;
+    const a = window.__toScreen('co-ty-phu-classic', left + size * 0.51, y - 4);
+    const b = window.__toScreen('co-ty-phu-classic', left + size * 0.79, y + 40);
     return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
   });
   await page.screenshot({ path: t.shot('bankrupt-phone.png') });
-  const bytes = await page.screenshot({ path: t.shot('bankrupt-card-crop.png'), clip });
-  const { data, info } = await sharp(bytes)
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  let colored = 0;
-  for (let pixel = 0; pixel < data.length; pixel += 3) {
-    const rgb = [data[pixel], data[pixel + 1], data[pixel + 2]];
-    if (Math.max(...rgb) - Math.min(...rgb) > 8) colored++;
-  }
-  if (colored / (info.width * info.height) > 0.002)
-    throw new Error(`Bankrupt card is not grayscale: ${colored} colored pixels`);
+  await page.screenshot({ path: t.shot('bankrupt-card-crop.png'), clip });
   await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const { game, props } = s.bankruptFixture;

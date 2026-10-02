@@ -28,7 +28,9 @@ export class BoardPrices {
     });
   }
 
-  setState(state: Pick<State, 'properties' | 'players'>) {
+  setState(
+    state: Pick<State, 'properties' | 'players'> & Partial<Pick<State, 'round' | 'shortages'>>,
+  ) {
     const amounts = boardAmounts(state);
     const key = amounts.join(',');
     if (key === this.amountsKey) return;

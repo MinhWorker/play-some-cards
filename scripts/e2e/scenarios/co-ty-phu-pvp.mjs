@@ -12,7 +12,7 @@ export default async function run(t) {
   await clickCanvas(host, 'co-ty-phu-classic:setup', (s) => s.clockChoices[2].container);
   await host.screenshot({ path: t.shot('setup-clock.png') });
   await clickCanvas(host, 'co-ty-phu-classic:setup', (s) => s.submitButton.container);
-  await host.getByText('Phòng của ClockHost').waitFor();
+  await host.getByRole('heading', { name: 'Đang chờ người chơi' }).waitFor();
   await openRooms(guest, 'co-ty-phu-classic');
   await guest
     .locator('.room-row', { hasText: 'Phòng của ClockHost' })
@@ -134,14 +134,16 @@ export default async function run(t) {
         s.visualPhase === 'decision' &&
         !s.runtime.busy('turn') &&
         !s.activeMoney &&
-        s.main[0].hit.visible
+        (s.main[0].hit.visible || s.diceHit.visible)
       );
     });
     const phase = await host.evaluate(
       () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase,
     );
     if (phase === 'end') break;
-    await clickCanvas(host, 'co-ty-phu-classic', (s) => s.main[0].hit);
+    await clickCanvas(host, 'co-ty-phu-classic', (s) =>
+      s.ctx.state.phase === 'roll' ? s.diceHit : s.main[0].hit,
+    );
   }
   await host.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');

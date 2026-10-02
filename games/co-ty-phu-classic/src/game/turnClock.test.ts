@@ -4,7 +4,10 @@ import plugin from '../index.js';
 
 const gameAt = (square: number, cash = 1500) => {
   const game = testGame(plugin, ['a', 'b'], { options: { turnSeconds: 15 }, seed: 1 });
-  game.state.players[0]!.position = (square - 4 + 40) % 40;
+  const rng = seededRng(1);
+  for (let i = 0; i < 24; i++) rng();
+  const sum = 2 + Math.floor(rng() * 6) + Math.floor(rng() * 6);
+  game.state.players[0]!.position = (square - sum + 40) % 40;
   game.state.players[0]!.cash = cash;
   return game;
 };
@@ -26,16 +29,15 @@ describe('PvP turn clock', () => {
     expect(game.error('a', 'turn-timeout')).toBeTruthy();
   });
 
-  it('opens an auction when a timed-out buyer cannot afford the property, then passes AFK bidders', () => {
-    const game = gameAt(6, 1);
+  it('opens an auction when a timed-out buyer cannot afford the property, run by its own clock', () => {
+    const game = gameAt(3, 1);
     game.send('a', 'roll');
     game.fireTimer();
     expect(game.state.phase).toBe('auction');
-    game.fireTimer();
-    expect(game.state.auction?.bidder).toBe(1);
+    expect(game.timer).toEqual({ event: 'auction-end', ms: 10000 });
     game.fireTimer();
     expect(game.state.phase).toBe('end');
-    expect(game.state.properties[6]!.owner).toBeNull();
+    expect(game.state.properties[3]!.owner).toBeNull();
   });
 
   it('declines an unanswered trade instead of accepting someone’s assets', () => {
@@ -51,7 +53,7 @@ describe('PvP turn clock', () => {
   it('liquidates enough assets and pays debt in one expiration', () => {
     const game = gameAt(38, 1);
     game.state.properties[1] = { owner: 0, houses: 2, mortgaged: false };
-    game.state.properties[39]!.owner = 0;
+    game.state.properties[3]!.owner = 0;
     game.send('a', 'roll');
     game.send('a', 'confirm-event');
     expect(game.state.phase).toBe('debt');
@@ -60,9 +62,9 @@ describe('PvP turn clock', () => {
     expect(game.state.debt).toBeNull();
     expect(game.state.players[0]!.bankrupt).toBe(false);
     expect(game.state.properties[1]!.houses).toBe(0);
-    expect(game.state.properties[39]!.mortgaged).toBe(true);
+    expect(game.state.properties[3]!.mortgaged).toBe(true);
     expect(game.state.transfers).toHaveLength(5);
-    expect(game.state.players[0]!.cash).toBe(181);
+    expect(game.state.players[0]!.cash).toBe(41);
   });
 
   it('declares insolvency when no assets can cover the debt and ends the game', () => {
@@ -115,7 +117,7 @@ describe('PvP turn clock', () => {
     game.send('a', 'event-ready', { id: game.state.specialEvent!.id });
     expect(game.timer).toEqual({ event: 'auto-confirm-event', ms: 8000 });
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 15000 });
   });
 });

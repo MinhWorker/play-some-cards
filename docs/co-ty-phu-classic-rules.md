@@ -2,7 +2,7 @@
 
 Bản ghi này mô tả code hiện tại sau cập nhật luật và giao diện ngày 02/10/2026:
 chủ đất ở tù không thu tiền thuê; xây một cấp khi quay lại đất phố đã sở hữu;
-bộ Khí vận thay tên Cộng đồng và Sân bay thay ô nghỉ ở góc trên trái.
+bến xe đấu giá giữ tiền; thuế theo tiền mặt; điện/nước công cộng và thẻ thiếu hụt trong vòng bàn kế tiếp.
 Dùng bản này để đọc và đề xuất sửa luật tiếp. Số tiền là đơn vị quy ước trong game, dù giao diện hiển thị ký hiệu ₫.
 
 Nguồn đối chiếu:
@@ -51,11 +51,11 @@ bán nhà, thế chấp, chuộc hoặc thao tác của người khác không k�
 | Gieo | Gieo xúc xắc, kể cả khi đang ở tù |
 | Kết thúc lượt | Hết lượt; không tự xây thêm |
 | Mua đất | Mua nếu đủ tiền; nếu thiếu tiền thì mở đấu giá |
-| Đấu giá | Bỏ giá; không tự tăng giá đã trả |
 | Trao đổi | Từ chối đề nghị; không tự nhận trao đổi |
 | Nợ | Bán công trình, thế chấp đất tới khi đủ tiền rồi trả; không đủ tài sản thì phá sản |
 
 Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù vẫn dùng quy tắc 8 giây ở mục 3.
+Đấu giá không dùng đồng hồ PvP mà có đồng hồ riêng của phiên (mục 4).
 
 ## 3. Các ô đặc biệt và xác nhận sự kiện
 
@@ -64,9 +64,9 @@ Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù v�
 | Xuất phát | Nhận 200 khi đi qua hoặc dừng ở đây |
 | Cơ hội | Rút một thẻ Cơ hội |
 | Khí vận | Rút một thẻ Khí vận |
-| Thuế thu nhập | Nộp ngân hàng 200 cố định |
-| Thuế xa xỉ | Nộp ngân hàng 100 cố định |
-| Nhà tù / Thăm | Đến bằng di chuyển thông thường chỉ là ghé thăm, không bị giam |
+| Thuế thu nhập | Nộp 10% tiền mặt, tối thiểu 200 |
+| Thuế xa xỉ | Nộp 10% tiền mặt, tối thiểu 200 |
+| Nhà tù | Đến bằng di chuyển thông thường chỉ là ghé thăm, không bị giam |
 | Sân bay | Sau khi xác nhận, bay tới một trong 39 ô khác ngẫu nhiên và xử lý ô đến |
 | Vào tù | Chuyển tới ô 10, bị giam và mất quyền gieo thêm |
 
@@ -93,7 +93,7 @@ Nếu đã gieo đôi thì vẫn giữ quyền gieo thêm, trừ khi bị đưa 
 Tiền thuê và thưởng Xuất phát được xử lý ngay, không cần xác nhận. Nếu hiệu lực thẻ dẫn đến
 một ô sự kiện khác, ô mới tiếp tục có bước xác nhận riêng.
 
-Các bước gieo, mua, đấu giá, trả nợ, trao đổi và kết thúc lượt dùng đồng hồ PvP ở mục 2
+Các bước gieo, mua, trả nợ, trao đổi và kết thúc lượt dùng đồng hồ PvP ở mục 2
 khi đủ điều kiện. Tốc độ trình bày 1×/2× không đổi luật hay thời hạn của server.
 
 ## 4. Mua tài sản và đấu giá
@@ -109,30 +109,37 @@ Tài sản mua được gồm **đất phố, ga, điện và nước**.
 
 ### Đấu giá
 
-- Người vừa đến ô là người trả giá đầu tiên. Tất cả người chưa phá sản đều được tham gia,
-  kể cả người đã từ chối mua trực tiếp.
-- Giá mở đầu là **0**. Mỗi lần trả phải cao hơn giá hiện tại ít nhất **1**, là số nguyên và
-  không vượt tiền mặt của người trả. Giới hạn đầu vào của một lần trả là **100.000**.
-- Giao diện có các nút tăng **1 / 10 / 50** so với giá cao nhất hiện tại.
-- Sau mỗi lần trả hoặc bỏ giá, chuyển sang người tiếp theo chưa bỏ cuộc.
-- Đã bỏ cuộc thì không được quay lại phiên đó.
-- Người đang giữ giá cao nhất không được bỏ giá của chính mình.
-- Khi chỉ còn người giữ giá cao nhất chưa bỏ cuộc, người đó trả tiền cho ngân hàng và nhận
-  tài sản. Nếu mọi người bỏ mà chưa có ai trả giá, tài sản vẫn thuộc ngân hàng.
-- Không được xây, bán nhà, thế chấp, chuộc hoặc mở trao đổi trong lúc đấu giá.
-- Sau phiên đấu giá, người vừa đến ô tiếp tục gieo nếu trước đó ra đôi; nếu không thì kết
-  thúc lượt.
+- Đấu giá là sự kiện chung của cả bàn, không theo lượt: mọi ghế chưa bỏ đều trả giá được bất cứ
+  lúc nào. Phiên có đồng hồ do server giữ: **10 giây** từ lúc mở, mỗi lần trả giá đặt lại về
+  **6 giây**. Bỏ giá không đặt lại đồng hồ. Hết giờ thì người giữ giá cao nhất thắng; chưa ai trả
+  giá thì không bán. Máy cũng tham gia trong cùng đồng hồ.
+- Đất phố từ chối mua: mỗi lần trả tăng ít nhất 1 so với giá cao nhất. Người đang giữ giá cao
+  nhất không được bỏ giá. Mọi người khác bỏ thì người dẫn đầu thắng ngay; tất cả bỏ mà chưa có
+  giá thì không bán.
+- Bến xe mở đấu giá ngay khi đến, không có nút mua trực tiếp; ai cũng có thể đặt trước.
+- Bến xe bắt đầu từ 0, mỗi lần đặt tăng **đúng 10 ₫**. Tiền đặt bị trừ khỏi tiền mặt ngay;
+  khi đặt lại, chỉ trừ chênh lệch với số đang giữ. Muốn đặt phải có ít nhất 200 ₫ tính cả tiền đang giữ.
+- Rút/bỏ cuộc hoàn tiền đặt ngay và loại người đó khỏi phiên. Người giữ giá cao nhất cũng được rút.
+- Khi hết giờ hoặc chỉ còn một người chưa bỏ, hoàn tất cả tiền đặt rồi người thắng (người đặt
+  cao nhất, hoặc người còn lại) trả **giá niêm yết 200 ₫**, không trả giá đặt cao nhất. Nếu người
+  thắng không đủ giá niêm yết, bến vẫn thuộc ngân hàng.
+- Chấm tròn màu người chơi trên bến hiển thị các ghế đang có tiền đặt.
+- Người đã bỏ không quay lại phiên đó.
+- Không quản lý tài sản hay trao đổi khi đấu giá. Sau phiên, tiếp tục gieo nếu trước đó ra đôi,
+  nếu không thì kết thúc lượt. Chủ lượt rời ván hủy phiên và hoàn toàn bộ tiền đặt; ghế khác
+  rời ván được hoàn tiền đặt của mình trước thanh lý tài sản, phiên tiếp tục với các ghế còn lại.
 
 ## 5. Tiền thuê
 
 Số tiền trên mặt ô chưa bán là giá mua. Khi đã có chủ, số đó chuyển thành tiền thuê
 hiện tại và tăng theo số nhà/khách sạn; bán nhà làm số tiền giảm tương ứng. Điện/nước
-hiển thị hệ số nhân xúc xắc. Chủ ở tù hoặc đất đang thế chấp hiển thị 0.
+hiển thị thuế cố định hiện hành; ô thuế hiển thị 10%. Chủ ở tù hoặc đất đang thế chấp hiển thị 0.
 
 Đến tài sản của người khác thì trả tiền thuê cho chủ sở hữu. Không trả khi đó là tài sản của
 mình, tài sản đang thế chấp hoặc tài sản có **chủ đang bị giam trong tù**. Quy tắc chủ ở tù
-áp dụng cho đất phố, ga, điện và nước. Khi chủ ra tù, các ô đó thu thuê bình thường trở lại.
-Thuế thu nhập/xa xỉ vẫn nộp ngân hàng theo mức cố định.
+áp dụng cho đất phố và bến xe. Khi chủ ra tù, các ô đó thu thuê bình thường trở lại.
+Thuế thu nhập/xa xỉ nộp ngân hàng 10% tiền mặt, làm tròn xuống, tối thiểu 200; khoản thuế
+được chốt khi đến ô, trước bước xác nhận.
 
 ### Đất phố
 
@@ -142,34 +149,31 @@ Thuế thu nhập/xa xỉ vẫn nộp ngân hàng theo mức cố định.
 - Điều kiện nhân đôi hiện chỉ kiểm tra quyền sở hữu cả nhóm: một ô khác cùng nhóm đang thế
   chấp không làm mất mức thuê gấp đôi ở ô chưa thế chấp.
 
-### Ga
+### Bến xe
 
-| Số ga cùng chủ | Tiền thuê |
+| Số bến cùng chủ | Tiền thuê |
 | --- | ---: |
 | 1 | 25 |
 | 2 | 50 |
 | 3 | 100 |
-| 4 | 200 |
+| 4 | 600 |
 
-Số ga cùng chủ được tính gồm cả ga đang thế chấp. Bản thân ga đang thế chấp không thu thuê.
-Thẻ **Tới Ga gần nhất** làm tiền thuê ga đó **gấp đôi** nếu ga thuộc người khác.
+Sở hữu cả bốn bến nhân ba mức thuê 200. Số bến tính gồm cả bến đang thế chấp, nhưng bản thân
+bến thế chấp không thu thuê. Thẻ tới bến gần nhất nhân đôi tiền thuê nếu thuộc người khác.
 
-### Điện và nước
+### Điện lực và Cấp nước
 
-- Chủ có một đơn vị: tiền thuê bằng **4 × tổng xúc xắc**.
-- Chủ có cả Điện lực và Cấp nước: tiền thuê bằng **10 × tổng xúc xắc**.
-- Việc sở hữu cả hai vẫn được tính nếu đơn vị còn lại đang thế chấp; ô đang thế chấp không
-  thu thuê.
-- Thẻ **Tới Điện lực hoặc Cấp nước gần nhất** áp dụng **10 × tổng xúc xắc**, kể cả chủ chỉ có
-  một đơn vị.
-- Tổng xúc xắc dùng ở đây là tổng của lần gieo dẫn tới việc rút thẻ; **không gieo lại** khi
-  thẻ đưa tới điện/nước.
+Hai ô công cộng không thể mua, thế chấp hoặc trao đổi. Đến ô trả ngân hàng **100 ₫**, có bước
+xác nhận như thuế. Cơ hội bổ sung hai thẻ thiếu điện và thiếu nước: thuế của ô tương ứng gấp đôi
+trong **vòng bàn kế tiếp**, tính từ lúc lượt quay về ghế đầu tiên còn chơi đến lần quay về sau đó.
+Vòng đang rút thẻ vẫn thu 100; vòng kế thu 200; sau đó trở lại 100. Nhiều thẻ cùng ô trong cùng
+vòng không cộng dồn. Đang ở tù không miễn thuế công cộng.
 
 ## 6. Xây nhà, khách sạn và bán nhà
 
-Mỗi nhà được đánh dấu bằng một chấm tròn màu chủ đất có viền sáng trên dải màu nhóm.
-Khách sạn là thanh chữ nhật màu ghi có viền sáng, nhỏ hơn dải màu phía dưới. Tên địa danh
-nằm giữa biểu tượng đã thu nhỏ và dải màu; tên tự chia dòng và co chữ để vừa ô.
+Mỗi nhà được đánh dấu bằng một chấm tròn màu chủ đất có viền sáng trên mặt ô.
+Khách sạn là thanh chữ nhật màu ghi có viền sáng, nhỏ hơn mặt ô phía dưới. Tên địa danh
+nằm giữa biểu tượng đã thu nhỏ ; tên tự chia dòng và co chữ để vừa ô.
 Khi xây, cả bàn nghe tiếng mua.
 
 ### Xây dựng
@@ -239,7 +243,7 @@ theo các điều kiện ở mục 6–7. Có thể
 
 ## 9. Cơ hội và Khí vận
 
-Mỗi bộ có **12 thẻ**, rút từ đầu bộ. Sau khi xác nhận, thẻ thông thường được đưa xuống cuối
+Cơ hội có **14 thẻ**, Khí vận có **12 thẻ**, rút từ đầu bộ. Sau khi xác nhận, thẻ thông thường được đưa xuống cuối
 bộ, không xáo lại. Thẻ ra tù được giữ ngoài bộ cho đến khi dùng hoặc được trả về do phá sản.
 Một người có thể giữ thẻ ra tù của cả hai bộ; khi dùng, game lấy thẻ được nhận trước.
 
@@ -250,13 +254,15 @@ chặng đó.
 
 ### Bộ Cơ hội
 
+Hai thẻ thiếu điện/nước tăng thuế ô tương ứng gấp đôi trong vòng bàn kế tiếp.
+
 | Thẻ | Hiệu lực |
 | --- | --- |
 | Tiến về Xuất phát. Nhận 200. | Tới ô 0, nhận 200 |
-| Tới Ga gần nhất. | Tới ga phía trước gần nhất; thuê gấp đôi nếu thuộc người khác |
-| Tới Điện lực hoặc Cấp nước gần nhất. | Tới đơn vị phía trước gần nhất; thuê bằng 10 × tổng xúc xắc vừa gieo nếu thuộc người khác |
-| Tới Phố Đi Bộ. | Tới ô 39, xử lý ô đích |
-| Tới Tràng Tiền. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
+| Tới Bến xe gần nhất. | Tới bến phía trước gần nhất; thuê gấp đôi nếu thuộc người khác |
+| Tới Điện lực hoặc Cấp nước gần nhất. | Tới đơn vị phía trước gần nhất; trả thuế công cộng hiện hành cho ngân hàng |
+| Tới Bắc Ninh. | Tới ô 39, xử lý ô đích |
+| Tới Tp. HCM. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
 | Ngân hàng trả lãi 50. | Nhận 50 từ ngân hàng |
 | Nhận cổ tức 100. | Nhận 100 từ ngân hàng |
 | Nộp phạt chạy quá tốc độ 15. | Nộp ngân hàng 15 |
@@ -336,14 +342,15 @@ Phí sửa chữa tính mỗi khách sạn một lần theo giá khách sạn, k
 - Rời ván đang chơi được xử lý như phá sản với **ngân hàng**, kể cả đang nợ một người khác.
 - Nếu đó là người đang có lượt thì chuyển sang người chưa phá sản tiếp theo.
 - Nếu người nhận hoặc gửi đề nghị trao đổi rời ván, đề nghị bị hủy.
-- Nếu một người tham gia đấu giá rời ván, người đó bị loại khỏi phiên; nếu đang giữ giá cao
-  nhất thì giá cao nhất bị đặt lại thành 0, không khôi phục giá trước đó của người khác.
+- Ghế rời đấu giá bị loại khỏi phiên. Với bến xe, hoàn tiền của ghế đó và giữ mức đặt gần nhất
+  để lần đặt sau vẫn tăng đúng 10. Chủ lượt rời thì hủy phiên, hoàn tiền cho tất cả.
+  Với đấu giá đất phố, người dẫn đầu rời làm giá cao nhất trở về 0.
 
 ## 12. Bàn cờ, giá mua và tiền thuê
 
-Giá mua được in trực tiếp trên mặt các ô tài sản; hai ô thuế in số tiền phải nộp.
-Nút **Gieo xúc xắc** nằm giữa bàn, dùng asset vàng cam riêng có hai viên xúc xắc.
-Nút **Hết lượt** nằm cùng vị trí giữa bàn và giữ ảnh nút vàng gốc.
+Giá mua được in trực tiếp trên mặt các ô tài sản; hai ô thuế in 10%.
+Chạm hai viên xúc xắc ở giữa bàn để gieo. Khi được gieo, viền sáng và chữ **Chạm để gieo**
+nhấp nháy. Nút **Hết lượt** nằm bên dưới vùng thông báo.
 Khung đấu giá nhấp nháy viền vàng để các ghế chú ý trả hoặc bỏ giá. Khi nhận đề nghị trao
 đổi, chỉ người nhận nghe tiếng thông báo. Các nút trên máy tính sáng và phát tiếng hover
 mặc định của nền tảng khi rê chuột.
@@ -353,50 +360,50 @@ người chơi. Biểu tượng ở tù ghi 3/2/1 lần gieo còn lại trước
 thẻ ra tù không có thời hạn. Nhận thẻ phát tiếng nhặt vật phẩm sau khi công bố sự kiện.
 
 Số ô dưới đây theo chỉ số trong code, từ **0 đến 39**. Dấu `—` nghĩa là ô đó không có giá
-mua. Giá ga là 200; giá điện/nước là 150.
+mua. Giá bến xe là 200; điện/nước không bán.
 
 | Ô | Tên | Loại / nhóm màu | Giá mua |
 | ---: | --- | --- | ---: |
-| 0 | Xuất phát | Xuất phát | — |
-| 1 | Phố Cổ | Nâu | 60 |
-| 2 | Khí vận | Rút thẻ | — |
-| 3 | Hàng Đào | Nâu | 60 |
-| 4 | Thuế thu nhập | Thuế 200 | — |
-| 5 | Ga Bắc | Ga | 200 |
-| 6 | Bến Thành | Xanh nhạt | 100 |
-| 7 | Cơ hội | Rút thẻ | — |
-| 8 | Đồng Khởi | Xanh nhạt | 100 |
-| 9 | Nguyễn Huệ | Xanh nhạt | 120 |
-| 10 | Nhà tù / Thăm | Tù / ghé thăm | — |
-| 11 | Cầu Rồng | Hồng | 140 |
-| 12 | Điện lực | Điện/nước | 150 |
-| 13 | Biển Mỹ Khê | Hồng | 140 |
-| 14 | Sông Hàn | Hồng | 160 |
-| 15 | Ga Trung | Ga | 200 |
-| 16 | Đại Nội | Cam | 180 |
-| 17 | Khí vận | Rút thẻ | — |
-| 18 | Tràng Tiền | Cam | 180 |
-| 19 | Sông Hương | Cam | 200 |
-| 20 | Sân bay | Bay tới ô ngẫu nhiên | — |
-| 21 | Hồ Xuân Hương | Đỏ | 220 |
-| 22 | Cơ hội | Rút thẻ | — |
-| 23 | Chợ Đà Lạt | Đỏ | 220 |
-| 24 | Đồi Thông | Đỏ | 240 |
-| 25 | Ga Nam | Ga | 200 |
-| 26 | Chợ Nổi | Vàng | 260 |
-| 27 | Bến Ninh Kiều | Vàng | 260 |
-| 28 | Cấp nước | Điện/nước | 150 |
-| 29 | Cù Lao | Vàng | 280 |
-| 30 | Vào tù | Chuyển vào tù | — |
-| 31 | Vịnh Hạ Long | Xanh lá | 300 |
-| 32 | Đảo Cát Bà | Xanh lá | 300 |
-| 33 | Khí vận | Rút thẻ | — |
-| 34 | Bãi Cháy | Xanh lá | 320 |
-| 35 | Ga Đông | Ga | 200 |
-| 36 | Cơ hội | Rút thẻ | — |
-| 37 | Hồ Gươm | Xanh đậm | 350 |
-| 38 | Thuế xa xỉ | Thuế 100 | — |
-| 39 | Phố Đi Bộ | Xanh đậm | 400 |
+| 0 | Xuất phát | Ô đặc biệt | — |
+| 1 | Tp. Hà Nội | nau | 60 |
+| 2 | Khí vận | Ô đặc biệt | — |
+| 3 | Vĩnh Long | xanh-la | 320 |
+| 4 | Thuế thu nhập | Thuế 10%, tối thiểu 200 | — |
+| 5 | Bến Bắc | Bến xe | 200 |
+| 6 | Tp. Hải Phòng | hong | 140 |
+| 7 | Cơ hội | Ô đặc biệt | — |
+| 8 | Đồng Nai | vang | 260 |
+| 9 | Hưng Yên | do | 220 |
+| 10 | Nhà tù | Ô đặc biệt | — |
+| 11 | Tp. Đà Nẵng | xanh-nhat | 100 |
+| 12 | Điện lực | Thuế công cộng 100 / 200 | — |
+| 13 | Đồng Tháp | xanh-dam | 350 |
+| 14 | Khánh Hòa | hong | 160 |
+| 15 | Bến Trung | Bến xe | 200 |
+| 16 | Tây Ninh | vang | 280 |
+| 17 | Khí vận | Ô đặc biệt | — |
+| 18 | Tp. HCM | nau | 60 |
+| 19 | Tp. Cần Thơ | xanh-nhat | 120 |
+| 20 | Sân bay | Ô đặc biệt | — |
+| 21 | Gia Lai | do | 240 |
+| 22 | Cơ hội | Ô đặc biệt | — |
+| 23 | Cà Mau | xanh-la | 300 |
+| 24 | Lâm Đồng | cam | 180 |
+| 25 | Bến Nam | Bến xe | 200 |
+| 26 | Phú Thọ | xanh-dam | 400 |
+| 27 | Tp. Huế | xanh-nhat | 100 |
+| 28 | Cấp nước | Thuế công cộng 100 / 200 | — |
+| 29 | Đắk Lắk | vang | 260 |
+| 30 | Vào tù | Ô đặc biệt | — |
+| 31 | An Giang | xanh-la | 300 |
+| 32 | Quảng Ninh | hong | 140 |
+| 33 | Khí vận | Ô đặc biệt | — |
+| 34 | Ninh Bình | cam | 180 |
+| 35 | Bến Đông | Bến xe | 200 |
+| 36 | Cơ hội | Ô đặc biệt | — |
+| 37 | Quảng Trị | do | 220 |
+| 38 | Thuế xa xỉ | Thuế 10%, tối thiểu 200 | — |
+| 39 | Bắc Ninh | cam | 200 |
 
 ### Bảng xây và thuê đất phố
 
@@ -405,28 +412,28 @@ khi sở hữu đủ bộ thì nhân đôi cột này. **KS** là một khách s
 
 | Ô | Tên | Giá xây | Trống | 1 nhà | 2 nhà | 3 nhà | 4 nhà | KS |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | Phố Cổ | 50 | 2 | 10 | 30 | 90 | 160 | 250 |
-| 3 | Hàng Đào | 50 | 4 | 20 | 60 | 180 | 320 | 450 |
-| 6 | Bến Thành | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
-| 8 | Đồng Khởi | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
-| 9 | Nguyễn Huệ | 50 | 8 | 40 | 100 | 300 | 450 | 600 |
-| 11 | Cầu Rồng | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
-| 13 | Biển Mỹ Khê | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
-| 14 | Sông Hàn | 100 | 12 | 60 | 180 | 500 | 700 | 900 |
-| 16 | Đại Nội | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
-| 18 | Tràng Tiền | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
-| 19 | Sông Hương | 100 | 16 | 80 | 220 | 600 | 800 | 1000 |
-| 21 | Hồ Xuân Hương | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
-| 23 | Chợ Đà Lạt | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
-| 24 | Đồi Thông | 150 | 20 | 100 | 300 | 750 | 925 | 1100 |
-| 26 | Chợ Nổi | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
-| 27 | Bến Ninh Kiều | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
-| 29 | Cù Lao | 150 | 24 | 120 | 360 | 850 | 1025 | 1200 |
-| 31 | Vịnh Hạ Long | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
-| 32 | Đảo Cát Bà | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
-| 34 | Bãi Cháy | 200 | 28 | 150 | 450 | 1000 | 1200 | 1400 |
-| 37 | Hồ Gươm | 200 | 35 | 175 | 500 | 1100 | 1300 | 1500 |
-| 39 | Phố Đi Bộ | 200 | 50 | 200 | 600 | 1400 | 1700 | 2000 |
+| 1 | Tp. Hà Nội | 50 | 2 | 10 | 30 | 90 | 160 | 250 |
+| 3 | Vĩnh Long | 200 | 28 | 150 | 450 | 1000 | 1200 | 1400 |
+| 6 | Tp. Hải Phòng | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
+| 8 | Đồng Nai | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
+| 9 | Hưng Yên | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
+| 11 | Tp. Đà Nẵng | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
+| 13 | Đồng Tháp | 200 | 35 | 175 | 500 | 1100 | 1300 | 1500 |
+| 14 | Khánh Hòa | 100 | 12 | 60 | 180 | 500 | 700 | 900 |
+| 16 | Tây Ninh | 150 | 24 | 120 | 360 | 850 | 1025 | 1200 |
+| 18 | Tp. HCM | 50 | 4 | 20 | 60 | 180 | 320 | 450 |
+| 19 | Tp. Cần Thơ | 50 | 8 | 40 | 100 | 300 | 450 | 600 |
+| 21 | Gia Lai | 150 | 20 | 100 | 300 | 750 | 925 | 1100 |
+| 23 | Cà Mau | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
+| 24 | Lâm Đồng | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
+| 26 | Phú Thọ | 200 | 50 | 200 | 600 | 1400 | 1700 | 2000 |
+| 27 | Tp. Huế | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
+| 29 | Đắk Lắk | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
+| 31 | An Giang | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
+| 32 | Quảng Ninh | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
+| 34 | Ninh Bình | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
+| 37 | Quảng Trị | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
+| 39 | Bắc Ninh | 100 | 16 | 80 | 220 | 600 | 800 | 1000 |
 
 ## 13. Cách máy quyết định hiện tại
 
@@ -452,9 +459,8 @@ kiện áp dụng cho người thật.
 
 Các điểm này đều đang có trong triển khai, để dễ chọn chỗ cần sửa:
 
-1. Thẻ tới điện/nước dùng xúc xắc cũ, không gieo lại.
-2. Sở hữu ô cùng nhóm đang thế chấp vẫn được tính khi xác định trọn bộ màu, số ga hoặc cặp
-   điện/nước để tính thuê ở ô chưa thế chấp.
+1. Thẻ tới điện/nước thu mức thuế công cộng hiện hành, không phụ thuộc xúc xắc.
+2. Sở hữu ô cùng nhóm đang thế chấp vẫn được tính khi xác định trọn bộ màu, số bến xe để tính thuê ở ô chưa thế chấp.
 3. Bán nhà/thế chấp/chuộc được phép ngoài lượt và cả trong bước nợ; xây chỉ được một cấp
    khi quay lại ô của mình. Trao đổi vẫn bị cấm khi đang nợ.
 4. Có thể tự chọn phá sản ngay khi thiếu tiền mặt dù còn tài sản có thể thanh lý.

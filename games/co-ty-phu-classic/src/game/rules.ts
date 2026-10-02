@@ -19,7 +19,12 @@ export const copy = (state: State): State => ({
   properties: state.properties.map((p) => ({ ...p })),
   chance: [...state.chance],
   chest: [...state.chest],
-  auction: state.auction && { ...state.auction, passed: [...state.auction.passed] },
+  shortages: state.shortages.map((event) => ({ ...event })),
+  auction: state.auction && {
+    ...state.auction,
+    passed: [...state.auction.passed],
+    bids: [...state.auction.bids],
+  },
   debt: state.debt && { ...state.debt },
   trade: state.trade && { ...state.trade },
 });
@@ -55,11 +60,7 @@ export function rent(
   if (deed.owner === null || deed.mortgaged || s.players[deed.owner]?.jailed) return 0;
   if (cell.kind === 'station') {
     const count = [5, 15, 25, 35].filter((i) => s.properties[i]?.owner === deed.owner).length;
-    return 25 * 2 ** (count - 1) * multiplier;
-  }
-  if (cell.kind === 'utility') {
-    const both = s.properties[12]?.owner === deed.owner && s.properties[28]?.owner === deed.owner;
-    return roll * (multiplier > 1 ? 10 : both ? 10 : 4);
+    return 25 * 2 ** (count - 1) * (count === 4 ? 3 : 1) * multiplier;
   }
   return (
     (cell.rent?.[deed.houses] ?? 0) *
@@ -174,6 +175,9 @@ export function resolveSpecialEvent(s: State, rng: () => number) {
   if (id === undefined) throw new Error('Empty card deck');
   if (card.kind !== 'free') s[deck].push(id);
   switch (card.kind) {
+    case 'shortage':
+      s.shortages.push({ square: card.square, round: s.round + 1 });
+      break;
     case 'cash':
       if (card.amount > 0) transferMoney(s, null, seat, card.amount, card.text);
       else charge(s, seat, -card.amount, null, card.text);
@@ -204,6 +208,26 @@ export function resolveSpecialEvent(s: State, rng: () => number) {
   }
 }
 
+export function utilityTax(s: Pick<State, 'round' | 'shortages'>, square: number) {
+  return (
+    (BOARD[square]?.tax ?? 100) *
+    (s.shortages.some((event) => event.square === square && event.round === s.round) ? 2 : 1)
+  );
+}
+
+/** Opens the auction of `square` to everyone at the table (the game sets its clock). */
+export function openAuction(s: State, square: number) {
+  s.phase = 'auction';
+  s.auction = {
+    square,
+    highest: 0,
+    leader: null,
+    passed: [],
+    bids: s.players.map(() => 0),
+    round: 0,
+  };
+}
+
 export function land(s: State, seat: number, roll: number, multiplier = 1) {
   const square = s.players[seat]!.position;
   const cell = BOARD[square]!;
@@ -216,15 +240,19 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
     if (owner === null) {
       s.pending = square;
       s.phase = 'buy';
+      if (cell.kind === 'station') openAuction(s, square);
     } else if (owner === seat && cell.kind === 'street' && !s.players[seat]!.jailed) {
       s.buildable = square;
     } else if (owner !== seat) {
       charge(s, seat, rent(s, square, roll, multiplier), owner, `Tiền thuê ${cell.name}`);
     }
-  } else if (cell.kind === 'tax') {
+  } else if (cell.kind === 'tax' || cell.kind === 'utility') {
     awaitSpecialEvent(s, {
       kind: 'tax',
-      amount: cell.tax!,
+      amount:
+        cell.kind === 'tax'
+          ? Math.max(200, Math.floor(s.players[seat]!.cash * 0.1))
+          : utilityTax(s, square),
       reason: cell.name,
     });
   } else if (cell.kind === 'chance' || cell.kind === 'chest') {
@@ -246,6 +274,14 @@ export function finishIfLast(s: State, ctx: Context) {
 
 export function bankrupt(s: State, seat: number, creditor: number | null, ctx: Context) {
   const p = s.players[seat]!;
+  if (s.auction) {
+    s.auction.bids.forEach((amount, bidder) => {
+      if (s.turn === seat || active(s).length <= 2 || bidder === seat) {
+        transferMoney(s, null, bidder, amount, 'Hoàn tiền đấu giá');
+        s.auction!.bids[bidder] = 0;
+      }
+    });
+  }
   p.bankrupt = true;
   for (const [i, deed] of s.properties.entries()) {
     if (deed.owner === seat && deed.houses)
@@ -278,6 +314,7 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
   finishIfLast(s, ctx);
   if (s.winner === null && s.turn === seat) {
     s.turn = next(s, seat);
+    if (s.turn <= seat) s.round++;
     s.phase = 'roll';
     s.doubles = 0;
     s.dice = null;

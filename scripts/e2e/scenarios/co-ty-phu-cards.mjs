@@ -48,7 +48,7 @@ export default async function run(t) {
       let index = 0;
       try {
         Math.random = () => (dice[index++] - 0.5) / 6;
-        s.main[0].action();
+        s.diceHit.emit('pointerup');
       } finally {
         Math.random = original;
       }
@@ -121,7 +121,9 @@ export default async function run(t) {
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return (
-      s.visualPhase === 'decision' && s.main[0].hit.visible && s.notice.text.includes('Ga gần nhất')
+      s.visualPhase === 'decision' &&
+      s.main[0].hit.visible &&
+      s.notice.text.includes('Bến xe gần nhất')
     );
   });
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);

@@ -66,8 +66,6 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
       <RoomBar
         snapshot={snapshot}
         me={me}
-        gameName={game?.name}
-        hostName={hostName}
         hidePlayers={Boolean(client?.showsPlayers) && snapshot.status !== 'lobby'}
         onLeave={() => leave('rooms')}
         onHome={() => leave('home')}
@@ -92,7 +90,7 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
               {customize}
             </>
           ) : isPlayer ? (
-            <p className="muted">Đang chờ chủ phòng bắt đầu…</p>
+            <p className="muted">Đang chờ {hostName ? `👑 ${hostName}` : 'chủ phòng'} bắt đầu…</p>
           ) : (
             sitButton
           )}
@@ -117,7 +115,7 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
               {customize}
             </>
           ) : isPlayer ? (
-            <p className="muted">Chờ chủ phòng mở ván mới…</p>
+            <p className="muted">Chờ {hostName ? `👑 ${hostName}` : 'chủ phòng'} mở ván mới…</p>
           ) : (
             sitButton
           )}
