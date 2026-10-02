@@ -200,7 +200,7 @@ vùng chạm cao 88 đơn vị. **Hết lượt** cũng nằm giữa bàn với 
 in giá mua sát mép ngoài; ô đã có chủ in tiền thuê hiện tại, cập nhật khi xây/bán nhà,
 thế chấp hoặc chủ vào/ra tù. Điện/nước ghi hệ số xúc xắc; hai ô thuế ghi mức phải nộp.
 Mỗi nhà là một chấm tròn màu chủ đất có viền sáng, đặt trên dải màu nhóm; khách sạn là
-một viên capsule màu ghi có viền sáng, nhỏ hơn dải màu phía dưới. Ô đang thế chấp được đóng
+một viên capsule màu chủ đất có viền sáng, nhỏ hơn dải màu phía dưới. Ô đang thế chấp được đóng
 dấu mộc ngân hàng màu son, nghiêng theo mặt ô, thay cho nét gạch. Biểu tượng trên các ô
 được thu nhỏ để dành chỗ in tên địa danh giữa biểu tượng và giá ô. Tên tự chia tối đa
 hai dòng và co cỡ chữ theo chiều rộng ô, giữ nguyên dấu tiếng Việt và phối cảnh mặt bàn.

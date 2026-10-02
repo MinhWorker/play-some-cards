@@ -170,7 +170,7 @@ vòng không cộng dồn. Đang ở tù không miễn thuế công cộng.
 ## 6. Xây nhà, khách sạn và bán nhà
 
 Mỗi nhà được đánh dấu bằng một chấm tròn màu chủ đất có viền sáng trên mặt ô.
-Khách sạn là thanh chữ nhật màu ghi có viền sáng, nhỏ hơn mặt ô phía dưới. Tên địa danh
+Khách sạn là viên capsule màu chủ đất có viền sáng, nhỏ hơn mặt ô phía dưới. Tên địa danh
 nằm giữa biểu tượng đã thu nhỏ ; tên tự chia dòng và co chữ để vừa ô.
 Khi xây, cả bàn nghe tiếng mua.
 

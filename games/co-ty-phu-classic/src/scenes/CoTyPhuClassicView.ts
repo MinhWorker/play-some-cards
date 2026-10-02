@@ -820,10 +820,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     const color = PLAYER_COLORS[deed.owner ?? 0]!;
 
     if (BOARD[square]!.kind === 'street' && deed.houses === 5) {
-      // A hotel is a capsule across the tile's foot: a cream rim round a slate body.
+      // A hotel is a capsule across the tile's foot: a cream rim round the owner's color.
       for (const [inset, fill] of [
         [0, 0xfff4db],
-        [0.016, 0x64676b],
+        [0.016, color],
       ] as const) {
         this.fillSurfacePolygon(
           square,
