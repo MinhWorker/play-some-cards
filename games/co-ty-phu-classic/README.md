@@ -84,7 +84,12 @@ Mặt bàn dùng biểu tượng đơn sắc thay cho tên ô: nhà phố, ga, �
 đặc biệt có dấu hiệu riêng. Biểu tượng được in theo phối cảnh trên mặt bàn, không có dải màu trang trí;
 biểu tượng và tên địa danh của đất đổi sang màu người sở hữu để dễ nhận biết; nhà, khách sạn và
 dấu thế chấp được vẽ theo đúng mặt phẳng của từng ô. Tên địa danh không có tiền tố "Tp."; ô Sân
-bay ghi "Chuyến bay đến…". Quân cờ nhỏ (bằng nửa cỡ cũ) để không che tên và giá ô. Sau khi
+bay ghi "Chuyến bay đến…". Quân cờ nhỏ (bằng nửa cỡ cũ) để không che tên và giá ô.
+Các ô không mua được có biểu tượng động (`SpecialSymbols`, chỉ tô lên nét biểu tượng, không tô
+nền ô): tia điện ở Điện lực màu tím, có dải sáng chạy nhanh và chớp như điện; giọt nước ở Cấp
+nước màu cyan, mặt nước sóng sánh; máy bay ở Sân bay có đèn đỏ, xanh ở hai đầu cánh và đèn trắng
+chớp đôi ở đuôi như máy bay ban đêm; mũi tên ở ô Xuất phát sáng vàng rồi mờ về xám theo nhịp.
+Ô tù giữ màu xám. Sau khi
 quân cờ đáp xuống, tên địa điểm được giữ ở giữa mặt bàn trước khi hiện quyết định hoặc lượt
 gieo tiếp của máy. Bảng bên phải tự chuyển sang ô vừa đến; chạm ô bất kỳ để đọc chi tiết ô khác.
 Ô có thao tác hợp lệ cho bạn có huy hiệu dấu cộng vàng; viền vàng sáng hơn khi xem thẻ nổi; nút trong thẻ chỉ hiện

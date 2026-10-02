@@ -29,6 +29,7 @@ import { moneySound } from './moneySound.js';
 import { PawnCashEffect } from './PawnCashEffect.js';
 import { PropertyPresentation } from './PropertyPresentation.js';
 import { RentTable } from './RentTable.js';
+import { SpecialSymbols } from './SpecialSymbols.js';
 import { TileOwnerSymbols } from './TileOwnerSymbols.js';
 import { TileTooltip } from './TileTooltip.js';
 import { tileActions } from './tileActions.js';
@@ -116,6 +117,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   private hudPanels!: Phaser.GameObjects.Graphics;
   private boardImage!: Phaser.GameObjects.Image;
   private ownerSymbols!: TileOwnerSymbols;
+  /** Power, water, airport and Start symbols, animated. */
+  private specialSymbols!: SpecialSymbols;
   private boardPrices!: BoardPrices;
   private eventDeck!: EventDeck;
   private squares: Phaser.GameObjects.Zone[] = [];
@@ -263,6 +266,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.auctionPulse = 0;
     this.eventCountdown = this.add.graphics().setDepth(6);
     this.ownerSymbols = new TileOwnerSymbols(this, this.boardImage.texture.key);
+    this.specialSymbols = new SpecialSymbols(this, this.boardImage.texture.key);
     this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
@@ -406,6 +410,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const cx = left + size / 2;
     this.boardImage.setPosition(cx, boardTop + imageH / 2).setDisplaySize(size, imageH);
     this.ownerSymbols.layout(cx, boardTop + imageH / 2, size, imageH);
+    this.specialSymbols.layout(cx, boardTop + imageH / 2, size, imageH);
     this.boardPrices.layout(cx, boardTop + imageH / 2, size, imageH);
     this.eventDeck.layout(left, boardTop, size, imageH);
     BOARD.forEach((_, i) => {
@@ -1812,6 +1817,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         .strokeRoundedRect(this.diceHit.x - 85, this.diceHit.y - 48, 170, 96, 18);
     }
     this.drawAuctionAttention(delta);
+    this.specialSymbols.update(this.time.now);
     const event = this.ctx.state.specialEvent;
     if (
       event &&
