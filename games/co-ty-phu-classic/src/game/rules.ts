@@ -39,25 +39,20 @@ export function ownsGroup(s: Pick<State, 'properties'>, owner: number, square: n
   return Boolean(group && groupSquares(group).every((i) => s.properties[i]?.owner === owner));
 }
 
-export function buildingsInGroup(s: Pick<State, 'properties'>, square: number): boolean {
-  const group = BOARD[square]?.group;
-  return group ? groupSquares(group).some((i) => (s.properties[i]?.houses ?? 0) > 0) : false;
-}
-
 export const bankHouses = (s: Pick<State, 'properties'>) =>
   32 - s.properties.reduce((sum, p) => sum + (p.houses === 5 ? 0 : p.houses), 0);
 export const bankHotels = (s: Pick<State, 'properties'>) =>
   12 - s.properties.filter((p) => p.houses === 5).length;
 
 export function rent(
-  s: Pick<State, 'properties'>,
+  s: Pick<State, 'properties' | 'players'>,
   square: number,
   roll: number,
   multiplier = 1,
 ): number {
   const cell = BOARD[square]!;
   const deed = s.properties[square]!;
-  if (deed.owner === null || deed.mortgaged) return 0;
+  if (deed.owner === null || deed.mortgaged || s.players[deed.owner]?.jailed) return 0;
   if (cell.kind === 'station') {
     const count = [5, 15, 25, 35].filter((i) => s.properties[i]?.owner === deed.owner).length;
     return 25 * 2 ** (count - 1) * multiplier;
@@ -112,6 +107,7 @@ export function jail(s: State, seat: number) {
   s.doubles = 0;
   s.after = 'end';
   s.phase = 'end';
+  s.buildable = null;
   s.notice = 'Vào tù!';
 }
 
@@ -150,12 +146,20 @@ export function awaitSpecialEvent(s: State, event: SpecialEventEffect) {
 }
 
 /** Apply a revealed event only once its owner or the server timer confirms it. */
-export function resolveSpecialEvent(s: State) {
+export function resolveSpecialEvent(s: State, rng: () => number) {
   const event = s.specialEvent;
   if (!event) return;
   s.specialEvent = null;
   s.phase = s.after;
   const seat = s.turn;
+  if (event.kind === 'airport') {
+    // Uniformly choose among the other 39 squares; a flight never loops into the airport.
+    const choice = Math.floor(rng() * (BOARD.length - 1));
+    const target = choice >= 20 ? choice + 1 : choice;
+    if (target === 0) transferMoney(s, null, seat, 200, 'Đáp Xuất phát');
+    move(s, seat, target, false, event.roll);
+    return;
+  }
   if (event.kind === 'tax') {
     charge(s, seat, event.amount, null, event.reason);
     return;
@@ -205,12 +209,15 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
   const cell = BOARD[square]!;
   s.phase = s.after;
   s.pending = null;
+  s.buildable = null;
   s.notice = `Đến ${cell.name}.`;
   if (isDeed(cell)) {
     const owner = s.properties[square]!.owner;
     if (owner === null) {
       s.pending = square;
       s.phase = 'buy';
+    } else if (owner === seat && cell.kind === 'street' && !s.players[seat]!.jailed) {
+      s.buildable = square;
     } else if (owner !== seat) {
       charge(s, seat, rent(s, square, roll, multiplier), owner, `Tiền thuê ${cell.name}`);
     }
@@ -224,6 +231,8 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
     draw(s, cell.kind, seat, roll);
   } else if (cell.kind === 'go-jail') {
     awaitSpecialEvent(s, { kind: 'jail', reason: 'Bị đưa vào tù!' });
+  } else if (cell.kind === 'airport') {
+    awaitSpecialEvent(s, { kind: 'airport', roll, reason: 'Chuyến bay đến một ô ngẫu nhiên.' });
   }
 }
 
@@ -264,6 +273,7 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
   s.auction = null;
   s.debt = null;
   s.pending = null;
+  if (s.turn === seat) s.buildable = null;
   s.notice = `${ctx.players[seat]?.name ?? 'Người chơi'} đã phá sản.`;
   finishIfLast(s, ctx);
   if (s.winner === null && s.turn === seat) {

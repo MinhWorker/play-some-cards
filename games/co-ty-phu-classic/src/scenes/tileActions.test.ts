@@ -13,15 +13,20 @@ it('marks only the pending purchase and respects the buyer balance', () => {
   expect(tileActions(game.state, 1, 3)).toEqual([]);
 });
 
-it('offers mortgage for a partial set and building only after completing the set', () => {
+it('offers one building on a return visit to a partial set, only to the current owner', () => {
   const game = testGame(plugin, ['a', 'b']);
   game.state.properties[1]!.owner = 0;
   expect(tileActions(game.state, 0, 1).map((a) => a.event)).toEqual(['mortgage']);
-  game.state.properties[3]!.owner = 0;
+  game.state.players[0]!.position = 1;
+  game.state.buildable = 1;
   expect(tileActions(game.state, 0, 1).map((a) => a.event)).toEqual(['build', 'mortgage']);
   game.state.properties[1]!.houses = 1;
+  game.state.buildable = null;
   expect(tileActions(game.state, 0, 1).map((a) => a.event)).toEqual(['sell-house']);
-  expect(tileActions(game.state, 0, 3).map((a) => a.event)).toEqual(['build']);
+  expect(tileActions(game.state, 0, 3)).toEqual([]);
+  game.state.buildable = 1;
+  game.state.turn = 1;
+  expect(tileActions(game.state, 0, 1).map((a) => a.event)).toEqual(['sell-house']);
 });
 
 it('does not offer redemption below the exact server price', () => {

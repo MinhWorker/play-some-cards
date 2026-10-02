@@ -57,7 +57,7 @@ SQUARES = [
     ("chest", None),
     ("street", "cam"),
     ("street", "cam"),
-    ("free", None),
+    ("airport", None),
     ("street", "do"),
     ("chance", None),
     ("street", "do"),
@@ -194,8 +194,13 @@ def draw_icon(draw, kind, size):
             rect((x, 22, x + 7, 78), radius=3)
         if kind == "go-jail":
             poly([(6, 47), (26, 34), (26, 42), (44, 42), (44, 52), (26, 52), (26, 61)])
-    elif kind == "free":
-        poly([(50, 7), (61, 39), (93, 50), (61, 61), (50, 93), (39, 61), (7, 50), (39, 39)])
+    elif kind == "airport":
+        poly([
+            (46, 8), (54, 8), (59, 39), (91, 60), (91, 68),
+            (58, 56), (56, 78), (70, 88), (70, 94), (50, 88),
+            (30, 94), (30, 88), (44, 78), (42, 56), (9, 68),
+            (9, 60), (41, 39),
+        ])
 
 
 def widen_track(image):
@@ -284,7 +289,18 @@ def make_print_texture():
                 )
         icon_canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
         draw_icon(ImageDraw.Draw(icon_canvas, "RGBA"), kind, 512)
-        icon_size = round(min(width, height) * (0.62 if side == "corner" else 0.88))
+        icon_size = round(min(width, height) * (0.42 if side == "corner" else 0.54))
+        # Leave the inner half of every face for the live Vietnamese place label.
+        if side == "bottom":
+            center_y = y0 + height * 0.6
+        elif side == "top":
+            center_y = y0 + height * 0.4
+        elif side == "left":
+            center_x = x0 + width * 0.4
+        elif side == "right":
+            center_x = x0 + width * 0.6
+        else:
+            center_y = y0 + height * 0.38
         icon_canvas = icon_canvas.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
         image.alpha_composite(
             icon_canvas,

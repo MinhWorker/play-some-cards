@@ -2,7 +2,7 @@ import { seededRng, testGame } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { BOARD, SPECIAL_EVENT_TIMEOUT } from './model.js';
-import { rent } from './rules.js';
+import { bankHotels, bankHouses, move, rent } from './rules.js';
 
 /** The first dice after both decks are shuffled with seed 1. */
 const firstRoll = () => {
@@ -51,7 +51,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'confirm-event');
     expect(game.state.players[0]!.cash).toBe(1400);
     expect(game.state.specialEvent).toBeNull();
-    expect(game.timer).toBeNull();
+    expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     expect(game.error('a', 'confirm-event')).toBe('Thao tác chưa hợp lệ');
   });
 
@@ -156,7 +156,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.fireTimer();
     expect(game.state.players[0]!.cash).toBe(1400);
     expect(game.state.specialEvent).toBeNull();
-    expect(game.timer).toBeNull();
+    expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     const solo = testGame(plugin, ['a'], { seed: 1 });
     const [a, b] = firstRoll();
     solo.state.players[0]!.position = 38 - a - b;
@@ -258,20 +258,142 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.properties[1]?.mortgaged).toBe(true);
   });
 
-  it('requires even building and stops rent on mortgaged land', () => {
-    const game = testGame(plugin, ['a', 'b']);
+  it('builds one level on a return visit without requiring a color set', () => {
+    const game = at(1);
     game.state.properties[1]!.owner = 0;
-    game.state.properties[3]!.owner = 0;
+    game.state.properties[3]!.owner = 1;
+    expect(game.error('a', 'build', { square: 1 })).toBe(
+      'Chỉ xây một lần khi quay lại ô đất của mình',
+    );
+    game.send('a', 'roll');
+    expect(game.state.buildable).toBe(1);
     game.send('a', 'build', { square: 1 });
-    expect(game.error('a', 'build', { square: 1 })).toBe('Phải xây đều trên cả bộ màu');
-    game.send('a', 'build', { square: 3 });
-    expect(game.error('a', 'mortgage', { square: 1 })).toBe('Phải bán hết nhà trong bộ màu trước');
+    expect(game.state.properties[1]!.houses).toBe(1);
+    expect(game.error('a', 'build', { square: 1 })).toBe(
+      'Chỉ xây một lần khi quay lại ô đất của mình',
+    );
+    expect(game.error('a', 'mortgage', { square: 1 })).toBe(
+      'Phải bán hết nhà trên ô đất này trước',
+    );
     game.send('a', 'sell-house', { square: 1 });
-    game.send('a', 'sell-house', { square: 3 });
     game.send('a', 'mortgage', { square: 1 });
     expect(rent(game.state, 1, 7)).toBe(0);
     game.send('a', 'redeem', { square: 1 });
-    expect(rent(game.state, 1, 7)).toBe(4);
+    expect(rent(game.state, 1, 7)).toBe(2);
+    expect(game.error('a', 'build', { square: 1 })).toBe(
+      'Chỉ xây một lần khi quay lại ô đất của mình',
+    );
+  });
+
+  it('does not grant building on purchase and expires a return visit at the next roll or turn', () => {
+    const game = at(3);
+    game.send('a', 'roll').send('a', 'buy');
+    expect(game.state.buildable).toBeNull();
+    expect(game.error('a', 'build', { square: 3 })).toBe(
+      'Chỉ xây một lần khi quay lại ô đất của mình',
+    );
+    move(game.state, 0, 3, false, 7);
+    expect(game.state.buildable).toBe(3);
+    game.send('a', 'end-turn');
+    expect(game.state.buildable).toBeNull();
+    expect(game.error('a', 'build', { square: 3 })).toBe('Chưa tới lượt bạn');
+    game.state.turn = 0;
+    game.state.phase = 'roll';
+    move(game.state, 0, 3, false, 7);
+    game.state.phase = 'roll';
+    game.send('a', 'roll');
+    expect(game.state.buildable).toBeNull();
+  });
+
+  it('upgrades independently to a hotel across five visits and honors bank supply', () => {
+    const game = at(1);
+    game.state.properties[1]!.owner = 0;
+    game.send('a', 'roll');
+    for (let level = 1; level <= 5; level++) {
+      if (level > 1) move(game.state, 0, 1, false, 7);
+      game.send('a', 'build', { square: 1 });
+      expect(game.state.properties[1]!.houses).toBe(level);
+    }
+    expect(bankHouses(game.state)).toBe(32);
+    expect(bankHotels(game.state)).toBe(11);
+    game.send('a', 'sell-house', { square: 1 });
+    expect(game.state.properties[1]!.houses).toBe(4);
+    expect(bankHouses(game.state)).toBe(28);
+    expect(bankHotels(game.state)).toBe(12);
+    move(game.state, 0, 1, false, 7);
+    game.state.properties
+      .filter((_, i) => BOARD[i]!.kind === 'street' && i !== 1)
+      .slice(0, 12)
+      .forEach((p) => {
+        p.houses = 5;
+      });
+    expect(game.error('a', 'build', { square: 1 })).toBe('Ngân hàng đã hết nhà hoặc khách sạn');
+  });
+
+  it.each([1, 5, 12])(
+    'waives rent on square %s while the owner is jailed, then resumes after release',
+    (square) => {
+      const game = at(square);
+      game.state.properties[square]!.owner = 1;
+      game.state.players[1]!.jailed = true;
+      game.state.players[0]!.cash = 1;
+      game.send('a', 'roll');
+      expect(game.state.debt).toBeNull();
+      expect(game.state.transfers.filter((t) => t.to === 1)).toEqual([]);
+      expect(rent(game.state, square, 7, 2)).toBe(0);
+      game.state.players[1]!.jailed = false;
+      expect(rent(game.state, square, 7)).toBeGreaterThan(0);
+    },
+  );
+
+  it('lets a bot build on a return visit before using its double roll', () => {
+    const game = testGame(plugin, ['a', 'b'], { bots: ['a'] });
+    game.state.properties[1]!.owner = 0;
+    game.state.after = 'roll';
+    move(game.state, 0, 1, false, 7);
+    expect(game.bot('a')).toMatchObject({ event: 'build', payload: { square: 1 } });
+    game.send('a', 'build', { square: 1 });
+    expect(game.bot('a')?.event).toBe('roll');
+  });
+
+  it('preserves the return visit when another player leaves', () => {
+    const game = testGame(plugin, ['a', 'b', 'c']);
+    game.state.properties[1]!.owner = 0;
+    move(game.state, 0, 1, false, 7);
+    game.leave('c');
+    expect(game.state.buildable).toBe(1);
+    game.send('a', 'build', { square: 1 });
+    expect(game.state.properties[1]!.houses).toBe(1);
+  });
+
+  it('manages an empty street independently of buildings on another street in the same color', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.state.properties[1] = { owner: 1, houses: 2, mortgaged: false };
+    game.state.properties[3]!.owner = 0;
+    game.send('a', 'mortgage', { square: 3 });
+    game.send('a', 'redeem', { square: 3 });
+    game.send('a', 'offer-trade', { to: 1, give: 3, take: -1, giveCash: 0, takeCash: 0 });
+    game.send('b', 'accept-trade');
+    expect(game.state.properties[3]!.owner).toBe(1);
+    expect(game.state.properties[1]!.houses).toBe(2);
+  });
+
+  it('keeps a return visit available while the bank has no houses', () => {
+    const game = at(1);
+    game.state.properties[1]!.owner = 0;
+    const occupied = game.state.properties
+      .filter((_, i) => BOARD[i]!.kind === 'street' && i !== 1)
+      .slice(0, 8);
+    occupied.forEach((p) => {
+      p.owner = 1;
+      p.houses = 4;
+    });
+    game.send('a', 'roll');
+    expect(game.error('a', 'build', { square: 1 })).toBe('Ngân hàng đã hết nhà hoặc khách sạn');
+    const available = game.state.properties.findIndex((p) => p.owner === 1 && p.houses === 4);
+    game.send('b', 'sell-house', { square: available });
+    game.send('a', 'build', { square: 1 });
+    expect(game.state.properties[1]!.houses).toBe(1);
   });
 
   it('exchanges deeds only after the other player accepts', () => {
