@@ -129,8 +129,8 @@ trong lòng bàn tự thu nhỏ theo cỡ bàn; thẻ thông tin bên phải b�
 Khu người chơi là phần mở rộng của dải ô ở nửa trên lòng bàn: bên trái là ảnh đại diện trong ổ
 lớn, tên, tiền và thanh thời gian chạy trong rãnh (số giây ở cuối rãnh) của người đang có lượt;
 bên phải là danh sách bốn ghế xếp dọc, mỗi ghế một viên bi màu quân có số ghế và tiền bên cạnh.
-Bi của người đang phải quyết định sáng và có quầng, các bi khác mờ; chủ phòng có vương miện trên
-bi. Lòng xanh còn lại ở dưới dành cho tiêu đề, thông báo, xúc xắc và hai chồng thẻ. Thông tin vị trí, thẻ ra tù và trạng thái trong tù không có biểu tượng riêng; quân
+Bi của người đang phải quyết định sáng và có quầng, các bi khác mờ. Khi tới lượt chủ phòng, ảnh
+bên trái đội vương miện. Lòng xanh còn lại ở dưới dành cho tiêu đề, thông báo, xúc xắc và hai chồng thẻ. Thông tin vị trí, thẻ ra tù và trạng thái trong tù không có biểu tượng riêng; quân
 cờ và thẻ ô cho biết địa điểm. Thẻ thông tin bên phải hẹp hơn 30%; viền bàn mỏng.
 Nút mua, đấu giá, trả giá và quản lý đất nằm trong thẻ thông tin ô. Hai xúc xắc là vùng chạm để gieo;
 **Hết lượt** nằm giữa bàn, thao tác lượt khác ở góc dưới phải. Bảng soạn trao đổi và **Bảng thuê**

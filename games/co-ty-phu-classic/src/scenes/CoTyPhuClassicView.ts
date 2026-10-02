@@ -190,6 +190,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   private notice!: Phaser.GameObjects.Text;
   private eventReadySent = -1;
   private eventCountdown!: Phaser.GameObjects.Graphics;
+  /** The host's crown, over the turn player's picture (above it). */
+  private hostCrown!: Phaser.GameObjects.Graphics;
   private countdownLabel!: Phaser.GameObjects.Text;
   private auctionAttention!: Phaser.GameObjects.Graphics;
   private auctionPulse = 0;
@@ -266,6 +268,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.autoActionSeen = ctx.state.lastAutoAction?.id ?? 0;
     this.auctionPulse = 0;
     this.eventCountdown = this.add.graphics().setDepth(6);
+    this.hostCrown = this.add.graphics().setDepth(9);
     this.ownerSymbols = new TileOwnerSymbols(this, this.boardImage.texture.key);
     this.specialSymbols = new SpecialSymbols(this, this.boardImage.texture.key);
     this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
@@ -612,22 +615,29 @@ export class CoTyPhuClassicView extends GameView<View> {
       // In an auction the leader's ball gets a quiet ring while another seat bids.
       if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i && !lit)
         graphics.lineStyle(2, 0x6b5a3a).strokeCircle(x, y, r * 1.12);
-      // The host wears a little gold crown on its ball.
-      if (ctx.players[i] && ctx.players[i]!.id === ctx.hostId) {
-        const c = { x: x - r * 0.75, y: y - r * 0.85 };
-        const k = r / 13;
-        const crown = [
-          [-9, 1],
-          [-9, -7],
-          [-4.5, -2],
-          [0, -9],
-          [4.5, -2],
-          [9, -7],
-          [9, 1],
-        ].map(([px, py]) => ({ x: c.x + px! * k, y: c.y + py! * k })) as Phaser.Math.Vector2[];
-        graphics.fillStyle(0xe8b230, 1).fillPoints(crown, true);
-        graphics.lineStyle(1, 0x7a4f12, 1).strokePoints(crown, true);
-      }
+    }
+    // The host's crown sits on the turn player's picture, when the turn is the host's.
+    this.hostCrown.clear();
+    const turnIsHost = ctx.players[ctx.state.turn]?.id === ctx.hostId;
+    if (turnIsHost && !this.tradeOpen && this.visualPhase !== 'ready') {
+      const { avatar } = PLAYER_PANEL;
+      const picture = this.onBoard(avatar.u, avatar.v);
+      const r = this.onBoard(avatar.u + avatar.r, avatar.v).x - picture.x;
+      const k = r / 16;
+      const crown = [
+        [-9, 1],
+        [-9, -7],
+        [-4.5, -2],
+        [0, -9],
+        [4.5, -2],
+        [9, -7],
+        [9, 1],
+      ].map(([px, py]) => ({
+        x: picture.x + px! * k,
+        y: picture.y - r * 1.02 + py! * k,
+      })) as Phaser.Math.Vector2[];
+      this.hostCrown.fillStyle(0xe8b230, 1).fillPoints(crown, true);
+      this.hostCrown.lineStyle(Math.max(1, k * 1.2), 0x7a4f12, 1).strokePoints(crown, true);
     }
     const rightX = this.geometry.sideX;
     const panelH = this.deedPanelHeight(selected);
