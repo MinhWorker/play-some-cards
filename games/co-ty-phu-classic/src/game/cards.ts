@@ -12,7 +12,7 @@ export const CHANCE: readonly Card[] = [
   { text: 'Tới Bến xe gần nhất.', kind: 'nearest', target: 'station' },
   { text: 'Tới Điện lực hoặc Cấp nước gần nhất.', kind: 'nearest', target: 'utility' },
   { text: 'Tới Bắc Ninh.', kind: 'move', target: 39 },
-  { text: 'Tới Tp. HCM.', kind: 'move', target: 18 },
+  { text: 'Tới Sài Gòn.', kind: 'move', target: 18 },
   { text: 'Ngân hàng trả lãi 50.', kind: 'cash', amount: 50 },
   { text: 'Nhận cổ tức 100.', kind: 'cash', amount: 100 },
   { text: 'Nộp phạt chạy quá tốc độ 15.', kind: 'cash', amount: -15 },

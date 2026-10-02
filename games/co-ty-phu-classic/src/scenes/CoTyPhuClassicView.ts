@@ -17,7 +17,8 @@ import {
 } from '../game/model.js';
 import { ownsGroup, rent, utilityTax } from '../game/rules.js';
 import { decisionSeat } from '../game/turnClock.js';
-import { BoardPrices } from './BoardPrices.js';
+import { Backdrop } from './Backdrop.js';
+import { BoardPrices, ownerInk } from './BoardPrices.js';
 import { BoardTileEffect } from './BoardTileEffect.js';
 import { BOARD_CELLS, BOARD_IMAGE_RATIO } from './boardGeometry.js';
 import { Dice3D } from './Dice3D.js';
@@ -177,6 +178,10 @@ export class CoTyPhuClassicView extends GameView<View> {
   private playerCash: Phaser.GameObjects.Text[] = [];
   private playerPlace: Phaser.GameObjects.Text[] = [];
   private tradeLabels: Phaser.GameObjects.Text[] = [];
+  /** Blurs and darkens the board behind the rent table and the trade offer. */
+  private backdrop!: Backdrop;
+  /** The trade offer's paper, above the backdrop. */
+  private tradePanel!: Phaser.GameObjects.Graphics;
   private heading!: Phaser.GameObjects.Text;
   private notice!: Phaser.GameObjects.Text;
   private eventReadySent = -1;
@@ -194,6 +199,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   private deedPrice!: Phaser.GameObjects.Text;
   private deedOwner!: Phaser.GameObjects.Text;
   private deedRent!: Phaser.GameObjects.Text;
+  /** The numbers of the card's price, rent and next-building rows, right-aligned. */
+  private deedValues: Phaser.GameObjects.Text[] = [];
   private main: TapButton[] = [];
   private tools: TapButton[] = [];
   private selected: number | null = null;
@@ -256,11 +263,20 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.auctionPulse = 0;
     this.eventCountdown = this.add.graphics().setDepth(6);
     this.ownerSymbols = new TileOwnerSymbols(this, this.boardImage.texture.key);
-    this.boardPrices = new BoardPrices(this, this.boardImage.texture.key);
+    this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
     this.tileTooltip = new TileTooltip(this);
     this.rentTable = new RentTable(this);
+    // A tap around a floating panel closes it.
+    this.backdrop = new Backdrop(this, 30, () => {
+      if (this.rentTable.visible) this.closeRentTable();
+      else if (this.tradeOpen) {
+        this.tradeOpen = false;
+        this.onState(this.ctx);
+      }
+    });
+    this.tradePanel = this.add.graphics().setDepth(31);
     this.squares = BOARD.map((_, i) =>
       this.add
         .zone(0, 0, 10, 10)
@@ -315,17 +331,23 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.heading = ink(30, '#57533f').setOrigin(0.5, 0).setScale(1, 0.86);
     this.notice = ink(22, '#625e49').setOrigin(0.5, 0).setScale(1, 0.86);
     this.card = ink(22, '#625e49').setOrigin(0.5, 0).setScale(1, 0.86);
-    this.deedLabel = ink(18, '#906233').setOrigin(0, 0).setText('THÔNG TIN Ô');
-    this.detail = ink(23).setOrigin(0, 0);
-    this.deedPrice = ink(24, '#875020').setOrigin(0, 0);
-    this.deedOwner = ink(20, '#67513e').setOrigin(0, 0);
-    this.deedRent = ink(19, '#47382d').setOrigin(0, 0);
-    this.nextBuilding = ink(19, '#79501e').setOrigin(0, 0);
+    // The tile card: its name (big) and owner centered, then label-left / number-right rows.
+    this.deedLabel = ink(18, '#906233').setOrigin(0.5, 0).setText('THÔNG TIN Ô');
+    this.detail = ink(23).setOrigin(0.5, 0);
+    this.deedOwner = ink(20, '#67513e').setOrigin(0.5, 0);
+    this.deedPrice = ink(20, '#875020').setOrigin(0, 0);
+    this.deedRent = ink(20, '#47382d').setOrigin(0, 0);
+    this.nextBuilding = ink(20, '#79501e').setOrigin(0, 0);
+    this.deedValues = ['#875020', '#47382d', '#79501e'].map((color) =>
+      ink(20, color).setOrigin(1, 0),
+    );
     this.readyTitle = ink(32).setDepth(26).setOrigin(0.5);
     this.readySubtitle = ink(19, '#79501e').setDepth(26).setOrigin(0.5);
     this.readyNames = PLAYER_COLORS.map(() => ink(22).setDepth(26).setOrigin(0, 0.5));
     this.readyCash = PLAYER_COLORS.map(() => ink(22, '#79501e').setDepth(26).setOrigin(1, 0.5));
-    this.tradeLabels = Array.from({ length: 4 }, () => ink(22).setOrigin(0.5).setVisible(false));
+    this.tradeLabels = Array.from({ length: 4 }, () =>
+      ink(22).setOrigin(0.5).setDepth(33).setVisible(false),
+    );
     this.rentTableButton = this.makeButton();
     this.rentCloseButton = this.makeButton();
     this.rentCloseButton.box.setDepth(34);
@@ -370,8 +392,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   protected onLayout(ctx: Ctx) {
     this.tileTooltip.hide();
     this.previewTile = null;
-    this.rentTable.hide();
-    this.hide([this.rentCloseButton]);
+    this.closeRentTable();
     if (this.runtime.busy('turn') || this.runtime.busy('money')) this.onResync(ctx);
     const { width, height, top, hud } = ctx.screen;
     const { left, boardTop, size, sideW, sideLeft: sideX } = boardPlace(ctx.screen);
@@ -407,17 +428,12 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.dice.setPosition(cx, boardTop + imageH * 0.57, tile);
     this.layoutReady(ctx);
     const rightX = sideX;
-    this.deedLabel.setPosition(rightX + 14, this.geometry.panelTop + 51).setFontSize(16 * hud);
-    this.detail
-      .setPosition(rightX + 14, this.geometry.panelTop + 80)
-      .setWordWrapWidth(Math.max(95, left - 52))
-      .setFontSize(sideW < 200 ? 23 : 28);
-    this.nextBuilding.setPosition(rightX + 14, this.geometry.panelTop + 198).setWordWrapWidth(0);
-    this.deedPrice.setPosition(rightX + 14, this.geometry.panelTop + 112);
-    this.deedOwner.setPosition(rightX + 14, this.geometry.panelTop + 142);
-    this.deedRent
-      .setPosition(rightX + 14, this.geometry.panelTop + 172)
-      .setWordWrapWidth(Math.max(95, sideW - 28));
+    const middle = rightX + sideW / 2;
+    this.deedLabel.setPosition(middle, this.geometry.panelTop + 51);
+    this.detail.setPosition(middle, this.geometry.panelTop + 80).setFontSize(sideW < 200 ? 23 : 28);
+    this.deedOwner.setPosition(middle, this.geometry.panelTop + 112);
+    for (const row of [this.deedPrice, this.deedRent, this.nextBuilding]) row.setX(rightX + 14);
+    for (const value of this.deedValues) value.setX(rightX + sideW - 14);
     this.people.forEach((label, i) => {
       // No names: the 2 × 2 cards show each seat's color and number, and its cash.
       const { x, y } = this.seatCell(i);
@@ -594,12 +610,12 @@ export class CoTyPhuClassicView extends GameView<View> {
           true,
         );
       }
-      if (i === decisionSeat(ctx.state) && ctx.state.phase !== 'auction')
+      if (i === decisionSeat(ctx.state))
         graphics
           .lineStyle(2, 0x79501e)
           .strokeRoundedRect(x - 16 * this.k, y - 3, w, 34 * this.k, 6);
-      // In an auction the leader's row is ringed instead.
-      if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i)
+      // In an auction the leader also gets a quiet ring, while another seat is bidding.
+      else if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i)
         graphics
           .lineStyle(2, 0x8f8a78)
           .strokeRoundedRect(x - 16 * this.k, y - 3, w, 34 * this.k, 6);
@@ -618,30 +634,36 @@ export class CoTyPhuClassicView extends GameView<View> {
     );
     if (isDeed(BOARD[selected]!)) {
       graphics.fillStyle(0xffe8bc, 0.82);
+      // The price row's band, under the owner.
       graphics.fillRoundedRect(
         rightX + 10,
-        this.geometry.panelTop + 108 + this.deedTitleExtra,
+        this.geometry.panelTop + 143 + this.deedTitleExtra,
         sideW - 20,
-        32,
+        30,
         8,
-      );
-      graphics.lineStyle(1, 0xd4b995);
-      graphics.lineBetween(
-        rightX + 14,
-        this.geometry.panelTop + 169 + this.deedTitleExtra,
-        rightX + sideW - 14,
-        this.geometry.panelTop + 169 + this.deedTitleExtra,
       );
     }
 
+    this.tradePanel.clear();
     if (this.tradeOpen && this.visualPhase !== 'ready') {
-      graphics
-        .fillStyle(0xf5edd5, 0.96)
-        .fillRoundedRect(left + size * 0.2, top + imageH * 0.18, size * 0.6, imageH * 0.57, 8);
-      graphics
-        .lineStyle(1, 0x625e49)
-        .strokeRoundedRect(left + size * 0.2, top + imageH * 0.18, size * 0.6, imageH * 0.57, 8);
+      const [x, y, w, h] = [left + size * 0.12, top + imageH * 0.14, size * 0.76, imageH * 0.62];
+      this.tradePanel.fillStyle(0xf5edd5).fillRoundedRect(x, y, w, h, 14);
+      this.tradePanel.lineStyle(3, 0xd2a14c).strokeRoundedRect(x, y, w, h, 14);
     }
+    this.syncBackdrop();
+  }
+
+  private closeRentTable() {
+    this.rentTable.hide();
+    this.hide([this.rentCloseButton]);
+    this.syncBackdrop();
+  }
+
+  /** The board is blurred and darkened while a panel floats over it. */
+  private syncBackdrop() {
+    const floating = this.rentTable.visible || (this.tradeOpen && this.visualPhase !== 'ready');
+    if (floating && !this.backdrop.visible) this.backdrop.show();
+    if (!floating && this.backdrop.visible) this.backdrop.hide();
   }
 
   /**
@@ -684,7 +706,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   private deedContentHeight(selected: number) {
-    const base = (isDeed(BOARD[selected]!) ? 264 : 180) + this.deedTitleExtra;
+    const base = (isDeed(BOARD[selected]!) ? 282 : 180) + this.deedTitleExtra;
     return selected === 10
       ? Math.max(base, this.deedOwner.y + this.deedOwner.height - this.geometry.panelTop - 34 + 16)
       : base;
@@ -1054,7 +1076,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
     if (this.tradeOpen && state.turn === me.seat) return this.tradeButtons(ctx);
     if (state.phase === 'auction' && state.auction) {
-      // The same choices as on the auctioned tile's card, for everyone still in the auction.
+      // The bidder's choices, the same as on the auctioned tile's card.
       return tileActions(state, me.seat, state.auction.square).map(({ label, event, payload }) => [
         label,
         () => this.send(event, payload),
@@ -1175,9 +1197,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     };
   }
 
+  /** A pawn's scale at height `y`: small, so tiles stay readable; bigger nearer the viewer. */
   private pawnScale(y: number) {
     const { top, imageH } = this.geometry;
-    return 0.78 + 0.35 * Math.max(0, Math.min(1, (y - top) / imageH));
+    return 0.5 * (0.78 + 0.35 * Math.max(0, Math.min(1, (y - top) / imageH)));
   }
 
   private setMovingTile(seat: number, square: number | null) {
@@ -1509,8 +1532,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.resetMoney(ctx);
     this.tileTooltip.hide();
     this.previewTile = null;
-    this.rentTable.hide();
-    this.hide([this.rentCloseButton]);
+    this.closeRentTable();
     this.runtime.cancelLane('turn');
     this.runtime.cancelLane('money');
     this.moving.fill(false);
@@ -1659,10 +1681,6 @@ export class CoTyPhuClassicView extends GameView<View> {
   private drawEventCountdown(ctx: Ctx) {
     this.eventCountdown.clear();
     this.countdownLabel.setVisible(false);
-    if (ctx.timer?.event === 'auction-end') {
-      this.drawAuctionCountdown(ctx);
-      return;
-    }
     const timedTurn = ctx.timer?.event === 'turn-timeout';
     const seat = timedTurn ? decisionSeat(ctx.state) : ctx.state.turn;
     if (
@@ -1678,6 +1696,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     const { left, top, size, imageH } = this.geometry;
     const remaining = Math.max(0, Math.min(1, (ctx.timer.endsAt - Date.now()) / ctx.timer.ms));
     const seconds = Math.max(0, Math.ceil((ctx.timer.endsAt - Date.now()) / 1000));
+    if (timedTurn && ctx.state.phase === 'auction') {
+      this.drawAuctionCountdown(remaining, seconds, PLAYER_COLORS[seat]!);
+      return;
+    }
     if (timedTurn && ctx.state.phase !== 'trade') {
       // Under the turn player's picture and cash, its seconds right after (never over the list).
       const width = Math.min(size * 0.09, 72);
@@ -1729,26 +1751,19 @@ export class CoTyPhuClassicView extends GameView<View> {
         .fillRoundedRect(x, y, width * remaining, 10 * this.k, 5 * this.k);
   }
 
-  /**
-   * An auction is an event for the whole table: one neutral bar under its line, the seconds
-   * beside it. Every bid starts it again.
-   */
-  private drawAuctionCountdown(ctx: Ctx) {
-    const timer = ctx.timer;
-    if (!timer || this.visualPhase !== 'decision' || this.activeMoney || this.rentTable.visible)
-      return;
+  /** The bidder's countdown, in their color, right under the auction's line. */
+  private drawAuctionCountdown(remaining: number, seconds: number, color: number) {
     const { left, size } = this.geometry;
-    const remaining = Math.max(0, Math.min(1, (timer.endsAt - Date.now()) / timer.ms));
     const width = Math.min(size * 0.36, 240);
     const x = left + (size - width) / 2 - 24;
     const y = this.notice.y + (this.notice.visible ? this.notice.displayHeight : 0) + 12;
-    this.bar(x, y, width, remaining, 0x8f8a78);
+    this.bar(x, y, width, remaining, color);
     this.countdownLabel
       .setVisible(true)
       .setOrigin(0, 0.5)
       .setFontSize(18 * this.k)
       .setPosition(x + width + 8, y + 5)
-      .setText(`${Math.max(0, Math.ceil((timer.endsAt - Date.now()) / 1000))} giây`);
+      .setText(`${seconds} giây`);
   }
 
   private drawAuctionAttention(delta: number) {
@@ -1953,8 +1968,8 @@ export class CoTyPhuClassicView extends GameView<View> {
                       ? this.activeRoll?.jailed
                         ? `Đưa ${rollingName} vào tù`
                         : `${rollingName} đang đi`
-                      : state.phase === 'auction'
-                        ? 'Đấu giá'
+                      : state.phase === 'auction' && state.auction
+                        ? `Đấu giá · lượt ${players[state.auction.bidder]?.name ?? ''}`
                         : `Lượt ${turn}`,
     );
     if (!presenting && state.specialEvent) {
@@ -2085,9 +2100,14 @@ export class CoTyPhuClassicView extends GameView<View> {
     const deed = this.shownProperties[selected] ?? state.properties[selected]!;
     const owner = deed.owner === null ? 'Chưa có chủ' : (players[deed.owner]?.name ?? '');
     const hasDeed = isDeed(cell);
+    // One size for everything but the tile's name.
+    const ink = sideW < 200 ? 18 : 20;
+    const ownerColor = hasDeed && deed.owner !== null ? PLAYER_COLORS[deed.owner] : undefined;
+    this.deedLabel.setFontSize(ink);
     this.detail
       .setFontSize(sideW < 200 ? 23 : 28)
-      .setAlign('left')
+      .setAlign('center')
+      .setColor(ownerColor === undefined ? '#3d2b20' : ownerInk(ownerColor))
       .setWordWrapWidth(sideW - 28, false)
       .setText(cell.name);
     // Measure the wrapped title before placing the rest of the deed card.
@@ -2095,93 +2115,91 @@ export class CoTyPhuClassicView extends GameView<View> {
     while (this.detail.height > 68 && titleSize > 18) this.detail.setFontSize(--titleSize);
     this.deedTitleExtra = Math.max(0, this.detail.height - 24);
     const titleExtra = this.deedTitleExtra;
-    this.deedPrice.setY(this.geometry.panelTop + 112 + titleExtra);
+    const rowY = (row: number) => this.geometry.panelTop + 146 + row * 29 + titleExtra;
+    // Label left, number right; `null` hides the row.
+    const deedRows: ([string, string] | null)[] = [null, null, null];
     this.deedOwner
-      .setY(this.geometry.panelTop + 142 + titleExtra)
-      .setAlign('left')
-      .setWordWrapWidth(0);
-    this.deedRent.setY(this.geometry.panelTop + 172 + titleExtra);
-    this.nextBuilding.setY(this.geometry.panelTop + 198 + titleExtra);
-    this.deedPrice.setVisible(hasDeed);
-    this.deedOwner.setVisible(hasDeed || selected === 10);
-    if (selected === 10) {
+      .setY(this.geometry.panelTop + 112 + titleExtra)
+      .setFontSize(ink)
+      .setAlign('center')
+      .setWordWrapWidth(0)
+      .setVisible(hasDeed || selected === 10);
+    if (selected === 10)
       this.deedOwner
-        .setY(this.geometry.panelTop + 112 + titleExtra)
-        .setFontSize(18)
         .setWordWrapWidth(sideW - 28)
         .setText('Dừng ở đây: ghé thăm.\nBị đưa vào đây: ở tù.');
-    }
-    this.deedRent.setVisible(hasDeed);
     if (hasDeed) {
-      this.deedPrice.setFontSize(sideW < 200 ? 21 : 25);
-      this.fitText(this.deedPrice, `Giá ${cell.price} ₫`, sideW - 28, 18);
+      const ownerJailed = deed.owner !== null && state.players[deed.owner]!.jailed;
       const ownerLine = [
         owner,
         deed.houses ? (deed.houses === 5 ? 'Khách sạn' : `${deed.houses} nhà`) : '',
-        deed.mortgaged ? 'Đang thế chấp' : '',
+        deed.mortgaged ? 'Thế chấp' : '',
+        ownerJailed ? 'Chủ ở tù' : '',
       ]
         .filter(Boolean)
         .join(' • ');
-      this.deedOwner.setFontSize(sideW < 200 ? 18 : 21);
-      this.fitText(this.deedOwner, ownerLine, sideW - 28, 16);
-      const ownerJailed = deed.owner !== null && state.players[deed.owner]!.jailed;
+      this.fitText(this.deedOwner, ownerLine, sideW - 28, 14);
       const currentRent =
         deed.mortgaged || ownerJailed
           ? '0 ₫'
           : cell.kind === 'utility'
             ? `${deed.owner !== null && this.shownProperties[12]?.owner === deed.owner && this.shownProperties[28]?.owner === deed.owner ? 10 : 4}× xúc xắc`
             : `${(deed.owner === null ? (cell.kind === 'station' ? 25 : (cell.rent?.[0] ?? 0)) : rent({ properties: this.shownProperties, players: state.players }, selected, 0)).toLocaleString('vi-VN')} ₫`;
-      this.deedRent.setFontSize(sideW < 200 ? 18 : 21);
-      this.fitText(
-        this.deedRent,
-        ownerJailed ? 'Thuê: 0 ₫ · Chủ ở tù' : `Thuê: ${currentRent}`,
-        sideW - 28,
-        16,
-      );
-      this.nextBuilding.setVisible(cell.kind === 'street').setFontSize(sideW < 200 ? 17 : 20);
-      this.fitText(
-        this.nextBuilding,
-        deed.houses === 5
-          ? 'Đã có khách sạn'
-          : `${deed.houses === 4 ? 'Khách sạn' : `Nhà ${deed.houses + 1}`}: ${cell.houseCost} ₫`,
-        sideW - 28,
-        15,
-      );
+      deedRows[0] = ['Giá', `${cell.price} ₫`];
+      deedRows[1] = ['Thuê', currentRent];
+      if (cell.kind === 'street')
+        deedRows[2] =
+          deed.houses === 5
+            ? ['Đã có khách sạn', '']
+            : [deed.houses === 4 ? 'Khách sạn' : `Nhà ${deed.houses + 1}`, `${cell.houseCost} ₫`];
     }
-    if (!hasDeed) this.nextBuilding.setVisible(false);
-    if (cell.kind === 'utility' || cell.kind === 'tax') {
-      this.deedOwner
-        .setVisible(true)
-        .setFontSize(20)
-        .setWordWrapWidth(sideW - 28)
-        .setY(this.geometry.panelTop + 112 + titleExtra)
-        .setText(
-          cell.kind === 'tax'
-            ? '10% tiền mặt\nTối thiểu 200 ₫'
-            : `Thuế ${utilityTax(state, selected)} ₫`,
-        );
+    if (cell.kind === 'tax') {
+      deedRows[0] = ['Thuế', '10% tiền mặt'];
+      deedRows[1] = ['Tối thiểu', '200 ₫'];
     }
+    if (cell.kind === 'utility') deedRows[0] = ['Thuế', `${utilityTax(state, selected)} ₫`];
+    [this.deedPrice, this.deedRent, this.nextBuilding].forEach((label, i) => {
+      const row = deedRows[i];
+      const value = this.deedValues[i]!;
+      label.setVisible(Boolean(row)).setY(rowY(i)).setFontSize(ink);
+      value.setVisible(Boolean(row)).setY(rowY(i)).setFontSize(ink);
+      if (!row) return;
+      value.setText(row[1]);
+      const room = sideW - 28 - (row[1] ? value.width + 12 : 0);
+      this.fitText(label, row[0], room, 13);
+    });
     this.hide([this.rentTableButton]);
     if (hasDeed && this.visualPhase !== 'ready' && !this.tradeOpen) {
       this.put(
         this.rentTableButton,
         'Bảng thuê',
         this.geometry.sideX + sideW / 2,
-        this.geometry.panelTop + 248 + titleExtra,
+        this.geometry.panelTop + 258 + titleExtra,
         sideW - 24,
         () => {
-          const w = Math.min(size * 0.65, 430);
+          // Floating over the board's middle, the board blurred behind it.
+          const w = Math.min(size * 0.8, 600);
           const x = left + (size - w) / 2;
-          const y = top + imageH * 0.2;
           const table = this.rentTable.show(
             cell,
             deed,
             deed.owner !== null &&
               ownsGroup({ properties: this.shownProperties }, deed.owner, selected),
             x,
-            y,
+            top + imageH * 0.45,
             w,
             deed.owner !== null && state.players[deed.owner]!.jailed,
+            // The row in force: houses built, or stations its owner has.
+            deed.owner === null || deed.mortgaged
+              ? null
+              : cell.kind === 'street'
+                ? deed.houses
+                : cell.kind === 'station'
+                  ? this.shownProperties.filter(
+                      (property, i) =>
+                        BOARD[i]!.kind === 'station' && property.owner === deed.owner,
+                    ).length - 1
+                  : null,
           );
           this.tileTooltip.hide();
           this.previewTile = null;
@@ -2190,15 +2208,13 @@ export class CoTyPhuClassicView extends GameView<View> {
             this.rentCloseButton,
             'Đóng',
             x + w / 2,
-            y + table.height - 26,
-            120,
-            () => {
-              this.rentTable.hide();
-              this.hide([this.rentCloseButton]);
-            },
-            40,
+            table.y + table.height - 32,
+            150,
+            () => this.closeRentTable(),
+            48,
             'secondary',
           );
+          this.syncBackdrop();
         },
         40,
         'secondary',
@@ -2275,11 +2291,18 @@ export class CoTyPhuClassicView extends GameView<View> {
           ]),
       );
     }
+    // The offer's buttons float with its paper, above the blurred board.
+    const lift = this.tradeOpen ? 30 : 0;
+    for (const button of this.main) {
+      button.box.setDepth(10 + lift);
+      button.text.setDepth(11 + lift);
+      button.hit.setDepth(12 + lift);
+    }
     if (this.tradeOpen) {
-      const innerW = size * 0.54;
-      const columnW = (innerW - 16) / 2;
+      const innerW = size * 0.68;
+      const columnW = (innerW - 24) / 2;
       const cx = left + size / 2;
-      const columnX = [cx - (columnW + 16) / 2, cx + (columnW + 16) / 2];
+      const columnX = [cx - (columnW + 24) / 2, cx + (columnW + 24) / 2];
       const labels = [
         'Bạn đưa',
         'Bạn nhận',
@@ -2289,8 +2312,8 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.tradeLabels.forEach((label, i) => {
         label
           .setVisible(true)
-          .setPosition(columnX[i % 2]!, top + imageH * (i < 2 ? 0.33 : 0.475))
-          .setFontSize(i < 2 ? 24 : 20);
+          .setPosition(columnX[i % 2]!, top + imageH * (i < 2 ? 0.295 : 0.45))
+          .setFontSize(i < 2 ? 28 : 24);
         this.fitText(label, labels[i]!, columnW, 16);
       });
       actions.forEach(([label, action], i) => {
@@ -2298,11 +2321,11 @@ export class CoTyPhuClassicView extends GameView<View> {
         const property = i === 1 || i === 2;
         const money = i >= 3 && i <= 6;
         let x = cx;
-        let y = top + imageH * 0.24;
+        let y = top + imageH * 0.215;
         let w = innerW;
         if (property) {
           x = columnX[i - 1]!;
-          y = top + imageH * 0.395;
+          y = top + imageH * 0.37;
           w = columnW;
         }
         if (money) {
@@ -2310,15 +2333,15 @@ export class CoTyPhuClassicView extends GameView<View> {
           const sign = i % 2 === 1 ? -1 : 1;
           w = (columnW - 8) / 2;
           x = columnX[column]! + (sign * (w + 8)) / 2;
-          y = top + imageH * 0.545;
+          y = top + imageH * 0.525;
         }
         if (i >= 7) {
           x = columnX[i - 7]!;
           y = top + imageH * 0.66;
           w = columnW;
         }
-        this.put(this.main[i]!, label, x, y, w, action, 54, i === 7 ? 'primary' : 'secondary');
-        if (recipient) this.main[i]!.text.setFontSize(19);
+        this.put(this.main[i]!, label, x, y, w, action, 60, i === 7 ? 'primary' : 'secondary');
+        if (recipient) this.main[i]!.text.setFontSize(22);
       });
       return;
     }

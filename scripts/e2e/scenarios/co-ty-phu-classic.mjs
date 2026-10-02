@@ -72,9 +72,16 @@ export default async function run(t) {
     );
     const state = await page.evaluate(() => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
-      return { turn: s.turn, phase: s.phase, cash: s.players[s.turn].cash, pending: s.pending };
+      return {
+        turn: s.turn,
+        phase: s.phase,
+        cash: s.players[s.turn].cash,
+        pending: s.pending,
+        // An auction is bid in turns: whoever's turn it is to bid decides.
+        seat: s.phase === 'auction' ? s.auction.bidder : s.turn,
+      };
     });
-    await page.getByRole('button', { name: `Người ${state.turn + 1}`, exact: true }).click();
+    await page.getByRole('button', { name: `Người ${state.seat + 1}`, exact: true }).click();
     if (state.phase === 'roll') {
       await clickCanvas(page, 'co-ty-phu-classic', (s) => s.diceHit);
       if (i === 0) {
@@ -162,16 +169,10 @@ export default async function run(t) {
     } else if (state.phase === 'end') {
       await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
     } else if (state.phase === 'auction') {
-      // Open to everyone: this seat leaves, and the auction's own clock closes it.
       await clickCanvas(
         page,
         'co-ty-phu-classic',
         (s) => s.main.find((b) => b.hit.visible && b.text.text.includes('Bỏ')).hit,
-      );
-      await page.waitForFunction(
-        () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase !== 'auction',
-        null,
-        { timeout: 15000 },
       );
     } else if (state.phase === 'debt') {
       const enough = await page.evaluate(() => {
@@ -451,7 +452,7 @@ export default async function run(t) {
       }, seq);
       await idle();
     }
-    // A station opens an auction for the whole table: the seat that rolled drops out (the
+    // A station opens an auction, bid in turns from the seat that rolled: it drops out (the
     // other is then the last one in, and buys it at its listed price).
     const auction = () =>
       rulesPage.evaluate(
