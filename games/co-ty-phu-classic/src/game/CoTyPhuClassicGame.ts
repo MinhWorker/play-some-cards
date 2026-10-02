@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
 import {
+  AUCTION_STEP,
   BOARD,
   isDeed,
   type Options,
@@ -97,6 +98,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       })),
       properties: BOARD.map(() => ({ owner: null, houses: 0, mortgaged: false })),
       turn: 0,
+      round: 0,
+      shortages: [],
       phase: 'roll',
       after: 'end',
       doubles: 0,
@@ -267,7 +270,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         break;
       case 'auction':
         event = 'pass';
-        if (s.auction!.leader === seat) {
+        if (s.auction!.leader === seat && BOARD[s.auction!.square]!.kind !== 'station') {
           s = copy(s);
           this.auctionStep(s);
         } else s = this.onPass(action(s, {}));
@@ -316,6 +319,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     requireTurn(ctx, 'buy');
     const s = copy(ctx.state);
     const square = s.pending!;
+    if (BOARD[square]!.kind === 'station') ctx.reject('Bến xe phải được đấu giá');
     const price = BOARD[square]!.price!;
     if (s.players[s.turn]!.cash < price) ctx.reject('Không đủ tiền mua đất');
     transferMoney(s, s.turn, null, price, `Mua ${BOARD[square]!.name}`);
@@ -330,7 +334,14 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     requireTurn(ctx, 'buy');
     const s = copy(ctx.state);
     s.phase = 'auction';
-    s.auction = { square: s.pending!, bidder: s.turn, highest: 0, leader: null, passed: [] };
+    s.auction = {
+      square: s.pending!,
+      bidder: s.turn,
+      highest: 0,
+      leader: null,
+      passed: [],
+      bids: s.players.map(() => 0),
+    };
     s.notice = `Đấu giá ${BOARD[s.pending!]!.name}.`;
     return this.complete(s, ctx);
   }
@@ -340,8 +351,20 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const remaining = s.players.flatMap((p, i) =>
       p.bankrupt || auction.passed.includes(i) ? [] : [i],
     );
-    if (remaining.length === 0 || (remaining.length === 1 && auction.leader === remaining[0])) {
-      if (auction.leader !== null) {
+    if (
+      remaining.length === 0 ||
+      (remaining.length === 1 &&
+        (BOARD[auction.square]!.kind === 'station' || auction.leader === remaining[0]))
+    ) {
+      const station = BOARD[auction.square]!.kind === 'station';
+      if (station) {
+        auction.bids.forEach((amount, seat) => {
+          transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
+        });
+        auction.leader = remaining[0] ?? null;
+        auction.highest = BOARD[auction.square]!.price!;
+      }
+      if (auction.leader !== null && s.players[auction.leader]!.cash >= auction.highest) {
         const winner = auction.leader;
         transferMoney(s, winner, null, auction.highest, `Đấu giá ${BOARD[auction.square]!.name}`);
         s.properties[auction.square]!.owner = winner;
@@ -363,8 +386,26 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       ctx.reject('Chưa tới lượt đấu giá của bạn');
     const s = copy(ctx.state);
     const amount = ctx.payload.amount;
-    if (amount <= s.auction!.highest || amount > s.players[ctx.player.seat]!.cash)
+    if (
+      (BOARD[s.auction!.square]!.kind === 'station'
+        ? amount !== s.auction!.highest + AUCTION_STEP
+        : amount <= s.auction!.highest) ||
+      amount > s.players[ctx.player.seat]!.cash + s.auction!.bids[ctx.player.seat]! ||
+      (BOARD[s.auction!.square]!.kind === 'station' &&
+        s.players[ctx.player.seat]!.cash + s.auction!.bids[ctx.player.seat]! <
+          BOARD[s.auction!.square]!.price!)
+    )
       ctx.reject('Giá đấu phải cao hơn và trong số tiền bạn có');
+    if (BOARD[s.auction!.square]!.kind === 'station') {
+      transferMoney(
+        s,
+        ctx.player.seat,
+        null,
+        amount - s.auction!.bids[ctx.player.seat]!,
+        'Đặt tiền đấu giá',
+      );
+      s.auction!.bids[ctx.player.seat] = amount;
+    }
     s.auction!.highest = amount;
     s.auction!.leader = ctx.player.seat;
     s.notice = `${ctx.player.name} trả ${amount}.`;
@@ -376,7 +417,11 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (ctx.state.phase !== 'auction' || ctx.state.auction?.bidder !== ctx.player.seat)
       ctx.reject('Chưa tới lượt đấu giá của bạn');
     const s = copy(ctx.state);
-    if (s.auction!.leader === ctx.player.seat) ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
+    if (s.auction!.leader === ctx.player.seat && BOARD[s.auction!.square]!.kind !== 'station')
+      ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
+    transferMoney(s, null, ctx.player.seat, s.auction!.bids[ctx.player.seat]!, 'Rút tiền đấu giá');
+    s.auction!.bids[ctx.player.seat] = 0;
+    if (s.auction!.leader === ctx.player.seat) s.auction!.leader = null;
     s.auction!.passed.push(ctx.player.seat);
     s.notice = `${ctx.player.name} bỏ đấu giá.`;
     this.auctionStep(s);
@@ -386,7 +431,12 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   onEndTurn(ctx: Action): State {
     requireTurn(ctx, 'end');
     const s = copy(ctx.state);
+    const previous = s.turn;
     s.turn = next(s, s.turn);
+    if (s.turn <= previous) {
+      s.round++;
+      s.shortages = s.shortages.filter((event) => event.round >= s.round);
+    }
     s.phase = 'roll';
     s.after = 'end';
     s.doubles = 0;
@@ -595,10 +645,13 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         s.auction = {
           ...ctx.state.auction,
           passed: [...ctx.state.auction.passed, ctx.player.seat],
+          bids: ctx.state.auction.bids.map((amount, seat) =>
+            seat === ctx.player.seat ? 0 : amount,
+          ),
         };
         if (s.auction.leader === ctx.player.seat) {
           s.auction.leader = null;
-          s.auction.highest = 0;
+          if (BOARD[s.auction.square]!.kind !== 'station') s.auction.highest = 0;
         }
         s.phase = 'auction';
         s.pending = ctx.state.pending;

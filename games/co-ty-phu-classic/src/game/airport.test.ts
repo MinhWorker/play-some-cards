@@ -43,12 +43,14 @@ describe('airport', () => {
     expect(game.state).toMatchObject({ phase: 'roll', buildable: 3, after: 'roll' });
   });
 
-  it('charges destination rent using the original dice and can enter debt', () => {
+  it('charges fixed utility tax after confirming the destination and can enter debt', () => {
     const game = atAirport();
     game.state.properties[12]!.owner = 1;
     game.state.players[0]!.cash = 1;
     resolveSpecialEvent(game.state, () => 12.5 / 39);
-    expect(game.state).toMatchObject({ phase: 'debt', debt: { amount: 28, creditor: 1 } });
+    expect(game.state.specialEvent).toMatchObject({ kind: 'tax', amount: 100 });
+    resolveSpecialEvent(game.state, () => 0);
+    expect(game.state).toMatchObject({ phase: 'debt', debt: { amount: 100, creditor: null } });
     expect(game.state.players[0]?.cash).toBe(1);
   });
 
@@ -67,7 +69,7 @@ describe('airport', () => {
 
   it.each(['manual', 'timer'])('resolves a flight exactly once through %s confirmation', (mode) => {
     const rng = seededRng(1);
-    for (let i = 0; i < 22; i++) rng();
+    for (let i = 0; i < 24; i++) rng();
     const sum = 2 + Math.floor(rng() * 6) + Math.floor(rng() * 6);
     const choice = Math.floor(rng() * 39);
     const target = choice >= 20 ? choice + 1 : choice;

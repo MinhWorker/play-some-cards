@@ -227,7 +227,9 @@ export function Sandbox({ gameId, players: count }: Props) {
                   : 'Hoà!'
                 : 'Chơi thử'}
             </div>
-            <div className="room-code">{game?.name ?? gameId}</div>
+            {gameId !== 'co-ty-phu-classic' && (
+              <div className="room-code">{game?.name ?? gameId}</div>
+            )}
           </div>
           <div className="sandbox-seats">
             {[

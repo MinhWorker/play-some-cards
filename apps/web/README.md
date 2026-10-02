@@ -69,3 +69,6 @@ Xem `AGENTS.md` (gốc repo và `apps/web/AGENTS.md`) cho các quy ước và `d
 `PhaserStage` dùng `SceneDirector` của SDK để chuyển bàn chơi, bỏ kết quả tải cũ và tạo runtime mới khi mở phòng khác. Nếu tải client lỗi, màn hình có nút **Thử lại**. Mục **Runtime** trong DEV hiển thị epoch, lane, tài nguyên và âm thanh đang hoạt động, không chứa bài hoặc snapshot.
 
 Âm thanh ngắn có handle riêng để dừng khi rời scene/đổi ván; buffer vẫn dùng chung. Âm thanh chưa unlock, đang tắt, tab ẩn hoặc bắt đầu muộn hơn 250 ms được bỏ qua. Nhạc nền vẫn theo Stage và thiết lập âm lượng hiện tại.
+
+Khi bàn chơi tự hiển thị danh sách người chơi, HUD trong ván ẩn tên game để dành thêm
+không gian cho bàn. Sandbox Cờ tỷ phú Classic cũng dùng nhãn Chơi thử gọn.

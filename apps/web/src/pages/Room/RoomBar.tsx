@@ -62,7 +62,9 @@ export function RoomBar({
         <Button variant="secondary" size="small" aria-label="Về trang chủ" onClick={onHome}>
           🏠
         </Button>
-        {gameName && <span className="room-game">{gameName}</span>}
+        {gameName && !(hidePlayers && snapshot.status === 'playing') && (
+          <span className="room-game">{gameName}</span>
+        )}
       </div>
       <ul className="players">
         {!hidePlayers &&

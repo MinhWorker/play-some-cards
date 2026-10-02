@@ -8,9 +8,10 @@ export const optionsSchema = z.object({
 export type Options = z.infer<typeof optionsSchema>;
 
 export type Group = 'nau' | 'xanh-nhat' | 'hong' | 'cam' | 'do' | 'vang' | 'xanh-la' | 'xanh-dam';
-export type DeedKind = 'street' | 'station' | 'utility';
+export type DeedKind = 'street' | 'station';
 export type SquareKind =
   | DeedKind
+  | 'utility'
   | 'start'
   | 'chance'
   | 'chest'
@@ -53,6 +54,7 @@ export interface Auction {
   highest: number;
   leader: number | null;
   passed: number[];
+  bids: number[];
 }
 
 export interface Debt {
@@ -102,6 +104,8 @@ export interface State {
   players: TycoonPlayer[];
   properties: Property[];
   turn: number;
+  round: number;
+  shortages: { square: number; round: number }[];
   phase: Phase;
   /** The phase a resolved landing/auction should lead to. */
   after: 'roll' | 'end';
@@ -132,50 +136,51 @@ const street = (
   houseCost: number,
 ): Square => ({ name, kind: 'street', group, price, rent, houseCost });
 const station = (name: string): Square => ({ name, kind: 'station', price: 200 });
-const utility = (name: string): Square => ({ name, kind: 'utility', price: 150 });
+const utility = (name: string): Square => ({ name, kind: 'utility', tax: 100 });
+export const AUCTION_STEP = 10;
 
-/** Original Vietnamese place names, with the classic 40-square price and rent ladder. */
+/** Fixed interleaved price layout; each street retains its group and building ladder. */
 export const BOARD: readonly Square[] = [
   { name: 'Xuất phát', kind: 'start' },
-  street('Phố Cổ', 'nau', 60, [2, 10, 30, 90, 160, 250], 50),
+  street('Tp. Hà Nội', 'nau', 60, [2, 10, 30, 90, 160, 250], 50),
   { name: 'Khí vận', kind: 'chest' },
-  street('Hàng Đào', 'nau', 60, [4, 20, 60, 180, 320, 450], 50),
+  street('Vĩnh Long', 'xanh-la', 320, [28, 150, 450, 1000, 1200, 1400], 200),
   { name: 'Thuế thu nhập', kind: 'tax', tax: 200 },
-  station('Ga Bắc'),
-  street('Bến Thành', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
+  station('Bến Bắc'),
+  street('Tp. Hải Phòng', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Đồng Khởi', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
-  street('Nguyễn Huệ', 'xanh-nhat', 120, [8, 40, 100, 300, 450, 600], 50),
+  street('Đồng Nai', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
+  street('Hưng Yên', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
   { name: 'Nhà tù / Thăm', kind: 'jail' },
-  street('Cầu Rồng', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
+  street('Tp. Đà Nẵng', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
   utility('Điện lực'),
-  street('Biển Mỹ Khê', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
-  street('Sông Hàn', 'hong', 160, [12, 60, 180, 500, 700, 900], 100),
-  station('Ga Trung'),
-  street('Đại Nội', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
+  street('Đồng Tháp', 'xanh-dam', 350, [35, 175, 500, 1100, 1300, 1500], 200),
+  street('Khánh Hòa', 'hong', 160, [12, 60, 180, 500, 700, 900], 100),
+  station('Bến Trung'),
+  street('Tây Ninh', 'vang', 280, [24, 120, 360, 850, 1025, 1200], 150),
   { name: 'Khí vận', kind: 'chest' },
-  street('Tràng Tiền', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
-  street('Sông Hương', 'cam', 200, [16, 80, 220, 600, 800, 1000], 100),
+  street('Tp. HCM', 'nau', 60, [4, 20, 60, 180, 320, 450], 50),
+  street('Tp. Cần Thơ', 'xanh-nhat', 120, [8, 40, 100, 300, 450, 600], 50),
   { name: 'Sân bay', kind: 'airport' },
-  street('Hồ Xuân Hương', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
+  street('Gia Lai', 'do', 240, [20, 100, 300, 750, 925, 1100], 150),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Chợ Đà Lạt', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
-  street('Đồi Thông', 'do', 240, [20, 100, 300, 750, 925, 1100], 150),
-  station('Ga Nam'),
-  street('Chợ Nổi', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
-  street('Bến Ninh Kiều', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
+  street('Cà Mau', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
+  street('Lâm Đồng', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
+  station('Bến Nam'),
+  street('Phú Thọ', 'xanh-dam', 400, [50, 200, 600, 1400, 1700, 2000], 200),
+  street('Tp. Huế', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
   utility('Cấp nước'),
-  street('Cù Lao', 'vang', 280, [24, 120, 360, 850, 1025, 1200], 150),
+  street('Đắk Lắk', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
   { name: 'Vào tù', kind: 'go-jail' },
-  street('Vịnh Hạ Long', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
-  street('Đảo Cát Bà', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
+  street('An Giang', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
+  street('Quảng Ninh', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
   { name: 'Khí vận', kind: 'chest' },
-  street('Bãi Cháy', 'xanh-la', 320, [28, 150, 450, 1000, 1200, 1400], 200),
-  station('Ga Đông'),
+  street('Ninh Bình', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
+  station('Bến Đông'),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Hồ Gươm', 'xanh-dam', 350, [35, 175, 500, 1100, 1300, 1500], 200),
-  { name: 'Thuế xa xỉ', kind: 'tax', tax: 100 },
-  street('Phố Đi Bộ', 'xanh-dam', 400, [50, 200, 600, 1400, 1700, 2000], 200),
+  street('Quảng Trị', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
+  { name: 'Thuế xa xỉ', kind: 'tax', tax: 200 },
+  street('Bắc Ninh', 'cam', 200, [16, 80, 220, 600, 800, 1000], 100),
 ];
 
 export const GROUP_COLORS: Record<Group, number> = {
@@ -190,7 +195,7 @@ export const GROUP_COLORS: Record<Group, number> = {
 };
 
 export const isDeed = (square: Square): square is Square & { price: number } =>
-  square.kind === 'street' || square.kind === 'station' || square.kind === 'utility';
+  square.kind === 'street' || square.kind === 'station';
 
 export const groupSquares = (group: Group): number[] =>
   BOARD.flatMap((square, i) => (square.group === group ? [i] : []));

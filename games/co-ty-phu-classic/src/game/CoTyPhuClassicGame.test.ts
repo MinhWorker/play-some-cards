@@ -7,7 +7,7 @@ import { bankHotels, bankHouses, move, rent } from './rules.js';
 /** The first dice after both decks are shuffled with seed 1. */
 const firstRoll = () => {
   const rng = seededRng(1);
-  for (let i = 0; i < 22; i++) rng();
+  for (let i = 0; i < 24; i++) rng();
   return [1 + Math.floor(rng() * 6), 1 + Math.floor(rng() * 6)] as const;
 };
 
@@ -49,7 +49,7 @@ describe('Cờ tỷ phú Classic', () => {
       game.error('a', 'offer-trade', { to: 1, give: -1, take: -1, giveCash: 50, takeCash: 0 }),
     ).toBe('Hãy xác nhận sự kiện trước');
     game.send('a', 'confirm-event');
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.state.specialEvent).toBeNull();
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     expect(game.error('a', 'confirm-event')).toBe('Thao tác chưa hợp lệ');
@@ -68,7 +68,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.timer).toEqual(timer);
     expect(game.state.players[0]!.cash).toBe(1500);
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.error('a', 'event-ready', { id })).toBe('Sự kiện đã thay đổi');
   });
 
@@ -80,8 +80,14 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.players[0]!.cash).toBe(1500);
     game.send('a', 'confirm-event');
     expect(game.state.players[0]!.cash).toBe(1450);
-    // Seed 8 rolls 5 + 5 after shuffling both decks.
-    const jailed = testGame(plugin, ['a', 'b'], { seed: 8 });
+    const doubleSeed = Array.from({ length: 100 }, (_, i) => i + 1).find((seed) => {
+      const rng = seededRng(seed);
+      for (let i = 0; i < 24; i++) rng();
+      const first = Math.floor(rng() * 6);
+      const second = Math.floor(rng() * 6);
+      return first === second;
+    });
+    const jailed = testGame(plugin, ['a', 'b'], { seed: doubleSeed });
     jailed.state.doubles = 2;
     jailed.send('a', 'roll');
     expect(jailed.state.phase).toBe('event');
@@ -100,7 +106,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'confirm-event');
     expect(game.state.phase).toBe('debt');
     expect(game.state.players[0]!.cash).toBe(1);
-    expect(game.state.debt?.amount).toBe(100);
+    expect(game.state.debt?.amount).toBe(200);
   });
 
   it.each([
@@ -154,7 +160,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.fireTimer();
     expect(game.state.phase).toBe('event');
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.state.specialEvent).toBeNull();
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     const solo = testGame(plugin, ['a'], { seed: 1 });
@@ -176,7 +182,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.fireTimer();
     expect(game.state.phase).toBe('event');
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     const leaving = at(22);
     leaving.state.chance = [10];
     leaving.send('a', 'roll');
@@ -194,9 +200,9 @@ describe('Cờ tỷ phú Classic', () => {
     const cash = game.state.players[0]!.cash;
     game.send('a', 'buy');
     expect(game.state.properties[3]?.owner).toBe(0);
-    expect(game.state.players[0]!.cash).toBe(cash - 60);
+    expect(game.state.players[0]!.cash).toBe(cash - BOARD[3]!.price!);
     expect(game.view(null)).toMatchObject({
-      transfers: [{ from: 0, to: null, amount: 60, reason: 'Mua Hàng Đào' }],
+      transfers: [{ from: 0, to: null, amount: BOARD[3]!.price!, reason: `Mua ${BOARD[3]!.name}` }],
     });
     expect(game.error('b', 'end-turn')).toBe('Chưa tới lượt bạn');
   });
@@ -208,7 +214,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.view(null)).toMatchObject({
       transfers: [
         { from: null, to: 0, amount: 200, reason: 'Qua Xuất phát' },
-        { from: 0, to: 1, amount: 2, reason: 'Tiền thuê Phố Cổ' },
+        { from: 0, to: 1, amount: 2, reason: 'Tiền thuê Tp. Hà Nội' },
       ],
     });
     expect(game.state.players.map((p) => p.cash)).toEqual([1698, 1502]);
@@ -254,7 +260,7 @@ describe('Cờ tỷ phú Classic', () => {
     game.send('a', 'mortgage', { square: 3 });
     game.send('a', 'pay-debt');
     expect(game.state.debt).toBeNull();
-    expect(game.state.players[1]!.cash).toBe(1535);
+    expect(game.state.players[1]!.cash).toBe(1500 + BOARD[37]!.rent![0]!);
     expect(game.state.properties[1]?.mortgaged).toBe(true);
   });
 
@@ -330,7 +336,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.error('a', 'build', { square: 1 })).toBe('Ngân hàng đã hết nhà hoặc khách sạn');
   });
 
-  it.each([1, 5, 12])(
+  it.each([1, 5])(
     'waives rent on square %s while the owner is jailed, then resumes after release',
     (square) => {
       const game = at(square);
@@ -478,7 +484,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.players[0]!.cash).toBe(1500);
     expect(game.bot('a')?.event).toBe('confirm-event');
     game.send('a', 'confirm-event');
-    expect(game.state.players[0]!.cash).toBe(1400);
+    expect(game.state.players[0]!.cash).toBe(1300);
     expect(game.state.specialEvent).toBeNull();
     expect(game.timer).toBeNull();
   });

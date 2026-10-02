@@ -45,10 +45,10 @@ export default async function run(t) {
   );
   const rollControl = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    const button = s.main[0];
+    const button = { hit: s.diceHit };
     return {
       center: Math.abs(button.hit.x - (s.geometry.left + s.geometry.size / 2)) < 1,
-      asset: button.box.texture.key.endsWith('roll-button'),
+      asset: s.dice.visible && s.rollHint.visible,
       height: button.hit.height,
       prices:
         s.boardPrices.image.texture.getSourceImage().width ===
@@ -62,7 +62,7 @@ export default async function run(t) {
   const detail = await page.evaluate(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').detail.text,
   );
-  if (!detail.includes('Hàng Đào')) throw new Error('Selecting a property did not show its deed');
+  if (!detail.includes('Vĩnh Long')) throw new Error('Selecting a property did not show its deed');
   await page.screenshot({ path: t.shot('11-deed.png') });
 
   let purchases = 0;
@@ -76,7 +76,7 @@ export default async function run(t) {
     });
     await page.getByRole('button', { name: `Người ${state.turn + 1}`, exact: true }).click();
     if (state.phase === 'roll') {
-      await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
+      await clickCanvas(page, 'co-ty-phu-classic', (s) => s.diceHit);
       if (i === 0) {
         await page.waitForFunction(() => {
           const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -162,7 +162,11 @@ export default async function run(t) {
     } else if (state.phase === 'end') {
       await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
     } else if (state.phase === 'auction') {
-      await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[3].hit);
+      await clickCanvas(
+        page,
+        'co-ty-phu-classic',
+        (s) => s.main.find((b) => b.hit.visible && b.text.text.includes('Bỏ')).hit,
+      );
     } else if (state.phase === 'debt') {
       const enough = await page.evaluate(() => {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
@@ -401,7 +405,7 @@ export default async function run(t) {
         let i = 0;
         try {
           Math.random = () => (dice[i++] - 0.5) / 6;
-          s.main[0].action();
+          s.diceHit.emit('pointerup');
         } finally {
           Math.random = original;
         }
@@ -432,7 +436,7 @@ export default async function run(t) {
         return {
           label: button.text.text,
           centered: Math.abs(button.hit.x - (s.geometry.left + s.geometry.size / 2)) < 1,
-          y: Math.abs(button.hit.y - (s.geometry.top + s.geometry.imageH * 0.5)) < 1,
+          y: Math.abs(button.hit.y - (s.geometry.top + s.geometry.imageH * 0.69)) < 1,
           asset: button.box.texture.key,
         };
       });
@@ -527,7 +531,7 @@ export default async function run(t) {
       const scene = window.__phaser?.scene.getScene('co-ty-phu-classic');
       return (
         scene?.visualPhase === 'decision' &&
-        (scene.ctx.state.turn === 1 || scene.main[0].hit.visible)
+        (scene.ctx.state.turn === 1 || scene.main[0].hit.visible || scene.diceHit.visible)
       );
     });
     const state = await host.evaluate(
@@ -536,7 +540,9 @@ export default async function run(t) {
     if (state.turn === 1) break;
     if (!['roll', 'buy', 'end', 'event'].includes(state.phase))
       throw new Error(`Unexpected phase: ${state.phase}`);
-    await clickCanvas(host, 'co-ty-phu-classic', (s) => s.main[0].hit);
+    await clickCanvas(host, 'co-ty-phu-classic', (s) =>
+      s.ctx.state.phase === 'roll' ? s.diceHit : s.main[0].hit,
+    );
     await host.waitForTimeout(160);
   }
   await host.waitForFunction(

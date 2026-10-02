@@ -24,6 +24,13 @@ export function botMove(state: State, seat: number): GameEvent | null {
     if (!auction || auction.bidder !== seat) return null;
     const max = Math.min(me.cash - 100, Math.floor((BOARD[auction.square]?.price ?? 0) * 0.9));
     const amount = auction.highest + 10;
+    if (BOARD[auction.square]!.kind === 'station') {
+      const available = me.cash + auction.bids[seat]!;
+      const limit = Math.min(available - 100, Math.floor(BOARD[auction.square]!.price! * 0.9));
+      return available >= BOARD[auction.square]!.price! && limit >= amount
+        ? event('bid', { amount })
+        : event('pass');
+    }
     return max >= amount ? event('bid', { amount }) : event('pass');
   }
 

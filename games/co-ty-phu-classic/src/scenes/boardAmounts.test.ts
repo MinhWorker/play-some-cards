@@ -35,25 +35,25 @@ describe('board rent prices', () => {
 
   it('shows shared ownership rent, utility multipliers and tax amounts', () => {
     const game = testGame(plugin, ['a', 'b']);
-    for (const square of [1, 3, 5, 15, 12]) game.state.properties[square]!.owner = 0;
+    for (const square of [1, 18, 5, 15]) game.state.properties[square]!.owner = 0;
     expect(boardAmounts(game.state)[1]).toBe('4');
     expect(boardAmounts(game.state)[5]).toBe('50');
-    expect(boardAmounts(game.state)[12]).toBe('4×');
+    expect(boardAmounts(game.state)[12]).toBe('100');
     game.state.properties[28]!.owner = 0;
-    expect(boardAmounts(game.state)[12]).toBe('10×');
-    expect(boardAmounts(game.state)[4]).toBe('200');
-    expect(boardAmounts(game.state)[38]).toBe('100');
+    expect(boardAmounts(game.state)[12]).toBe('100');
+    expect(boardAmounts(game.state)[4]).toBe('10%');
+    expect(boardAmounts(game.state)[38]).toBe('10%');
   });
 
   it('keeps the payable tax amount on the board through confirmation and collection', () => {
     const game = testGame(plugin, ['a', 'b'], { seed: 1 });
-    expect(boardAmounts(game.state)[4]).toBe('200');
-    game.send('a', 'roll');
-    expect(game.state.players[0]!.position).toBe(4);
+    expect(boardAmounts(game.state)[4]).toBe('10%');
+    game.state.players[0]!.position = 4;
+    move(game.state, 0, 4, false, 7);
     game.send('a', 'confirm-event');
     expect(game.state.transfers).toEqual([
       { from: 0, to: null, amount: 200, reason: 'Thuế thu nhập' },
     ]);
-    expect(boardAmounts(game.state)[4]).toBe('200');
+    expect(boardAmounts(game.state)[4]).toBe('10%');
   });
 });

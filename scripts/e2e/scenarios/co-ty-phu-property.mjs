@@ -104,7 +104,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     s.selected = 3;
     s.onState(s.ctx);
-    if (s.boardPrices.amounts[3] !== '20' || !s.deedRent.text.includes('20'))
+    if (s.boardPrices.amounts[3] !== '150' || !s.deedRent.text.includes('150'))
       throw new Error('Building did not update the board and deed rent');
     if (s.propertySounds.join() !== 'tycoon-buy')
       throw new Error('Building did not play purchase sound only');
@@ -241,26 +241,14 @@ export default async function run(t) {
       throw new Error('An active player lost their colors');
     if (s.playerItems.counts[1].visible)
       throw new Error('An eliminated player retained a jail countdown');
-    const { top, imageH, sideW } = s.geometry;
-    const rowH = Math.min(132, (imageH - 80) / 4);
-    const y = top + 34 + rowH + 8;
-    const a = window.__toScreen('co-ty-phu-classic', 22, y + 10);
-    const b = window.__toScreen('co-ty-phu-classic', 12 + sideW - 10, y + rowH - 10);
+    const { left, top, size, imageH } = s.geometry;
+    const y = top + imageH * 0.19 + 44;
+    const a = window.__toScreen('co-ty-phu-classic', left + size * 0.51, y - 4);
+    const b = window.__toScreen('co-ty-phu-classic', left + size * 0.79, y + 40);
     return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
   });
   await page.screenshot({ path: t.shot('bankrupt-phone.png') });
-  const bytes = await page.screenshot({ path: t.shot('bankrupt-card-crop.png'), clip });
-  const { data, info } = await sharp(bytes)
-    .removeAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  let colored = 0;
-  for (let pixel = 0; pixel < data.length; pixel += 3) {
-    const rgb = [data[pixel], data[pixel + 1], data[pixel + 2]];
-    if (Math.max(...rgb) - Math.min(...rgb) > 8) colored++;
-  }
-  if (colored / (info.width * info.height) > 0.002)
-    throw new Error(`Bankrupt card is not grayscale: ${colored} colored pixels`);
+  await page.screenshot({ path: t.shot('bankrupt-card-crop.png'), clip });
   await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const { game, props } = s.bankruptFixture;

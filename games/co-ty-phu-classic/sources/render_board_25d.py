@@ -269,7 +269,7 @@ def make_print_texture():
         pad_y = max(2, round(height * 0.055))
         center_x = (x0 + x1) / 2
         center_y = (y0 + y1) / 2
-        band_color = GROUP_COLORS.get(group) if group else ((112, 132, 129, 255) if kind == "station" else None)
+        band_color = None
         if band_color:
             if side == "bottom":
                 band = (x0 + pad_x, y0 + pad_y, x1 - pad_x, y0 + round(height * 0.18))
@@ -330,10 +330,10 @@ gold = material("Warm brass reveal", (0.72, 0.38, 0.065), 0.68, 0.23)
 
 
 def rounded_slab(name, size, z, height, bevel, mat):
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, z))
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0.082, z))
     obj = bpy.context.object
     obj.name = name
-    obj.dimensions = (size, size, height)
+    obj.dimensions = (size, size - 0.164, height)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     modifier = obj.modifiers.new("Soft carved edge", "BEVEL")
     modifier.width = bevel
@@ -343,21 +343,21 @@ def rounded_slab(name, size, z, height, bevel, mat):
     return obj
 
 
-rounded_slab("lower wood tier", 4.22, -0.18, 0.22, 0.07, dark_wood)
-rounded_slab("brass inset", 4.19, -0.065, 0.045, 0.025, gold)
-rounded_slab("upper wood tier", 4.14, -0.018, 0.09, 0.045, wood)
+rounded_slab("lower wood tier", 3.74, -0.10, 0.10, 0.025, dark_wood)
+rounded_slab("brass inset", 3.72, -0.035, 0.025, 0.012, gold)
+rounded_slab("upper wood tier", 3.70, -0.005, 0.05, 0.012, wood)
 
 # The base illustration keeps the board's material detail; monochrome symbols and group bands
 # are printed into its UV texture before Blender renders the perspective.
 mesh = bpy.data.meshes.new("board surface")
 mesh.from_pydata(
-    [(-2, -2, 0.035), (2, -2, 0.035), (2, 2, 0.035), (-2, 2, 0.035)],
+    [(-1.848, -1.684, 0.035), (1.848, -1.684, 0.035), (1.848, 1.848, 0.035), (-1.848, 1.848, 0.035)],
     [],
     [(0, 1, 2, 3)],
 )
 mesh.update()
 uv = mesh.uv_layers.new(name="board UV")
-for loop, coord in zip(mesh.polygons[0].loop_indices, [(0, 0), (1, 0), (1, 1), (0, 1)]):
+for loop, coord in zip(mesh.polygons[0].loop_indices, [(0.038, 0.079), (0.962, 0.079), (0.962, 0.962), (0.038, 0.962)]):
     uv.data[loop].uv = coord
 surface = bpy.data.objects.new("printed board", mesh)
 bpy.context.collection.objects.link(surface)

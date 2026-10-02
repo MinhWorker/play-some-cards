@@ -21,14 +21,21 @@ export function tileActions(state: View, seat: number | null, square: number): T
     const auction = state.auction;
     if (auction?.square !== square || auction.bidder !== seat) return [];
     return [
-      ...[1, 10, 50]
-        .filter((plus) => auction.highest + plus <= state.players[seat]!.cash)
+      ...(cell.kind === 'station' ? [10] : [1, 10, 50])
+        .filter(
+          (plus) =>
+            auction.highest + plus <= state.players[seat]!.cash + auction.bids[seat]! &&
+            (cell.kind !== 'station' ||
+              state.players[seat]!.cash + auction.bids[seat]! >= cell.price!),
+        )
         .map((plus) => ({
           label: `+${plus} (${auction.highest + plus})`,
           event: 'bid',
           payload: { amount: auction.highest + plus },
         })),
-      { label: 'Bỏ giá', event: 'pass', payload: {} },
+      ...(auction.leader !== seat || cell.kind === 'station'
+        ? [{ label: 'Rút / Bỏ giá', event: 'pass', payload: {} }]
+        : []),
     ];
   }
   if (state.phase === 'event' || state.phase === 'trade' || deed.owner !== seat) return [];

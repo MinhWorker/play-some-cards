@@ -4,14 +4,15 @@ export type Card =
   | { text: string; kind: 'move'; target: number }
   | { text: string; kind: 'nearest'; target: 'station' | 'utility' }
   | { text: string; kind: 'jail' | 'free' }
-  | { text: string; kind: 'repairs'; house: number; hotel: number };
+  | { text: string; kind: 'repairs'; house: number; hotel: number }
+  | { text: string; kind: 'shortage'; square: 12 | 28 };
 
 export const CHANCE: readonly Card[] = [
   { text: 'Tiến về Xuất phát. Nhận 200.', kind: 'move', target: 0 },
-  { text: 'Tới Ga gần nhất.', kind: 'nearest', target: 'station' },
+  { text: 'Tới Bến xe gần nhất.', kind: 'nearest', target: 'station' },
   { text: 'Tới Điện lực hoặc Cấp nước gần nhất.', kind: 'nearest', target: 'utility' },
-  { text: 'Tới Phố Đi Bộ.', kind: 'move', target: 39 },
-  { text: 'Tới Tràng Tiền.', kind: 'move', target: 18 },
+  { text: 'Tới Bắc Ninh.', kind: 'move', target: 39 },
+  { text: 'Tới Tp. HCM.', kind: 'move', target: 18 },
   { text: 'Ngân hàng trả lãi 50.', kind: 'cash', amount: 50 },
   { text: 'Nhận cổ tức 100.', kind: 'cash', amount: 100 },
   { text: 'Nộp phạt chạy quá tốc độ 15.', kind: 'cash', amount: -15 },
@@ -19,6 +20,16 @@ export const CHANCE: readonly Card[] = [
   { text: 'Vào tù ngay.', kind: 'jail' },
   { text: 'Giữ thẻ ra tù miễn phí.', kind: 'free' },
   { text: 'Được thưởng 150.', kind: 'cash', amount: 150 },
+  {
+    text: 'Thiếu điện: thuế Điện lực gấp đôi trong vòng bàn kế tiếp.',
+    kind: 'shortage',
+    square: 12,
+  },
+  {
+    text: 'Thiếu nước: thuế Cấp nước gấp đôi trong vòng bàn kế tiếp.',
+    kind: 'shortage',
+    square: 28,
+  },
 ];
 
 export const CHEST: readonly Card[] = [

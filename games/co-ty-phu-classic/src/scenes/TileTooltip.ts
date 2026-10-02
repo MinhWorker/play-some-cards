@@ -30,7 +30,7 @@ export class TileTooltip {
     tile: Bounds,
     screen: { width: number; height: number; top: number },
   ) {
-    const width = Math.min(300, screen.width - 32);
+    const width = Math.min(210, screen.width - 32);
     this.title
       .setVisible(true)
       .setText(name)
