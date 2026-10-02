@@ -20,7 +20,8 @@ import { decisionSeat } from '../game/turnClock.js';
 import { Backdrop } from './Backdrop.js';
 import { BoardPrices, ownerInk } from './BoardPrices.js';
 import { BoardTileEffect } from './BoardTileEffect.js';
-import { BOARD_CELLS, BOARD_IMAGE_RATIO } from './boardGeometry.js';
+import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './boardGeometry.js';
+import { planePoint } from './boardPlane.js';
 import { Dice3D } from './Dice3D.js';
 import { EventDeck } from './EventDeck.js';
 import { eventNotice, landingHeading } from './eventNotice.js';
@@ -419,18 +420,18 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.squares[i]!.input?.hitArea.setTo(0, 0, w, h);
       this.tileEffects[i]?.layout(cellQuad(left, boardTop, size, i));
     });
-    this.heading.setPosition(cx, boardTop + imageH * 0.32).setFontSize(26 * this.k);
+    this.heading.setPosition(cx, this.fieldY(0.06)).setFontSize(26 * this.k);
     this.notice
-      .setPosition(cx, boardTop + imageH * 0.405)
+      .setPosition(cx, this.fieldY(0.16))
       .setFontSize(22 * this.k)
       .setAlign('center')
       .setWordWrapWidth(Math.min(size * 0.52, 410), true);
     this.card
-      .setPosition(cx, boardTop + imageH * 0.49)
+      .setPosition(cx, this.fieldY(0.36))
       .setFontSize(20 * this.k)
       .setAlign('center')
       .setWordWrapWidth(Math.min(size * 0.52, 410), true);
-    this.dice.setPosition(cx, boardTop + imageH * 0.57, tile);
+    this.dice.setPosition(cx, this.fieldY(0.58), tile);
     this.layoutReady(ctx);
     const rightX = sideX;
     const middle = rightX + sideW / 2;
@@ -439,35 +440,42 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.deedOwner.setPosition(middle, this.geometry.panelTop + 112);
     for (const row of [this.deedPrice, this.deedRent, this.nextBuilding]) row.setX(rightX + 14);
     for (const value of this.deedValues) value.setX(rightX + sideW - 14);
+    // The players' panel (printed into the board): each seat's ball and cash in the list on the
+    // right; the turn player's picture, name and cash on the left.
     this.people.forEach((label, i) => {
-      // No names: the 2 × 2 cards show each seat's color and number, and its cash.
-      const { x, y } = this.seatCell(i);
-      this.playerBadges[i]!.setPosition(x, y + 13 * this.k)
+      const { x, y, r, cashX } = this.seatCell(i);
+      this.playerBadges[i]!.setPosition(x, y)
         .setColor('#ffffff')
-        .setFontSize(18 * this.k);
+        .setFontSize(r * 1.25);
       label.setVisible(false);
-      this.playerCash[i]!.setOrigin(0, 0)
-        .setPosition(x + 18 * this.k, y + this.k)
-        .setFontSize(20 * this.k);
+      this.playerCash[i]!.setOrigin(0, 0.5)
+        .setPosition(cashX, y)
+        .setFontSize(r * 1.35);
       this.moneyIcons[i]!.setVisible(false);
       this.locationIcons[i]!.setVisible(false);
       this.playerPlace[i]!.setVisible(false);
     });
+    const { avatar, name, cash } = PLAYER_PANEL;
+    const picture = this.onBoard(avatar.u, avatar.v);
+    const pictureR = this.onBoard(avatar.u + avatar.r, avatar.v).x - picture.x;
     this.turnAvatar
-      .setPosition(left + size * 0.285, boardTop + imageH * 0.235)
-      .setDisplaySize(48, 48);
-    // Board ink: sizes follow the board, not the HUD scale, so the block fits its corner.
+      .setPosition(picture.x, picture.y)
+      .setDisplaySize(pictureR * 1.9, pictureR * 1.9);
+    const nameAt = this.onBoard(name.u, name.v);
     this.turnName
-      .setPosition(left + size * 0.315, boardTop + imageH * 0.185)
-      .setFontSize(24 * this.k);
+      .setOrigin(0, 0.5)
+      .setPosition(nameAt.x, nameAt.y)
+      .setFontSize(pictureR * 0.62);
+    const cashAt = this.onBoard(cash.u, cash.v);
     this.turnCash
-      .setPosition(left + size * 0.315, boardTop + imageH * 0.245)
-      .setFontSize(22 * this.k);
-    this.diceHit.setPosition(cx, boardTop + imageH * 0.57).setSize(180, 100);
+      .setOrigin(0, 0.5)
+      .setPosition(cashAt.x, cashAt.y)
+      .setFontSize(pictureR * 0.5);
+    this.diceHit.setPosition(cx, this.fieldY(0.58)).setSize(180, 100);
     this.diceHit.input?.hitArea.setTo(0, 0, 180, 100);
     // Between the two card decks, never over them.
     // Right under the dice, clear of the pawns standing on the bottom row.
-    this.rollHint.setPosition(cx, boardTop + imageH * 0.653).setFontSize(20 * this.k);
+    this.rollHint.setPosition(cx, this.fieldY(0.81)).setFontSize(20 * this.k);
     this.fitText(this.rollHint, 'Chạm để gieo', size * 0.26, 16);
     this.drawHudFrames(
       ctx,
@@ -584,46 +592,42 @@ export class CoTyPhuClassicView extends GameView<View> {
       graphics.lineStyle(1, 0xffffff);
       graphics.lineBetween(x + 18, y + 8, x + w - 18, y + 8);
     };
+    // Each seat's glass ball in its well: lit for whoever decides now, dim otherwise.
+    const deciding = decisionSeat(ctx.state);
     for (let i = 0; i < ctx.state.players.length; i++) {
-      const { x, y, w } = this.seatCell(i);
-      graphics.fillStyle(ctx.state.players[i]!.bankrupt ? 0x888888 : PLAYER_COLORS[i]!, 1);
-      graphics.fillCircle(x, y + 13 * this.k, 13 * this.k);
-      // The host wears a little gold crown on the number badge.
-      if (ctx.players[i] && ctx.players[i]!.id === ctx.hostId) {
-        graphics.fillStyle(0xe8b230, 1).fillPoints(
-          [
-            { x: x - 9, y: y + 1 },
-            { x: x - 9, y: y - 7 },
-            { x: x - 4.5, y: y - 2 },
-            { x, y: y - 9 },
-            { x: x + 4.5, y: y - 2 },
-            { x: x + 9, y: y - 7 },
-            { x: x + 9, y: y + 1 },
-          ] as Phaser.Math.Vector2[],
-          true,
-        );
-        graphics.lineStyle(1, 0x7a4f12, 1).strokePoints(
-          [
-            { x: x - 9, y: y + 1 },
-            { x: x - 9, y: y - 7 },
-            { x: x - 4.5, y: y - 2 },
-            { x, y: y - 9 },
-            { x: x + 4.5, y: y - 2 },
-            { x: x + 9, y: y - 7 },
-            { x: x + 9, y: y + 1 },
-          ] as Phaser.Math.Vector2[],
-          true,
-        );
+      const { x, y, r } = this.seatCell(i);
+      const out = ctx.state.players[i]!.bankrupt;
+      const color = out ? 0x8a8a8a : PLAYER_COLORS[i]!;
+      const lit = i === deciding && !out;
+      if (lit) {
+        graphics.fillStyle(color, 0.22).fillCircle(x, y, r * 1.75);
+        graphics.fillStyle(color, 0.35).fillCircle(x, y, r * 1.35);
       }
-      if (i === decisionSeat(ctx.state))
-        graphics
-          .lineStyle(2, 0x79501e)
-          .strokeRoundedRect(x - 16 * this.k, y - 3, w, 34 * this.k, 6);
-      // In an auction the leader also gets a quiet ring, while another seat is bidding.
-      else if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i)
-        graphics
-          .lineStyle(2, 0x8f8a78)
-          .strokeRoundedRect(x - 16 * this.k, y - 3, w, 34 * this.k, 6);
+      graphics.fillStyle(color, lit ? 1 : 0.5).fillCircle(x, y, r * 0.92);
+      graphics.fillStyle(0x000000, 0.14).fillCircle(x + r * 0.12, y + r * 0.16, r * 0.72);
+      graphics.fillStyle(color, lit ? 1 : 0.5).fillCircle(x - r * 0.04, y - r * 0.05, r * 0.7);
+      graphics
+        .fillStyle(0xffffff, lit ? 0.85 : 0.5)
+        .fillEllipse(x - r * 0.35, y - r * 0.42, r * 0.5, r * 0.3);
+      // In an auction the leader's ball gets a quiet ring while another seat bids.
+      if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i && !lit)
+        graphics.lineStyle(2, 0x6b5a3a).strokeCircle(x, y, r * 1.12);
+      // The host wears a little gold crown on its ball.
+      if (ctx.players[i] && ctx.players[i]!.id === ctx.hostId) {
+        const c = { x: x - r * 0.75, y: y - r * 0.85 };
+        const k = r / 13;
+        const crown = [
+          [-9, 1],
+          [-9, -7],
+          [-4.5, -2],
+          [0, -9],
+          [4.5, -2],
+          [9, -7],
+          [9, 1],
+        ].map(([px, py]) => ({ x: c.x + px! * k, y: c.y + py! * k })) as Phaser.Math.Vector2[];
+        graphics.fillStyle(0xe8b230, 1).fillPoints(crown, true);
+        graphics.lineStyle(1, 0x7a4f12, 1).strokePoints(crown, true);
+      }
     }
     const rightX = this.geometry.sideX;
     const panelH = this.deedPanelHeight(selected);
@@ -671,28 +675,36 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (!floating && this.backdrop.visible) this.backdrop.hide();
   }
 
-  /**
-   * A seat's card in the 2 × 2 grid inside the board (right of the turn player): its badge's
-   * center x, its top y, and the card's width.
-   */
-  private seatCell(seat: number) {
+  /** A point of the printed board (board units, as PLAYER_PANEL) on screen. */
+  private onBoard(u: number, v: number) {
     const { left, top, size, imageH } = this.geometry;
-    // Two columns with a gap between them, so neighbouring cards never touch.
-    const w = size * 0.128;
-    const gap = Math.max(10, size * 0.022);
-    return {
-      x: left + size * 0.465 + (seat % 2) * (w + gap),
-      y: top + imageH * 0.19 + Math.floor(seat / 2) * 52 * this.k,
-      w,
-    };
+    const point = planePoint(u, v);
+    return { x: left + point.x * size, y: top + point.y * imageH };
   }
 
-  /** A seat card's cash, shrunk to fit its card (it changes while money moves). */
+  /** A height in the open field under the players' panel: 0 at its top edge, 1 at its foot. */
+  private fieldY(share: number) {
+    const { top, bottom } = PLAYER_PANEL.field;
+    return this.onBoard(0.5, top + (bottom - top) * share).y;
+  }
+
+  /** A seat's well in the panel's list: its ball's center and radius, and where its cash goes. */
+  private seatCell(seat: number) {
+    const well = PLAYER_PANEL.seats[seat] ?? PLAYER_PANEL.seats[0];
+    const { x, y } = this.onBoard(well.u, well.v);
+    const r = this.onBoard(well.u + well.r, well.v).x - x;
+    const cashX = this.onBoard(PLAYER_PANEL.seatCash.u, well.v).x;
+    // The cash may run to the panel's right edge.
+    return { x, y, r, cashX, cashW: this.onBoard(0.8, well.v).x - cashX };
+  }
+
+  /** A seat's cash, shrunk to fit beside its ball (it changes while money moves). */
   private setSeatCash(seat: number, text: string) {
     const cash = this.playerCash[seat];
     if (!cash) return;
-    cash.setFontSize(20 * this.k);
-    this.fitText(cash, text, this.seatCell(seat).w - 22, 13);
+    const { r, cashW } = this.seatCell(seat);
+    cash.setFontSize(r * 1.35);
+    this.fitText(cash, text, cashW, 12);
   }
 
   private deedPanelHeight(selected: number) {
@@ -1525,7 +1537,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         ? bank
         : {
             x: this.playerCash[seat]!.x + this.playerCash[seat]!.displayWidth / 2,
-            y: this.playerCash[seat]!.y + 15,
+            y: this.playerCash[seat]!.y,
           };
     this.moneyEffect.draw(transfer, endpoint(transfer.from), endpoint(transfer.to), eased);
   }
@@ -1679,13 +1691,12 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   private eventButtonY() {
-    const { top, imageH } = this.geometry;
-    return Math.max(top + imageH * 0.57, this.notice.y + this.notice.displayHeight + 44);
+    return Math.max(this.fieldY(0.62), this.notice.y + this.notice.displayHeight + 44);
   }
 
   private drawEventCountdown(ctx: Ctx) {
     this.eventCountdown.clear();
-    this.countdownLabel.setVisible(false);
+    this.countdownLabel.setVisible(false).setColor('#415c59');
     const timedTurn = ctx.timer?.event === 'turn-timeout';
     const seat = timedTurn ? decisionSeat(ctx.state) : ctx.state.turn;
     if (
@@ -1706,16 +1717,28 @@ export class CoTyPhuClassicView extends GameView<View> {
       return;
     }
     if (timedTurn && ctx.state.phase !== 'trade') {
-      // Under the turn player's picture and cash, its seconds right after (never over the list).
-      const width = Math.min(size * 0.09, 72);
-      const x = this.turnAvatar.x - 24;
-      const y = Math.max(top + imageH * 0.32, this.turnCash.y + this.turnCash.displayHeight + 8);
-      this.bar(x, y, width, remaining, PLAYER_COLORS[seat]!);
+      // In the panel's groove under the turn player's cash, its seconds at the groove's end.
+      const { u0, u1, v, h } = PLAYER_PANEL.bar;
+      const start = this.onBoard(u0, v);
+      const end = this.onBoard(u1, v);
+      const height = this.onBoard(u0, v + h / 2).y - this.onBoard(u0, v - h / 2).y;
+      const width = (end.x - start.x) * remaining;
+      if (width > 0)
+        this.eventCountdown
+          .fillStyle(PLAYER_COLORS[seat]!)
+          .fillRoundedRect(
+            start.x,
+            start.y - height / 2,
+            Math.max(height, width),
+            height,
+            height / 2,
+          );
       this.countdownLabel
         .setVisible(true)
-        .setOrigin(0, 0.5)
-        .setFontSize(18 * this.k)
-        .setPosition(x + width + 8, y + 5)
+        .setOrigin(1, 0.5)
+        .setFontSize(height * 0.95)
+        .setColor('#fff7e8')
+        .setPosition(end.x - height * 0.4, end.y)
         .setText(`${seconds} giây`);
       return;
     }

@@ -110,7 +110,11 @@ màu chủ trực tiếp từ ảnh bàn đã tải, giữ nguyên nét in và p
 biểu tượng và tọa độ quân cờ
 dùng chung bố cục để các dấu trên bàn luôn khớp với mặt ô.
 Chạy `blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py` từ gốc repo
-để tạo lại ảnh và tọa độ 40 ô. File Blender chỉnh sửa được nằm ở
+để tạo lại ảnh và tọa độ 40 ô (hoặc `python script.py` với gói `bpy` và Pillow; script không cần
+ffmpeg). Script cũng mở rộng dải ô phía trên xuống lòng bàn thành một ô lớn làm **khu người
+chơi**, in sẵn các ổ khảm viền vàng (ảnh người có lượt, bốn ghế), rãnh thanh thời gian và vạch
+chia, rồi xuất phép chiếu mặt bàn (`BOARD_HOMOGRAPHY`) và vị trí các ổ (`PLAYER_PANEL`) vào
+`boardGeometry.ts` để game vẽ đúng vào ổ. File Blender chỉnh sửa được nằm ở
 `.blender/co-ty-phu-classic-board.blend` (đã bỏ qua trong git). Tên địa danh, số tiền và dấu sở
 hữu do game vẽ theo trạng thái server để mọi người thấy cùng một ván.
 
@@ -122,9 +126,11 @@ Bàn chiếm tối đa khung hình: trong phòng thật, bàn dùng cả khoản
 (`ctx.screen.gap`) nếu cách đó cho bàn lớn hơn. Kích thước tính theo phần bàn nhìn thấy (ảnh
 `board-25d` có viền trong suốt), nên viền trong suốt được phép tràn ra ngoài khung. Chữ và nút
 trong lòng bàn tự thu nhỏ theo cỡ bàn; thẻ thông tin bên phải bắt đầu dưới nút cài đặt.
-Người chơi xếp lưới 2×2 ở góc trên phải lòng bàn, không ghi tên: huy hiệu số ghế màu quân và
-tiền; chủ phòng có vương miện trên huy hiệu. Góc trên trái có ảnh đại diện, tên và tiền của người
-đang có lượt. Thông tin vị trí, thẻ ra tù và trạng thái trong tù không có biểu tượng riêng; quân
+Khu người chơi là phần mở rộng của dải ô ở nửa trên lòng bàn: bên trái là ảnh đại diện trong ổ
+lớn, tên, tiền và thanh thời gian chạy trong rãnh (số giây ở cuối rãnh) của người đang có lượt;
+bên phải là danh sách bốn ghế xếp dọc, mỗi ghế một viên bi màu quân có số ghế và tiền bên cạnh.
+Bi của người đang phải quyết định sáng và có quầng, các bi khác mờ; chủ phòng có vương miện trên
+bi. Lòng xanh còn lại ở dưới dành cho tiêu đề, thông báo, xúc xắc và hai chồng thẻ. Thông tin vị trí, thẻ ra tù và trạng thái trong tù không có biểu tượng riêng; quân
 cờ và thẻ ô cho biết địa điểm. Thẻ thông tin bên phải hẹp hơn 30%; viền bàn mỏng.
 Nút mua, đấu giá, trả giá và quản lý đất nằm trong thẻ thông tin ô. Hai xúc xắc là vùng chạm để gieo;
 **Hết lượt** nằm giữa bàn, thao tác lượt khác ở góc dưới phải. Bảng soạn trao đổi và **Bảng thuê**
