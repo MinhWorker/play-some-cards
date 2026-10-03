@@ -59,3 +59,9 @@ Bàn, đường kẻ, sao và quân tạm đều vẽ bằng code; khi có `asse
 
 Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=go&players=2 (khi đang chạy
 `npm run dev`).
+
+## Vòng đời bàn chơi
+
+Hoạt ảnh và thời gian xác nhận đầu hàng dùng runtime của SDK. Khi mở ván mới, kết nối lại
+hoặc rời bàn, các hiệu ứng cũ được huỷ; kết nối lại dựng bàn từ trạng thái hiện tại,
+không phát lại nước đi trước đó.

@@ -13,7 +13,7 @@
  * The board, lines and star points are drawn here. Stones are drawn here too until their
  * images exist in assets/ (stone-black, stone-white); sounds come with the art.
  */
-import { type Button, GameView, type ViewContext } from '@psc/sdk/client';
+import { type Button, type FlowHandle, GameView, type ViewContext } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { KOMI, type Options, type Side, type View } from '../game/model.js';
 import { colOf, place, rowOf, score, starPoints } from '../game/rules.js';
@@ -66,14 +66,15 @@ export class GoView extends GameView<View, Options> {
   private hovered: number | null = null;
   /** "Đầu hàng" was tapped once: a second tap within a few seconds confirms. */
   private resignArmed = false;
-  private resignTimer?: Phaser.Time.TimerEvent;
+  private resignTimer?: FlowHandle;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
+    this.resignTimer = undefined;
+    this.resignArmed = false;
     this.stones = new Map();
     this.hovered = null;
-    this.resignArmed = false;
     this.makeStoneTextures();
     this.board = this.add.graphics().setDepth(DEPTH.board);
     this.marks = this.add.graphics().setDepth(DEPTH.marks);
@@ -154,8 +155,20 @@ export class GoView extends GameView<View, Options> {
 
   /** A new game: an empty board (onState sets the stones out). */
   protected onStart() {
+    this.resignTimer?.cancel();
+    this.resignTimer = undefined;
+    this.resignArmed = false;
+    this.buttons.resign.setText('Đầu hàng');
     for (const stone of this.stones.values()) stone.image.destroy();
     this.stones.clear();
+    this.hover(null);
+  }
+
+  protected onResync(ctx: Ctx) {
+    this.onStart();
+    this.onLayout(ctx);
+    this.syncStones(ctx, false);
+    this.onState(ctx);
   }
 
   protected onState(ctx: Ctx) {
@@ -245,7 +258,7 @@ export class GoView extends GameView<View, Options> {
   private placeStone(stone: StoneObj, p: number) {
     const { x, y } = this.pointXY(p);
     const size = this.grid.cell * 0.96;
-    this.tweens.killTweensOf(stone.image);
+    this.runtime.cancelTweens(stone.image);
     stone.image.setPosition(x, y).setDisplaySize(size, size).setAlpha(1);
   }
 
@@ -253,19 +266,17 @@ export class GoView extends GameView<View, Options> {
    * Makes the screen match the state: the stone just played pops in, taken stones fade out,
    * anything else (joining late, a new game) appears at once.
    */
-  private syncStones({ state }: Ctx) {
+  private syncStones({ state }: Ctx, animate = true) {
     const last = state.last;
     for (const [p, stone] of this.stones) {
       if (state.board[p] === stone.side) continue;
       this.stones.delete(p);
       const image = stone.image;
-      if (last?.captured.includes(p)) {
-        this.tweens.add({
-          targets: image,
-          alpha: 0,
-          duration: 220,
-          delay: 80,
-          onComplete: () => image.destroy(),
+      if (animate && last?.captured.includes(p)) {
+        this.runtime.cancelTweens(image);
+        this.runtime.run(async (fx) => {
+          fx.defer(() => image.destroy());
+          await fx.tween({ targets: image, alpha: 0, duration: 220, delay: 80 });
         });
       } else image.destroy();
     }
@@ -276,10 +287,10 @@ export class GoView extends GameView<View, Options> {
       stone.image.setDepth(DEPTH.stone);
       this.stones.set(p, stone);
       this.placeStone(stone, p);
-      if (p === last?.point) {
+      if (animate && p === last?.point) {
         const { scaleX, scaleY } = stone.image;
         stone.image.setScale(scaleX * 1.2, scaleY * 1.2).setAlpha(0.6);
-        this.tweens.add({
+        this.runtime.tween({
           targets: stone.image,
           scaleX,
           scaleY,
@@ -437,14 +448,14 @@ export class GoView extends GameView<View, Options> {
 
   private resign() {
     if (this.resignArmed) {
-      this.resignTimer?.remove();
+      this.resignTimer?.cancel();
       this.resignArmed = false;
       this.send('resign');
       return;
     }
     this.resignArmed = true;
     this.buttons.resign.setText('Chắc chưa?');
-    this.resignTimer = this.time.delayedCall(3000, () => {
+    this.resignTimer = this.runtime.after(3000, () => {
       this.resignArmed = false;
       this.buttons.resign.setText('Đầu hàng');
     });
