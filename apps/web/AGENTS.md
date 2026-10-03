@@ -4,7 +4,8 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
 
 - **React** owns app state and all plain UI: panels, forms and buttons.
 - **Phaser** draws the world: the sky, the island strip and the boards.
-  - React passes a `Stage` to `PhaserStage`.
+  - React passes a `Stage` to `PhaserStage`; its SDK `SceneDirector` serializes foreground changes.
+    Board/setup stages carry a local opening `instance`, distinct from room round and game ID.
   - Phaser emits events on `bridge`.
   - Anything game-like (pieces, cards, animation, drag and drop) is Phaser.
 - **File placement**:
@@ -31,13 +32,14 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
   the wip lock. `pages/Sandbox` is `/?play=<id>`.
 - **Dev tools** (the DEV button, bottom-left; not in production):
   - Add a toggle or an input as one entry in `DEV_SETTINGS` (`src/lib/devTools.ts`).
-  - Read it with `devSetting(key)`.
+  - Read it with `devSetting(key)`. Runtime diagnostics expose only scope/lane/audio metadata.
 - **Assets**:
   - `imageUrl(name)` and `soundUrl(name)` give the URLs of `public/shared/` files.
   - Phaser images also go in `IMAGES` (`src/phaser/assets.ts`).
 - **Sounds**:
   - Play an effect with `playSfx(name)` (`SFX` in `src/lib/sound.ts`); the app's music is
-    `APP_MUSIC`.
+    `APP_MUSIC`. `prepareSoundUrl` coalesces buffers; `playSoundUrl` returns a stoppable voice
+    handle, skips locked/muted/hidden/late effects, and ducks music per active voice.
   - Buttons click and hover by default.
   - Change or mute that per button (`<Button clickSound=… hoverSound=…>`), or per container
     (`{...buttonSounds({ click: 'none' })}`).

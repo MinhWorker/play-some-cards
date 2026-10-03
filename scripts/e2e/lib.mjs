@@ -64,9 +64,9 @@ export async function openRooms(page, gameId) {
   await create.waitFor();
 }
 
-/** "← Rời phòng", confirming "Bỏ dở ván này?" when a game is running. */
+/** The leave button (←, "Về danh sách phòng"), confirming "Bỏ dở ván này?" when a game is running. */
 export async function leaveRoom(page) {
-  await page.getByRole('button', { name: '← Rời phòng' }).click();
+  await page.getByRole('button', { name: 'Về danh sách phòng' }).click();
   const confirm = page.getByRole('alertdialog');
   await confirm.waitFor({ timeout: 1000 }).catch(() => {});
   if (await confirm.count()) {

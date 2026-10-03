@@ -4,14 +4,16 @@ import {
   BOARD_PROPS,
   FRAME,
   type Frame,
+  SceneDirector,
   SETUP_CANCEL,
   SETUP_CURRENT,
   SETUP_SUBMIT,
 } from '@psc/sdk/client';
 import Phaser from 'phaser';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { loadClient } from '@/games';
 import { currentAppFrame, onFrame } from '@/lib/frame';
+import { soundDiagnostics } from '@/lib/sound';
 import { bridge, type Stage } from './bridge';
 import { BootScene } from './scenes/BootScene';
 import { HubScene } from './scenes/HubScene';
@@ -21,12 +23,6 @@ import { textureAudit } from './textureAudit';
 /** Scenes that stay on behind everything; any other one (hub, a board, a setup screen) is the foreground. */
 const BACKGROUND = new Set(['boot', 'sky']);
 
-/** Started and not yet shut down (includes loading its images). */
-function isStarted(game: Phaser.Game, key: string) {
-  const status = game.scene.getScene(key)?.sys.settings.status ?? Phaser.Scenes.PENDING;
-  return status >= Phaser.Scenes.START && status <= Phaser.Scenes.SLEEPING;
-}
-
 /** Scene key for a stage: 'hub', a board (`<gameId>`), a setup screen (`<gameId>:setup`). */
 function sceneKey(stage: Stage) {
   if (stage.mode === 'hub') return 'hub';
@@ -35,34 +31,12 @@ function sceneKey(stage: Stage) {
   return null;
 }
 
-/**
- * Applies a Stage: runs the right foreground scene and pushes fresh board props. A game's scenes
- * are downloaded and added the first time they are needed; `latest` is read again after that,
- * since the stage may have changed meanwhile.
- */
-function applyStage(game: Phaser.Game, latest: () => Stage) {
-  const stage = latest();
-  const target = sceneKey(stage);
-  if (stage.mode === 'board') game.registry.set('board', stage);
-  if (stage.mode === 'setup') game.registry.set(SETUP_CURRENT, stage.current);
-  for (const key of Object.keys(game.scene.keys)) {
-    if (key !== target && !BACKGROUND.has(key) && isStarted(game, key)) game.scene.stop(key);
-  }
-  if (!target) return;
-  if (!game.scene.keys[target]) {
-    if (stage.mode !== 'board' && stage.mode !== 'setup') return;
-    void loadClient(stage.gameId).then((client) => {
-      const scene = stage.mode === 'setup' ? client.setup : client.scene;
-      if (!scene) return;
-      if (!game.scene.keys[target]) game.scene.add(target, scene);
-      applyStage(game, latest);
-    });
-    return;
-  }
-  if (!isStarted(game, target)) game.scene.start(target);
-  else if (stage.mode === 'board' && game.scene.isActive(target)) {
-    game.events.emit(BOARD_PROPS, stage);
-  }
+function stageRequest(stage: Stage) {
+  return {
+    key: sceneKey(stage),
+    instance: 'instance' in stage ? stage.instance : stage.mode,
+    data: stage,
+  };
 }
 
 /** The room bar's bottom edge (CSS px from the top of the page) in design units, or undefined. */
@@ -107,6 +81,8 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
   const parent = useRef<HTMLDivElement>(null);
   const game = useRef<Phaser.Game | null>(null);
   const ready = useRef(false);
+  const director = useRef<SceneDirector<Stage> | null>(null);
+  const [sceneError, setSceneError] = useState(false);
   const latest = useRef(stage);
   latest.current = stage;
   const readyCallback = useRef(onReady);
@@ -172,7 +148,29 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       g.events.once('booted', () => {
         ready.current = true;
         applyFrame(g, currentAppFrame(), hud.current);
-        applyStage(g, () => latest.current);
+        director.current = new SceneDirector(g, {
+          background: BACKGROUND,
+          load: async (key, data) => {
+            if (data.mode !== 'board' && data.mode !== 'setup')
+              throw new Error(`Unknown scene: ${key}`);
+            const client = await loadClient(data.gameId);
+            const scene = data.mode === 'setup' ? client.setup : client.scene;
+            if (!scene) throw new Error(`Scene unavailable: ${key}`);
+            return scene;
+          },
+          write: (data) => {
+            if (data.mode === 'board') g.registry.set('board', data);
+            if (data.mode === 'setup') g.registry.set(SETUP_CURRENT, data.current);
+          },
+          push: (data) => {
+            if (data.mode === 'board') g.events.emit(BOARD_PROPS, data);
+          },
+          onError: (error) => {
+            console.error('Scene could not open', error);
+            setSceneError(true);
+          },
+        });
+        void director.current.show(stageRequest(latest.current));
         readyCallback.current?.();
       });
       game.current = g;
@@ -181,6 +179,15 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       if (import.meta.env.DEV) {
         Object.assign(window, {
           __phaser: g,
+          __runtimeDiagnostics: () => ({
+            scenes: g.scene.getScenes(true).flatMap((scene) => {
+              const runtime = (
+                scene as Phaser.Scene & { runtime?: import('@psc/sdk/client').SceneRuntime }
+              ).runtime;
+              return runtime ? [{ scene: scene.sys.settings.key, ...runtime.inspect() }] : [];
+            }),
+            audio: soundDiagnostics(),
+          }),
           __toScreen: (key: string, x: number, y: number) => {
             const cam = g.scene.getScene(key).cameras.main;
             const { dpr } = g.registry.get(FRAME) as Frame;
@@ -196,6 +203,8 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
     return () => {
       cancelled = true;
       ready.current = false;
+      director.current?.dispose();
+      director.current = null;
       game.current?.destroy(true);
       game.current = null;
     };
@@ -203,8 +212,27 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
 
   useEffect(() => {
     latest.current = stage;
-    if (game.current && ready.current) applyStage(game.current, () => latest.current);
+    setSceneError(false);
+    if (ready.current) void director.current?.show(stageRequest(stage));
   }, [stage]);
 
-  return <div ref={parent} className="stage" />;
+  return (
+    <>
+      <div ref={parent} className="stage" />
+      {sceneError && (
+        <div className="hud">
+          <span>Không tải được bàn chơi.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setSceneError(false);
+              void director.current?.show(stageRequest(latest.current));
+            }}
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+    </>
+  );
 }

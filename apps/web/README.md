@@ -65,3 +65,12 @@ Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import 
 | Công cụ dev (công tắc, ô nhập; không có trên bản thật) | `src/lib/devTools.ts` (`DEV_SETTINGS`), bảng ở `src/components/hud/DevTools.tsx` |
 
 Xem `AGENTS.md` (gốc repo và `apps/web/AGENTS.md`) cho các quy ước và `docs/making-a-game.md` để làm game.
+
+`PhaserStage` dùng `SceneDirector` của SDK để chuyển bàn chơi, bỏ kết quả tải cũ và tạo runtime mới khi mở phòng khác. Nếu tải client lỗi, màn hình có nút **Thử lại**. Mục **Runtime** trong DEV hiển thị epoch, lane, tài nguyên và âm thanh đang hoạt động, không chứa bài hoặc snapshot.
+
+Âm thanh ngắn có handle riêng để dừng khi rời scene/đổi ván; buffer vẫn dùng chung. Âm thanh chưa unlock, đang tắt, tab ẩn hoặc bắt đầu muộn hơn 250 ms được bỏ qua. Nhạc nền vẫn theo Stage và thiết lập âm lượng hiện tại.
+
+Thanh phòng chỉ giữ các góc: nút ← (về danh sách phòng) và 🏠 ở bên trái, danh sách người chơi
+(👑 cạnh chủ phòng) khi bàn không tự vẽ danh sách đó, nút cài đặt ở góc phải. Không ghi tên game
+hay "Phòng của …"; màn chờ ghi tên chủ phòng. Thanh của sandbox cũng không còn nhãn "Chơi thử",
+chỉ hiện ai thắng khi ván kết thúc.
