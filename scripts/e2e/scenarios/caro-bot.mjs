@@ -43,7 +43,7 @@ export default async function run(t) {
   await host.screenshot({ path: t.shot('9-bot-game.png') });
 
   // Leaving mid-game asks first; "Ở lại chơi tiếp" keeps the game going.
-  await host.getByRole('button', { name: '← Rời phòng' }).click();
+  await host.getByRole('button', { name: 'Về danh sách phòng' }).click();
   await host.getByRole('alertdialog').waitFor();
   await host.screenshot({ path: t.shot('9b-leave-confirm.png') });
   await host.getByRole('button', { name: 'Ở lại chơi tiếp' }).click();

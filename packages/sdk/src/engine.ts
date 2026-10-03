@@ -1,3 +1,4 @@
+/** Browser presentation uses SceneRuntime (@psc/sdk/client); server hooks and timers remain authoritative. */
 /**
  * Write a game as a class with lifecycle hooks, like a Unity script.
  *

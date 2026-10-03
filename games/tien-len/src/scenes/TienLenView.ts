@@ -11,6 +11,7 @@
  */
 import {
   type Button,
+  type FlowContext,
   GameView,
   titleStyle,
   type ViewContext,
@@ -174,6 +175,12 @@ export class TienLenView extends GameView<View, Options> {
   // ── Create ──────────────────────────────────────────────────────────────────────────────
 
   protected onCreate(ctx: Ctx) {
+    this.shownRound = -1;
+    this.hand = new Map();
+    this.pile = [];
+    this.selected = new Set();
+    this.dealing = false;
+    this.lastTurn = -1;
     this.art = cardArt(DEFAULT_LOOK, (name) => this.texture(name));
     this.mat = new Mat(this, this.texture('mat'));
     this.makeStatus();
@@ -441,7 +448,7 @@ export class TienLenView extends GameView<View, Options> {
       sprite.setCardWidth(g.handWidth).setDepth(100 + i);
       const x = start + i * step;
       const y = g.handY - (this.selected.has(card) ? g.lift : 0);
-      if (animate) this.tweens.add({ targets: sprite, x, y, duration: 90 });
+      if (animate) this.runtime.tween({ targets: sprite, x, y, duration: 90 });
       else sprite.setPosition(x, y);
     });
   }
@@ -544,7 +551,7 @@ export class TienLenView extends GameView<View, Options> {
         .setPosition(thrown.from.x, thrown.from.y)
         .setAngle(angle - 40 + i * 10)
         .setScale(1.35);
-      this.tweens.add({
+      this.runtime.tween({
         targets: sprite,
         x,
         y,
@@ -554,7 +561,7 @@ export class TienLenView extends GameView<View, Options> {
         delay: i * 35,
         ease: 'Cubic.easeIn',
         onComplete: () => {
-          this.tweens.add({ targets: sprite, scale: 1.06, duration: 60, yoyo: true });
+          this.runtime.tween({ targets: sprite, scale: 1.06, duration: 60, yoyo: true });
           if (i === 0) thrown.onLand();
         },
       });
@@ -592,7 +599,7 @@ export class TienLenView extends GameView<View, Options> {
         return;
       }
       const at = SWEEPS_MS[Math.floor((i * SWEEPS_MS.length) / done.length)] ?? 0;
-      this.tweens.add({
+      this.runtime.tween({
         targets: p.sprite,
         ...this.spotOf(p, g),
         delay: at,
@@ -613,7 +620,22 @@ export class TienLenView extends GameView<View, Options> {
   }
 
   /** A round begins on screen: clear the table, and deal it out if the deal is on now. */
-  private startRound(ctx: Ctx) {
+  protected onResync(ctx: Ctx) {
+    this.runtime.newRound('snapshot');
+    this.shownRound = -1;
+    this.startRound(ctx, false);
+    this.rebuildPile(ctx);
+    this.shownTrick = ctx.state.trick;
+    this.lastCardWarned = new Set(
+      ctx.state.counts.flatMap((count, seat) => (count === 1 ? [seat] : [])),
+    );
+    this.lastTurn = this.isMyTurn(ctx) ? ctx.state.turn : -1;
+    if (ctx.result) this.showStandings(ctx, false);
+    else if (ctx.state.phase === 'over') this.showRoundResult(ctx, false);
+  }
+
+  private startRound(ctx: Ctx, animate = true) {
+    this.runtime.newRound('game-round');
     const { state } = ctx;
     this.shownRound = state.round;
     this.clearPile();
@@ -629,14 +651,12 @@ export class TienLenView extends GameView<View, Options> {
     this.lastTurn = -1;
     this.dealing = false;
     if (!ctx.result) this.board.hide();
-    if (state.phase === 'deal') this.deal(ctx);
+    if (state.phase === 'deal' && animate) this.deal(ctx);
   }
 
   private deal(ctx: Ctx) {
     const g = this.geometry(ctx);
     const round = ctx.state.round;
-    // A newer round (or match) started meanwhile: this deal's callbacks do nothing.
-    const current = () => this.shownRound === round && this.ctx.state.round === round;
     const n = ctx.players.length;
     // One card at a time to each seat in the round, starting with the seat after you.
     const order = Array.from({ length: n }, (_, i) => (this.mySeat(ctx) + 1 + i) % n).filter(
@@ -650,71 +670,79 @@ export class TienLenView extends GameView<View, Options> {
     );
     this.dealing = true;
     this.updateButtons(ctx);
-    // Shuffle: the deck splits in two halves that slide apart and back together, three times.
-    const halves = [deck.filter((_, i) => i % 2 === 0), deck.filter((_, i) => i % 2 === 1)];
-    halves.forEach((half, side) => {
-      this.tweens.add({
-        targets: half,
-        x: `${side ? '+' : '-'}=${g.pileWidth * 0.7}`,
-        angle: side ? 8 : -8,
-        duration: 120,
-        yoyo: true,
-        repeat: 2,
-        ease: 'Sine.easeInOut',
-      });
-    });
-    const dealAt = DEAL.shuffleMs;
-    // A run of card flicks about as long as dealing a full table.
-    this.time.delayedCall(dealAt, () => this.sfx('tien-len-deal'));
-    deck.forEach((sprite, i) => {
-      const seat = order[i % order.length] as number;
-      const target = g.slots[this.slotOf(ctx, seat)];
-      this.tweens.add({
-        targets: sprite,
-        x: target.x + jitter(i) * 10,
-        y: target.y,
-        angle: jitter(i + 3) * 30,
-        scale: 0.8,
-        delay: dealAt + i * DEAL.stepMs,
-        duration: DEAL.flyMs - 20,
-        ease: 'Quad.easeOut',
-        onComplete: () => sprite.destroy(),
-      });
-    });
-    this.time.delayedCall(dealAt + deck.length * DEAL.stepMs + DEAL.flyMs, () => {
-      if (!current()) return;
-      this.syncHand(this.ctx);
-      for (const sprite of this.hand.values()) {
-        const card = sprite.card;
-        sprite.setCard(null).flipTo(card, DEAL.flipMs);
-      }
-      this.showPlayers(this.ctx);
-      this.time.delayedCall(DEAL.flipMs, () => this.announce(current));
-    });
+    this.runtime.run(
+      async (fx) => {
+        fx.defer(() => {
+          for (const card of deck) card.destroy();
+        });
+        await fx.parallel(
+          ...[0, 1].map((side) => async (child: FlowContext) => {
+            await child.tween({
+              targets: deck.filter((_, i) => i % 2 === side),
+              x: `${side ? '+' : '-'}=${g.pileWidth * 0.7}`,
+              angle: side ? 8 : -8,
+              duration: 120,
+              yoyo: true,
+              repeat: 2,
+              ease: 'Sine.easeInOut',
+            });
+          }),
+        );
+        fx.checkpoint();
+        this.sfx('tien-len-deal');
+        await fx.parallel(
+          ...deck.map((sprite, i) => async (child: FlowContext) => {
+            await child.wait(i * DEAL.stepMs);
+            const seat = order[i % order.length] as number;
+            const target = g.slots[this.slotOf(ctx, seat)];
+            await child.tween({
+              targets: sprite,
+              x: target.x + jitter(i) * 10,
+              y: target.y,
+              angle: jitter(i + 3) * 30,
+              scale: 0.8,
+              duration: DEAL.flyMs - 20,
+              ease: 'Quad.easeOut',
+            });
+            child.checkpoint();
+            sprite.destroy();
+          }),
+        );
+        fx.checkpoint();
+        this.syncHand(this.ctx);
+        await fx.parallel(
+          ...[...this.hand.values()].map((sprite) => async (child: FlowContext) => {
+            const card = sprite.card;
+            sprite.setCard(null);
+            await sprite.flip(child, card, DEAL.flipMs);
+          }),
+        );
+        fx.checkpoint();
+        this.showPlayers(this.ctx);
+        await this.announce(fx);
+      },
+      { lane: 'deal', policy: 'replace', onFailure: () => this.onResync(this.ctx) },
+    );
   }
 
   /** "Vòng 2", then who leads; then the round is on. */
-  private announce(current: () => boolean) {
-    if (!current()) return;
+  private async announce(fx: FlowContext) {
     const g = this.geometry(this.ctx);
-    // Each line springs in and floats away (~0.7 s) within its part of the announcement.
     const hold = (ms: number) => Math.max(200, ms - 700);
     callout(this, `Vòng ${this.ctx.state.round}`, g.cx, g.cy, {
       size: 76,
       hold: hold(INTRO.roundMs),
     });
-    this.time.delayedCall(INTRO.roundMs, () => {
-      if (!current()) return;
-      const { state, me, players } = this.ctx;
-      const words =
-        state.lead === me?.seat ? 'Bạn đi trước' : `${players[state.lead]?.name ?? ''} đi trước`;
-      callout(this, words, g.cx, g.cy, { size: 40, color: '#ffffff', hold: hold(INTRO.leadMs) });
-      this.time.delayedCall(INTRO.leadMs, () => {
-        if (!current()) return;
-        this.dealing = false;
-        this.onState(this.ctx);
-      });
-    });
+    await fx.wait(INTRO.roundMs);
+    fx.checkpoint();
+    const { state, me, players } = this.ctx;
+    const words =
+      state.lead === me?.seat ? 'Bạn đi trước' : `${players[state.lead]?.name ?? ''} đi trước`;
+    callout(this, words, g.cx, g.cy, { size: 40, color: '#ffffff', hold: hold(INTRO.leadMs) });
+    await fx.wait(INTRO.leadMs);
+    fx.checkpoint();
+    this.dealing = false;
+    this.onState(this.ctx);
   }
 
   // ── Events ──────────────────────────────────────────────────────────────────────────────
@@ -836,13 +864,13 @@ export class TienLenView extends GameView<View, Options> {
       callout(this, words, x, y, { size: 38, color: placeColor(place, count) });
     }
     // Let the last slap and the words land first.
-    this.time.delayedCall(1100, () => {
+    this.runtime.after(1100, () => {
       if (this.ctx.result) this.showStandings(this.ctx, true);
       else this.showRoundResult(this.ctx);
     });
   }
 
-  private showRoundResult(ctx: Ctx) {
+  private showRoundResult(ctx: Ctx, animate = true) {
     const { state } = ctx;
     const result = state.results.at(-1);
     if (!result || state.phase !== 'over') return;
@@ -858,7 +886,7 @@ export class TienLenView extends GameView<View, Options> {
         me: seat === ctx.me?.seat,
       }),
     );
-    this.board.show(`Hết vòng ${state.round}`, rows, true);
+    this.board.show(`Hết vòng ${state.round}`, rows, animate);
     this.showStatus(ctx);
   }
 
@@ -888,7 +916,7 @@ export class TienLenView extends GameView<View, Options> {
   /** The match is over: after its last round (see `showBoard`), or too few players are left. */
   protected onEnd(ctx: Ctx) {
     if (this.shownResults < ctx.state.results.length) return;
-    this.time.delayedCall(900, () => {
+    this.runtime.after(900, () => {
       if (this.ctx.result) this.showStandings(this.ctx, true);
     });
   }

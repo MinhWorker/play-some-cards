@@ -1,3 +1,4 @@
+import type { GameScene } from '@psc/sdk/client';
 /**
  * A taken piece breaks into shards of itself. Each piece's image is cut once, the first time
  * it breaks, into jagged wedges around a point near its middle (an inner and an outer shard
@@ -21,7 +22,7 @@ const cache = new Map<string, Shard[][]>();
 type Point = [number, number];
 
 /** Cuts image `key` into shards (once per pattern) and returns one pattern at random. */
-function shardsOf(scene: Phaser.Scene, key: string): Shard[] {
+function shardsOf(scene: GameScene, key: string): Shard[] {
   let patterns = cache.get(key);
   if (!patterns?.every((p) => p.every((s) => scene.textures.exists(s.key)))) {
     patterns = Array.from({ length: PATTERNS }, (_, i) => cut(scene, key, `${key}.shard${i}`));
@@ -30,7 +31,7 @@ function shardsOf(scene: Phaser.Scene, key: string): Shard[] {
   return patterns[Math.floor(Math.random() * patterns.length)] ?? [];
 }
 
-function cut(scene: Phaser.Scene, key: string, prefix: string): Shard[] {
+function cut(scene: GameScene, key: string, prefix: string): Shard[] {
   const source = scene.textures.get(key).getSourceImage() as CanvasImageSource & {
     width: number;
     height: number;
@@ -75,7 +76,7 @@ function cut(scene: Phaser.Scene, key: string, prefix: string): Shard[] {
 
 /** Draws the part of `source` inside `poly` on its own canvas, with a pale edge on the cut. */
 function draw(
-  scene: Phaser.Scene,
+  scene: GameScene,
   source: CanvasImageSource & { width: number; height: number },
   poly: Point[],
   key: string,
@@ -133,7 +134,7 @@ export interface ShatterOptions {
 }
 
 /** Breaks a piece at (x, y): its shards fly off along the blow, bounce on the table and fade. */
-export function shatter(scene: Phaser.Scene, o: ShatterOptions) {
+export function shatter(scene: GameScene, o: ShatterOptions) {
   const source = scene.textures.get(o.key).getSourceImage() as { width: number };
   const scale = o.size / source.width;
   const life = 1000;
@@ -175,7 +176,7 @@ export function shatter(scene: Phaser.Scene, o: ShatterOptions) {
   const tick = 1 / 120;
   let age = 0;
   let simulated = 0;
-  const step = (_time: number, delta: number) => {
+  const step = (delta: number) => {
     age += delta;
     for (; simulated < Math.min(age, life) / 1000; simulated += tick) {
       for (const p of parts) {
@@ -201,13 +202,12 @@ export function shatter(scene: Phaser.Scene, o: ShatterOptions) {
         .setPosition(p.gx, p.gy - p.h)
         .setAngle(p.angle)
         .setAlpha(fade);
-    if (age >= life) finish();
+    return age >= life;
   };
-  const finish = () => {
-    scene.events.off('update', step);
-    scene.events.off('shutdown', finish);
-    for (const p of parts) p.image.destroy();
-  };
-  scene.events.on('update', step);
-  scene.events.once('shutdown', finish);
+  scene.runtime.run(async (fx) => {
+    fx.defer(() => {
+      for (const part of parts) part.image.destroy();
+    });
+    await fx.frame(step);
+  });
 }

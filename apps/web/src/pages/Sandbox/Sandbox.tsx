@@ -173,9 +173,11 @@ export function Sandbox({ gameId, players: count }: Props) {
 
   const stage = useMemo<Stage>(() => {
     if (!game || state === undefined) return { mode: 'sky' };
-    if (settingUp) return { mode: 'setup', gameId, current: options };
+    if (settingUp)
+      return { mode: 'setup', instance: `sandbox:${gameId}`, gameId, current: options };
     return {
       mode: 'board',
+      instance: `sandbox:${gameId}`,
       gameId,
       view: game.getView(state, me, room),
       me: me ?? 'spectator',
@@ -217,16 +219,14 @@ export function Sandbox({ gameId, players: count }: Props) {
       <PhaserStage stage={stage} />
       <main className="ui">
         <header ref={bar} className="hud hud-top room-bar sandbox-bar">
-          <div className="room-title">
-            <div className="muted">
-              {result
-                ? result.winners.length
-                  ? `${result.winners.map((id) => seats.find((s) => s.id === id)?.name).join(', ')} thắng!`
-                  : 'Hoà!'
-                : 'Chơi thử'}
+          {/* No "Chơi thử" or game name: the seat buttons say it is the sandbox. */}
+          {result && (
+            <div className="room-title">
+              {result.winners.length
+                ? `${result.winners.map((id) => seats.find((s) => s.id === id)?.name).join(', ')} thắng!`
+                : 'Hoà!'}
             </div>
-            <div className="room-code">{game?.name ?? gameId}</div>
-          </div>
+          )}
           <div className="sandbox-seats">
             {[
               ...seats.map((s) => ({ id: s.id as string | null, name: s.name })),

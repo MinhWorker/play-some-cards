@@ -64,7 +64,13 @@ const INERT = [
  * anything else (app, server, SDK, shared, e2e helpers, dependencies…) runs them all.
  */
 function affected(ref) {
-  const files = execFileSync('git', ['diff', '--name-only', `${ref}...HEAD`], { encoding: 'utf8' })
+  // Include local work, so the documented pre-commit check verifies the pending change too.
+  const files = [
+    execFileSync('git', ['diff', '--name-only', `${ref}...HEAD`], { encoding: 'utf8' }),
+    execFileSync('git', ['diff', '--name-only', 'HEAD'], { encoding: 'utf8' }),
+    execFileSync('git', ['ls-files', '--others', '--exclude-standard'], { encoding: 'utf8' }),
+  ]
+    .join('\n')
     .split('\n')
     .filter(Boolean);
   const picked = new Set();
