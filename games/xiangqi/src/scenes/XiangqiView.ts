@@ -21,7 +21,15 @@
  * off on each device ("Hiệu ứng"); pieces then jump straight to their points. The board always
  * follows the state at once; animations only catch the pieces' looks up, one move at a time.
  */
-import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import {
+  type Button,
+  type FiniteTweenConfig,
+  type FlowContext,
+  type FlowHandle,
+  GameView,
+  type ViewContext,
+  type ViewEvent,
+} from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { COLS, type Move, type Options, ROWS, type Side, type View } from '../game/model.js';
 import { colOf, generalOf, kindOf, legalTargets, rowOf, sideOf } from '../game/rules.js';
@@ -103,19 +111,24 @@ export class XiangqiView extends GameView<View, Options> {
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   /** "Đầu hàng" was tapped once: a second tap within a few seconds confirms. */
   private resignArmed = false;
-  private resignTimer?: Phaser.Time.TimerEvent;
+  private resignTimer?: FlowHandle;
   /** This device shows effects (saved in the browser). */
   private effects = loadEffects();
-  /** Move animations run one after another; a new game drops the ones still waiting. */
-  private queue: Promise<void> = Promise.resolve();
   /** Taken pieces not yet knocked off the board (their move's animation hasn't run). */
   private leaving = new Set<Phaser.GameObjects.Container>();
-  private waiting = 0;
-  private generation = 0;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
+    this.pieces = new Map();
+    this.leaving = new Set();
+    this.endQueued = false;
+    this.live = false;
+    this.selected = null;
+    this.targets = [];
+    this.hovered = null;
+    this.resignArmed = false;
+    this.resignTimer = undefined;
     this.boardImage = this.sprite('board').setDepth(DEPTH.board);
     this.lines = this.add.graphics().setDepth(DEPTH.lines);
     this.river = this.sprite('river').setDepth(DEPTH.lines);
@@ -161,6 +174,8 @@ export class XiangqiView extends GameView<View, Options> {
    * board above, yours below); the status line and the buttons in the column on its right.
    */
   protected onLayout(ctx: Ctx) {
+    const interrupted = this.runtime.busy('turn');
+    if (interrupted) this.runtime.newRound('resize');
     const { width, height, top, hud } = ctx.screen;
     const margin = 16;
     const columnMin = 150 * hud;
@@ -225,6 +240,13 @@ export class XiangqiView extends GameView<View, Options> {
     };
     this.placeButtons();
 
+    if (interrupted) {
+      for (const container of this.leaving) container.destroy();
+      this.leaving.clear();
+      this.endQueued = false;
+      this.live = false;
+      this.syncPieces(ctx);
+    }
     for (const [sq, obj] of this.pieces) this.placePiece(obj, sq);
     this.drawMarks(ctx);
     if (this.panel.shown) this.showPanel(false);
@@ -232,9 +254,7 @@ export class XiangqiView extends GameView<View, Options> {
 
   /** A new game: an empty board (animations still waiting are dropped), then the start sound. */
   protected onStart() {
-    this.generation++;
-    this.queue = Promise.resolve();
-    this.waiting = 0;
+    this.runtime.cancelLane('turn');
     for (const obj of this.pieces.values()) obj.container.destroy();
     for (const container of this.leaving) container.destroy();
     this.pieces.clear();
@@ -269,7 +289,7 @@ export class XiangqiView extends GameView<View, Options> {
       myTurn: Boolean(me && !result && state.turn === this.mySide(ctx)),
       heavy: Boolean(victim && kindOf(victim.piece) === 'r'),
     };
-    this.enqueue((fast) => this.animateMove(moving, from, to, victim ?? null, after, fast));
+    this.enqueue((fx, fast) => this.animateMove(fx, moving, from, to, victim ?? null, after, fast));
   }
 
   protected onState(ctx: Ctx) {
@@ -286,11 +306,23 @@ export class XiangqiView extends GameView<View, Options> {
       // After the last move's animation (it is queued already, onMove comes first).
       this.endQueued = true;
       const live = this.live;
-      this.enqueue(() => this.presentEnd(live), { move: false });
+      this.enqueue((fx) => this.presentEnd(fx, live), { move: false });
     }
   }
 
   // ── Board ───────────────────────────────────────────────────────────────────────────────
+
+  protected onResync(ctx: Ctx) {
+    this.runtime.cancelLane('turn');
+    for (const obj of this.pieces.values()) obj.container.destroy();
+    for (const obj of this.leaving) obj.destroy();
+    this.pieces.clear();
+    this.leaving.clear();
+    this.endQueued = false;
+    this.live = false;
+    this.syncPieces(ctx);
+    this.onState(ctx);
+  }
 
   private mySide({ me, state }: Ctx): Side | null {
     if (!me) return null;
@@ -411,21 +443,21 @@ export class XiangqiView extends GameView<View, Options> {
   /** Puts a piece on its point at the current board size, at rest. */
   private placePiece(obj: PieceObj, sq: number) {
     const { x, y } = this.piecePos(sq);
-    this.tweens.killTweensOf([obj, obj.container, obj.image, obj.shadow]);
+    this.runtime.cancelTweens([obj, obj.container, obj.image, obj.shadow]);
     obj.container.setPosition(x, y).setScale(1).setAlpha(1).setAngle(0).setDepth(this.depthAt(sq));
     const size = (this.grid.dx * BOARD.disc) / DISC;
     obj.image.setDisplaySize(size, size).setPosition(0, 0).clearTint();
     obj.shadow.setDisplaySize(size, size).setPosition(0, 0).setAlpha(1);
-    if (sq === this.selected && this.effects) this.lift(obj, LIFT.picked, 0);
+    if (sq === this.selected && this.effects) this.setLift(obj, LIFT.picked);
   }
 
   /** Raises the piece `height` column gaps off the table (0 = standing on it). */
-  private lift(obj: PieceObj, height: number, duration = 110) {
+  private lift(fx: FlowContext, obj: PieceObj, height: number, duration = 110) {
     if (!duration) {
       this.setLift(obj, height);
       return Promise.resolve();
     }
-    return this.tween({
+    return this.tween(fx, {
       targets: obj,
       height,
       duration,
@@ -496,29 +528,21 @@ export class XiangqiView extends GameView<View, Options> {
    * Runs `step` after the animations before it. `fast` is true when more moves are waiting:
    * the step then hurries, so the board never lags behind the game.
    */
-  private enqueue(step: (fast: boolean) => Promise<void>, { move = true } = {}) {
-    const generation = this.generation;
-    // Only moves waiting make the ones before them hurry (the game's end doesn't).
-    if (move) this.waiting++;
-    this.queue = this.queue
-      .then(async () => {
-        if (move) this.waiting--;
-        if (generation === this.generation) await step(this.waiting > 0);
-      })
-      .catch((err) => console.error(err));
+  private enqueue(step: (fx: FlowContext, fast: boolean) => Promise<void>, _options = {}) {
+    this.runtime.run(
+      async (fx) => {
+        const fast = this.runtime.pending('turn') > 0;
+        this.runtime.setSpeed(fast ? 2.5 : 1);
+        await step(fx, fast);
+        fx.checkpoint();
+      },
+      { lane: 'turn', onFailure: () => this.onResync(this.ctx) },
+    );
+    this.runtime.setSpeed(this.runtime.pending('turn') > 0 ? 2.5 : 1);
   }
 
-  /** A tween as a promise; it also settles if the tween is stopped (resize, new game). */
-  private tween(config: Phaser.Types.Tweens.TweenBuilderConfig) {
-    return new Promise<void>((resolve) => {
-      const duration = Number(config.duration ?? 300) + Number(config.delay ?? 0);
-      const timer = setTimeout(resolve, duration + 250);
-      const done = () => {
-        clearTimeout(timer);
-        resolve();
-      };
-      this.tweens.add({ ...config, onComplete: done, onStop: done });
-    });
+  private tween(fx: FlowContext, config: FiniteTweenConfig) {
+    return fx.tween(config);
   }
 
   /**
@@ -526,6 +550,7 @@ export class XiangqiView extends GameView<View, Options> {
    * of attacker (`attack`); when moves are waiting it is just a quick slide and the break.
    */
   private async animateMove(
+    fx: FlowContext,
     obj: PieceObj,
     from: number,
     to: number,
@@ -539,10 +564,11 @@ export class XiangqiView extends GameView<View, Options> {
       if (obj.container.active) this.placePiece(obj, to);
       if (victim) this.gone(victim);
       this.sfx(victim ? captureSound : 'xiangqi-move');
-      await this.afterMove(after, false);
+      await this.afterMove(fx, after, false);
+      fx.checkpoint();
       return;
     }
-    const speed = fast ? 0.4 : 1;
+    const speed = 1;
     const a = this.shown(from);
     const b = this.shown(to);
     const distance = Math.hypot(a.row - b.row, a.col - b.col);
@@ -554,32 +580,38 @@ export class XiangqiView extends GameView<View, Options> {
     };
     obj.container.setDepth(DEPTH.moving);
     if (victim && !fast) {
-      await this.attack(obj, from, to, blow, hit);
+      await this.attack(fx, obj, from, to, blow, hit);
+      fx.checkpoint();
     } else {
-      await this.lift(obj, LIFT.moving, 90 * speed);
-      await this.tween({
+      await this.lift(fx, obj, LIFT.moving, 90 * speed);
+      fx.checkpoint();
+      await this.tween(fx, {
         targets: obj.container,
         x: end.x,
         y: end.y,
         duration: Math.min(420, 150 + 50 * distance) * speed,
         ease: 'Sine.easeInOut',
       });
-      await this.lift(obj, 0, 80 * speed);
+      fx.checkpoint();
+      await this.lift(fx, obj, 0, 80 * speed);
+      fx.checkpoint();
       if (victim) hit(1);
       else this.sfx('xiangqi-move');
     }
     if (!obj.container.active) return;
     this.settle(obj, to, speed);
     // Let the taken piece break in view before a cut-in covers the board.
-    if (victim && !fast && (after.check || after.mate)) await this.wait(450);
-    await this.afterMove(after, !fast);
+    if (victim && !fast && (after.check || after.mate)) await fx.wait(450);
+    fx.checkpoint();
+    await this.afterMove(fx, after, !fast);
+    fx.checkpoint();
   }
 
   /** The piece sets down on point `sq`: dust, a squash, back to its place in the rows. */
   private settle(obj: PieceObj, sq: number, speed = 1) {
     const at = this.pointXY(sq);
     this.puff(at.x, at.y);
-    this.tweens.add({
+    this.runtime.tween({
       targets: obj.container,
       scaleX: 1.06,
       scaleY: 0.92,
@@ -594,6 +626,7 @@ export class XiangqiView extends GameView<View, Options> {
    * on the table, and `hit(power)` fires at the moment it strikes.
    */
   private async attack(
+    fx: FlowContext,
     obj: PieceObj,
     from: number,
     to: number,
@@ -608,7 +641,7 @@ export class XiangqiView extends GameView<View, Options> {
     const kind = kindOf(obj.piece);
     if (kind === 'p') {
       // A short step back to wind up, then a quick shove.
-      await this.tween({
+      await this.tween(fx, {
         targets: obj.container,
         x: obj.container.x - blow.x * gap * 0.18,
         y: obj.container.y - blow.y * gap * 0.18,
@@ -617,96 +650,121 @@ export class XiangqiView extends GameView<View, Options> {
         duration: 150,
         ease: 'Quad.easeOut',
       });
-      await this.leap(obj, end, {
+      fx.checkpoint();
+      await this.leap(fx, obj, end, {
         height: 0.12,
         duration: 130,
         ease: 'Quad.easeIn',
         unsquash: true,
       });
+      fx.checkpoint();
       hit(0.75);
     } else if (kind === 'a') {
       // A neat diagonal glide, spinning once.
-      await this.leap(obj, end, {
+      await this.leap(fx, obj, end, {
         height: 0.28,
         duration: 320,
         ease: 'Sine.easeInOut',
         spin: blow.x >= 0 ? 360 : -360,
       });
+      fx.checkpoint();
       hit(0.85);
     } else if (kind === 'b') {
       // A big diagonal bound that grows as it rises, landing like a ram.
-      await this.crouch(obj, 110);
-      await this.leap(obj, end, { height: 0.6, duration: 380, grow: 0.2, unsquash: true });
+      await this.crouch(fx, obj, 110);
+      fx.checkpoint();
+      await this.leap(fx, obj, end, { height: 0.6, duration: 380, grow: 0.2, unsquash: true });
+      fx.checkpoint();
       this.shockwave(to, 0.8);
       hit(1.05);
     } else if (kind === 'n') {
       // The L: a hop onto the leg point, then a leap with a somersault onto the victim.
       const leg = legPoint(from, to);
-      await this.leap(obj, this.piecePos(leg), { height: 0.25, duration: 170 });
-      await this.tween({
+      await this.leap(fx, obj, this.piecePos(leg), { height: 0.25, duration: 170 });
+      fx.checkpoint();
+      await this.tween(fx, {
         targets: obj.container,
         scaleX: 1.08,
         scaleY: 0.9,
         duration: 60,
         yoyo: true,
       });
-      await this.leap(obj, end, { height: 0.85, duration: 380, flip: true });
+      fx.checkpoint();
+      await this.leap(fx, obj, end, { height: 0.85, duration: 380, flip: true });
+      fx.checkpoint();
       hit(1);
     } else if (kind === 'r') {
       // Straight in fast with a blur behind, past the point, braking back onto it.
-      await this.lift(obj, 0.1, 70);
+      await this.lift(fx, obj, 0.1, 70);
+      fx.checkpoint();
       const trail = this.afterimages(obj);
-      await this.tween({
+      fx.defer(() => trail.cancel());
+      await this.tween(fx, {
         targets: obj.container,
         x: end.x,
         y: end.y,
         duration: 110 + 25 * distance,
         ease: 'Cubic.easeIn',
       });
+      fx.checkpoint();
       hit(1.2);
-      await this.tween({
+      await this.tween(fx, {
         targets: obj.container,
         x: end.x + blow.x * gap * 0.2,
         y: end.y + blow.y * gap * 0.2,
         duration: 70,
         ease: 'Quad.easeOut',
       });
-      trail.remove();
-      await Promise.all([
-        this.tween({
-          targets: obj.container,
-          x: end.x,
-          y: end.y,
-          duration: 160,
-          ease: 'Back.easeOut',
-        }),
-        this.lift(obj, 0, 120),
-      ]);
+      fx.checkpoint();
+      trail.cancel();
+      await fx.parallel(
+        async (child) => {
+          await child.tween({
+            targets: obj.container,
+            x: end.x,
+            y: end.y,
+            duration: 160,
+            ease: 'Back.easeOut',
+          });
+          child.checkpoint();
+        },
+        async (child) => {
+          await this.lift(child, obj, 0, 120);
+          child.checkpoint();
+        },
+      );
+      fx.checkpoint();
     } else if (kind === 'c') {
       // Crouch, fly high over the screen (which jumps as it's passed), crash down.
       const screen = this.screenBetween(from, to);
-      await this.crouch(obj, 130);
+      await this.crouch(fx, obj, 130);
+      fx.checkpoint();
       const duration = 300 + 30 * distance;
-      if (screen) this.time.delayedCall(duration * 0.45, () => this.jolt(screen));
-      await this.leap(obj, end, { height: 1.5, duration, ease: 'Quad.easeIn', unsquash: true });
+      if (screen) this.runtime.after(duration * 0.45, () => this.jolt(screen));
+      await this.leap(fx, obj, end, { height: 1.5, duration, ease: 'Quad.easeIn', unsquash: true });
+      fx.checkpoint();
       this.shockwave(to, 1);
       this.cameras.main.shake(130, 0.004);
       hit(1.15);
     } else {
       // The general: rises slowly, trembling with the effort, and comes down on it.
-      await this.lift(obj, 0.75, 280);
+      await this.lift(fx, obj, 0.75, 280);
+      fx.checkpoint();
       this.shake(obj.image, 0.04);
-      await this.wait(200);
-      await this.leap(obj, end, {
+      await fx.wait(200);
+      fx.checkpoint();
+      await this.leap(fx, obj, end, {
         height: 0.1,
         duration: 170,
         ease: 'Quad.easeIn',
         unsquash: true,
       });
+      fx.checkpoint();
       this.shockwave(to, 1.3);
       this.cameras.main.shake(180, 0.006);
       hit(1.3);
-      await this.wait(60);
+      await fx.wait(60);
+      fx.checkpoint();
     }
   }
 
@@ -715,6 +773,7 @@ export class XiangqiView extends GameView<View, Options> {
    * now), optionally spinning, growing at the top, or flipping over like a coin.
    */
   private leap(
+    fx: FlowContext,
     obj: PieceObj,
     end: { x: number; y: number },
     o: {
@@ -733,7 +792,7 @@ export class XiangqiView extends GameView<View, Options> {
     const squash = { x: c.scaleX, y: c.scaleY };
     const imageScale = obj.image.scaleY;
     obj.progress = 0;
-    return this.tween({
+    return this.tween(fx, {
       targets: obj,
       progress: 1,
       duration: o.duration,
@@ -768,8 +827,8 @@ export class XiangqiView extends GameView<View, Options> {
   }
 
   /** Squashes down before a jump. */
-  private crouch(obj: PieceObj, duration: number) {
-    return this.tween({
+  private crouch(fx: FlowContext, obj: PieceObj, duration: number) {
+    return this.tween(fx, {
       targets: obj.container,
       scaleX: 1.12,
       scaleY: 0.86,
@@ -791,7 +850,7 @@ export class XiangqiView extends GameView<View, Options> {
   /** A piece jumps a little in its place, as if the table shook under it. */
   private jolt(obj: PieceObj) {
     if (!obj.container.active) return;
-    this.tweens.add({
+    this.runtime.tween({
       targets: obj.image,
       y: obj.image.y - this.grid.dx * 0.12,
       duration: 90,
@@ -802,24 +861,27 @@ export class XiangqiView extends GameView<View, Options> {
 
   /** Fading copies of the piece left behind it while it dashes; `remove()` stops them. */
   private afterimages(obj: PieceObj) {
-    return this.time.addEvent({
-      delay: 28,
-      loop: true,
-      callback: () => {
+    let elapsed = 0;
+    return this.runtime.run(async (fx) => {
+      await fx.frame((delta) => {
+        elapsed += delta;
+        if (!obj.container.active) return true;
+        if (elapsed < 28) return false;
+        elapsed %= 28;
         const c = obj.container;
-        if (!c.active) return;
         const ghost = this.add
           .image(c.x, c.y + obj.image.y * c.scaleY, obj.image.texture.key)
           .setScale(obj.image.scaleX * c.scaleX, obj.image.scaleY * c.scaleY)
           .setAlpha(0.35)
           .setDepth(DEPTH.moving - 0.1);
-        this.tweens.add({
-          targets: ghost,
-          alpha: 0,
-          duration: 180,
-          onComplete: () => ghost.destroy(),
+        this.runtime.run(async (child) => {
+          child.defer(() => ghost.destroy());
+          await child.tween({ targets: ghost, alpha: 0, duration: 180 });
+          child.checkpoint();
         });
-      },
+        return false;
+      });
+      fx.checkpoint();
     });
   }
 
@@ -833,13 +895,15 @@ export class XiangqiView extends GameView<View, Options> {
       .setDepth(DEPTH.marks + 0.5);
     ring.lineStyle(Math.max(2, gap * 0.08), 0xfff6dc, 1).strokeEllipse(0, 0, gap, gap * 0.9);
     ring.setScale(0.5);
-    this.tweens.add({
-      targets: ring,
-      scale: 1.3 + power,
-      alpha: 0,
-      duration: 380,
-      ease: 'Quad.easeOut',
-      onComplete: () => ring.destroy(),
+    this.runtime.run(async (fx) => {
+      fx.defer(() => ring.destroy());
+      await fx.tween({
+        targets: ring,
+        scale: 1.3 + power,
+        alpha: 0,
+        duration: 380,
+        ease: 'Quad.easeOut',
+      });
     });
   }
 
@@ -854,10 +918,10 @@ export class XiangqiView extends GameView<View, Options> {
     const image = victim.image;
     c.setDepth(DEPTH.popup - 1);
     image.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-    this.time.delayedCall(60, () => {
+    this.runtime.after(60, () => {
       if (image.active) image.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
     });
-    this.tween({
+    this.runtime.tween({
       targets: victim.shadow,
       alpha: 0,
       duration: 120,
@@ -877,14 +941,14 @@ export class XiangqiView extends GameView<View, Options> {
         y0 + dy * (ROWS - 1),
       ),
     };
-    this.tweens.add({
+    this.runtime.tween({
       targets: c,
       ...throwTo,
       angle: side * 120 * power,
       duration: 200,
       ease: 'Quad.easeOut',
     });
-    this.tweens.add({
+    this.runtime.tween({
       targets: image,
       y: -gap * 0.5 * power,
       duration: 200,
@@ -910,20 +974,16 @@ export class XiangqiView extends GameView<View, Options> {
     });
   }
 
-  private wait(ms: number) {
-    return new Promise<void>((resolve) => this.time.delayedCall(ms, resolve));
-  }
-
   /**
    * After a move lands: a check or mate cut-in (then the general in check shakes), or "your
    * turn". `animate` is false when effects are off or moves are waiting to be shown.
    */
-  private async afterMove(after: AfterMove, animate: boolean) {
+  private async afterMove(fx: FlowContext, after: AfterMove, animate: boolean) {
     if (after.check || after.mate) {
       this.sfx(after.mate ? 'xiangqi-checkmate' : 'xiangqi-check');
       if (!animate || !this.effects) return;
       const { width, height, hud } = this.ctx.screen;
-      await cutIn(this, {
+      await cutIn(this, fx, {
         text: after.mate ? 'CHIẾU BÍ!' : 'CHIẾU TƯỚNG!',
         piece: after.attacker,
         width,
@@ -931,10 +991,11 @@ export class XiangqiView extends GameView<View, Options> {
         hud,
         depth: DEPTH.cutIn,
       });
+      fx.checkpoint();
       const general = this.pieces.get(after.general);
       if (general) this.shake(general.image, 0.07);
     } else if (after.myTurn) {
-      this.time.delayedCall(260, () => this.sfx('xiangqi-turn'));
+      this.runtime.after(260, () => this.sfx('xiangqi-turn'));
     }
   }
 
@@ -947,14 +1008,15 @@ export class XiangqiView extends GameView<View, Options> {
    * The game is over (after its last move has played out): the win jingle for the winner here,
    * the draw sound, then the result panel. `live`: this screen watched it end.
    */
-  private async presentEnd(live: boolean) {
+  private async presentEnd(fx: FlowContext, live: boolean) {
     const ctx = this.ctx;
     const end = ctx.state.end;
     if (!ctx.result || !end) return;
     if (live) {
       if (!end.winner) this.sfx('xiangqi-draw');
       else if (end.winner === this.mySide(ctx)) this.jingle('xiangqi-victory');
-      if (this.effects) await this.wait(350);
+      if (this.effects) await fx.wait(350);
+      fx.checkpoint();
     }
     this.showPanel(live && this.effects);
   }
@@ -1004,8 +1066,8 @@ export class XiangqiView extends GameView<View, Options> {
   /** A quick side-to-side wiggle of `amount` column gaps. */
   private shake(target: Phaser.GameObjects.Image, amount: number) {
     const x = target.x;
-    this.tweens.killTweensOf(target);
-    this.tweens.add({
+    this.runtime.cancelTweens(target);
+    this.runtime.tween({
       targets: target,
       x: x + amount * this.grid.dx,
       duration: 45,
@@ -1040,7 +1102,16 @@ export class XiangqiView extends GameView<View, Options> {
       })
       .setDepth(this.depthAt(0) - 0.5);
     dust.explode(10);
-    this.time.delayedCall(500, () => dust.destroy());
+    dust.setActive(false);
+    this.runtime.run(async (fx) => {
+      fx.defer(() => dust.destroy());
+      let elapsed = 0;
+      await fx.frame((delta) => {
+        dust.preUpdate(0, delta);
+        elapsed += delta;
+        return elapsed >= 500;
+      });
+    });
   }
 
   // ── Taps ────────────────────────────────────────────────────────────────────────────────
@@ -1072,7 +1143,11 @@ export class XiangqiView extends GameView<View, Options> {
       this.targets = legalTargets(ctx.state.board, sq);
       this.hover(null);
       const obj = this.pieces.get(sq);
-      if (obj && this.effects) void this.lift(obj, LIFT.picked);
+      if (obj && this.effects)
+        this.runtime.run(async (fx) => {
+          await this.lift(fx, obj, LIFT.picked);
+          fx.checkpoint();
+        });
       this.sfx('xiangqi-piece-select');
     } else if (this.selected !== null) {
       const obj = this.pieces.get(this.selected);
@@ -1085,7 +1160,11 @@ export class XiangqiView extends GameView<View, Options> {
   /** Drops the picked piece back onto the table. */
   private deselect() {
     const obj = this.selected === null ? null : this.pieces.get(this.selected);
-    if (obj) void this.lift(obj, 0);
+    if (obj)
+      this.runtime.run(async (fx) => {
+        await this.lift(fx, obj, 0);
+        fx.checkpoint();
+      });
     this.selected = null;
     this.targets = [];
   }
@@ -1187,14 +1266,14 @@ export class XiangqiView extends GameView<View, Options> {
 
   private resign() {
     if (this.resignArmed) {
-      this.resignTimer?.remove();
+      this.resignTimer?.cancel();
       this.resignArmed = false;
       this.send('resign');
       return;
     }
     this.resignArmed = true;
     this.buttons.resign.setText('Chắc chưa?');
-    this.resignTimer = this.time.delayedCall(3000, () => {
+    this.resignTimer = this.runtime.after(3000, () => {
       this.resignArmed = false;
       this.buttons.resign.setText('Đầu hàng');
     });

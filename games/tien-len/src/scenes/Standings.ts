@@ -2,7 +2,7 @@
  * A ranking board over the table: after each round ("Hết vòng 2") and at the end of the match
  * ("Tổng kết"). Rows slide in one after another, best first.
  */
-import { titleStyle } from '@psc/sdk/client';
+import { type GameScene, titleStyle } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 
 export interface StandingRow {
@@ -28,7 +28,7 @@ export class Standings {
   private data: StandingRow[] = [];
   private area = { cx: 0, top: 0, bottom: 0, width: 0, hud: 1 };
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(private readonly scene: GameScene) {
     this.panel = scene.add.graphics();
     this.title = scene.add.text(0, 0, '', titleStyle(40)).setOrigin(0.5);
     this.footer = scene.add
@@ -51,11 +51,11 @@ export class Standings {
     this.rows = rows.map((row) => this.makeRow(row));
     this.container.add(this.rows);
     this.title.setText(title);
-    this.container.setVisible(true);
+    this.container.setVisible(true).setAlpha(1).setScale(1);
     this.layout(this.area);
     if (!animate) return;
     this.container.setAlpha(0).setScale(0.9);
-    this.scene.tweens.add({
+    (this.scene as GameScene).runtime.tween({
       targets: this.container,
       alpha: 1,
       scale: 1,
@@ -65,7 +65,7 @@ export class Standings {
     this.rows.forEach((row, i) => {
       const x = row.x;
       row.setAlpha(0).setX(x - 40);
-      this.scene.tweens.add({
+      (this.scene as GameScene).runtime.tween({
         targets: row,
         x,
         alpha: 1,

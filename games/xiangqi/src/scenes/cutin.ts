@@ -5,7 +5,7 @@
  * mixed). It holds for a moment, then leaves to the left. About a second in all.
  */
 
-import { FONT } from '@psc/sdk/client';
+import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 
 const RED = 0xd7141a;
@@ -24,7 +24,7 @@ export interface CutInOptions {
 }
 
 /** Plays the cut-in; resolves once it has left the screen. */
-export function cutIn(scene: Phaser.Scene, o: CutInOptions): Promise<void> {
+export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promise<void> {
   const { width, height } = o;
   const cx = width / 2;
   const cy = height / 2;
@@ -104,57 +104,68 @@ export function cutIn(scene: Phaser.Scene, o: CutInOptions): Promise<void> {
     root.add(l);
   }
 
-  const tweens = scene.tweens;
-  tweens.add({ targets: flash, alpha: 0, duration: 140, onComplete: () => flash.destroy() });
-  tweens.add({ targets: dim, fillAlpha: 0.35, duration: 150 });
-  tweens.add({ targets: root, x: cx, duration: 170, ease: 'Cubic.easeOut' });
-  tweens.add({
-    targets: [piece, shadow],
-    x: pieceX,
-    duration: 280,
-    delay: 80,
-    ease: 'Back.easeOut',
-  });
-  tweens.add({ targets: piece, angle: -4, duration: 900, delay: 80 });
-  for (const line of lines) {
-    tweens.add({ targets: line, x: line.x - width * 0.5, duration: 1000, ease: 'Linear' });
-  }
-  letters.forEach((l, i) => {
-    tweens.add({
-      targets: l,
-      scale: 1,
-      alpha: 1,
-      duration: 130,
-      delay: 130 + i * 40,
-      ease: 'Back.easeOut',
-    });
+  fx.defer(() => {
+    root.destroy(true);
+    dim.destroy();
+    flash.destroy();
   });
   const hold = 130 + letters.length * 40 + 520;
-  return new Promise((resolve) => {
-    let over = false;
-    const done = () => {
-      if (over) return;
-      over = true;
-      scene.events.off('shutdown', done);
-      root.destroy(true);
-      dim.destroy();
-      if (flash.active) flash.destroy();
-      resolve();
-    };
-    tweens.add({
-      targets: root,
-      x: cx - width * 1.3,
-      duration: 200,
-      delay: hold,
-      ease: 'Cubic.easeIn',
-    });
-    tweens.add({ targets: dim, fillAlpha: 0, duration: 200, delay: hold, onComplete: done });
-    scene.events.once('shutdown', done);
-  });
+  return fx.parallel(
+    async (child) => {
+      await child.tween({ targets: flash, alpha: 0, duration: 140 });
+    },
+    async (child) => {
+      await child.tween({ targets: dim, fillAlpha: 0.35, duration: 150 });
+      await child.wait(Math.max(0, hold - 150));
+      await child.tween({ targets: dim, fillAlpha: 0, duration: 200 });
+    },
+    async (child) => {
+      await child.tween({ targets: root, x: cx, duration: 170, ease: 'Cubic.easeOut' });
+      await child.wait(Math.max(0, hold - 170));
+      await child.tween({
+        targets: root,
+        x: cx - width * 1.3,
+        duration: 200,
+        ease: 'Cubic.easeIn',
+      });
+    },
+    async (child) => {
+      await child.tween({
+        targets: piece,
+        x: pieceX,
+        angle: -4,
+        duration: 280,
+        delay: 80,
+        ease: 'Back.easeOut',
+      });
+    },
+    async (child) => {
+      await child.tween({
+        targets: shadow,
+        x: pieceX,
+        duration: 280,
+        delay: 80,
+        ease: 'Back.easeOut',
+      });
+    },
+    ...lines.map((line) => async (child: FlowContext) => {
+      await child.tween({ targets: line, x: line.x - width * 0.5, duration: 1000, ease: 'Linear' });
+    }),
+    ...letters.map((letter, i) => async (child: FlowContext) => {
+      await child.tween({
+        targets: letter,
+        scale: 1,
+        alpha: 1,
+        duration: 130,
+        delay: 130 + i * 40,
+        ease: 'Back.easeOut',
+      });
+    }),
+  );
 }
 
 /** Each letter of `text` in its own tilted box: white on black, black on white or white on red. */
-function ransom(scene: Phaser.Scene, text: string, size: number) {
+function ransom(scene: GameScene, text: string, size: number) {
   const looks = [
     { box: WHITE, text: '#0b0b0b' },
     { box: BLACK, text: '#ffffff', edge: WHITE },

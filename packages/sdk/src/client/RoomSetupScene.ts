@@ -23,6 +23,7 @@ export abstract class RoomSetupScene<Options> extends GameScene {
   protected current: Options | null = null;
 
   create() {
+    this.startRuntime('scene');
     this.current = (this.registry.get(SETUP_CURRENT) as Options | undefined) ?? null;
     this.followFrame(() => this.draw());
     this.build();

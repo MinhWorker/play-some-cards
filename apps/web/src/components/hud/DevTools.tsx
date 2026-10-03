@@ -37,6 +37,7 @@ export function DevTools() {
       {devSetting('fps') && <FpsMeter />}
       {open && (
         <div className="devtools-panel">
+          <RuntimeDiagnostics />
           {(Object.keys(DEV_SETTINGS) as DevKey[]).map((key) => (
             <Control key={key} id={key} />
           ))}
@@ -99,4 +100,25 @@ function FpsMeter() {
     return () => cancelAnimationFrame(id);
   }, []);
   return <output className="devtools-fps">{fps} FPS</output>;
+}
+
+/** Read-only metadata; never includes game snapshots or cards. */
+function RuntimeDiagnostics() {
+  const [snapshot, setSnapshot] = useState('');
+  useEffect(() => {
+    const read = () => {
+      const inspect = (window as Window & { __runtimeDiagnostics?: () => unknown })
+        .__runtimeDiagnostics;
+      if (inspect) setSnapshot(JSON.stringify(inspect(), null, 2));
+    };
+    read();
+    const id = setInterval(read, 500);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <details>
+      <summary>Runtime</summary>
+      <pre style={{ maxHeight: 180, overflow: 'auto', fontSize: 11 }}>{snapshot}</pre>
+    </details>
+  );
 }

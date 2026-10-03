@@ -3,7 +3,7 @@
  * back, both from the table's card look (deck.ts). A Phaser container, so it moves, turns and
  * flips as one object.
  */
-import { FONT } from '@psc/sdk/client';
+import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { type Card, isRed, RANKS, rankOf, suitOf } from '../game/cards.js';
 import type { CardArt } from './deck.js';
@@ -40,7 +40,7 @@ export class CardSprite extends Phaser.GameObjects.Container {
   private cardWidth = 60;
 
   constructor(
-    scene: Phaser.Scene,
+    scene: GameScene,
     private readonly art: CardArt,
     card: Card | null,
   ) {
@@ -93,25 +93,17 @@ export class CardSprite extends Phaser.GameObjects.Container {
 
   /** Turns the card over to show `card` (or its back), like a flip in the hand. */
   flipTo(card: Card | null, duration = 180) {
-    // Cleared off the table meanwhile (a new round on a slow screen). An error thrown from a
-    // tween callback would stop Phaser's frame loop for good.
     if (!this.scene) return;
-    const scaleX = this.scaleX || 1;
-    this.scene.tweens.add({
-      targets: this,
-      scaleX: 0,
-      duration: duration / 2,
-      ease: 'Sine.easeIn',
-      onComplete: () => {
-        if (!this.scene) return;
-        this.setCard(card);
-        this.scene.tweens.add({
-          targets: this,
-          scaleX,
-          duration: duration / 2,
-          ease: 'Sine.easeOut',
-        });
-      },
+    return (this.scene as GameScene).runtime.run(async (fx) => {
+      await this.flip(fx, card, duration);
     });
+  }
+
+  async flip(fx: FlowContext, card: Card | null, duration = 180) {
+    const scaleX = this.scaleX || 1;
+    await fx.tween({ targets: this, scaleX: 0, duration: duration / 2, ease: 'Sine.easeIn' });
+    fx.checkpoint();
+    this.setCard(card);
+    await fx.tween({ targets: this, scaleX, duration: duration / 2, ease: 'Sine.easeOut' });
   }
 }
