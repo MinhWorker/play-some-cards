@@ -60,3 +60,9 @@ Bàn cờ và ô vẽ bằng code. Quân tạm là ký hiệu cờ vua (♚ ♛ 
 Test: `npm run check` (gồm perft đếm nước đi từ thế khai cuộc và các thế mẫu, chiếu hết, hết nước,
 lặp thế cờ). Chơi thử một mình: http://localhost:5033/?play=chess&players=2 (khi đang chạy
 `npm run dev`).
+
+## Vòng đời bàn chơi
+
+Hoạt ảnh và thời gian xác nhận đầu hàng dùng runtime của SDK. Khi mở ván mới, kết nối lại
+hoặc rời bàn, các hiệu ứng cũ được huỷ; kết nối lại dựng bàn từ trạng thái hiện tại,
+không phát lại nước đi trước đó.

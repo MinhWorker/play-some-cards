@@ -13,7 +13,13 @@
  * The board is drawn here (squares, frame, coordinates). Pieces are chess symbols drawn as text
  * until their images exist in assets/ (theme.ts); sounds come with the art.
  */
-import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import {
+  type Button,
+  type FlowHandle,
+  GameView,
+  type ViewContext,
+  type ViewEvent,
+} from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import type { Move, Options, Piece, Promotion, Side, View } from '../game/model.js';
 import { SIZE } from '../game/model.js';
@@ -93,11 +99,13 @@ export class ChessView extends GameView<View, Options> {
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   /** "Đầu hàng" was tapped once: a second tap within a few seconds confirms. */
   private resignArmed = false;
-  private resignTimer?: Phaser.Time.TimerEvent;
+  private resignTimer?: FlowHandle;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
+    this.resignTimer = undefined;
+    this.resignArmed = false;
     this.pieces = new Map();
     this.leaving = new Set();
     this.selected = null;
@@ -185,12 +193,20 @@ export class ChessView extends GameView<View, Options> {
     this.placeButtons();
     this.layoutPicker();
 
-    for (const [sq, obj] of this.pieces) this.placePiece(obj, sq);
+    for (const [sq, obj] of this.pieces) {
+      this.runtime.cancelTweens(obj.look);
+      this.restyle(obj);
+      this.placePiece(obj, sq);
+    }
     this.drawMarks(ctx);
   }
 
   /** A new game: an empty board (onState sets the pieces out). */
   protected onStart() {
+    this.resignTimer?.cancel();
+    this.resignTimer = undefined;
+    this.resignArmed = false;
+    this.buttons.resign.setText('Đầu hàng');
     for (const obj of this.pieces.values()) obj.look.destroy();
     for (const look of this.leaving) look.destroy();
     this.pieces.clear();
@@ -228,6 +244,11 @@ export class ChessView extends GameView<View, Options> {
       this.pieces.set(rook[1], rookObj);
       this.slide(rookObj, rook[1]);
     }
+  }
+
+  protected onResync(ctx: Ctx) {
+    this.onStart();
+    this.onState(ctx);
   }
 
   protected onState(ctx: Ctx) {
@@ -355,41 +376,33 @@ export class ChessView extends GameView<View, Options> {
   /** Puts a piece on its square at the current board size. */
   private placePiece(obj: PieceObj, sq: number) {
     const { x, y } = this.pointXY(sq);
-    this.tweens.killTweensOf(obj.look);
+    this.runtime.cancelTweens(obj.look);
     this.sizeLook(obj.look, this.grid.cell * 0.82);
     obj.look.setPosition(x, y).setAlpha(1).setDepth(DEPTH.piece);
   }
 
   private slide(obj: PieceObj, to: number, done?: () => void) {
     const { x, y } = this.pointXY(to);
-    this.tweens.killTweensOf(obj.look);
+    this.runtime.cancelTweens(obj.look);
     obj.look.setDepth(DEPTH.moving);
-    this.tweens.add({
-      targets: obj.look,
-      x,
-      y,
-      duration: 180,
-      ease: 'Sine.easeInOut',
-      onComplete: () => {
-        obj.look.setDepth(DEPTH.piece);
-        done?.();
-      },
+    this.runtime.run(async (fx) => {
+      await fx.tween({ targets: obj.look, x, y, duration: 180, ease: 'Sine.easeInOut' });
+      fx.checkpoint();
+      obj.look.setDepth(DEPTH.piece);
+      done?.();
     });
   }
 
   private fade(obj: PieceObj) {
     const look = obj.look;
     this.leaving.add(look);
-    this.tweens.killTweensOf(look);
-    this.tweens.add({
-      targets: look,
-      alpha: 0,
-      delay: 120,
-      duration: 200,
-      onComplete: () => {
+    this.runtime.cancelTweens(look);
+    this.runtime.run(async (fx) => {
+      fx.defer(() => {
         this.leaving.delete(look);
         look.destroy();
-      },
+      });
+      await fx.tween({ targets: look, alpha: 0, delay: 120, duration: 200 });
     });
   }
 
@@ -574,14 +587,14 @@ export class ChessView extends GameView<View, Options> {
 
   private resign() {
     if (this.resignArmed) {
-      this.resignTimer?.remove();
+      this.resignTimer?.cancel();
       this.resignArmed = false;
       this.send('resign');
       return;
     }
     this.resignArmed = true;
     this.buttons.resign.setText('Chắc chưa?');
-    this.resignTimer = this.time.delayedCall(3000, () => {
+    this.resignTimer = this.runtime.after(3000, () => {
       this.resignArmed = false;
       this.buttons.resign.setText('Đầu hàng');
     });
