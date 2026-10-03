@@ -4,7 +4,7 @@
  * back, both from the table's card look (deck.ts). A Phaser container, so it moves, turns and
  * flips as one object.
  */
-import { FONT } from '@psc/sdk/client';
+import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { type Card, isRed, RANKS, rankOf, suitOf } from '../game/cards.js';
 import type { CardArt } from './deck.js';
@@ -33,6 +33,7 @@ function rankTexture(scene: Phaser.Scene, rank: string, color: string) {
 export class CardSprite extends Phaser.GameObjects.Container {
   /** The card it shows face up, or `null` face down. */
   card: Card | null = null;
+  targetCard: Card | null = null;
   private readonly face: Phaser.GameObjects.Image;
   private readonly back: Phaser.GameObjects.Image;
   private readonly rank: Phaser.GameObjects.Image;
@@ -41,10 +42,11 @@ export class CardSprite extends Phaser.GameObjects.Container {
   private cardWidth = 60;
 
   constructor(
-    scene: Phaser.Scene,
+    private readonly view: GameScene,
     private readonly art: CardArt,
     card: Card | null,
   ) {
+    const scene = view;
     super(scene);
     this.face = scene.add.image(0, 0, art.blank);
     this.back = scene.add.image(0, 0, art.back);
@@ -63,6 +65,7 @@ export class CardSprite extends Phaser.GameObjects.Container {
   /** Face up with `card`, or face down (`null`). */
   setCard(card: Card | null) {
     this.card = card;
+    this.targetCard = card;
     const up = card !== null;
     this.back.setVisible(!up);
     for (const obj of [this.face, this.rank, this.small, this.big]) obj.setVisible(up);
@@ -93,26 +96,24 @@ export class CardSprite extends Phaser.GameObjects.Container {
   }
 
   /** Turns the card over to show `card` (or its back), like a flip in the hand. */
-  flipTo(card: Card | null, duration = 180) {
-    // Cleared off the table meanwhile (a new round on a slow screen). An error thrown from a
-    // tween callback would stop Phaser's frame loop for good.
-    if (!this.scene) return;
-    const scaleX = this.scaleX || 1;
-    this.scene.tweens.add({
-      targets: this,
-      scaleX: 0,
-      duration: duration / 2,
-      ease: 'Sine.easeIn',
-      onComplete: () => {
-        if (!this.scene) return;
-        this.setCard(card);
-        this.scene.tweens.add({
-          targets: this,
-          scaleX,
-          duration: duration / 2,
-          ease: 'Sine.easeOut',
-        });
+  flipTo(card: Card | null, lane: string, duration = 180) {
+    this.targetCard = card;
+    this.view.runtime.run(
+      async (fx) => {
+        await this.flip(fx, card, duration);
       },
-    });
+      { lane },
+    );
+  }
+
+  async flip(fx: FlowContext, card: Card | null, duration = 180) {
+    const scaleX = 1;
+    await fx.tween({ targets: this, scaleX: 0, duration: duration / 2, ease: 'Sine.easeIn' });
+    fx.checkpoint();
+    // A later queued flip may already have a different target.
+    const target = this.targetCard;
+    this.setCard(card);
+    this.targetCard = target;
+    await fx.tween({ targets: this, scaleX, duration: duration / 2, ease: 'Sine.easeOut' });
   }
 }

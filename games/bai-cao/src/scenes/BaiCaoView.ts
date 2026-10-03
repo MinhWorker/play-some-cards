@@ -70,6 +70,7 @@ export class BaiCaoView extends GameView<View, Options> {
   protected onCreate(ctx: Ctx) {
     this.seats = [];
     this.peeked = new Set();
+    this.peekRound = ctx.state.round;
     this.mat = new Mat(this, this.texture('mat'));
     this.art = cardArt(DEFAULT_LOOK, (name) => this.texture(name));
     this.info = this.label('', { size: 28 }).setDepth(20);
@@ -208,7 +209,8 @@ export class BaiCaoView extends GameView<View, Options> {
     seat.delta.setFontSize(30 * hud).setPosition(cards.x, cards.y);
     seat.cards.forEach((card, k) => {
       // A card still flying in lands at once (a resize, or the scene restarting).
-      this.tweens.killTweensOf(card);
+      this.runtime.cancelLane(`card:${this.seats.indexOf(seat)}:${k}`);
+      this.runtime.cancelTweens(card);
       card
         .setCardWidth(cards.width)
         .setScale(1)
@@ -219,7 +221,16 @@ export class BaiCaoView extends GameView<View, Options> {
 
   protected onStart() {
     this.peeked.clear();
+    this.peekRound = this.ctx.state.round;
     for (const seat of this.seats) seat.shown = '';
+    this.onLayout(this.ctx);
+  }
+
+  protected onResync(ctx: Ctx) {
+    this.peeked.clear();
+    this.peekRound = ctx.state.round;
+    for (const seat of this.seats) seat.shown = '';
+    this.onLayout(ctx);
   }
 
   protected onState(ctx: Ctx) {
@@ -256,7 +267,19 @@ export class BaiCaoView extends GameView<View, Options> {
     const { state } = ctx;
     const mine = this.mySeat(ctx);
     if (state.round !== this.peekRound) {
+      this.runtime.newRound('game-round');
       this.peekRound = state.round;
+      for (const seat of this.seats) {
+        seat.shown = '';
+        this.runtime.cancelTweens(seat.delta);
+        seat.delta.setText('').setAlpha(1).setScale(1);
+        seat.cards.forEach((card, k) => {
+          card
+            .setScale(1)
+            .setAlpha(1)
+            .setPosition(seat.at.x + (k - 1) * (seat.at.width + 8), seat.at.y);
+        });
+      }
       this.peeked.clear();
     }
     this.seats.forEach((seat, i) => {
@@ -330,19 +353,26 @@ export class BaiCaoView extends GameView<View, Options> {
         // Dealt: fly in from the middle of the table.
         const { x, y } = card;
         card.setCard(null).setPosition(this.center.x, this.center.y).setAlpha(0);
-        this.tweens.add({
-          targets: card,
-          x,
-          y,
-          alpha: 1,
-          duration: 260,
-          delay: (i * 3 + k) * 40,
-          ease: 'Quad.easeOut',
-          onComplete: () => face !== null && card.flipTo(face),
-        });
-      } else if (card.card !== face) {
-        if (animate) card.flipTo(face);
-        else card.setCard(face);
+        card.targetCard = face;
+        this.runtime.run(
+          async (fx) => {
+            await fx.tween({
+              targets: card,
+              x,
+              y,
+              alpha: 1,
+              duration: 260,
+              delay: (i * 3 + k) * 40,
+              ease: 'Quad.easeOut',
+            });
+            if (face !== null) await card.flip(fx, face);
+          },
+          { lane: `card:${i}:${k}` },
+        );
+      } else if (!animate) {
+        card.setCard(face);
+      } else if (card.targetCard !== face) {
+        card.flipTo(face, `card:${i}:${k}`);
       }
     });
     seat.shown = key;
@@ -357,7 +387,7 @@ export class BaiCaoView extends GameView<View, Options> {
       state.phase === 'showdown' ? state.results?.find((r) => r.seat === i) : undefined;
     if (result && seat.delta.text === '' && animate) {
       seat.delta.setAlpha(0).setScale(0.6);
-      this.tweens.add({
+      this.runtime.tween({
         targets: seat.delta,
         alpha: 1,
         scale: 1,

@@ -46,3 +46,9 @@ Mặt chiếu, lá bài, chất và nút lấy từ Tiến Lên (`mat`, `face-cl
 
 Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=bai-cao&players=4 (khi đang
 chạy `npm run dev`).
+
+## Vòng đời bàn chơi
+
+Chia bài, lật bài và hiện điểm dùng runtime của SDK. Mỗi ván con huỷ các hiệu ứng của ván
+trước. Khi kết nối lại hoặc đổi kích thước bàn, bài được dựng ngay từ trạng thái hiện tại;
+hiệu ứng đang chờ không lật lại bài đã thay đổi.
