@@ -11,7 +11,13 @@
  *
  * Everything is drawn here until the art exists; sounds come with it.
  */
-import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import {
+  type Button,
+  type FlowHandle,
+  GameView,
+  type ViewContext,
+  type ViewEvent,
+} from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import {
   FLEET,
@@ -72,14 +78,15 @@ export class BattleshipView extends GameView<View, Options> {
   /** Setting up: the picked ship. */
   private picked: number | null = null;
   private resignArmed = false;
-  private resignTimer?: Phaser.Time.TimerEvent;
+  private resignTimer?: FlowHandle;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
+    this.resignTimer = undefined;
+    this.resignArmed = false;
     this.draft = [];
     this.picked = null;
-    this.resignArmed = false;
     this.big = this.add.graphics();
     this.small = this.add.graphics();
     this.effects = this.add.graphics().setDepth(5);
@@ -167,9 +174,15 @@ export class BattleshipView extends GameView<View, Options> {
 
   /** A new game: the fleet on this screen comes from the server again. */
   protected onStart() {
+    this.resignTimer?.cancel();
+    this.resignTimer = undefined;
+    this.resignArmed = false;
+    this.buttons.resign.setText('Đầu hàng');
+    this.runtime.cancelLane('placement');
     this.draft = [];
     this.picked = null;
     this.effects.clear();
+    this.cameras.main.resetFX();
   }
 
   /** A shot landed: a splash for a miss, a burst for a hit, a shake when a ship goes down. */
@@ -184,14 +197,21 @@ export class BattleshipView extends GameView<View, Options> {
     const y = box.y0 + (rowOf(last.cell) + 0.5) * box.cell;
     const ring = this.add.circle(x, y, box.cell * 0.2).setDepth(6);
     ring.setStrokeStyle(Math.max(2, box.cell * 0.08), last.hit ? COLORS.hit : COLORS.miss);
-    this.tweens.add({
-      targets: ring,
-      scale: last.hit ? 3 : 2.2,
-      alpha: 0,
-      duration: last.hit ? 420 : 320,
-      onComplete: () => ring.destroy(),
+    this.runtime.run(async (fx) => {
+      fx.defer(() => ring.destroy());
+      await fx.tween({
+        targets: ring,
+        scale: last.hit ? 3 : 2.2,
+        alpha: 0,
+        duration: last.hit ? 420 : 320,
+      });
     });
     if (last.sunk) this.cameras.main.shake(260, 0.006);
+  }
+
+  protected onResync(ctx: Ctx) {
+    this.onStart();
+    this.onState(ctx);
   }
 
   protected onState(ctx: Ctx) {
@@ -492,7 +512,14 @@ export class BattleshipView extends GameView<View, Options> {
     g.lineStyle(Math.max(2, cell * 0.08), COLORS.bad, 1);
     for (const c of ship.cells)
       g.strokeRect(x0 + colOf(c) * cell, y0 + rowOf(c) * cell, cell, cell);
-    this.time.delayedCall(350, () => this.effects.clear());
+    this.runtime.run(
+      async (fx) => {
+        await fx.wait(350);
+        fx.checkpoint();
+        this.effects.clear();
+      },
+      { lane: 'placement', policy: 'replace' },
+    );
   }
 
   private shuffle() {
@@ -503,14 +530,14 @@ export class BattleshipView extends GameView<View, Options> {
 
   private resign() {
     if (this.resignArmed) {
-      this.resignTimer?.remove();
+      this.resignTimer?.cancel();
       this.resignArmed = false;
       this.send('resign');
       return;
     }
     this.resignArmed = true;
     this.buttons.resign.setText('Chắc chưa?');
-    this.resignTimer = this.time.delayedCall(3000, () => {
+    this.resignTimer = this.runtime.after(3000, () => {
       this.resignArmed = false;
       this.buttons.resign.setText('Đầu hàng');
     });
