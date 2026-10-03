@@ -61,6 +61,7 @@ export class Setup extends RoomSetupScene<Options> {
   private sentAt = -Infinity;
 
   protected build() {
+    this.sentAt = -Infinity;
     this.picks = optionsSchema.parse(this.current ?? {});
     this.panel = this.add.graphics();
     this.title = this.label(this.current ? 'Tuỳ chỉnh ván cờ' : 'Tạo ván Cờ Đam', { size: 40 });

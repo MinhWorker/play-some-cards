@@ -13,7 +13,14 @@
  * The board and the pieces are drawn here until their images exist in assets/ (piece-<white|
  * black>-<man|king>); sounds come with the art.
  */
-import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import {
+  type Button,
+  type FlowContext,
+  type FlowHandle,
+  GameView,
+  type ViewContext,
+  type ViewEvent,
+} from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { type Move, type Options, RULES, type Side, type View } from '../game/model.js';
 import { colOf, isDark, isKing, legalMoves, other, rowOf, sideOf } from '../game/rules.js';
@@ -56,6 +63,7 @@ export class CheckersView extends GameView<View, Options> {
   private buttons!: { draw: Button; decline: Button; resign: Button };
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   private pieces = new Map<number, PieceObj>();
+  private leaving = new Set<Phaser.GameObjects.Image>();
   /** Where the top-left square's corner is, a square's size, the board's size and turn. */
   private grid = { x0: 0, y0: 0, cell: 60, size: 8, flip: false };
   /** The squares tapped so far for this move: the piece, then each landing square. */
@@ -63,15 +71,17 @@ export class CheckersView extends GameView<View, Options> {
   /** The legal moves of this turn (on your turn). */
   private moves: Move[] = [];
   private resignArmed = false;
-  private resignTimer?: Phaser.Time.TimerEvent;
+  private resignTimer?: FlowHandle;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
+    this.resignTimer = undefined;
+    this.resignArmed = false;
     this.pieces = new Map();
+    this.leaving = new Set();
     this.path = [];
     this.moves = [];
-    this.resignArmed = false;
     this.makeTextures();
     this.board = this.add.graphics().setDepth(DEPTH.board);
     this.marks = this.add.graphics().setDepth(DEPTH.marks);
@@ -100,6 +110,9 @@ export class CheckersView extends GameView<View, Options> {
    * buttons in the column on its right.
    */
   protected onLayout(ctx: Ctx) {
+    this.runtime.cancelLane('move');
+    for (const image of this.leaving) image.destroy();
+    this.leaving.clear();
     const { width, height, top, hud } = ctx.screen;
     const margin = 16;
     const availH = height - top - margin;
@@ -142,6 +155,13 @@ export class CheckersView extends GameView<View, Options> {
 
   /** A new game: an empty board (onState sets the pieces out). */
   protected onStart() {
+    this.runtime.cancelLane('move');
+    for (const image of this.leaving) image.destroy();
+    this.leaving.clear();
+    this.resignTimer?.cancel();
+    this.resignTimer = undefined;
+    this.resignArmed = false;
+    this.buttons.resign.setText('Đầu hàng');
     for (const obj of this.pieces.values()) obj.image.destroy();
     this.pieces.clear();
     this.path = [];
@@ -162,25 +182,46 @@ export class CheckersView extends GameView<View, Options> {
     moving.piece = ctx.state.board[to] ?? moving.piece;
     moving.image.setDepth(DEPTH.moving);
     const hops = last.path.slice(1).map((sq) => this.pointXY(sq));
-    const tweens = hops.map(({ x, y }) => ({ x, y, duration: 150, ease: 'Sine.easeInOut' }));
-    this.tweens.killTweensOf(moving.image);
-    this.tweens.chain({
-      targets: moving.image,
-      tweens,
-      onComplete: () => {
-        moving.image.setTexture(this.pieceKey(moving.piece)).setDepth(DEPTH.piece);
-        this.placePiece(moving, to);
+    for (const obj of taken) this.leaving.add(obj.image);
+    this.runtime.run(
+      async (fx) => {
+        for (const obj of taken)
+          fx.defer(() => {
+            this.leaving.delete(obj.image);
+            obj.image.destroy();
+          });
+        await fx.parallel(
+          async (move) => {
+            for (const { x, y } of hops) {
+              await move.tween({
+                targets: moving.image,
+                x,
+                y,
+                duration: 150,
+                ease: 'Sine.easeInOut',
+              });
+            }
+            move.checkpoint();
+            moving.image.setTexture(this.pieceKey(moving.piece)).setDepth(DEPTH.piece);
+            this.placePiece(moving, to);
+          },
+          ...taken.map((obj, i) => async (capture: FlowContext) => {
+            await capture.tween({
+              targets: obj.image,
+              alpha: 0,
+              delay: 150 * (i + 1),
+              duration: 200,
+            });
+          }),
+        );
       },
-    });
-    taken.forEach((obj, i) => {
-      this.tweens.add({
-        targets: obj.image,
-        alpha: 0,
-        delay: 150 * (i + 1),
-        duration: 200,
-        onComplete: () => obj.image.destroy(),
-      });
-    });
+      { lane: 'move', onFailure: () => this.onResync(this.ctx) },
+    );
+  }
+
+  protected onResync(ctx: Ctx) {
+    this.onStart();
+    this.onState(ctx);
   }
 
   protected onState(ctx: Ctx) {
@@ -276,8 +317,13 @@ export class CheckersView extends GameView<View, Options> {
   private placePiece(obj: PieceObj, sq: number) {
     const { x, y } = this.pointXY(sq);
     const size = this.grid.cell * 0.86;
-    this.tweens.killTweensOf(obj.image);
-    obj.image.setPosition(x, y).setDisplaySize(size, size).setAlpha(1).setDepth(DEPTH.piece);
+    this.runtime.cancelTweens(obj.image);
+    obj.image
+      .setTexture(this.pieceKey(obj.piece))
+      .setPosition(x, y)
+      .setDisplaySize(size, size)
+      .setAlpha(1)
+      .setDepth(DEPTH.piece);
   }
 
   /** Makes the screen match the state: pieces appear or go without animation. */
@@ -431,14 +477,14 @@ export class CheckersView extends GameView<View, Options> {
 
   private resign() {
     if (this.resignArmed) {
-      this.resignTimer?.remove();
+      this.resignTimer?.cancel();
       this.resignArmed = false;
       this.send('resign');
       return;
     }
     this.resignArmed = true;
     this.buttons.resign.setText('Chắc chưa?');
-    this.resignTimer = this.time.delayedCall(3000, () => {
+    this.resignTimer = this.runtime.after(3000, () => {
       this.resignArmed = false;
       this.buttons.resign.setText('Đầu hàng');
     });
