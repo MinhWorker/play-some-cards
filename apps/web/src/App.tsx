@@ -61,19 +61,31 @@ export function App() {
   useEffect(installButtonSounds, []);
   useGameEndSound(session, snapshot);
 
+  const sceneInstance = useMemo(
+    () => `${session?.roomCode ?? 'browse'}:${crypto.randomUUID()}`,
+    [session],
+  );
+
   // What the Phaser canvas shows behind the UI.
   const stage = useMemo<Stage>(() => {
     if (account.status !== 'in') return { mode: 'sky' };
     if (!session) {
-      if (browsing && settingUp) return { mode: 'setup', gameId: browsing, current: null };
+      if (browsing && settingUp)
+        return { mode: 'setup', instance: sceneInstance, gameId: browsing, current: null };
       return browsing ? { mode: 'sky' } : { mode: 'hub' };
     }
     if (editing && snapshot) {
-      return { mode: 'setup', gameId: snapshot.gameId, current: snapshot.options };
+      return {
+        mode: 'setup',
+        instance: sceneInstance,
+        gameId: snapshot.gameId,
+        current: snapshot.options,
+      };
     }
     if (!snapshot || snapshot.status === 'lobby') return { mode: 'sky' };
     return {
       mode: 'board',
+      instance: sceneInstance,
       gameId: snapshot.gameId,
       view: snapshot.view,
       me: session.playerId,
@@ -87,7 +99,7 @@ export function App() {
       timer: snapshot.timer,
       played: snapshot.played,
     };
-  }, [account.status, session, snapshot, browsing, settingUp, editing]);
+  }, [account.status, session, snapshot, browsing, settingUp, editing, sceneInstance]);
 
   // Only the host edits the room, and only between games.
   const canEdit =

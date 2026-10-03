@@ -4,7 +4,7 @@
  * how it ended, then how long it took, how many moves and how many pieces each side took.
  * "Xem bàn cờ" puts it away (the board's "Kết quả" button brings it back).
  */
-import { type Button, FONT } from '@psc/sdk/client';
+import { type Button, FONT, type GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 
 const PAPER = 0xfbf1dc;
@@ -29,7 +29,7 @@ export class ResultPanel {
   private rows: Phaser.GameObjects.Text[][] = [];
 
   constructor(
-    private scene: Phaser.Scene,
+    private scene: GameScene,
     private close: Button,
     depth: number,
   ) {
@@ -130,10 +130,10 @@ export class ResultPanel {
     this.container.bringToTop(this.close.container);
 
     this.container.setPosition(at.x, at.y).setVisible(true);
-    scene.tweens.killTweensOf(this.container);
+    scene.runtime.cancelTweens(this.container);
     if (pop) {
       this.container.setScale(0.6).setAlpha(0);
-      scene.tweens.add({
+      scene.runtime.tween({
         targets: this.container,
         scale: 1,
         alpha: 1,
@@ -146,7 +146,7 @@ export class ResultPanel {
   }
 
   hide() {
-    this.scene.tweens.killTweensOf(this.container);
+    (this.scene as GameScene).runtime.cancelTweens(this.container);
     this.container.setVisible(false);
   }
 }

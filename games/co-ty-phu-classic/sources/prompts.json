@@ -1,0 +1,55 @@
+{
+  "$comment": "The island was generated with the built-in imagegen tool, then resized to assets/island.webp.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A whole floating sky island in polished 3D cartoon mobile-game style: lush vivid grass with tiny white flowers, faceted warm brown rock underside tapering to a point and hanging vines. On top is a compact wooden property-trading board game with a square cream board, a ring of small colored property spaces, glossy colored player pawns, two ivory dice and a stack of paper money. A small Vietnamese townhouse stands behind it. Isometric 3/4 view, warm sunlight, tactile materials, legible at small portal size, genuinely transparent background. No branding, lettering or watermark."
+    },
+    "board": {
+      "transparent": true,
+      "maxSize": 1200,
+      "prompt": "A perfectly square property-trading board seen exactly from above, orthographic and aligned to image edges. Warm ivory playing surface with 40 blank spaces around the outer ring, 11 spaces along each edge including larger corner spaces, fine brown dividers, and a large pale mint green paper center with a very subtle ornamental watermark. Polished 3D cartoon mobile game render with lacquered honey-wood rim, engraved gold trim and tactile paper grain. No labels, text, icons, dice, pawns, buildings or colored bars. Full board visible, transparent outside."
+    },
+    "button": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "One reusable wide horizontal blank game UI button cutout seen exactly from the front, glossy golden-yellow enamel on carved honey wood, subtle bevel, highlight and darker lower edge. Symmetrical with an empty center for programmatic text. Transparent margin, no lettering, icon, logo or watermark."
+    },
+    "pawn": {
+      "transparent": true,
+      "maxSize": 180,
+      "prompt": "One single smooth glossy pearl-white wooden game pawn viewed from a high three-quarter angle so its round base and rounded head are clear. Compact upright silhouette, premium tactile 3D cartoon render, warm studio lighting, subtle contact shadow attached to the base, genuinely transparent background. Intended for color tinting. No other objects, text or logo."
+    },
+    "hud-money": {
+      "transparent": true,
+      "maxSize": 192,
+      "prompt": "Flat colorful cartoon HUD icon: two rounded green banknotes, thick dark-green outline, one large cream-yellow circle and two short side strokes. Front view. No text, gradients, highlights, texture or fine ornament. Clear at 23 by 19 design units. Transparent background."
+    },
+    "hud-location": {
+      "transparent": true,
+      "maxSize": 128,
+      "prompt": "Flat colorful cartoon HUD icon: a rounded coral-red map pin with a thick dark-red outline and one large cream center circle. Front view. No text, gradients, highlights, texture or fine ornament. Clear at 17 by 23 design units. Transparent background."
+    },
+    "tile-button": {
+      "transparent": true,
+      "maxSize": 320,
+      "preserveCanvas": true,
+      "prompt": "Compact flat cartoon paper-panel button, rounded corners, warm gold outline, small lower edge, blank center. Cream secondary face. No ornament, text or icons. Designed as a 320 by 112 nine-slice with 24 pixel corner slices. Editable SVG source tile-button.svg; render with render_hud_icons.py."
+    },
+    "tile-button-primary": {
+      "transparent": true,
+      "maxSize": 320,
+      "preserveCanvas": true,
+      "prompt": "Compact flat cartoon paper-panel button, rounded corners, warm gold outline, small lower edge, blank center. Warm yellow primary face. No ornament, text or icons. Designed as a 320 by 112 nine-slice with 24 pixel corner slices. Editable SVG source tile-button-primary.svg; render with render_hud_icons.py."
+    },
+    "roll-button": {
+      "transparent": true,
+      "maxSize": 640,
+      "preserveCanvas": true,
+      "prompt": "A dedicated golden-orange enamel roll button on the center of the property board, ivory dice with dark teal pips on its left, empty center for Vietnamese text. Honey-wood lower edge, restrained cream highlight. Hand-drawn editable 640 by 192 SVG in roll-button.svg; nine-slice left 190, right 48, top/bottom 48. Render with render_hud_icons.py roll-button."
+    }
+  },
+  "$tileSymbolStyle": "Tile symbols are procedural, single-ink vector silhouettes in sources/render_board_25d.py. Keep them flat, simple and legible; do not generate a colorful pictorial atlas.",
+  "$hudIconStyle": "The HUD icons are drawn in hud-money.svg and hud-location.svg. Run python3 games/co-ty-phu-classic/sources/render_hud_icons.py to render PNG originals and app-ready WebP files."
+}

@@ -40,8 +40,19 @@ export class __Name__View extends GameView<State> {
   }
 
   /** Someone added (event `add`): pop the total. */
+  protected onStart() {
+    this.total.setScale(1);
+  }
+  protected onResync() {
+    this.total.setScale(1);
+  }
+
   protected onAdd(_ctx: Ctx, _event: ViewEvent) {
-    this.tweens.add({ targets: this.total, scale: 1.2, duration: 80, yoyo: true });
+    this.runtime.cancelTweens(this.total);
+    this.total.setScale(1);
+    this.runtime.run(async (fx) => {
+      await fx.tween({ targets: this.total, scale: 1.2, duration: 80, yoyo: true });
+    });
   }
 
   /** After any change: show the state. Only the player whose turn it is can tap. */

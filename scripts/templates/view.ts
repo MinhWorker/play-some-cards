@@ -15,7 +15,7 @@ export class __Name__View extends GameView<State> {
 
   /**
    * Once, when the screen opens: make the objects (this.label, this.button, this.sprite, or
-   * Phaser: this.add, this.tweens…).
+   * Phaser: this.add; presentation: this.runtime.run(async fx => { await fx.tween(...); })).
    */
   protected onCreate(_ctx: Ctx) {
     this.status = this.label('', { size: 36 });
@@ -34,6 +34,7 @@ export class __Name__View extends GameView<State> {
   // Optional hooks: write them and the app calls them.
   //   onStart(ctx: Ctx)                       a new game began: clear what the last one left
   //   on<Event>(ctx: Ctx, event: ViewEvent)   someone's event was played: animate it
+  //   onResync(ctx: Ctx)                     missed events: redraw without old sounds
   //   onEnd(ctx: Ctx)                         the game is over (ctx.result)
   //   onUpdate(ctx: Ctx, dt: number)          every frame (dt in ms)
 }

@@ -9,7 +9,7 @@
  * are turned over one after another with who won each, sập 3 chi, everyone's points, and the
  * round's scores. After the match, the final standings.
  */
-import { type Button, GameView, type ViewContext } from '@psc/sdk/client';
+import { type Button, type FlowContext, GameView, type ViewContext } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { bestRows } from '../game/arrange.js';
 import { type Card, foulOf, handName, type Rows, rankOf, SUITS, type Suit } from '../game/cards.js';
@@ -142,6 +142,13 @@ export class MauBinhView extends GameView<View, Options> {
   // ── Create ──────────────────────────────────────────────────────────────────────────────
 
   protected onCreate(ctx: Ctx) {
+    this.shownRound = -1;
+    this.blocks = [];
+    this.dealing = false;
+    this.revealing = false;
+    this.picked = null;
+    this.undo = [];
+    this.dropHint = null;
     this.cardTextures = {
       front: this.texture('card-front'),
       back: this.texture('card-back'),
@@ -384,7 +391,7 @@ export class MauBinhView extends GameView<View, Options> {
         const { x, y, w, depth } = this.cardSpot(ctx, seat, pos);
         sprite.setCardWidth(w).setDepth(depth);
         if (animate)
-          this.tweens.add({ targets: sprite, x, y, duration: 140, ease: 'Quad.easeOut' });
+          this.runtime.tween({ targets: sprite, x, y, duration: 140, ease: 'Quad.easeOut' });
         else sprite.setPosition(x, y);
       });
       const slot = this.slotOf(ctx, seat);
@@ -446,7 +453,15 @@ export class MauBinhView extends GameView<View, Options> {
   }
 
   /** A round begins on screen: fresh cards, dealt out if the deal is on now. */
-  private startRound(ctx: Ctx) {
+  protected onResync(ctx: Ctx) {
+    this.runtime.newRound('snapshot');
+    this.shownRound = -1;
+    this.startRound(ctx, false);
+  }
+
+  private startRound(ctx: Ctx, animate = true) {
+    this.runtime.newRound('game-round');
+    this.arena.hide(false);
     const { state } = ctx;
     this.shownRound = state.round;
     this.shownPhase = state.phase;
@@ -460,7 +475,7 @@ export class MauBinhView extends GameView<View, Options> {
     this.foulWarnedAt = -Infinity;
     if (!ctx.result) this.board.hide();
     this.makeCards(ctx);
-    if (state.phase === 'deal') this.deal(ctx);
+    if (state.phase === 'deal' && animate) this.deal(ctx);
   }
 
   /** Every seat in the round gets 13 cards: yours face up in your rows, the others face down. */
@@ -471,7 +486,7 @@ export class MauBinhView extends GameView<View, Options> {
     this.blocks.forEach((b, seat) => {
       for (const c of b.cards) c.destroy();
       for (const l of b.labels) l.setText('').setVisible(false);
-      b.total.setText('');
+      b.total.setText('').setScale(1).setAlpha(1);
       b.cards = [];
       if (!ctx.state.inRound[seat]) return;
       const order = seat === me && ctx.me ? this.startingOrder(ctx) : Array(13).fill(null);
@@ -495,7 +510,6 @@ export class MauBinhView extends GameView<View, Options> {
   private deal(ctx: Ctx) {
     const g = this.geometry(ctx);
     const round = ctx.state.round;
-    const current = () => this.shownRound === round && this.ctx.state.round === round;
     const n = ctx.players.length;
     // One card at a time to each seat in the round, starting with the seat after you.
     const order = Array.from({ length: n }, (_, i) => (this.mySeat(ctx) + 1 + i) % n).filter(
@@ -516,59 +530,63 @@ export class MauBinhView extends GameView<View, Options> {
     );
     this.dealing = true;
     this.updateButtons(ctx);
-    // Shuffle: the deck splits in two halves that slide apart and back together, three times.
-    [deck.filter((_, i) => i % 2 === 0), deck.filter((_, i) => i % 2 === 1)].forEach(
-      (half, side) => {
-        this.tweens.add({
-          targets: half,
-          x: `${side ? '+' : '-'}=${deckW * 0.7}`,
-          angle: side ? 8 : -8,
-          duration: 120,
-          yoyo: true,
-          repeat: 2,
-          ease: 'Sine.easeInOut',
+    this.runtime.run(
+      async (fx) => {
+        fx.defer(() => {
+          for (const card of deck) card.destroy();
         });
-      },
-    );
-    this.time.delayedCall(DEAL.shuffleMs, () => this.sfx('mau-binh-deal'));
-    deck.forEach((sprite, i) => {
-      const seat = order[i % order.length] as number;
-      const pos = Math.floor(i / order.length);
-      const spot = this.cardSpot(ctx, seat, pos);
-      this.tweens.add({
-        targets: sprite,
-        x: spot.x,
-        y: spot.y,
-        angle: jitter(i + 3) * 20,
-        scale: (sprite.scale * spot.w) / deckW,
-        delay: DEAL.shuffleMs + i * DEAL.stepMs,
-        duration: DEAL.flyMs - 20,
-        ease: 'Quad.easeOut',
-        onComplete: () => {
-          sprite.destroy();
-          this.blocks[seat]?.cards[pos]?.setVisible(true);
-        },
-      });
-    });
-    const dealt = DEAL.shuffleMs + deck.length * DEAL.stepMs + DEAL.flyMs;
-    this.time.delayedCall(dealt, () => {
-      if (!current()) return;
-      mine?.cards.forEach((sprite, i) => {
-        sprite.flipTo(faces[i] ?? null, DEAL.flipMs);
-      });
-      this.time.delayedCall(DEAL.flipMs, () => {
-        if (!current()) return;
+        await fx.parallel(
+          ...[0, 1].map((side) => async (child: FlowContext) => {
+            await child.tween({
+              targets: deck.filter((_, i) => i % 2 === side),
+              x: `${side ? '+' : '-'}=${deckW * 0.7}`,
+              angle: side ? 8 : -8,
+              duration: 120,
+              yoyo: true,
+              repeat: 2,
+              ease: 'Sine.easeInOut',
+            });
+          }),
+        );
+        fx.checkpoint();
+        this.sfx('mau-binh-deal');
+        await fx.parallel(
+          ...deck.map((sprite, i) => async (child: FlowContext) => {
+            await child.wait(i * DEAL.stepMs);
+            const seat = order[i % order.length] as number;
+            const pos = Math.floor(i / order.length);
+            const spot = this.cardSpot(ctx, seat, pos);
+            await child.tween({
+              targets: sprite,
+              x: spot.x,
+              y: spot.y,
+              angle: jitter(i + 3) * 20,
+              scale: (sprite.scale * spot.w) / deckW,
+              duration: DEAL.flyMs - 20,
+              ease: 'Quad.easeOut',
+            });
+            child.checkpoint();
+            sprite.destroy();
+            this.blocks[seat]?.cards[pos]?.setVisible(true);
+          }),
+        );
+        await fx.parallel(
+          ...(mine?.cards ?? []).map((sprite, i) => async (child: FlowContext) => {
+            await sprite.flip(child, faces[i] ?? null, DEAL.flipMs);
+          }),
+        );
+        fx.checkpoint();
         callout(this, `Vòng ${round}`, g.cx, g.midY, {
           size: 72,
           hold: Math.max(200, INTRO_MS - 700),
         });
-        this.time.delayedCall(INTRO_MS * 0.8, () => {
-          if (!current()) return;
-          this.dealing = false;
-          this.onState(this.ctx);
-        });
-      });
-    });
+        await fx.wait(INTRO_MS * 0.8);
+        fx.checkpoint();
+        this.dealing = false;
+        this.onState(this.ctx);
+      },
+      { lane: 'deal', policy: 'replace', onFailure: () => this.onResync(this.ctx) },
+    );
   }
 
   // ── Arranging your cards ────────────────────────────────────────────────────────────────
@@ -618,7 +636,7 @@ export class MauBinhView extends GameView<View, Options> {
       if (!this.dragged) return;
       const target = this.dropTarget(sprite);
       // The hint just goes: the cards move from where they are to their new places.
-      if (this.dropHint) this.tweens.killTweensOf(this.dropHint.setMark(null));
+      if (this.dropHint) this.runtime.cancelTweens(this.dropHint.setMark(null));
       this.dropHint = null;
       sprite.setScale(1);
       if (target && this.canArrange(this.ctx)) this.swap(sprite, target);
@@ -666,8 +684,14 @@ export class MauBinhView extends GameView<View, Options> {
     const slide = (card: CardSprite, pos: number) => {
       if (!me || pos < 0) return;
       const spot = this.cardSpot(this.ctx, me.seat, pos);
-      this.tweens.killTweensOf(card);
-      this.tweens.add({ targets: card, x: spot.x, y: spot.y, duration: 120, ease: 'Quad.easeOut' });
+      this.runtime.cancelTweens(card);
+      this.runtime.tween({
+        targets: card,
+        x: spot.x,
+        y: spot.y,
+        duration: 120,
+        ease: 'Quad.easeOut',
+      });
     };
     const old = this.dropHint;
     if (old) slide(old.setMark(null), cards.indexOf(old));
@@ -943,7 +967,7 @@ export class MauBinhView extends GameView<View, Options> {
    */
   private tick(ctx: Ctx, seconds: number) {
     if (seconds > 10 || seconds <= 0) return;
-    this.tweens.add({
+    this.runtime.tween({
       targets: this.status,
       scale: 1.18,
       duration: 110,
@@ -981,8 +1005,6 @@ export class MauBinhView extends GameView<View, Options> {
     this.revealing = true;
     this.totalsShown = false;
     this.pick(null);
-    const round = ctx.state.round;
-    const current = () => this.shownRound === round && this.ctx.state.round === round;
     const g = this.geometry(ctx);
     // Your cards lie as scored (e.g. arranged by the computer when time ran out).
     const mine = this.myBlock(ctx);
@@ -1019,7 +1041,7 @@ export class MauBinhView extends GameView<View, Options> {
     for (let row = 0; row < 3; row++) {
       at(() => {
         if (animate) {
-          this.battle(ctx, result, row, current);
+          this.battle(ctx, result, row);
           return;
         }
         result.rows.forEach((rows, seat) => {
@@ -1045,10 +1067,21 @@ export class MauBinhView extends GameView<View, Options> {
       if (this.ctx.result) this.showStandings(this.ctx, animate);
       else this.showRoundResult(this.ctx, animate);
     }, 0);
-    for (const [when, fn] of steps) {
-      if (!animate) fn();
-      else this.time.delayedCall(when, () => current() && fn());
-    }
+    if (!animate) {
+      for (const [, fn] of steps) fn();
+    } else
+      this.runtime.run(
+        async (fx) => {
+          let elapsed = 0;
+          for (const [when, fn] of steps) {
+            await fx.wait(when - elapsed);
+            fx.checkpoint();
+            fn();
+            elapsed = when;
+          }
+        },
+        { lane: 'reveal', policy: 'replace', onFailure: () => this.onResync(this.ctx) },
+      );
   }
 
   private nameOf(ctx: Ctx, seat: number) {
@@ -1090,7 +1123,7 @@ export class MauBinhView extends GameView<View, Options> {
     cards.forEach((card, i) => {
       const sprite = b.cards[(ROW_START[row] as number) + i];
       if (!sprite || sprite.card === card) return;
-      if (animate) this.time.delayedCall(i * 40, () => sprite.flipTo(card, 260));
+      if (animate) this.runtime.after(i * 40, () => sprite.flipTo(card, 260));
       else sprite.setCard(card);
     });
   }
@@ -1120,7 +1153,7 @@ export class MauBinhView extends GameView<View, Options> {
    * One chi compared on the "bàn đấu": everyone's cards of that chi fly from their rows to the
    * middle of the table, turn over, show who won, then go back to their rows.
    */
-  private battle(ctx: Ctx, result: RoundResult, row: number, current: () => boolean) {
+  private battle(ctx: Ctx, result: RoundResult, row: number) {
     const g = this.geometry(ctx);
     const order: Slot[] = ['top', 'left', 'right', 'bottom'];
     const seats = result.rows
@@ -1143,7 +1176,7 @@ export class MauBinhView extends GameView<View, Options> {
           .setCardWidth(lay.w)
           .setScale(from / lay.w)
           .setDepth(760 + k * 10 + i);
-        this.tweens.add({
+        this.runtime.tween({
           targets: sprite,
           x: cell.x + (i - (count - 1) / 2) * lay.w * ARENA_STEP,
           y: cell.y,
@@ -1156,8 +1189,8 @@ export class MauBinhView extends GameView<View, Options> {
       });
     });
     const later = (ms: number, fn: () => void) =>
-      this.time.delayedCall(ms, () => {
-        if (current()) fn();
+      this.runtime.after(ms, () => {
+        fn();
       });
     // Turned over together, then compared.
     later(420 + seats.length * 70, () => {
@@ -1183,7 +1216,7 @@ export class MauBinhView extends GameView<View, Options> {
         spritesOf(seat).forEach((sprite, i) => {
           const spot = this.cardSpot(this.ctx, seat, start + i);
           sprite.setCardWidth(spot.w).setScale(lay.w / spot.w);
-          this.tweens.add({
+          this.runtime.tween({
             targets: sprite,
             x: spot.x,
             y: spot.y,
@@ -1228,7 +1261,7 @@ export class MauBinhView extends GameView<View, Options> {
       b.total.setText(signed(points)).setColor(colorOf(points)).setVisible(true);
       if (animate) {
         b.total.setScale(0.2).setAlpha(0);
-        this.tweens.add({
+        this.runtime.tween({
           targets: b.total,
           scale: 1,
           alpha: 1,
@@ -1253,8 +1286,11 @@ export class MauBinhView extends GameView<View, Options> {
     const g = this.g();
     const size = Math.min(g.width, g.height) * 0.9;
     const burst = this.add.sprite(g.cx, g.midY, this.texture('burst-1')).setDepth(880);
-    burst.setDisplaySize(size, size).play('mau-binh-burst');
-    burst.once('animationcomplete', () => burst.destroy());
+    burst.setDisplaySize(size, size);
+    this.runtime.run(async (fx) => {
+      fx.defer(() => burst.destroy());
+      await fx.animate(burst, 'mau-binh-burst');
+    });
     const band = this.add
       .rectangle(
         g.cx,
@@ -1266,13 +1302,11 @@ export class MauBinhView extends GameView<View, Options> {
       )
       .setDepth(885)
       .setScale(1, 0);
-    this.tweens.chain({
-      targets: band,
-      tweens: [
-        { scaleY: 1, duration: 160, ease: 'Quad.easeOut' },
-        { scaleY: 0, delay: 1300, duration: 200, ease: 'Quad.easeIn' },
-      ],
-      onComplete: () => band.destroy(),
+    this.runtime.run(async (fx) => {
+      fx.defer(() => band.destroy());
+      await fx.tween({ targets: band, scaleY: 1, duration: 160, ease: 'Quad.easeOut' });
+      await fx.wait(1300);
+      await fx.tween({ targets: band, scaleY: 0, duration: 200, ease: 'Quad.easeIn' });
     });
     callout(this, words, g.cx, g.midY, { size: 40, color, hold: 1150 });
     this.sfx(sound);

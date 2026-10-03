@@ -76,6 +76,12 @@ games/<id>/          Only index.ts + client.ts are required
   build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
+- **Presentation**: `this.runtime.run` owns scoped async flows; `fx.tween`, `wait`, `sound`,
+  `animate`, `frame` and `parallel` use its clock and cancellation. Use `fx.defer` for temporary
+  objects and `fx.checkpoint` before direct side effects after await. Reset display fields in
+  `onCreate`; rebuild silently in `onResync`. Games with multiple visual rounds per match call
+  `runtime.newRound('game-round')` before replacing cards. Never mix managed and raw Phaser
+  tweens on a target. See `docs/engine-runtime-design.md`.
 - **Coordinates are design units** on a landscape frame 720 tall and 960–1600 wide
   (`this.view`, `ctx.screen`), never screen pixels: the camera scales the frame to the screen at
   its pixel density. `this.bleed` is how far the screen reaches beyond it (backgrounds only).
