@@ -3,7 +3,7 @@
  * suit symbol, or the back. A Phaser container, so it moves as one object. Turning it over plays
  * drawn frames (flip-back → flip-edge → flip-front), not a squashed image.
  */
-import { FONT } from '@psc/sdk/client';
+import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { type Card, isRed, RANKS, rankOf, type Suit, suitOf } from '../game/cards.js';
 
@@ -71,7 +71,7 @@ export class CardSprite extends Phaser.GameObjects.Container {
   private mark: Phaser.GameObjects.Image | null = null;
   private markColor: number | null = null;
   private cardWidth = 60;
-  private flipping: Phaser.Time.TimerEvent[] = [];
+  private flipProgress = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -155,35 +155,29 @@ export class CardSprite extends Phaser.GameObjects.Container {
     this.mark.setTint(this.markColor).setScale(this.cardWidth / MARK_W);
   }
 
-  /** A card cleared off the table mid-flip stops flipping (the frames would touch it gone). */
-  protected override preDestroy() {
-    for (const t of this.flipping) t.remove(false);
-    this.flipping = [];
-    super.preDestroy();
-  }
-
-  /**
-   * Turns the card over to show `card` (or its back): three drawn frames in between, the
-   * whole flip taking `duration` ms.
-   */
+  /** A finite flip owns the card target, including cancellation on destruction/replacement. */
   flipTo(card: Card | null, duration = 240) {
     if (!this.scene) return;
-    for (const t of this.flipping) t.remove(false);
-    const toFace = card !== null;
-    const frames = toFace ? this.textures.flip : [...this.textures.flip].reverse();
-    const step = duration / (frames.length + 1);
-    this.flipping = frames.map((key, i) =>
-      this.scene.time.delayedCall(step * i, () => {
-        this.frame.setTexture(key);
+    return (this.scene as GameScene).runtime.run(async (fx) => {
+      await this.flip(fx, card, duration);
+    });
+  }
+
+  async flip(fx: FlowContext, card: Card | null, duration = 240) {
+    const frames = card !== null ? this.textures.flip : [...this.textures.flip].reverse();
+    this.flipProgress = 0;
+    this.showSide(null);
+    await fx.tween({
+      targets: this,
+      flipProgress: 3,
+      duration: duration * 0.75,
+      ease: 'Linear',
+      onUpdate: () => {
+        this.frame.setTexture(frames[Math.min(2, Math.floor(this.flipProgress))]!);
         this.sizeFrame();
-        this.showSide(null);
-      }),
-    );
-    this.flipping.push(
-      this.scene.time.delayedCall(step * frames.length, () => {
-        this.flipping = [];
-        this.setCard(card);
-      }),
-    );
+      },
+    });
+    fx.checkpoint();
+    this.setCard(card);
   }
 }

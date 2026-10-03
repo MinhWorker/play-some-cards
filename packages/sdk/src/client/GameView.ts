@@ -7,9 +7,14 @@
  *   onLayout(ctx)          after onCreate and whenever the frame changes: place them
  *   onStart(ctx)           a new game began
  *   on<Event>(ctx, event)  someone's event was played (`press` → onPress): animate it
+ *   onResync(ctx)          missed events: rebuild the current snapshot without replay
  *   onState(ctx)           the state changed (after any of the above): show it
  *   onEnd(ctx)             the game is over (`ctx.result`)
  *   onUpdate(ctx, dt)      every frame (browser only; the server has no frames)
+ *
+ * `this.runtime.run(async fx => { await fx.tween(...); })` owns presentation resources.
+ * Lanes queue or replace actions; round changes/resync cancel old work before hooks run.
+ * Use fx.checkpoint() before direct side effects after await. onEnd keeps the final flow alive.
  *
  * `ctx` (also `this.ctx`) has everything: the state as you may see it, who you are, the players,
  * host, score, options, result, the game's timer (`ctx.timer`, for a countdown), how long the
@@ -132,6 +137,11 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   // ── Wiring (the app ↔ the hooks); games don't need to read below ────────────────────────
 
   create() {
+    this.startRuntime('round');
+    this.pendingOptions = null;
+    this.timer = null;
+    this.clock = null;
+    this.lastSeq = 0;
     this.props = this.registry.get('board') as BoardProps<View, Options>;
     this.timer = this.timerOf(this.props);
     this.clock = this.clockOf(this.props);
@@ -140,6 +150,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     this.onCreate(this.ctx);
     this.hook('onLayout', this.ctx);
     if (!this.props.last && !this.props.result) this.hook('onStart', this.ctx);
+    else this.hook('onResync', this.ctx);
     this.hook('onState', this.ctx);
 
     const onProps = (props: BoardProps<View, Options>) => this.receive(props);
@@ -174,10 +185,19 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     }
     this.ctx = this.makeContext();
     if (props.round !== before.round) {
+      this.runtime.newRound();
       this.lastSeq = 0;
       this.hook('onStart', this.ctx);
     }
     const last = props.last;
+    const gap =
+      props.round === before.round &&
+      ((last && last.seq > this.lastSeq + 1) || props.me !== before.me);
+    if (gap) {
+      this.runtime.newRound('resync');
+      this.lastSeq = last?.seq ?? 0;
+      this.hook('onResync', this.ctx);
+    }
     if (last && last.seq > this.lastSeq) {
       this.lastSeq = last.seq;
       const { event, payload } = last.move as { event: string; payload?: unknown };
@@ -189,7 +209,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       } satisfies ViewEvent);
     }
     this.hook('onState', this.ctx);
-    if (props.result && !before.result) this.hook('onEnd', this.ctx);
+    if (!gap && props.result && !before.result) this.hook('onEnd', this.ctx);
   }
 
   /** When the timer ends on this device's clock (the server sends how much is left). */

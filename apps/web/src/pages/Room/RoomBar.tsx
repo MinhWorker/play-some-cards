@@ -4,24 +4,21 @@ import { Button } from '@/components/ui/Button';
 import { bridge } from '@/phaser/bridge';
 
 /**
- * The bar across the top of a room: leave and home buttons with the game's name beside them,
- * players (unless the board lists them) and spectators, and the room's name as small words by
- * the settings button. It wraps onto several rows on narrow screens, so it tells the board how
+ * The bar across the top of a room, kept to the corners so the board gets the screen: the leave
+ * (←) and home buttons on the left, and the players (with 👑 by the host, unless the board lists
+ * them itself and shows the host its own way) and spectators. No room or game name: the player
+ * knows where they are. It wraps onto several rows on narrow screens, so it tells the board how
  * tall it is, and how much of its row is free in the middle (see `reportGap`).
  */
 export function RoomBar({
   snapshot,
   me,
-  gameName,
-  hostName,
   hidePlayers,
   onLeave,
   onHome,
 }: {
   snapshot: RoomSnapshot;
   me: string;
-  gameName: string | undefined;
-  hostName: string | null;
   /** The board lists the players itself. */
   hidePlayers?: boolean;
   /** Back to the room list. */
@@ -40,7 +37,7 @@ export function RoomBar({
       reportGap(el);
     };
     report();
-    // Its parts too: the room's name moves when the words or the buttons change size.
+    // Its parts too: the players' list moves when names or the buttons change size.
     const observer = new ResizeObserver(report);
     observer.observe(el);
     for (const child of el.children) observer.observe(child);
@@ -56,13 +53,24 @@ export function RoomBar({
   return (
     <header ref={bar} className="hud hud-top room-bar">
       <div className="nav-buttons">
-        <Button variant="secondary" size="small" onClick={onLeave}>
-          ← Rời phòng
+        <Button
+          variant="secondary"
+          size="small"
+          aria-label="Về danh sách phòng"
+          title="Về danh sách phòng"
+          onClick={onLeave}
+        >
+          ←
         </Button>
-        <Button variant="secondary" size="small" aria-label="Về trang chủ" onClick={onHome}>
+        <Button
+          variant="secondary"
+          size="small"
+          aria-label="Về trang chủ"
+          title="Về trang chủ"
+          onClick={onHome}
+        >
           🏠
         </Button>
-        {gameName && <span className="room-game">{gameName}</span>}
       </div>
       <ul className="players">
         {!hidePlayers &&
@@ -76,29 +84,29 @@ export function RoomBar({
           ))}
         {watching > 0 && <li className="watchers">👀 {watching} đang xem</li>}
       </ul>
-      <div className="room-name">{hostName ? `Phòng của ${hostName}` : 'Phòng trống'}</div>
     </header>
   );
 }
 
 /**
- * Tells the board which part of the bar's row is free: between the buttons (with the game's
- * name) and the players or the room's name, in page px. Nothing when the bar wrapped onto more
- * rows, since then its row has no clear middle.
+ * Tells the board which part of the bar's row is free: between the buttons and the players (or
+ * the settings button when no players are listed), in page px. Nothing when the bar wrapped onto
+ * more rows, since then its row has no clear middle.
  */
 function reportGap(bar: HTMLElement) {
-  const [nav, players, name] = [...bar.children].map((c) => c.getBoundingClientRect());
-  if (!nav || !players || !name) return;
+  const [nav, players] = [...bar.children].map((c) => c.getBoundingClientRect());
+  if (!nav || !players) return;
+  const box = bar.getBoundingClientRect();
   const listed = players.width > 0;
-  const wrapped = name.top >= nav.bottom || (listed && players.top >= nav.bottom);
+  const wrapped = listed && players.top >= nav.bottom;
   bridge.emit(
     'hud:gap',
     wrapped
       ? undefined
       : {
           left: nav.right,
-          right: listed ? players.left : name.left,
-          top: bar.getBoundingClientRect().top,
+          right: listed ? players.left : box.right,
+          top: box.top,
           bottom: nav.bottom,
         },
   );
