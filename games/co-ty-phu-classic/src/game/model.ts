@@ -48,26 +48,17 @@ export interface TycoonPlayer {
 
 export type Phase = 'roll' | 'buy' | 'auction' | 'debt' | 'trade' | 'event' | 'end';
 
-/**
- * An open auction: every player still in it may bid at any time while its clock runs (no turns).
- * Each bid restarts the clock; when it runs out the leader buys. A station is mandatory and its
- * bids are deposits held by the bank: all are refunded and the winner pays the listed price.
- */
+/** How long each bidder has to raise or pass in an auction (ms). */
+export const AUCTION_TURN_MS = 10_000;
+
 export interface Auction {
   square: number;
+  bidder: number;
   highest: number;
   leader: number | null;
-  /** Players who left the auction (they may not bid again). */
   passed: number[];
-  /** Station deposits held by the bank, per seat. */
   bids: number[];
-  /** Bids so far: the clock's timer is tied to it, so an older timer never closes the auction. */
-  round: number;
 }
-
-/** How long an auction runs before its first bid, and after each bid (ms). */
-export const AUCTION_OPEN_MS = 10_000;
-export const AUCTION_BID_MS = 6_000;
 
 export interface Debt {
   amount: number;
@@ -154,25 +145,25 @@ export const AUCTION_STEP = 10;
 /** Fixed interleaved price layout; each street retains its group and building ladder. */
 export const BOARD: readonly Square[] = [
   { name: 'Xuất phát', kind: 'start' },
-  street('Tp. Hà Nội', 'nau', 60, [2, 10, 30, 90, 160, 250], 50),
+  street('Hà Nội', 'nau', 60, [2, 10, 30, 90, 160, 250], 50),
   { name: 'Khí vận', kind: 'chest' },
   street('Vĩnh Long', 'xanh-la', 320, [28, 150, 450, 1000, 1200, 1400], 200),
   { name: 'Thuế thu nhập', kind: 'tax', tax: 200 },
   station('Bến Bắc'),
-  street('Tp. Hải Phòng', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
+  street('Hải Phòng', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
   { name: 'Cơ hội', kind: 'chance' },
   street('Đồng Nai', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
   street('Hưng Yên', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
   { name: 'Nhà tù', kind: 'jail' },
-  street('Tp. Đà Nẵng', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
+  street('Đà Nẵng', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
   utility('Điện lực'),
   street('Đồng Tháp', 'xanh-dam', 350, [35, 175, 500, 1100, 1300, 1500], 200),
   street('Khánh Hòa', 'hong', 160, [12, 60, 180, 500, 700, 900], 100),
   station('Bến Trung'),
   street('Tây Ninh', 'vang', 280, [24, 120, 360, 850, 1025, 1200], 150),
   { name: 'Khí vận', kind: 'chest' },
-  street('Tp. HCM', 'nau', 60, [4, 20, 60, 180, 320, 450], 50),
-  street('Tp. Cần Thơ', 'xanh-nhat', 120, [8, 40, 100, 300, 450, 600], 50),
+  street('Sài Gòn', 'nau', 60, [4, 20, 60, 180, 320, 450], 50),
+  street('Cần Thơ', 'xanh-nhat', 120, [8, 40, 100, 300, 450, 600], 50),
   { name: 'Sân bay', kind: 'airport' },
   street('Gia Lai', 'do', 240, [20, 100, 300, 750, 925, 1100], 150),
   { name: 'Cơ hội', kind: 'chance' },
@@ -180,7 +171,7 @@ export const BOARD: readonly Square[] = [
   street('Lâm Đồng', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
   station('Bến Nam'),
   street('Phú Thọ', 'xanh-dam', 400, [50, 200, 600, 1400, 1700, 2000], 200),
-  street('Tp. Huế', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
+  street('Huế', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
   utility('Cấp nước'),
   street('Đắk Lắk', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
   { name: 'Vào tù', kind: 'go-jail' },

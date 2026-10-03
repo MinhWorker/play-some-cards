@@ -3,9 +3,12 @@ import type { State } from './model.js';
 
 type DecisionState = Pick<State, 'turn' | 'phase' | 'auction' | 'trade'>;
 
-/** Whose decision the turn clock waits for (an auction has its own clock, open to everyone). */
 export function decisionSeat(state: DecisionState) {
-  return state.phase === 'trade' ? (state.trade?.to ?? state.turn) : state.turn;
+  return state.phase === 'auction'
+    ? (state.auction?.bidder ?? state.turn)
+    : state.phase === 'trade'
+      ? (state.trade?.to ?? state.turn)
+      : state.turn;
 }
 
 export function hasPvpClock(state: State, players: Seat[]) {

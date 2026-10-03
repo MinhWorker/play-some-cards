@@ -215,19 +215,6 @@ export function utilityTax(s: Pick<State, 'round' | 'shortages'>, square: number
   );
 }
 
-/** Opens the auction of `square` to everyone at the table (the game sets its clock). */
-export function openAuction(s: State, square: number) {
-  s.phase = 'auction';
-  s.auction = {
-    square,
-    highest: 0,
-    leader: null,
-    passed: [],
-    bids: s.players.map(() => 0),
-    round: 0,
-  };
-}
-
 export function land(s: State, seat: number, roll: number, multiplier = 1) {
   const square = s.players[seat]!.position;
   const cell = BOARD[square]!;
@@ -239,8 +226,16 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
     const owner = s.properties[square]!.owner;
     if (owner === null) {
       s.pending = square;
-      s.phase = 'buy';
-      if (cell.kind === 'station') openAuction(s, square);
+      s.phase = cell.kind === 'station' ? 'auction' : 'buy';
+      if (cell.kind === 'station')
+        s.auction = {
+          square,
+          bidder: seat,
+          highest: 0,
+          leader: null,
+          passed: [],
+          bids: s.players.map(() => 0),
+        };
     } else if (owner === seat && cell.kind === 'street' && !s.players[seat]!.jailed) {
       s.buildable = square;
     } else if (owner !== seat) {

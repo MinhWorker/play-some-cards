@@ -31,15 +31,12 @@ export default async function run(t) {
       played: { ms: 10000, running: true },
     };
     let seq = 0;
-    // The auction is open to everyone: the test plays as whichever seat it picks.
-    window.__me = ids[game.state.turn];
     const deliver = (last = null) => {
-      const me = window.__me;
+      const me = ids[game.state.auction?.bidder ?? game.state.turn];
       s.receive({ ...props, me, view: game.view(me), last });
     };
-    window.__deliver = deliver;
     s.send = (event, payload = {}) => {
-      const player = window.__me;
+      const player = ids[game.state.auction?.bidder ?? game.state.turn];
       game.send(player, event, payload);
       deliver({ seq: ++seq, player, move: { event, payload } });
     };
@@ -68,14 +65,6 @@ export default async function run(t) {
         !s.runtime.busy('turn')
       );
     });
-  /** Plays on as seat `id` (a, b, c, d). */
-  const as = async (id) => {
-    await page.evaluate((me) => {
-      window.__me = me;
-      window.__deliver();
-    }, id);
-    await idle();
-  };
   const bid = async () => {
     await idle();
     await clickCanvas(
@@ -94,11 +83,8 @@ export default async function run(t) {
     );
     await idle();
   };
-  await as('a');
   await bid();
-  await as('b');
   await bid();
-  await as('c');
   await bid();
   const preview = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -111,13 +97,9 @@ export default async function run(t) {
   if (preview.dots !== 3 || JSON.stringify(preview.cash) !== '[1490,1480,1470,1500]')
     throw new Error(`Station deposits or dots are incorrect: ${JSON.stringify(preview)}`);
   await page.screenshot({ path: t.shot('station-deposits-phone.png') });
-  // Seat 4 leaves, seat 2 takes its deposit back, seat 3 (leading) withdraws too: seat 1 is
-  // the last one in the station's auction and buys it at the listed price.
-  await as('d');
   await pass();
-  await as('b');
+  await bid();
   await pass();
-  await as('c');
   await pass();
   const result = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');

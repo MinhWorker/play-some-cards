@@ -20,18 +20,17 @@ export function botMove(state: State, seat: number): GameEvent | null {
   }
 
   if (state.phase === 'auction') {
-    // Open to everyone: a computer still in the auction raises unless it leads or the price
-    // passed what it is willing to pay, then it leaves.
     const auction = state.auction;
-    if (!auction || auction.passed.includes(seat) || auction.leader === seat) return null;
-    const cell = BOARD[auction.square]!;
+    if (!auction || auction.bidder !== seat) return null;
+    const max = Math.min(me.cash - 100, Math.floor((BOARD[auction.square]?.price ?? 0) * 0.9));
     const amount = auction.highest + 10;
-    if (cell.kind === 'station') {
+    if (BOARD[auction.square]!.kind === 'station') {
       const available = me.cash + auction.bids[seat]!;
-      const limit = Math.min(available - 100, Math.floor(cell.price! * 0.9));
-      return available >= cell.price! && limit >= amount ? event('bid', { amount }) : event('pass');
+      const limit = Math.min(available - 100, Math.floor(BOARD[auction.square]!.price! * 0.9));
+      return available >= BOARD[auction.square]!.price! && limit >= amount
+        ? event('bid', { amount })
+        : event('pass');
     }
-    const max = Math.min(me.cash - 100, Math.floor((cell.price ?? 0) * 0.9));
     return max >= amount ? event('bid', { amount }) : event('pass');
   }
 

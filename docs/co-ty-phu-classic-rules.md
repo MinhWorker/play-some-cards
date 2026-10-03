@@ -55,7 +55,7 @@ bán nhà, thế chấp, chuộc hoặc thao tác của người khác không k�
 | Nợ | Bán công trình, thế chấp đất tới khi đủ tiền rồi trả; không đủ tài sản thì phá sản |
 
 Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù vẫn dùng quy tắc 8 giây ở mục 3.
-Đấu giá không dùng đồng hồ PvP mà có đồng hồ riêng của phiên (mục 4).
+Đấu giá không dùng đồng hồ PvP mà có đồng hồ riêng cho từng lượt trả giá (mục 4).
 
 ## 3. Các ô đặc biệt và xác nhận sự kiện
 
@@ -109,20 +109,18 @@ Tài sản mua được gồm **đất phố, ga, điện và nước**.
 
 ### Đấu giá
 
-- Đấu giá là sự kiện chung của cả bàn, không theo lượt: mọi ghế chưa bỏ đều trả giá được bất cứ
-  lúc nào. Phiên có đồng hồ do server giữ: **10 giây** từ lúc mở, mỗi lần trả giá đặt lại về
-  **6 giây**. Bỏ giá không đặt lại đồng hồ. Hết giờ thì người giữ giá cao nhất thắng; chưa ai trả
-  giá thì không bán. Máy cũng tham gia trong cùng đồng hồ.
-- Đất phố từ chối mua: mỗi lần trả tăng ít nhất 1 so với giá cao nhất. Người đang giữ giá cao
-  nhất không được bỏ giá. Mọi người khác bỏ thì người dẫn đầu thắng ngay; tất cả bỏ mà chưa có
-  giá thì không bán.
-- Bến xe mở đấu giá ngay khi đến, không có nút mua trực tiếp; ai cũng có thể đặt trước.
+- Đấu giá đi **lần lượt** từ người đang có lượt, theo thứ tự ghế: mỗi người tăng giá hoặc bỏ.
+  Mỗi lượt trả giá có **10 giây** đếm ngược do server giữ, kể cả khi chơi với máy; hết giờ thì tự
+  bỏ giá, riêng người đang giữ giá cao nhất của đất phố chỉ bị chuyển lượt. Máy trả giá ngay,
+  không có đếm ngược.
+- Đất phố từ chối mua vẫn đấu giá thông thường: tăng ít nhất 1, trả giá thắng khi còn người
+  giữ giá cao nhất. Người đang giữ giá cao nhất không được bỏ giá; tất cả bỏ mà chưa có giá thì không bán.
+- Bến xe mở đấu giá ngay khi đến, không có nút mua trực tiếp. Người đến là người đặt đầu tiên.
 - Bến xe bắt đầu từ 0, mỗi lần đặt tăng **đúng 10 ₫**. Tiền đặt bị trừ khỏi tiền mặt ngay;
   khi đặt lại, chỉ trừ chênh lệch với số đang giữ. Muốn đặt phải có ít nhất 200 ₫ tính cả tiền đang giữ.
 - Rút/bỏ cuộc hoàn tiền đặt ngay và loại người đó khỏi phiên. Người giữ giá cao nhất cũng được rút.
-- Khi hết giờ hoặc chỉ còn một người chưa bỏ, hoàn tất cả tiền đặt rồi người thắng (người đặt
-  cao nhất, hoặc người còn lại) trả **giá niêm yết 200 ₫**, không trả giá đặt cao nhất. Nếu người
-  thắng không đủ giá niêm yết, bến vẫn thuộc ngân hàng.
+- Khi chỉ còn một người chưa bỏ, hoàn tất cả tiền đặt rồi người thắng trả **giá niêm yết 200 ₫**,
+  không trả giá đặt cao nhất. Nếu người còn lại không đủ giá niêm yết, bến vẫn thuộc ngân hàng.
 - Chấm tròn màu người chơi trên bến hiển thị các ghế đang có tiền đặt.
 - Người đã bỏ không quay lại phiên đó.
 - Không quản lý tài sản hay trao đổi khi đấu giá. Sau phiên, tiếp tục gieo nếu trước đó ra đôi,
@@ -172,7 +170,7 @@ vòng không cộng dồn. Đang ở tù không miễn thuế công cộng.
 ## 6. Xây nhà, khách sạn và bán nhà
 
 Mỗi nhà được đánh dấu bằng một chấm tròn màu chủ đất có viền sáng trên mặt ô.
-Khách sạn là thanh chữ nhật màu ghi có viền sáng, nhỏ hơn mặt ô phía dưới. Tên địa danh
+Khách sạn là viên capsule màu chủ đất có viền sáng, nhỏ hơn mặt ô phía dưới. Tên địa danh
 nằm giữa biểu tượng đã thu nhỏ ; tên tự chia dòng và co chữ để vừa ô.
 Khi xây, cả bàn nghe tiếng mua.
 
@@ -262,7 +260,7 @@ Hai thẻ thiếu điện/nước tăng thuế ô tương ứng gấp đôi tron
 | Tới Bến xe gần nhất. | Tới bến phía trước gần nhất; thuê gấp đôi nếu thuộc người khác |
 | Tới Điện lực hoặc Cấp nước gần nhất. | Tới đơn vị phía trước gần nhất; trả thuế công cộng hiện hành cho ngân hàng |
 | Tới Bắc Ninh. | Tới ô 39, xử lý ô đích |
-| Tới Tp. HCM. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
+| Tới Sài Gòn. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
 | Ngân hàng trả lãi 50. | Nhận 50 từ ngân hàng |
 | Nhận cổ tức 100. | Nhận 100 từ ngân hàng |
 | Nộp phạt chạy quá tốc độ 15. | Nộp ngân hàng 15 |
@@ -365,25 +363,25 @@ mua. Giá bến xe là 200; điện/nước không bán.
 | Ô | Tên | Loại / nhóm màu | Giá mua |
 | ---: | --- | --- | ---: |
 | 0 | Xuất phát | Ô đặc biệt | — |
-| 1 | Tp. Hà Nội | nau | 60 |
+| 1 | Hà Nội | nau | 60 |
 | 2 | Khí vận | Ô đặc biệt | — |
 | 3 | Vĩnh Long | xanh-la | 320 |
 | 4 | Thuế thu nhập | Thuế 10%, tối thiểu 200 | — |
 | 5 | Bến Bắc | Bến xe | 200 |
-| 6 | Tp. Hải Phòng | hong | 140 |
+| 6 | Hải Phòng | hong | 140 |
 | 7 | Cơ hội | Ô đặc biệt | — |
 | 8 | Đồng Nai | vang | 260 |
 | 9 | Hưng Yên | do | 220 |
 | 10 | Nhà tù | Ô đặc biệt | — |
-| 11 | Tp. Đà Nẵng | xanh-nhat | 100 |
+| 11 | Đà Nẵng | xanh-nhat | 100 |
 | 12 | Điện lực | Thuế công cộng 100 / 200 | — |
 | 13 | Đồng Tháp | xanh-dam | 350 |
 | 14 | Khánh Hòa | hong | 160 |
 | 15 | Bến Trung | Bến xe | 200 |
 | 16 | Tây Ninh | vang | 280 |
 | 17 | Khí vận | Ô đặc biệt | — |
-| 18 | Tp. HCM | nau | 60 |
-| 19 | Tp. Cần Thơ | xanh-nhat | 120 |
+| 18 | Sài Gòn | nau | 60 |
+| 19 | Cần Thơ | xanh-nhat | 120 |
 | 20 | Sân bay | Ô đặc biệt | — |
 | 21 | Gia Lai | do | 240 |
 | 22 | Cơ hội | Ô đặc biệt | — |
@@ -391,7 +389,7 @@ mua. Giá bến xe là 200; điện/nước không bán.
 | 24 | Lâm Đồng | cam | 180 |
 | 25 | Bến Nam | Bến xe | 200 |
 | 26 | Phú Thọ | xanh-dam | 400 |
-| 27 | Tp. Huế | xanh-nhat | 100 |
+| 27 | Huế | xanh-nhat | 100 |
 | 28 | Cấp nước | Thuế công cộng 100 / 200 | — |
 | 29 | Đắk Lắk | vang | 260 |
 | 30 | Vào tù | Ô đặc biệt | — |
@@ -412,22 +410,22 @@ khi sở hữu đủ bộ thì nhân đôi cột này. **KS** là một khách s
 
 | Ô | Tên | Giá xây | Trống | 1 nhà | 2 nhà | 3 nhà | 4 nhà | KS |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | Tp. Hà Nội | 50 | 2 | 10 | 30 | 90 | 160 | 250 |
+| 1 | Hà Nội | 50 | 2 | 10 | 30 | 90 | 160 | 250 |
 | 3 | Vĩnh Long | 200 | 28 | 150 | 450 | 1000 | 1200 | 1400 |
-| 6 | Tp. Hải Phòng | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
+| 6 | Hải Phòng | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
 | 8 | Đồng Nai | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
 | 9 | Hưng Yên | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
-| 11 | Tp. Đà Nẵng | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
+| 11 | Đà Nẵng | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
 | 13 | Đồng Tháp | 200 | 35 | 175 | 500 | 1100 | 1300 | 1500 |
 | 14 | Khánh Hòa | 100 | 12 | 60 | 180 | 500 | 700 | 900 |
 | 16 | Tây Ninh | 150 | 24 | 120 | 360 | 850 | 1025 | 1200 |
-| 18 | Tp. HCM | 50 | 4 | 20 | 60 | 180 | 320 | 450 |
-| 19 | Tp. Cần Thơ | 50 | 8 | 40 | 100 | 300 | 450 | 600 |
+| 18 | Sài Gòn | 50 | 4 | 20 | 60 | 180 | 320 | 450 |
+| 19 | Cần Thơ | 50 | 8 | 40 | 100 | 300 | 450 | 600 |
 | 21 | Gia Lai | 150 | 20 | 100 | 300 | 750 | 925 | 1100 |
 | 23 | Cà Mau | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
 | 24 | Lâm Đồng | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
 | 26 | Phú Thọ | 200 | 50 | 200 | 600 | 1400 | 1700 | 2000 |
-| 27 | Tp. Huế | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
+| 27 | Huế | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
 | 29 | Đắk Lắk | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
 | 31 | An Giang | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
 | 32 | Quảng Ninh | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
