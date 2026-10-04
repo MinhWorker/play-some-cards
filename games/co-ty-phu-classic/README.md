@@ -117,8 +117,9 @@ Bảng người chơi dùng `PlayerPanel` để chiếu tên, avatar, số ghế
 theo cùng phối cảnh của mặt bàn. Vương miện, dấu màu người chơi và thanh thời gian cũng
 nằm trên mặt phẳng này; số tiền vẫn cập nhật trong lúc hoạt ảnh chuyển tiền chạy.
 Nền panel có hoa văn hình thoi xanh ngọc và viền vàng, giữ nguyên các ổ avatar, số ghế và
-rãnh đồng hồ. Ghế không active có nền tối, số mờ và ánh phản chiếu yếu; chỉ ghế đang quyết
-định có số trắng, màu sáng và quầng sáng.
+rãnh đồng hồ. Ghế không active có nền tối, số mờ và ánh phản chiếu yếu; chỉ ghế của chủ lượt
+có số trắng, màu sáng và quầng sáng, khớp với tên và avatar. Khi người khác trả giá hoặc trả
+nợ sau đấu giá bến, node vẫn theo chủ lượt; đồng hồ và nút thao tác theo người cần quyết định.
 
 ## Tìm thành phần để sửa
 

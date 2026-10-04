@@ -649,7 +649,9 @@ export class CoTyPhuClassicView extends GameView<View> {
       graphics.lineBetween(x + 18, y + 8, x + w - 18, y + 8);
     };
     // Colored seat markers and their highlights lie in the printed wells.
-    const deciding = decisionSeat(ctx.state);
+    // This marks the turn owner, like the panel's avatar/name. Auction bidders and
+    // off-turn debt payers have their own controls/countdowns, without taking the turn.
+    const turnSeat = ctx.state.turn;
     for (let i = 0; i < ctx.state.players.length; i++) {
       const well = PLAYER_PANEL.seats[i]!;
       const circle = (radius: number, dx = 0, dy = 0, ry = radius) =>
@@ -661,7 +663,7 @@ export class CoTyPhuClassicView extends GameView<View> {
           );
         }) as Phaser.Math.Vector2[];
       const out = ctx.state.players[i]!.bankrupt;
-      const lit = i === deciding && !out;
+      const lit = i === turnSeat && !out;
       const base = PLAYER_COLORS[i]!;
       const dark =
         ((((base >> 16) & 0xff) * 0.3) << 16) |
