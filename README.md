@@ -10,6 +10,14 @@ trang báo ngoại tuyến sẽ thay cho màn hình lỗi.
 
 ![Caro trên các đảo bay](docs/images/screenshot.webp)
 
+## Luật chơi
+
+- [Caro](games/tic-tac-toe/RULES.md)
+- [Tiến Lên](games/tien-len/RULES.md)
+- [Mậu Binh](games/mau-binh/RULES.md)
+- [Cờ Tướng](games/xiangqi/RULES.md)
+- [Cờ tỷ phú Classic](games/co-ty-phu-classic/RULES.md)
+
 ## Chạy trên máy (5 phút)
 
 Cần Node 22 và [Git LFS](https://git-lfs.com) (cho ảnh gốc trong `assets/`).

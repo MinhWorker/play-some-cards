@@ -22,7 +22,7 @@ Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `
   (Pixabay). Nhạc tổng kết `games/tien-len/assets/tien-len-standings.mp3` là
   `assets/audio/sfx/pw23check-winning-218995.mp3` ("winning" của pw23check, Pixabay). Âm thanh
   của Mậu Binh (`games/mau-binh/assets/mau-binh-*`) là bản sao đổi tên của các file Tiến Lên trên
-  (xem `docs/mau-binh-audio.md`), nên theo cùng nguồn và giấy phép.
+  nên theo cùng nguồn và giấy phép.
 - **Ảnh của Long** (`assets/shared/images/Long-look-at-u.jpg` và avatar làm từ nó,
   `apps/web/public/shared/images/avatar-long.webp`), là ảnh người thật: không được dùng lại bên
   ngoài game này.

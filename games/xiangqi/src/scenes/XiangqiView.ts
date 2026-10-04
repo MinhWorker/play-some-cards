@@ -622,7 +622,7 @@ export class XiangqiView extends GameView<View, Options> {
   }
 
   /**
-   * How each kind of piece takes (games/xiangqi/PLAN.md): the attacker ends on `to` standing
+   * How each kind of piece takes: the attacker ends on `to` standing
    * on the table, and `hit(power)` fires at the moment it strikes.
    */
   private async attack(
