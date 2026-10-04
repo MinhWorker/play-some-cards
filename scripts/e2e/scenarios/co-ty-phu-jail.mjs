@@ -107,6 +107,16 @@ export default async function run(t) {
                 alpha: s.jailGate.doors[0].alpha,
                 moving: s.moving[1],
               });
+            if (
+              s.freezeJailGate &&
+              !s.jailGateFrozen &&
+              s.jailGate.visible &&
+              s.jailGate.closure > 0.999 &&
+              s.moving[1]
+            ) {
+              s.jailGateFrozen = true;
+              s.scene.pause();
+            }
             if (s.activeRoll?.jailing && s.moving[1])
               s.jailFlight.add(`${s.tokens[1].x.toFixed(2)},${s.tokens[1].y.toFixed(2)}`);
           });
@@ -115,6 +125,8 @@ export default async function run(t) {
         s.itemSounds = [];
         s.jailFlight = new Set();
         s.gateFrames = [];
+        s.freezeJailGate = !!fixture.own;
+        s.jailGateFrozen = false;
         game.send('b', 'roll');
         deliver('roll');
         if (game.state.players[1].position !== fixture.target)
@@ -168,7 +180,7 @@ export default async function run(t) {
       if (fixture.own) {
         await page.waitForFunction(() => {
           const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-          return s.jailGate.visible && s.jailGate.closure > 0.99;
+          return s.jailGateFrozen;
         });
         await page.evaluate(() => {
           const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -187,6 +199,9 @@ export default async function run(t) {
             throw new Error('Jail doors did not cover the full camera viewport');
         });
         await page.screenshot({ path: t.shot(`${fixture.name}-closed.png`) });
+        await page.evaluate(() => {
+          window.__phaser.scene.getScene('co-ty-phu-classic').scene.resume();
+        });
         if (fixture.cancel) {
           await page.evaluate(() => {
             const s = window.__phaser.scene.getScene('co-ty-phu-classic');

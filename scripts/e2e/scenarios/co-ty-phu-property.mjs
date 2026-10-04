@@ -229,9 +229,10 @@ export default async function run(t) {
     });
     s.bankruptFixture = { game, props };
   }, root);
-  await page.waitForFunction(
-    () => !window.__phaser.scene.getScene('co-ty-phu-classic').runtime.busy('money'),
-  );
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return !s.runtime.busy('money') && !s.runtime.busy('turn');
+  });
   const clip = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     if (
