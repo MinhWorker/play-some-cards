@@ -280,7 +280,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.eventCountdown = this.add.graphics().setDepth(6);
     this.hostCrown = this.add.graphics().setDepth(9);
     this.ownerSymbols = new TileOwnerSymbols(this, this.boardImage.texture.key);
-    this.specialSymbols = new SpecialSymbols(this, this.boardImage.texture.key);
+    this.specialSymbols = new SpecialSymbols(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
@@ -325,13 +325,20 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.dice = new Dice3D(this);
     const glowKey = 'co-ty-phu-classic.dice-glow';
     if (!this.textures.exists(glowKey)) {
-      const outline = this.add.graphics();
-      outline.lineStyle(3, 0xffcf65).strokeRoundedRect(8, 8, 170, 96, 18);
-      outline.generateTexture(glowKey, 186, 112);
-      outline.destroy();
+      const canvas = document.createElement('canvas');
+      canvas.width = 218;
+      canvas.height = 144;
+      const ink = canvas.getContext('2d')!;
+      ink.strokeStyle = '#ffcf65';
+      ink.lineWidth = 3;
+      ink.shadowColor = '#ffcf65';
+      ink.shadowBlur = 12;
+      ink.beginPath();
+      ink.roundRect(24, 24, 170, 96, 18);
+      ink.stroke();
+      this.textures.addCanvas(glowKey, canvas);
     }
     this.diceGlow = this.add.image(0, 0, glowKey).setDepth(19).setVisible(false);
-    addGlow(this.diceGlow, 0xffcf65, 2.5, 10);
     this.rollHint = this.label('Chạm để gieo', { size: 24, color: '#79501e' })
       .setStroke('#79501e', 0)
       .setDepth(21)
@@ -1898,7 +1905,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private drawEventCountdown(ctx: Ctx) {
     this.eventCountdown.clear();
     this.panelClock = false;
-    this.countdownLabel.setVisible(false).setColor('#415c59');
+    this.countdownLabel.setVisible(false);
     const timedTurn = ctx.timer?.event === 'turn-timeout';
     const seat = timedTurn ? decisionSeat(ctx.state) : ctx.state.turn;
     if (
@@ -1915,6 +1922,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const remaining = Math.max(0, Math.min(1, (ctx.timer.endsAt - Date.now()) / ctx.timer.ms));
     const seconds = Math.max(0, Math.ceil((ctx.timer.endsAt - Date.now()) / 1000));
     if (timedTurn && ctx.state.phase === 'auction') {
+      this.setCountdownColor('#415c59');
       this.drawAuctionCountdown(remaining, seconds, PLAYER_COLORS[seat]!);
       return;
     }
@@ -1938,16 +1946,17 @@ export class CoTyPhuClassicView extends GameView<View> {
         this.eventCountdown.fillStyle(PLAYER_COLORS[seat]!).fillPoints(capsule, true);
       }
       const end = this.onBoard(u1 - h * 0.4, v);
+      this.setCountdownColor('#fff7e8');
       this.countdownLabel
         .setVisible(true)
         .setOrigin(1, 0.5)
         .setFontSize(height * 0.95)
-        .setColor('#fff7e8')
         .setPosition(end.x, end.y)
         .setText(`${seconds} giây`);
       return;
     }
     const width = timedTurn ? Math.min(size * 0.22, 150) : Math.min(size * 0.4, 240);
+    this.setCountdownColor('#415c59');
     const x = left + (size - width) / 2;
     // A trade's answer clock sits under the offer's lines.
     const y = timedTurn ? this.card.y + this.card.displayHeight + 12 : this.eventButtonY() + 40;
@@ -1959,6 +1968,11 @@ export class CoTyPhuClassicView extends GameView<View> {
         .setFontSize(18 * this.k)
         .setPosition(x + width + 8, y + 5)
         .setText(`${seconds} giây`);
+  }
+
+  private setCountdownColor(color: string) {
+    // Phaser TextStyle.setColor redraws/uploads even when the color is unchanged.
+    if (this.countdownLabel.style.color !== color) this.countdownLabel.setColor(color);
   }
 
   /**

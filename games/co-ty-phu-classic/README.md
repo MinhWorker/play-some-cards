@@ -308,7 +308,24 @@ biểu tượng tiền/vị trí; bắt đầu ván mới khôi phục màu gh�
 miễn phí (thế chấp hoặc chủ đang ở tù); các ô thuế vẫn ghi mức phải nộp.
 
 
-Phát sáng dùng [Glow của Phaser 4](https://docs.phaser.io/api-documentation/class/filters-glow)
-trên biểu tượng Điện lực, Cấp nước, mũi tên Xuất phát, đèn máy bay, viền gieo xúc xắc và
-nút khi rê chuột. Quầng sáng mềm dùng padding tự động để không bị cắt ở mép, chất lượng
-10 mẫu; chỉ áp dụng lên ảnh nhỏ thay vì lọc cả bàn. Renderer Canvas vẫn hiện đối tượng gốc.
+Biểu tượng đặc biệt dùng `SymbolAtlas`: vẽ sẵn các vòng hoạt ảnh ở 24 khung/giây vào một
+texture chung, rồi đổi frame khi chạy. Quầng sáng trên biểu tượng, đèn máy bay và viền gieo
+xúc xắc cũng được vẽ sẵn; không chạy bộ lọc Glow hoặc tải lại canvas lên GPU mỗi frame.
+Bến xe có sẵn các frame theo bốn màu chủ sở hữu. Canvas và WebGL đều giữ hoạt ảnh và quầng sáng.
+Frame được chọn theo đồng hồ scene, nên tốc độ không phụ thuộc FPS và không phải chạy
+các frame bị lỡ khi thiết bị chậm. Texture có khoảng đệm giữa các frame để tránh lẫn màu
+khi GPU nội suy ở mép; texture riêng của scene được giải phóng khi scene đóng.
+
+Nút khi rê chuột vẫn dùng [Glow của Phaser 4](https://docs.phaser.io/api-documentation/class/filters-glow),
+padding tự động và chất lượng 4 mẫu mỗi vòng; tắt bộ lọc khi rời nút. Theo tài liệu
+[Filters](https://docs.phaser.io/api-documentation/namespace/gameobjects-components-filters),
+mỗi bộ lọc cần thêm lượt render nên chỉ dùng cho hiệu ứng ngắn này.
+
+Mỗi chữ hoặc avatar trên player panel có texture chiếu riêng và chỉ vẽ lại khi nội dung
+thay đổi. Đếm giờ không vẽ lại avatar hoặc số tiền; chuyển tiền không vẽ lại toàn bộ panel.
+Chữ đếm giờ chỉ đổi màu khi cần. Canvas thay đổi dùng `refresh()` thay vì `update()` để
+tránh đọc pixel về CPU không cần thiết, theo tài liệu
+[CanvasTexture](https://docs.phaser.io/api-documentation/class/textures-canvastexture).
+
+Các lựa chọn này theo [Performance Cheat Sheet trong Phaser 4 Rendering Concepts](https://github.com/phaserjs/phaser/blob/v4.2.1/docs/Phaser%204%20Rendering%20Concepts/Phaser%204%20Rendering%20Concepts.md#performance-cheat-sheet):
+gom ảnh cùng texture để batch, giảm bộ lọc, giảm upload chữ/texture và giới hạn vùng cần vẽ lại.

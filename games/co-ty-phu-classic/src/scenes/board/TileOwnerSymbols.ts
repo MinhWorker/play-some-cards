@@ -66,7 +66,7 @@ export class TileOwnerSymbols {
     });
 
     this.context.putImageData(frame, 0, 0);
-    this.texture.update();
+    this.texture.refresh();
   }
 
   destroy() {

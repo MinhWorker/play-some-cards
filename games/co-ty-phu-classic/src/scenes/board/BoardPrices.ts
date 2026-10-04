@@ -155,7 +155,7 @@ export class BoardPrices {
       });
       ink.restore();
     });
-    this.texture.update();
+    this.texture.refresh();
   }
 
   layout(x: number, y: number, width: number, height: number) {
