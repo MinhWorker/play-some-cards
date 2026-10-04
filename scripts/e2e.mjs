@@ -1,7 +1,7 @@
 // Headless browser tests of the real app, one scenario per file in scripts/e2e/scenarios/.
 // Scenarios are independent (own browser, own accounts, own room names), so they run side by
 // side here and on separate machines in CI. Screenshots go to .e2e/<scenario>/.
-// Needs `npm run dev` running (the owner usually has it open). Never opens a visible window.
+// Needs a server with PSC_DEV=1 (`npm run dev` sets it). Never opens a visible window.
 //
 //   npm run e2e [webUrl]                 every scenario, default http://localhost:5033
 //   npm run e2e -- --only tien-len       some scenarios (comma separated)
@@ -11,7 +11,7 @@
 //   --retries N  run a failed scenario again, up to N times (CI: 1); a pass on retry warns
 //   --timeout S  a try that takes longer fails (default 600)
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
@@ -119,6 +119,7 @@ async function attempt(scenario) {
   // Unique per try so accounts never clash with other scenarios, earlier runs or retries.
   const tag = `${Date.now().toString(36)}${tries++}`;
   const errors = [];
+  const pages = [];
   const browser = await chromium.launch({ headless: true });
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -133,6 +134,7 @@ async function attempt(scenario) {
       /** A fresh browser context (a new "device") with one page, its errors watched. */
       page: async (viewport) => {
         const page = await (await browser.newContext({ viewport })).newPage();
+        pages.push(page);
         page.on('pageerror', (e) =>
           errors.push(e.stack?.split('\n').slice(0, 4).join('\n') ?? e.message),
         );
@@ -145,6 +147,35 @@ async function attempt(scenario) {
     await Promise.race([run, timeout]);
     if (errors.length) throw new Error('The page threw');
   } catch (err) {
+    // Read each room's server buffer while the page and socket are still alive. A broken page
+    // must not delay reporting the original failure, so each read has a short deadline.
+    const logs = await Promise.all(
+      pages.map(async (page, index) => {
+        let deadline;
+        try {
+          const entries = await Promise.race([
+            page.evaluate(() => window.__devRoomLogs?.()),
+            new Promise((_, reject) => {
+              deadline = setTimeout(() => reject(new Error('Room log read timed out')), 7000);
+            }),
+          ]);
+          return [
+            JSON.stringify({ page: index, url: page.url() }),
+            ...(entries ?? []).map((entry) => JSON.stringify(entry)),
+          ].join('\n');
+        } catch (error) {
+          return JSON.stringify({ page: index, error: String(error) });
+        } finally {
+          clearTimeout(deadline);
+        }
+      }),
+    );
+    writeFileSync(join(shots, 'room.log'), `${logs.join('\n')}\n`);
+    await Promise.allSettled(
+      pages.map((page, index) =>
+        page.screenshot({ path: join(shots, `failure-${index}.png`), timeout: 2000 }),
+      ),
+    );
     // A page error is often why a step then failed: report them together.
     if (errors.length) err.message += `\nPage errors:\n${errors.join('\n')}`;
     throw err;

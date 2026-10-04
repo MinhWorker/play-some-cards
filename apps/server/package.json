@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "nest start --watch --preserveWatchOutput",
+    "dev": "node ../../scripts/dev-server.mjs",
     "build": "nest build",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
@@ -25,7 +25,9 @@
     "pg": "^8.23.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "@psc/sdk": "*",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.5",

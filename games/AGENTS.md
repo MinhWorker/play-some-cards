@@ -38,6 +38,17 @@ games/<id>/          Only index.ts + client.ts are required
 - **Never send raw state.** Hide other players' cards and the deck in `view`. Spectators get
   `viewer = null`, and events listed in `secretEvents` stay hidden from others.
 - Hooks are pure and return a new state. Randomness goes only through `ctx.rng`.
+- Optional `override readonly commands` declares `z.object` schemas; each needs a `cmd<Name>`
+  hook (`move-token` → `cmdMoveToken`). `CommandContext<State, Options, Args>` adds validated
+  `args` and `reject` to the normal game context. Positional arguments follow object key order.
+- Optional `override readonly catalogs` lists `{ id, value, label }` entries. IDs are unique
+  kebab-case; labels are Vietnamese. `catalog(name)` defaults to numeric values; pass a zod
+  schema as the second argument for other types. Console `@catalog:id` resolves to `value`.
+- `gameRules` and registry tests reject reserved command names, missing command hooks,
+  invalid/duplicate catalog IDs and references to unknown catalogs. Existing games need no
+  commands or catalogs.
+- Synchronous `console.log/info/warn/error` in hooks reaches the room log with `PSC_DEV=1`
+  and still prints in the terminal. SDK declares these methods for pure game builds.
 - A game imports only these; Biome enforces it, and core never imports a game:
   - `@psc/sdk` and `@psc/sdk/client`;
   - `phaser` and `zod`;
@@ -94,6 +105,7 @@ games/<id>/          Only index.ts + client.ts are required
   drop) is drawn in Phaser.
 - **`testGame`** takes a plugin or a `Game`. It offers:
   - `send`, `error`, `view` and `assertHidden`;
+  - `command(line)` for optional game dev commands, catalog references and semicolon chains;
   - `bot`, `newGame`, `timer`, `fireTimer` and `leave`;
   - the option `bots`.
 

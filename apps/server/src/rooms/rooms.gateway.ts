@@ -5,6 +5,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { ConsoleError, type ConsoleIssue } from '@psc/sdk';
 import {
   type ClientToServerEvents,
   type JoinedRoom,
@@ -16,6 +17,8 @@ import {
 } from '@psc/shared';
 import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
+import { DevConsoleService } from '../dev/dev-console.service.js';
+import { followRoomLog } from '../dev/room-log.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 interface SocketData {
@@ -25,11 +28,15 @@ interface SocketData {
   roomCode?: string;
   /** Game whose room list this socket is watching. */
   lobby?: string;
+  /** Removed whenever this socket disconnects or leaves its room. */
+  devLogOff?: () => void;
 }
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
-type Result = { ok: true; [key: string]: unknown } | { ok: false; error: string };
+type Result =
+  | { ok: true; [key: string]: unknown }
+  | { ok: false; error: string; issue?: ConsoleIssue };
 
 const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 /**
@@ -60,6 +67,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   constructor(
     private readonly rooms: RoomsService,
     private readonly accounts: AccountsService,
+    private readonly devConsole: DevConsoleService,
   ) {}
 
   afterInit(server: AppServer) {
@@ -88,6 +96,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** Offline only when none of the account's sockets still shows the room. */
   handleDisconnect(socket: AppSocket) {
+    this.stopDevLogs(socket);
     const { roomCode, user } = socket.data;
     if (!roomCode || !user) return;
     const stillHere = this.socketsOf(user.id).some(
@@ -204,9 +213,50 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('dev:logs')
+  devLogs(socket: AppSocket, req: { on: boolean }) {
+    return this.handle(() => {
+      this.requireDev();
+      const { roomCode, playerId } = this.requireSeat(socket);
+      const room = this.rooms.devRoom(roomCode, playerId);
+      this.stopDevLogs(socket);
+      if (req?.on === true)
+        socket.data.devLogOff = followRoomLog(room, (entry) => socket.emit('dev:log', entry));
+      return { entries: req?.on === true ? (room.dev?.log ?? []) : [] };
+    });
+  }
+
+  private stopDevLogs(socket: AppSocket) {
+    socket.data.devLogOff?.();
+    socket.data.devLogOff = undefined;
+  }
+
+  @SubscribeMessage('dev:command')
+  devCommand(socket: AppSocket, req: { line: string }) {
+    return this.handle(() => {
+      this.requireDev();
+      const { roomCode, playerId } = this.requireSeat(socket);
+      return this.devConsole.execute(roomCode, playerId, req?.line, (room) => this.broadcast(room));
+    });
+  }
+
+  @SubscribeMessage('dev:schema')
+  devSchema(socket: AppSocket) {
+    return this.handle(() => {
+      this.requireDev();
+      const { roomCode, playerId } = this.requireSeat(socket);
+      return this.devConsole.schema(this.rooms.devRoom(roomCode, playerId));
+    });
+  }
+
+  private requireDev() {
+    if (!this.rooms.devEnabled) throw new RoomError('Server không bật chế độ dev');
+  }
+
   private enter(socket: AppSocket, room: Room): JoinedRoom {
     const userId = socket.data.user.id;
     this.unwatchLobby(socket);
+    this.stopDevLogs(socket);
     socket.data.roomCode = room.code;
     void socket.join(room.code);
     this.rooms.setConnected(room.code, userId, true);
@@ -232,6 +282,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       if (s !== socket) {
         s.emit('room:closed', { gameId: room.game.id, reason: 'Bạn đã rời phòng' });
       }
+      this.stopDevLogs(s);
       void s.leave(roomCode);
       s.data.roomCode = undefined;
     }
@@ -254,6 +305,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     for (const socket of this.server.sockets.sockets.values()) {
       if (socket.data.roomCode !== room.code) continue;
       socket.emit('room:closed', { gameId: room.game.id, reason: 'Phòng đã giải tán' });
+      this.stopDevLogs(socket);
       void socket.leave(room.code);
       socket.data.roomCode = undefined;
     }
@@ -288,11 +340,11 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** Waits for the game's new timer (if any), then runs its hook; drops a cancelled one. */
   private scheduleTimer(room: Room, timer: { key: string; ms: number } | null) {
-    if (!room.timer) {
+    if (!room.timer || room.dev?.timerPaused) {
       clearTimeout(this.gameTimers.get(room.code));
       this.gameTimers.delete(room.code);
     }
-    if (!timer) return;
+    if (!timer || room.dev?.timerPaused) return;
     clearTimeout(this.gameTimers.get(room.code));
     const handle = setTimeout(() => {
       this.gameTimers.delete(room.code);
@@ -308,7 +360,10 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** After a change in a game with computer seats, let a bot move after a short pause. */
   private scheduleBot(room: Room) {
-    if (room.status !== 'playing' || !room.players.some((p) => p.bot)) return;
+    clearTimeout(this.botTimers.get(room.code));
+    this.botTimers.delete(room.code);
+    if (room.status !== 'playing' || room.dev?.botsPaused || !room.players.some((p) => p.bot))
+      return;
     clearTimeout(this.botTimers.get(room.code));
     const timer = setTimeout(() => {
       this.botTimers.delete(room.code);
@@ -326,6 +381,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     try {
       return { ok: true, ...(await fn()) };
     } catch (err) {
+      if (err instanceof ConsoleError) return { ok: false, error: err.message, issue: err.issue };
       if (err instanceof RoomError || err instanceof AccountError) {
         return { ok: false, error: err.message };
       }

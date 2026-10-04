@@ -1,5 +1,6 @@
 import {
   type BotContext,
+  type CommandContext,
   type EventContext,
   Game,
   type GameContext,
@@ -10,6 +11,7 @@ import {
 import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
+import { type CardRef, catalogs, commands } from './dev.js';
 import {
   AUCTION_TURN_MS,
   auctionRaise,
@@ -100,6 +102,41 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     'decline-trade': z.object({}),
   };
 
+  override readonly catalogs = catalogs;
+  override readonly commands = commands;
+
+  cmdDice(ctx: CommandContext<State, Options, { a: number; b: number }>): State {
+    return { ...ctx.state, devDice: [ctx.args.a, ctx.args.b] };
+  }
+  cmdTp(ctx: CommandContext<State, Options, { seat: number; square: number }>): State {
+    if (!ctx.state.players[ctx.args.seat]) ctx.reject(`Không có ghế ${ctx.args.seat}`);
+    const s = copy(ctx.state);
+    s.players[ctx.args.seat]!.position = ctx.args.square;
+    return s;
+  }
+  cmdCash(ctx: CommandContext<State, Options, { seat: number; amount: number }>): State {
+    if (!ctx.state.players[ctx.args.seat]) ctx.reject(`Không có ghế ${ctx.args.seat}`);
+    const s = copy(ctx.state);
+    s.players[ctx.args.seat]!.cash = ctx.args.amount;
+    return s;
+  }
+  cmdCard(ctx: CommandContext<State, Options, { card: CardRef }>): State {
+    const { deck, index } = ctx.args.card;
+    const card = (deck === 'chance' ? CHANCE : CHEST)[index];
+    if (!card) ctx.reject('Lá bài không tồn tại');
+    if (!ctx.state[deck].includes(index)) ctx.reject('Lá bài đang được người chơi giữ');
+    const s = copy(ctx.state);
+    s[deck] = [index, ...s[deck].filter((id) => id !== index)];
+    s.lastCard = card.text;
+    awaitSpecialEvent(s, {
+      kind: 'card',
+      card,
+      deck,
+      roll: (s.dice?.[0] ?? 0) + (s.dice?.[1] ?? 0),
+    });
+    return this.complete(s, ctx, true);
+  }
+
   onStart(ctx: StartContext<Options>): State {
     const { players, rng } = ctx;
     const s: State = {
@@ -141,7 +178,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   }
 
   view({ state }: GameContext<State, Options>): View {
-    const { chance: _chance, chest: _chest, ...visible } = state;
+    const { chance: _chance, chest: _chest, devDice: _devDice, ...visible } = state;
     return visible;
   }
 
@@ -155,8 +192,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const seat = s.turn;
     const p = s.players[seat]!;
     s.buildable = null;
-    const a = 1 + Math.floor(ctx.rng() * 6);
-    const b = 1 + Math.floor(ctx.rng() * 6);
+    const [a, b] = s.devDice ?? [1 + Math.floor(ctx.rng() * 6), 1 + Math.floor(ctx.rng() * 6)];
+    delete s.devDice;
     s.dice = [a, b];
     s.lastCard = null;
     if (p.jailed) {

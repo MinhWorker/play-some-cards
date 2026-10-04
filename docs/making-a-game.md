@@ -119,6 +119,120 @@ export class MyGame extends Game<State, Options> {
   `.timer` và `.fireTimer()` (cho hẹn giờ nổ ngay), `.leave(player)`. Tuỳ chọn
   `{ bots: ['b'] }` đánh dấu người chơi máy.
 
+## Dùng Dev Console
+
+`npm run dev` bật `PSC_DEV=1` cho server. Vào **phòng thật**, mở nút **DEV** rồi bật
+**Dev Console**. Game nào cũng có các lệnh engine; sandbox `/?play=<id>` vẫn chạy độc lập trong
+trình duyệt và không nhận các lệnh phòng.
+
+- `Ctrl+/` mở ô lệnh; `` Ctrl+` `` hiện/ẩn nhanh; `Esc` đóng gợi ý rồi thoát ô lệnh.
+- Khi ô trống, `?` hiện bảng phím tắt. `help` liệt kê lệnh, `help dice` xem một lệnh cụ thể.
+- Gõ `as `, `tp ` hoặc `@square:` rồi bấm `Tab` / `Shift+Tab` để chọn ghế, tham số, id;
+  danh mục kèm tên tiếng Việt. `↑` / `↓` gọi lại lịch sử, `PageUp` / `PageDown` cuộn log.
+- `.pin 1 tp 0 @square:san-bay; dice 1 1` ghim cả chuỗi; gõ `!1` để dựng lại tình huống.
+  Ghim lưu theo game, còn lịch sử, bộ lọc, góc và độ đậm lưu trên trình duyệt.
+- `.filter reject` chỉ xem nước bị từ chối; `.find "Chưa tới lượt"` tìm lý do; `.copy 20`
+  chép các dòng đang lọc. `.dock tr`, `.opacity 60`, `.clear` và `.console off` chỉnh lớp phủ.
+
+Toàn bộ lớp phủ có nền tối bán trong suốt để đọc rõ trên cảnh sáng; `.opacity` chỉnh độ đậm.
+Lớp phủ chỉ dùng bàn phím: chuột và chạm luôn đi xuống game, kể cả ô lệnh. Bấm vào game sẽ
+thoát chế độ gõ. Log ở chế độ xem mờ sau 10 giây (lỗi 30 giây); phím tắt bỏ qua bộ gõ đang ghép
+chữ và ô nhập khác của ứng dụng. Khi hết log, nền cũng ẩn. Khi gõ lệnh, bàn phím Phaser tạm dừng. Enter gửi lệnh và xoá
+ô ngay để gõ tiếp trong lúc chờ trả lời. Chuỗi `;` chạy và in kết quả từng lệnh; lỗi dừng chuỗi,
+`.clear` ở cuối xoá những dòng đã in trước nó.
+
+Một số lệnh dùng cho mọi game:
+
+```text
+bot pause; timer pause; seed 42
+state get
+state set players.0.position 19
+rng push 0 0
+as 0 roll
+undo
+snapshot save airport
+restart
+snapshot load airport
+```
+
+`state set` sửa trực tiếp state, không kiểm tra luật; đường dẫn và sự kiện trong ví dụ phụ
+thuộc game. `as` gửi thay một ghế qua đúng kiểm tra nước đi, có hoạt ảnh như người chơi bấm.
+`timer fire` cho timer chạy ngay, `bot step` cho máy đi một nước. `finish 0` kết thúc với ghế 0
+thắng; `finish` trống là hoà. `state dump` in cả dữ liệu server giữ. `seed off` trở lại ngẫu nhiên
+thường, `rng clear` bỏ các số đã xếp hàng.
+
+`undo` giữ tối đa 50 thay đổi, gồm state, tỉ số, RNG và thời gian timer còn lại. Snapshot nằm ở
+`.dev/snapshots/<gameId>/<tên>.json`, còn sau khi khởi động lại server; nạp vào phòng cùng game
+và cùng số ghế sẽ đổi id tài khoản theo thứ tự ghế. `snapshot list` và `snapshot delete <tên>`
+quản lý các file đó.
+
+Trong hook đồng bộ, dùng `console.log/info/warn/error` bình thường: khi dev bật, dòng hiện trong
+log phòng và terminal. Chi tiết dữ liệu/stack là object trong DevTools của trình duyệt
+(`console.groupCollapsed`); lớp phủ chỉ hiện tóm tắt. Log giữ tối đa 500 dòng, chi tiết quá lớn
+bị cắt quanh 20 KB. Tắt công tắc tổng thì client thôi nhận log; ẩn nhanh bằng phím vẫn giữ log.
+Server không có `PSC_DEV=1` từ chối mọi lệnh dev, kể cả khi client tự gửi socket.
+
+## Lệnh dev (tuỳ chọn)
+
+Game không cần khai báo gì để dùng lệnh engine và `as`. Muốn có lệnh riêng, khai báo
+`commands` cùng hook `cmd<Name>`; `catalogs` cung cấp giá trị có tên cho `@danh-mục:id`:
+
+```ts
+import { catalog, type CommandContext, Game, type StartContext } from '@psc/sdk';
+import { z } from 'zod';
+
+type State = { players: { position: number }[] };
+
+class TeleportGame extends Game<State> {
+  readonly events = {};
+  override readonly catalogs = {
+    square: [
+      { id: 'xuat-phat', value: 0, label: 'Xuất phát' },
+      { id: 'san-bay', value: 20, label: 'Sân bay' },
+    ],
+  };
+  override readonly commands = {
+    tp: z.object({ seat: z.int().nonnegative(), square: catalog('square') })
+      .describe('Đưa một người chơi tới một ô'),
+  };
+  onStart(ctx: StartContext): State {
+    return { players: ctx.players.map(() => ({ position: 0 })) };
+  }
+  cmdTp(ctx: CommandContext<State, undefined, { seat: number; square: number }>): State {
+    if (!ctx.state.players[ctx.args.seat]) ctx.reject('Không có ghế này');
+    return {
+      ...ctx.state,
+      players: ctx.state.players.map((player, seat) =>
+        seat === ctx.args.seat ? { ...player, position: ctx.args.square } : player),
+    };
+  }
+}
+```
+
+Đối số theo vị trí theo thứ tự khoá `z.object`: `tp 0 @square:san-bay`; cũng nhận
+`tp square=@square:san-bay seat=0`. `CommandContext<State, Options, Args>` có đầy đủ
+`rng`, `players`, `options`, `setTimer`, `clearTimer`, `finish`, thêm `args` đã kiểm tra và
+`reject(message)`. Hook phải trả state mới, giống `on<Event>`; lệnh riêng không phát sự kiện
+nước đi. Tên `move-token` gọi `cmdMoveToken`.
+
+`catalog('square')` mặc định nhận số; dùng `catalog('card', z.string())` cho id chuỗi hoặc
+schema object cho giá trị phức hợp. `id` phải kebab-case và duy nhất, `label` là tiếng Việt.
+Tham chiếu danh mục cũng dùng được trong `as`, JSON và `state set`. `gameRules` cùng test
+registry chặn tên lệnh trùng engine, schema không phải `z.object`, hook thiếu, id sai/trùng và
+danh mục không tồn tại.
+
+Test lệnh riêng bằng cùng bộ phân tích với server:
+
+```ts
+const game = testGame(new TeleportGame(), ['a', 'b']);
+game.command('tp 0 @square:san-bay');
+expect(game.state.players[0].position).toBe(20);
+```
+
+`.command()` nhận chuỗi nhiều lệnh riêng cách bằng `;`; lệnh engine cần phòng server thật.
+Ví dụ đầy đủ: `games/co-ty-phu-classic/src/game/dev.ts` và `dev.test.ts`, có danh mục ô/lá bài
+và lệnh `dice`, `tp`, `cash`, `card`.
+
 ## Màn hình (`GameView`)
 
 Thiết kế phần mở rộng cho quản lý scene, âm thanh, hoạt ảnh và coroutine nằm trong
@@ -166,7 +280,7 @@ hủy scope cũ trước hook; kết thúc ván giữ hoạt ảnh nước cuố
 mọi tài nguyên đồng bộ, lần chạy tiếp theo có runtime mới. Game vẫn reset field hiển thị của
 mình trong `onCreate`. Với nhiều vòng trong một trận, `runtime.newRound('game-round')` đóng
 scope trình diễn vòng cũ trước khi tạo bài/quân mới. `onResync(ctx)` dựng snapshot hiện tại
-không replay tiếng/nước cũ khi `last.seq` bị nhảy hoặc đổi người xem; hook vẫn đồng bộ.
+không replay tiếng/nước cũ khi `last.seq` bị nhảy, quay lùi (undo), nạp snapshot hoặc đổi người xem; hook vẫn đồng bộ.
 
 `setSpeed(0.25–4)` đổi tốc độ cả wait/tween/atlas/frame đang chạy, giữ tốc độ qua ván mới và
 không đổi timer server. Delta tối đa 100 ms mỗi frame; pause/sleep/tab ẩn dừng trình diễn và

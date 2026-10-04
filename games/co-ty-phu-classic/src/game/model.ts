@@ -132,6 +132,8 @@ export interface State {
   after: 'roll' | 'end';
   doubles: number;
   dice: [number, number] | null;
+  /** Dev console override, consumed by the next roll and hidden from player views. */
+  devDice?: [number, number];
   pending: number | null;
   /** One building upgrade after landing on an already-owned street. */
   buildable: number | null;
@@ -148,7 +150,7 @@ export interface State {
 }
 
 /** Deck order is server-only. */
-export type View = Omit<State, 'chance' | 'chest'>;
+export type View = Omit<State, 'chance' | 'chest' | 'devDice'>;
 
 /** Every street uses the same price-based building and rent ladder. */
 const street = (name: string, group: Group, price: number): Square => ({

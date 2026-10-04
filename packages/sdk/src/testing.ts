@@ -1,3 +1,4 @@
+import { ConsoleError, consoleArgs, parseConsoleLine } from './console/parser.js';
 import { Game, type GameEvent, gameRules, type Stored } from './engine.js';
 import type { GamePlugin, GameResult, PlayerId, RoomContext } from './game.js';
 import { seededRng } from './rng.js';
@@ -9,6 +10,7 @@ import { seededRng } from './rng.js';
  *   game.send('b', 'place', { x: 4, y: 4 });              // throws if the game rejects it
  *   expect(game.error('b', 'place', { x: 5, y: 4 })).toBe('Chưa tới lượt bạn');
  *   expect(game.state.board.cells[40]).toBe('X');
+ *   game.command('tp 0 @square:start');                    // optional game command
  *   game.fireTimer();                                      // a ctx.setTimer went off
  *   game.leave('b');                                       // b leaves mid-game (onLeave)
  *
@@ -58,6 +60,17 @@ export function testGame<State, View, Options>(
       const error = rules.validateMove(stored, move(event, payload), player, room);
       if (error) throw new Error(`${player} ${event} was rejected: ${error}`);
       stored = rules.applyMove(stored, move(event, payload), player, rng, room);
+      return session;
+    },
+    /** Runs optional game dev commands using the server's pure parser, including chained lines. */
+    command(line: string) {
+      for (const command of parseConsoleLine(line)) {
+        const schema = rules.commands?.[command.name];
+        if (!schema || !rules.runCommand)
+          throw new ConsoleError({ message: `Không có lệnh "${command.name}"`, at: command.at });
+        const args = consoleArgs(schema, command.tokens, rules.catalogs, command.name);
+        stored = rules.runCommand(stored, command.name, args, rng, room);
+      }
       return session;
     },
     /** "Chơi ván mới": the next game in the same room (`ctx.lastResult` = this one's result). */
