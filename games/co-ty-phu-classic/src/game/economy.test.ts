@@ -120,15 +120,68 @@ describe('station contributions on landing', () => {
     expect(copy(game.state).stationAuctions[15]).not.toBe(game.state.stationAuctions[15]);
   });
 
-  it('preserves an extra roll after contributing and allows the latest contributor to withdraw', () => {
+  it('preserves extra rolls and permits withdrawal after another player contributes', () => {
     const game = auction();
     game.state.after = 'roll';
     game.send('a', 'bid', { amount: 50 });
     expect(game.state.phase).toBe('roll');
+    visit(game, 1);
+    game.send('b', 'bid', { amount: 100 });
     visit(game, 0);
     game.send('a', 'pass');
     expect(game.state.stationAuctions[5]!.passed).toEqual([0]);
     expect(game.state.players[0]!.cash).toBe(950);
+  });
+
+  it('skips repeat visits by the latest contributor until someone else bids at that station', () => {
+    const game = auction();
+    game.send('a', 'bid', { amount: 50 });
+    visit(game, 0);
+    expect(game.state.phase).toBe('end');
+    expect(game.state.auction).toBeNull();
+    expect(game.state.pending).toBeNull();
+    expect(game.state.players[0]!.cash).toBe(950);
+    expect(game.state.stationAuctions[5]!.bids).toEqual([50, 0, 0]);
+    visit(game, 1, 15);
+    game.send('b', 'bid', { amount: 50 });
+    visit(game, 0);
+    expect(game.state.phase).toBe('end');
+    expect(game.error('a', 'bid', { amount: 100 })).toBeTruthy();
+    visit(game, 1);
+    game.send('b', 'bid', { amount: 100 });
+    visit(game, 0);
+    expect(game.state.phase).toBe('auction');
+    game.send('a', 'bid', { amount: 150 });
+    expect(game.state.stationAuctions[5]!.bids).toEqual([200, 100, 0]);
+  });
+
+  it('does not start an auction countdown or charge a returning latest bidder on a real roll', () => {
+    const game = auction();
+    visit(game, 0, 15);
+    game.send('a', 'bid', { amount: 50 });
+    const rng = seededRng(1);
+    for (let i = 0; i < 24; i++) rng();
+    const sum = 2 + Math.floor(rng() * 6) + Math.floor(rng() * 6);
+    game.state.players[0]!.position = 15 - sum;
+    game.state.phase = 'roll';
+    game.send('a', 'roll');
+    expect(game.state.players[0]!.position).toBe(15);
+    expect(game.state.auction).toBeNull();
+    expect(game.state.pending).toBeNull();
+    expect(game.state.players[0]!.cash).toBe(950);
+    expect(game.timer?.ms).not.toBe(AUCTION_TURN_MS);
+    expect(game.state.stationAuctions[15]!.bids).toEqual([50, 0, 0]);
+  });
+
+  it('rejects a second consecutive contribution even if an auction payload is forced', () => {
+    const game = auction();
+    game.send('a', 'bid', { amount: 50 });
+    game.state.phase = 'auction';
+    game.state.pending = 5;
+    game.state.auction = { ...game.state.stationAuctions[5]!, bidder: 0 };
+    expect(game.error('a', 'bid', { amount: 100 })).toContain('Cần người khác góp giá');
+    expect(game.state.players[0]!.cash).toBe(950);
+    expect(game.state.stationAuctions[5]!.bids).toEqual([50, 0, 0]);
   });
 
   it('passes only the visitor after the station decision countdown expires', () => {

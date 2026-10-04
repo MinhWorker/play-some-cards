@@ -16,12 +16,9 @@ export function tileActions(state: View, seat: number | null, square: number): T
   const deed = state.properties[square];
   if (!cell || !deed || !isDeed(cell)) return [];
   if (state.phase === 'buy' && state.turn === seat && state.pending === square) {
-    return [
-      ...(state.players[seat]!.cash >= cell.price!
-        ? [{ label: `Mua ${cell.price} ₫`, event: 'buy', payload: {} }]
-        : []),
-      { label: 'Hết lượt', event: 'end-turn', payload: {} },
-    ];
+    return state.players[seat]!.cash >= cell.price!
+      ? [{ label: `Mua ${cell.price} ₫`, event: 'buy', payload: {} }]
+      : [];
   }
   if (state.phase === 'auction') {
     const auction = state.auction;
@@ -31,7 +28,8 @@ export function tileActions(state: View, seat: number | null, square: number): T
         state.turn !== seat ||
         state.pending !== square ||
         state.players[seat]!.position !== square ||
-        auction.passed.includes(seat)
+        auction.passed.includes(seat) ||
+        auction.leader === seat
       )
         return [];
       const amount = auction.highest + STATION_CONTRIBUTION_STEP;

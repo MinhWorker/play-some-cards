@@ -15,8 +15,11 @@ it('offers the next full station contribution only to its visitor with enough ca
   game.send('a', 'bid', { amount: 50 });
   expect(tileActions(game.state, 0, 5)).toEqual([]);
   move(game.state, 0, 5, false, 7);
-  game.state.players[0]!.cash = 75;
-  expect(tileActions(game.state, 0, 5)).toEqual([{ label: 'Từ bỏ', event: 'pass', payload: {} }]);
+  expect(tileActions(game.state, 0, 5)).toEqual([]);
+  game.state.turn = 1;
+  move(game.state, 1, 5, false, 7);
+  game.state.players[1]!.cash = 75;
+  expect(tileActions(game.state, 1, 5)).toEqual([{ label: 'Từ bỏ', event: 'pass', payload: {} }]);
 });
 
 it('marks only the pending purchase and respects the buyer balance', () => {
@@ -24,7 +27,9 @@ it('marks only the pending purchase and respects the buyer balance', () => {
   game.state.phase = 'buy';
   game.state.pending = 3;
   game.state.players[0]!.cash = 20;
-  expect(tileActions(game.state, 0, 3).map((a) => a.event)).toEqual(['end-turn']);
+  expect(tileActions(game.state, 0, 3)).toEqual([]);
+  game.state.players[0]!.cash = 1000;
+  expect(tileActions(game.state, 0, 3).map((a) => a.event)).toEqual(['buy']);
   expect(tileActions(game.state, 0, 1)).toEqual([]);
   expect(tileActions(game.state, 1, 3)).toEqual([]);
 });

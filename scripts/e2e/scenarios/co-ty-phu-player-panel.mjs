@@ -132,7 +132,7 @@ export default async function run(t) {
         Object.assign(game.state, { turn: 1, phase: after, after });
         game.state.players[1].position = 3;
         game.state.properties[3].owner = 1;
-      } else {
+      } else if (kind === 'station') {
         // Two settled stations refund 350, then buying both leaves an off-turn debt.
         game.state.players[0].cash = 0;
         for (const [square, highest, deposit] of [
@@ -152,7 +152,12 @@ export default async function run(t) {
       props = {
         ...s.props,
         me: 'a',
-        players: ids.map((id, seat) => ({ id, name: `Người ${seat + 1}`, connected: true })),
+        players: ids.map((id, seat) => ({
+          id,
+          name: `Người ${seat + 1}`,
+          connected: true,
+          bot: kind === 'backlog' && seat < 2,
+        })),
         hostId: 'a',
         round: s.props.round + 1,
         played: { ms: 10000, running: true },
@@ -173,6 +178,26 @@ export default async function run(t) {
     };
     s.send = (event, payload = {}) => s.panelMove(event, 'a', payload);
     s.panelDecision = () => decisionSeat(game.state);
+    // Deliver two complete bot turns before the browser can present the first roll.
+    s.panelBacklog = () => {
+      for (const [seat, square, dice] of [
+        [0, 3, [1, 2]],
+        [1, 6, [2, 4]],
+      ]) {
+        Object.assign(game.state, {
+          phase: 'buy',
+          after: 'end',
+          pending: square,
+          dice,
+          moneySequence: game.state.moneySequence + 1,
+          transfers: [],
+        });
+        game.state.players[seat].position = square;
+        deliver({ seq: ++seq, player: ids[seat], move: { event: 'roll', payload: {} } });
+        s.panelMove('buy', ids[seat]);
+        s.panelMove('end-turn', ids[seat]);
+      }
+    };
   }, root);
   const move = (event, player, payload = {}) =>
     page.evaluate(
@@ -182,6 +207,10 @@ export default async function run(t) {
       { event, player, payload },
     );
   const assertPanel = async (turn, phase, decision = turn) => {
+    await page.waitForFunction((turn) => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return s.shownTurn === turn && !s.changingTurn;
+    }, turn);
     const actual = await page.evaluate(() => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
       return {
@@ -268,5 +297,58 @@ export default async function run(t) {
   await assertPanel(3, 'end');
   await move('end-turn', 'd');
   await assertPanel(0, 'roll');
+
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.panelFixture('backlog');
+    s.panelBacklog();
+  });
+  const assertPresented = async (seat) => {
+    const ok = await page.evaluate((seat) => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      const lit = s.playerBadges.flatMap((badge, i) => (badge.alpha === 1 ? [i] : []));
+      return (
+        s.ctx.state.turn === 2 &&
+        s.shownTurn === seat &&
+        s.turnName.text === `Người ${seat + 1}` &&
+        JSON.stringify(lit) === `[${seat}]` &&
+        s.turnAvatar.texture.key === s.avatar(s.ctx.players[seat])
+      );
+    }, seat);
+    if (!ok) throw new Error(`The panel jumped to the server turn while presenting seat ${seat}`);
+  };
+  for (const seat of [0, 1]) {
+    await page.waitForFunction((seat) => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return s.activeRoll?.seat === seat && s.visualPhase === 'rolling';
+    }, seat);
+    await assertPresented(seat);
+    await page.waitForFunction((seat) => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return s.visualPhase === 'payment' && s.activeMoney?.beat.transfer.from === seat;
+    }, seat);
+    await assertPresented(seat);
+    await page.screenshot({ path: t.shot(`bot-${seat + 1}-payment-client-turn.png`) });
+  }
+  await idle();
+  await assertPanel(2, 'roll');
+  await page.screenshot({ path: t.shot('bots-caught-up-client-turn.png') });
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.panelFixture('backlog');
+    s.panelBacklog();
+  });
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.activeRoll?.seat === 0 && s.visualPhase === 'rolling';
+  });
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.onResync(s.ctx);
+    s.onState(s.ctx);
+  });
+  await assertPanel(2, 'roll');
+  await idle();
+  await assertPanel(2, 'roll');
   if (errors.length) throw new Error(`Player panel runtime errors: ${errors.join('; ')}`);
 }

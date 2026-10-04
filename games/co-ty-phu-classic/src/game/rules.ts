@@ -296,7 +296,7 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
           bids: s.players.map(() => 0),
         };
         const auction = s.stationAuctions[square]!;
-        if (auction.passed.includes(seat)) return;
+        if (auction.passed.includes(seat) || auction.leader === seat) return;
         s.auction = { ...auction, bidder: seat };
       }
       s.pending = square;

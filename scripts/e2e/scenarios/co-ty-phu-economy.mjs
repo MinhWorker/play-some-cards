@@ -106,6 +106,25 @@ export default async function run(t) {
     return s.ctx.state.phase === 'end' && !s.ctx.state.auction && !!s.ctx.state.stationAuctions[5];
   });
   if (!continued) throw new Error('Station contribution did not resume the visitor’s turn');
+  await arrive(0);
+  const repeated = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const state = s.ctx.state;
+    return (
+      state.phase === 'end' &&
+      !state.auction &&
+      state.pending === null &&
+      state.players[0].cash === 950 &&
+      state.stationAuctions[5].highest === 50 &&
+      state.stationAuctions[5].bids[0] === 50 &&
+      !s.main.some(
+        (b) => b.hit.visible && (b.text.text.startsWith('Góp ') || b.text.text === 'Từ bỏ'),
+      )
+    );
+  });
+  if (!repeated)
+    throw new Error('The latest station contributor was forced to bid or withdraw again');
+  await page.screenshot({ path: t.shot('station-repeat-latest-contributor-phone.png') });
   await arrive(1);
   await bid();
   await arrive(2);

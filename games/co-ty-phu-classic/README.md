@@ -17,7 +17,9 @@ và 2 ô Khí vận. Bảng địa danh và giá xây/thuê đầy đủ nằm t
   Đi qua hoặc dừng ở Xuất phát nhận 200. Nếu ra đôi, giải quyết ô đang đứng rồi gieo thêm;
   ra đôi ba lần liên tiếp thì vào tù ngay.
 - Đến đất phố chưa có chủ, chọn **Mua** theo giá ghi trên ô nếu đủ tiền hoặc **Hết lượt**.
-  Hết lượt chuyển ngay sang người tiếp theo, giữ đất chưa có chủ; không ép đấu giá. Nếu vừa
+  **Hết lượt** nằm ở tâm bàn, luôn hiện trong bước mua kể cả khi thiếu tiền hoặc đang xem ô khác;
+  bảng thông tin ô chỉ hiện **Mua** khi đủ tiền. Hết lượt chuyển ngay sang người tiếp theo,
+  giữ đất chưa có chủ; không ép đấu giá. Nếu vừa
   ra đôi, chọn Hết lượt cũng bỏ lần gieo thêm.
 - Trong lượt mình, chọn bất động sản đang sở hữu để mở **Đấu giá**. Người bán không trả giá;
   các ghế khác lần lượt tăng ít nhất `ceil(20% × giá gốc)`, mỗi quyết định có 10 giây.
@@ -28,7 +30,9 @@ và 2 ô Khí vận. Bảng địa danh và giá xây/thuê đầy đủ nằm t
   tù thì đất và bến xe của họ không thu tiền thuê cho tới khi ra tù.
 - Bến xe đấu giá qua nhiều lượt: chỉ người vừa bước vào bến được góp hoặc từ bỏ. Khoản góp
   mới tăng 50 ₫ mỗi lần (50, 100, 150…), trừ toàn bộ khoản mới khỏi tiền mặt và cộng vào tiền
-  tích trữ riêng của người đó tại bến. Góp xong tiếp tục lượt; muốn góp nữa phải bước vào lại.
+  tích trữ riêng của người đó tại bến. Góp xong tiếp tục lượt; muốn góp nữa phải bước vào lại
+  và đã có người khác góp thêm tại chính bến đó. Người góp gần nhất quay lại được đi tiếp,
+  không phải góp hoặc từ bỏ; tiền tích trữ và mức góp không đổi.
   Từ bỏ thì không được tham gia lại, tiền vẫn giữ tới lúc chốt. Khi chỉ còn một người chưa
   từ bỏ (3/4 người bỏ ở bàn bốn người), hoàn toàn bộ tiền cho tất cả rồi người thắng trả giá
   bến 200 ₫. Nếu thiếu tiền thì xử lý nợ với ngân hàng trước khi tiếp tục lượt người vừa đến.
@@ -142,7 +146,7 @@ src/
     CoTyPhuClassicView.ts       Điều phối scene, bố cục và luồng thao tác
     Setup.ts                   Tạo phòng và tuỳ chỉnh
     board/                     Ô bàn, giá trên ô, ký hiệu chủ đất, điện/nước
-    effects/                   Nền trời, phát sáng, chuyển tiền và âm thanh tiền
+    effects/                   Nền trời, phát sáng, chuyển tiền, âm thanh và cửa nhà tù
     hud/                       Thẻ đất nổi, bảng thuê và thao tác quản lý đất
     presentation/              Xúc xắc, rút thẻ, thông báo và hàng đợi tài sản
 assets/                        Ảnh và âm thanh dùng trực tiếp
@@ -159,6 +163,7 @@ sources/                       Script kết xuất và nguồn ảnh
 | Vị trí ô và biểu tượng in trên bàn | `sources/render_board_25d.py` → `src/scenes/board/boardGeometry.ts` |
 | Giá hiện trên bàn | `src/scenes/board/BoardPrices.ts`, `boardAmounts.ts` |
 | Viền ô, dấu chủ đất và biểu tượng đặc biệt | `src/scenes/board/` |
+| Song sắt khi bị đưa vào tù | `src/scenes/effects/JailGateEffect.ts` |
 | Quầng sáng | `src/scenes/effects/glow.ts` |
 | Tiền bay và âm thanh tiền | `src/scenes/effects/` |
 | Thẻ thông tin đất và bảng thuê | `src/scenes/hud/` |
@@ -198,7 +203,10 @@ trong lòng bàn tự thu nhỏ theo cỡ bàn; thẻ thông tin bên phải b�
 Khu người chơi là phần mở rộng của dải ô ở nửa trên lòng bàn: bên trái là ảnh đại diện trong ổ
 lớn, tên, tiền và thanh thời gian chạy trong rãnh (số giây ở cuối rãnh) của người đang có lượt;
 bên phải là danh sách bốn ghế xếp dọc, mỗi ghế một viên bi màu quân có số ghế và tiền bên cạnh.
-Bi của người đang phải quyết định sáng và có quầng, các bi khác mờ. Khi tới lượt chủ phòng, ảnh
+Bi của người có lượt đang được trình diễn trên client sáng và có quầng, các bi khác mờ.
+Node, ảnh đại diện và tên đổi cùng nhau sau animation gieo, di chuyển và thanh toán của lượt trước;
+bot được server xử lý sớm không làm panel nhảy trước. Người đấu giá hoặc trả nợ ngoài lượt không
+đổi node của chủ lượt. Khi tới lượt chủ phòng, ảnh
 bên trái đội vương miện. Lòng xanh còn lại ở dưới dành cho tiêu đề, thông báo, xúc xắc và hai chồng thẻ. Thông tin vị trí, thẻ ra tù và trạng thái trong tù không có biểu tượng riêng; quân
 cờ và thẻ ô cho biết địa điểm. Thẻ thông tin bên phải hẹp hơn 30%; viền bàn mỏng.
 Nút mua, đấu giá, trả giá và quản lý đất nằm trong thẻ thông tin ô. Hai xúc xắc là vùng chạm để gieo;
@@ -250,6 +258,9 @@ trước khi mua, đấu giá hoặc xây. Kết quả đến ô được giữ 
 Các nút tạm ẩn trong nhịp chuyển tiền, và ô đất sáng lên khi mua
 hoặc xây. Game có nhạc nền cùng hiệu ứng riêng cho lượt, thẻ, đấu giá, xây dựng, nhà tù và kết
 thúc ván. Âm thanh vào tù phát khi quân cờ bắt đầu bay tới ô tù, sau bước xác nhận sự kiện.
+Riêng người bị đưa vào tù thấy hai cửa song sắt cao hết màn hình đóng sầm từ hai bên,
+giật lùi nhẹ rồi khít lại và mờ dần. Song sắt chạy cùng lúc quân cờ chuyển vào ô Nhà tù;
+không lặp lại khi người chơi đã ở trong tù, khi ghé thăm hoặc khi đồng bộ lại.
 Chuyển động này vẫn được xếp hàng nếu người chơi đã kết thúc lượt trong khi màn hình
 người khác còn chạy xúc xắc, không bỏ qua hoặc chờ tới lượt tiếp theo của người bị giam.
 Danh sách âm thanh và bộ nghe thử nằm trong

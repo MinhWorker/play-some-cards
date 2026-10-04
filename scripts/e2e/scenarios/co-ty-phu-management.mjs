@@ -28,8 +28,9 @@ export default async function run(t) {
     s.managementFixture = (kind) => {
       game = testGame(plugin, ids);
       seq = 0;
-      if (kind === 'buy') {
-        game.state.players[0].cash = 1;
+      if (kind === 'buy' || kind === 'buy-rich') {
+        game.state.players[0].cash = kind === 'buy' ? 1 : 1000;
+        if (kind === 'buy-rich') game.state.properties[1].owner = 0;
         move(game.state, 0, 3, false, 3);
       } else {
         game.state.phase = 'end';
@@ -116,18 +117,48 @@ export default async function run(t) {
   await fixture('buy');
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    const labels = [...s.main, ...s.tools].filter((b) => b.hit.visible).map((b) => b.text.text);
+    const buttons = [...s.main, ...s.tools].filter((b) => b.hit.visible);
+    const labels = buttons.map((b) => b.text.text);
+    const end = buttons.filter((b) => b.text.text === 'Hết lượt');
     return (
-      labels.includes('Hết lượt') &&
+      end.length === 1 &&
+      Math.abs(end[0].hit.x - (s.geometry.left + s.geometry.size / 2)) < 1 &&
+      Math.abs(end[0].hit.y - (s.geometry.top + s.geometry.imageH * 0.645)) < 1 &&
+      end[0].box.texture.key.endsWith('/button') &&
       !labels.some((text) => text.startsWith('Mua') || text === 'Đấu giá' || text === 'Bỏ qua')
     );
-  }, 'An unaffordable street did not offer Hết lượt as its only purchase choice');
+  }, 'An unaffordable street did not offer the original central Hết lượt control');
   await page.screenshot({ path: t.shot('unaffordable-end-turn-desktop.png') });
+  await page.setViewportSize(PHONE);
+  await page.screenshot({ path: t.shot('unaffordable-end-turn-phone.png') });
   await click('Hết lượt');
   await assertState(() => {
     const state = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
     return state.turn === 1 && state.properties[3].owner === null && state.auction === null;
   }, 'Ending an unaffordable purchase started an auction or transferred ownership');
+
+  await fixture('buy-rich');
+  const centralEnd = () => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const buttons = [...s.main, ...s.tools].filter((b) => b.hit.visible);
+    const end = buttons.filter((b) => b.text.text === 'Hết lượt');
+    return end.length === 1 && Math.abs(end[0].hit.x - (s.geometry.left + s.geometry.size / 2)) < 1;
+  };
+  await assertState(centralEnd, 'The affordable purchase replaced the central end-turn button');
+  await page.screenshot({ path: t.shot('affordable-purchase-phone.png') });
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
+  await assertState(
+    centralEnd,
+    'Inspecting owned land removed or duplicated the central end-turn button',
+  );
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[3]);
+  await click('Mua 180 ₫');
+  await idle();
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.ctx.state.properties[3].owner === 0 && s.ctx.state.players[0].cash === 820;
+  }, 'The purchase button on the tile card was overwritten by the central end-turn control');
+  await page.setViewportSize(DESKTOP);
 
   await fixture('owned');
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
