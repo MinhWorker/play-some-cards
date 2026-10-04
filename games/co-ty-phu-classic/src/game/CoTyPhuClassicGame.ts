@@ -11,12 +11,12 @@ import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
 import {
-  AUCTION_STEP,
   AUCTION_TURN_MS,
   BOARD,
   isDeed,
   type Options,
   SPECIAL_EVENT_TIMEOUT,
+  STATION_CONTRIBUTION_STEP,
   type State,
   type View,
 } from './model.js';
@@ -30,6 +30,7 @@ import {
   move,
   next,
   resolveSpecialEvent,
+  settleStations,
   transferMoney,
 } from './rules.js';
 
@@ -108,6 +109,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       pending: null,
       buildable: null,
       auction: null,
+      stationAuctions: {},
       debt: null,
       trade: null,
       chance: shuffle(CHANCE.length, rng),
@@ -192,6 +194,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   }
 
   private complete(s: State, ctx: GameContext<State, Options>, force = false) {
+    settleStations(s);
     if (
       force ||
       decisionKey(s) !== decisionKey(ctx.state) ||
@@ -287,7 +290,14 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         const transfers = [] as State['transfers'];
         event = 'pay-debt';
         // Each step sells a building, mortgages a plot, pays, or declares insolvency.
-        for (let i = 0; i <= BOARD.length * 6 && s.phase === 'debt' && s.winner === null; i++) {
+        for (
+          let i = 0;
+          i <= BOARD.length * 6 &&
+          s.phase === 'debt' &&
+          decisionSeat(s) === seat &&
+          s.winner === null;
+          i++
+        ) {
           const move = botMove(s, seat);
           if (!move) throw new Error('Không thể tự xử lý khoản nợ');
           event = move.event;
@@ -355,19 +365,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const remaining = s.players.flatMap((p, i) =>
       p.bankrupt || auction.passed.includes(i) ? [] : [i],
     );
-    if (
-      remaining.length === 0 ||
-      (remaining.length === 1 &&
-        (BOARD[auction.square]!.kind === 'station' || auction.leader === remaining[0]))
-    ) {
-      const station = BOARD[auction.square]!.kind === 'station';
-      if (station) {
-        auction.bids.forEach((amount, seat) => {
-          transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
-        });
-        auction.leader = remaining[0] ?? null;
-        auction.highest = BOARD[auction.square]!.price!;
-      }
+    if (remaining.length === 0 || (remaining.length === 1 && auction.leader === remaining[0])) {
       if (auction.leader !== null && s.players[auction.leader]!.cash >= auction.highest) {
         const winner = auction.leader;
         transferMoney(s, winner, null, auction.highest, `Đấu giá ${BOARD[auction.square]!.name}`);
@@ -390,45 +388,58 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       ctx.reject('Chưa tới lượt đấu giá của bạn');
     const s = copy(ctx.state);
     const amount = ctx.payload.amount;
+    const station = BOARD[s.auction!.square]!.kind === 'station';
+    if (station) {
+      requireTurn(ctx, 'auction');
+      if (s.players[s.turn]!.position !== s.auction!.square || s.pending !== s.auction!.square)
+        ctx.reject('Chỉ được góp tiền khi bước vào bến xe');
+      if (s.auction!.passed.includes(s.turn)) ctx.reject('Bạn đã từ bỏ bến xe này');
+    }
     if (
-      (BOARD[s.auction!.square]!.kind === 'station'
-        ? amount !== s.auction!.highest + AUCTION_STEP
+      (station
+        ? amount !== s.auction!.highest + STATION_CONTRIBUTION_STEP
         : amount <= s.auction!.highest) ||
-      amount > s.players[ctx.player.seat]!.cash + s.auction!.bids[ctx.player.seat]! ||
-      (BOARD[s.auction!.square]!.kind === 'station' &&
-        s.players[ctx.player.seat]!.cash + s.auction!.bids[ctx.player.seat]! <
-          BOARD[s.auction!.square]!.price!)
+      amount > s.players[ctx.player.seat]!.cash
     )
       ctx.reject('Giá đấu phải cao hơn và trong số tiền bạn có');
-    if (BOARD[s.auction!.square]!.kind === 'station') {
-      transferMoney(
-        s,
-        ctx.player.seat,
-        null,
-        amount - s.auction!.bids[ctx.player.seat]!,
-        'Đặt tiền đấu giá',
-      );
-      s.auction!.bids[ctx.player.seat] = amount;
+    if (station) {
+      transferMoney(s, ctx.player.seat, null, amount, 'Góp tiền bến xe');
+      s.auction!.bids[ctx.player.seat]! += amount;
     }
     s.auction!.highest = amount;
     s.auction!.leader = ctx.player.seat;
     s.notice = `${ctx.player.name} trả ${amount}.`;
-    this.auctionStep(s);
+    if (station) this.endStationVisit(s);
+    else this.auctionStep(s);
     return this.complete(s, ctx);
+  }
+
+  private endStationVisit(s: State) {
+    const { bidder: _bidder, ...auction } = s.auction!;
+    s.stationAuctions[auction.square] = auction;
+    s.auction = null;
+    s.pending = null;
+    s.phase = s.after;
   }
 
   onPass(ctx: Action): State {
     if (ctx.state.phase !== 'auction' || ctx.state.auction?.bidder !== ctx.player.seat)
       ctx.reject('Chưa tới lượt đấu giá của bạn');
     const s = copy(ctx.state);
-    if (s.auction!.leader === ctx.player.seat && BOARD[s.auction!.square]!.kind !== 'station')
+    const station = BOARD[s.auction!.square]!.kind === 'station';
+    if (station) {
+      requireTurn(ctx, 'auction');
+      if (s.players[s.turn]!.position !== s.auction!.square || s.pending !== s.auction!.square)
+        ctx.reject('Chỉ được từ bỏ khi bước vào bến xe');
+      if (s.auction!.passed.includes(s.turn)) ctx.reject('Bạn đã từ bỏ bến xe này');
+    } else if (s.auction!.leader === ctx.player.seat) {
       ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
-    transferMoney(s, null, ctx.player.seat, s.auction!.bids[ctx.player.seat]!, 'Rút tiền đấu giá');
-    s.auction!.bids[ctx.player.seat] = 0;
+    }
     if (s.auction!.leader === ctx.player.seat) s.auction!.leader = null;
     s.auction!.passed.push(ctx.player.seat);
     s.notice = `${ctx.player.name} bỏ đấu giá.`;
-    this.auctionStep(s);
+    if (station) this.endStationVisit(s);
+    else this.auctionStep(s);
     return this.complete(s, ctx);
   }
 
@@ -512,11 +523,13 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   }
 
   onPayDebt(ctx: Action): State {
-    requireTurn(ctx, 'debt');
+    if (ctx.state.phase !== 'debt' || decisionSeat(ctx.state) !== ctx.player.seat)
+      ctx.reject('Chưa tới lượt trả nợ của bạn');
     const s = copy(ctx.state);
     const debt = s.debt!;
-    if (s.players[s.turn]!.cash < debt.amount) ctx.reject('Bạn chưa đủ tiền trả nợ');
-    transferMoney(s, s.turn, debt.creditor, debt.amount, debt.reason);
+    const payer = debt.payer ?? s.turn;
+    if (s.players[payer]!.cash < debt.amount) ctx.reject('Bạn chưa đủ tiền trả nợ');
+    transferMoney(s, payer, debt.creditor, debt.amount, debt.reason);
     s.debt = null;
     s.phase = debt.after;
     s.notice = `Đã trả ${debt.amount}: ${debt.reason}.`;
@@ -527,11 +540,16 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   }
 
   onBankrupt(ctx: Action): State {
-    requireTurn(ctx, 'debt');
-    if (ctx.state.players[ctx.state.turn]!.cash >= ctx.state.debt!.amount)
+    if (ctx.state.phase !== 'debt' || decisionSeat(ctx.state) !== ctx.player.seat)
+      ctx.reject('Chưa tới lượt trả nợ của bạn');
+    const payer = decisionSeat(ctx.state);
+    if (ctx.state.players[payer]!.cash >= ctx.state.debt!.amount)
       ctx.reject('Bạn đã đủ tiền trả nợ');
     const s = copy(ctx.state);
-    bankrupt(s, s.turn, s.debt!.creditor, ctx);
+    const resume = s.debt!.after;
+    const wasTurn = payer === s.turn;
+    bankrupt(s, payer, s.debt!.creditor, ctx);
+    if (!wasTurn) s.phase = resume;
     return this.complete(s, ctx);
   }
 
@@ -641,10 +659,31 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (s.players[ctx.player.seat]!.bankrupt) return this.complete(s, ctx);
     const wasTurn = s.turn === ctx.player.seat;
     bankrupt(s, ctx.player.seat, null, ctx);
+    if (
+      s.winner === null &&
+      wasTurn &&
+      ctx.state.debt?.payer !== undefined &&
+      ctx.state.debt.payer !== ctx.player.seat
+    ) {
+      s.debt = { ...ctx.state.debt, after: 'roll' };
+      s.phase = 'debt';
+    }
     if (s.winner === null && !wasTurn) {
       if (ctx.state.trade && [ctx.state.trade.from, ctx.state.trade.to].includes(ctx.player.seat)) {
         s.phase = ctx.state.trade.resume;
         s.pending = ctx.state.pending;
+      } else if (ctx.state.auction && BOARD[ctx.state.auction.square]!.kind === 'station') {
+        const auction = s.stationAuctions[ctx.state.auction.square]!;
+        const remaining = s.players.filter(
+          (p, seat) => !p.bankrupt && !auction.passed.includes(seat),
+        );
+        if (remaining.length <= 1) {
+          s.phase = s.after;
+        } else {
+          s.auction = { ...auction, bidder: ctx.state.auction.bidder };
+          s.phase = 'auction';
+          s.pending = ctx.state.pending;
+        }
       } else if (ctx.state.auction) {
         s.auction = {
           ...ctx.state.auction,
@@ -661,13 +700,20 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         s.pending = ctx.state.pending;
         this.auctionStep(s, s.auction.bidder === ctx.player.seat);
       } else {
-        s.phase = ctx.state.phase;
+        s.phase =
+          ctx.state.phase === 'debt' && decisionSeat(ctx.state) === ctx.player.seat
+            ? ctx.state.debt!.after
+            : ctx.state.phase;
         if (s.specialEvent) s.notice = ctx.state.notice;
         s.pending = ctx.state.pending;
-        s.debt = ctx.state.debt && {
-          ...ctx.state.debt,
-          creditor: ctx.state.debt.creditor === ctx.player.seat ? null : ctx.state.debt.creditor,
-        };
+        s.debt =
+          ctx.state.debt && decisionSeat(ctx.state) !== ctx.player.seat
+            ? {
+                ...ctx.state.debt,
+                creditor:
+                  ctx.state.debt.creditor === ctx.player.seat ? null : ctx.state.debt.creditor,
+              }
+            : null;
       }
     }
     return this.complete(s, ctx, !s.specialEvent && !hasPvpClock(s, ctx.players));

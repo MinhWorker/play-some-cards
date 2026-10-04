@@ -172,12 +172,15 @@ export default async function run(t) {
       await clickCanvas(
         page,
         'co-ty-phu-classic',
-        (s) => s.main.find((b) => b.hit.visible && b.text.text.includes('Bỏ')).hit,
+        (s) =>
+          s.main.find(
+            (b) => b.hit.visible && (b.text.text.includes('Bỏ') || b.text.text === 'Từ bỏ'),
+          ).hit,
       );
     } else if (state.phase === 'debt') {
       const enough = await page.evaluate(() => {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
-        return s.players[s.turn].cash >= s.debt.amount;
+        return s.players[s.debt.payer ?? s.turn].cash >= s.debt.amount;
       });
       if (enough) await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
       else break;
@@ -452,8 +455,7 @@ export default async function run(t) {
       }, seq);
       await idle();
     }
-    // A station opens an auction, bid in turns from the seat that rolled: it drops out (the
-    // other is then the last one in, and buys it at its listed price).
+    // Only the station visitor decides; passing leaves the other player as the owner.
     const auction = () =>
       rulesPage.evaluate(
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'auction',
@@ -466,7 +468,10 @@ export default async function run(t) {
         await clickCanvas(
           rulesPage,
           'co-ty-phu-classic',
-          (s) => s.main.find((b) => b.hit.visible && b.text.text.endsWith('Bỏ giá')).hit,
+          (s) =>
+            s.main.find(
+              (b) => b.hit.visible && (b.text.text.endsWith('Bỏ giá') || b.text.text === 'Từ bỏ'),
+            ).hit,
         );
       }
       await rulesPage.waitForFunction(

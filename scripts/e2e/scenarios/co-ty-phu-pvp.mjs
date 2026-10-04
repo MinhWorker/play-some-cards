@@ -131,25 +131,39 @@ export default async function run(t) {
     await host.waitForFunction(() => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
       return (
-        s.visualPhase === 'decision' &&
-        !s.runtime.busy('turn') &&
-        !s.activeMoney &&
-        (s.main[0].hit.visible || s.diceHit.visible)
+        (s.ctx.state.turn === 1 && s.ctx.state.lastAutoAction?.event === 'end-turn') ||
+        (s.visualPhase === 'decision' &&
+          !s.runtime.busy('turn') &&
+          !s.activeMoney &&
+          (s.main[0].hit.visible || s.diceHit.visible))
       );
     });
-    const phase = await host.evaluate(
-      () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase,
-    );
-    if (phase === 'end') break;
+    const { phase, ended } = await host.evaluate(() => {
+      const state = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
+      return {
+        phase: state.phase,
+        ended: state.turn === 1 && state.lastAutoAction?.event === 'end-turn',
+      };
+    });
+    if (phase === 'end' || ended) break;
     await clickCanvas(host, 'co-ty-phu-classic', (s) =>
       s.ctx.state.phase === 'roll' ? s.diceHit : s.main[0].hit,
     );
   }
   await host.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.ctx.state.phase === 'end' && s.visualPhase === 'decision' && s.main[0].hit.visible;
+    return (
+      (s.ctx.state.turn === 1 && s.ctx.state.lastAutoAction?.event === 'end-turn') ||
+      (s.ctx.state.phase === 'end' && s.visualPhase === 'decision' && s.main[0].hit.visible)
+    );
   });
-  await host.screenshot({ path: t.shot('end-turn-center.png') });
+  // The server may already have ended the turn while the headless browser renders the landing.
+  if (
+    await host.evaluate(
+      () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'end',
+    )
+  )
+    await host.screenshot({ path: t.shot('end-turn-center.png') });
   await guest.waitForFunction(
     () => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');

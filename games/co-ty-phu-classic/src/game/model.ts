@@ -60,7 +60,15 @@ export interface Auction {
   bids: number[];
 }
 
+/** Deposits and withdrawals persist between visits to this station. */
+export type StationAuction = Omit<Auction, 'bidder'>;
+
+export const STATION_CONTRIBUTION_STEP = 50;
+export const STATION_BASE_FEE = 50;
+
 export interface Debt {
+  /** A station winner may owe the bank during another player's turn. */
+  payer?: number;
   amount: number;
   creditor: number | null;
   reason: string;
@@ -118,6 +126,7 @@ export interface State {
   /** One building upgrade after landing on an already-owned street. */
   buildable: number | null;
   auction: Auction | null;
+  stationAuctions: Record<number, StationAuction>;
   debt: Debt | null;
   trade: Trade | null;
   chance: number[];
@@ -140,7 +149,6 @@ const street = (
 ): Square => ({ name, kind: 'street', group, price, rent, houseCost });
 const station = (name: string): Square => ({ name, kind: 'station', price: 200 });
 const utility = (name: string): Square => ({ name, kind: 'utility', tax: 100 });
-export const AUCTION_STEP = 10;
 
 /** Fixed interleaved price layout; each street retains its group and building ladder. */
 export const BOARD: readonly Square[] = [

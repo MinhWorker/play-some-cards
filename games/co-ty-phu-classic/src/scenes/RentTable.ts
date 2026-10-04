@@ -1,6 +1,6 @@
 import { FONT } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import type { Property, Square } from '../game/model.js';
+import { type Property, type Square, STATION_BASE_FEE } from '../game/model.js';
 
 /** Full rent schedule on demand, leaving the persistent tile card compact. */
 export class RentTable {
@@ -45,7 +45,7 @@ export class RentTable {
             i === 0 ? '—' : `${cell.houseCost} ₫`,
           ])
         : cell.kind === 'station'
-          ? [1, 2, 3, 4].map((i) => [`${i} bến`, `${25 * 2 ** (i - 1) * (i === 4 ? 3 : 1)} ₫`, '—'])
+          ? [1, 2, 3, 4].map((i) => [`${i} bến`, `${STATION_BASE_FEE * i} ₫`, '—'])
           : [
               ['1 đơn vị', '4× xúc xắc', '—'],
               ['2 đơn vị', '10× xúc xắc', '—'],
@@ -66,7 +66,7 @@ export class RentTable {
       this.panel
         .fillStyle(0xffd98a)
         .fillRoundedRect(x + 14, y + 62 + (level + 1) * 40, width - 28, 38, 10);
-    [['Cấp', 'Thuê', 'Xây'], ...schedule].forEach((row, i) => {
+    [['Cấp', cell.kind === 'station' ? 'Phí' : 'Thuê', 'Xây'], ...schedule].forEach((row, i) => {
       row.forEach((text, column) => {
         this.rows[i * 3 + column]!.setVisible(true)
           .setText(text)

@@ -1,6 +1,6 @@
 # Âm thanh Cờ tỷ phú Classic
 
-Nhạc nền `music-tycoon.mp3` và các hiệu ứng dưới đây được tạo bằng
+Nhạc nền `music-tycoon.mp3` và phần lớn các hiệu ứng dưới đây được tạo bằng
 `games/co-ty-phu-classic/sources/make_audio.py`. Chạy lại script bằng Python và `ffmpeg` để
 tạo đúng các tệp trong `games/co-ty-phu-classic/assets/`. Hiệu ứng là WAV mono 16 bit;
 nhạc nền, tiếng thắng và hai tiếng thông báo sao chép nguyên bản là MP3.
@@ -10,6 +10,7 @@ nhạc nền, tiếng thắng và hai tiếng thông báo sao chép nguyên bả
 | `tycoon-turn.wav` | Bắt đầu ván và tới lượt người xem |
 | `tycoon-dice.wav` | Xúc xắc lăn |
 | `tycoon-step.wav` | Bắt đầu mỗi cú nhảy sang ô kế tiếp |
+| `tycoon-plane.wav` | Máy bay bắt đầu bay ngang bàn từ Sân bay; dừng khi máy bay rời bàn hoặc hoạt ảnh bị hủy |
 | `tycoon-coin.wav` | Người nhận tiền nghe tiếng tiền vào; tiền từ ngân hàng thì cả bàn cùng nghe |
 | `tycoon-rent.wav` | Khi một người trả tiền, mọi người còn lại nghe tiếng tiền ra, kể cả khán giả |
 | `tycoon-buy.wav` | Xây nhà hoặc khách sạn; cả bàn nghe tiếng mua |
@@ -24,6 +25,12 @@ nhạc nền, tiếng thắng và hai tiếng thông báo sao chép nguyên bả
 | `tycoon-win.mp3` | Nhạc kết thúc ván |
 
 Người chơi có thể điều chỉnh âm lượng hiệu ứng và nhạc bằng cài đặt chung của ứng dụng.
+
+Tiếng máy bay được cắt từ `assets/audio/sfx/pixabay-plane.mp3` (Pixabay, do người dùng
+cung cấp): đoạn từ 3,8 đến 7 giây, dài 3,2 giây, WAV mono 16 bit ở 44.100 Hz.
+Đầu tiếng tăng dần trong 0,25 giây, cuối tiếng giảm dần trong 0,8 giây; âm lượng
+bằng 60% bản gốc. Cả bàn nghe khi chuyến bay bắt đầu, theo cài đặt âm lượng hiệu ứng.
+Ở tốc độ trình bày nhanh, tiếng dừng cùng máy bay và không kéo sang nhịp đến ô.
 
 ## Bộ nghe thử mới
 

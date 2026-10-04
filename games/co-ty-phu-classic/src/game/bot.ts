@@ -1,5 +1,5 @@
 import type { GameEvent } from '@psc/sdk';
-import { BOARD, isDeed, type State } from './model.js';
+import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type State } from './model.js';
 import { bankHotels, bankHouses } from './rules.js';
 
 const event = (name: string, payload?: object): GameEvent => ({ event: name, payload });
@@ -25,16 +25,15 @@ export function botMove(state: State, seat: number): GameEvent | null {
     const max = Math.min(me.cash - 100, Math.floor((BOARD[auction.square]?.price ?? 0) * 0.9));
     const amount = auction.highest + 10;
     if (BOARD[auction.square]!.kind === 'station') {
-      const available = me.cash + auction.bids[seat]!;
-      const limit = Math.min(available - 100, Math.floor(BOARD[auction.square]!.price! * 0.9));
-      return available >= BOARD[auction.square]!.price! && limit >= amount
-        ? event('bid', { amount })
-        : event('pass');
+      const contribution = auction.highest + STATION_CONTRIBUTION_STEP;
+      const limit = Math.min(me.cash - 100, Math.floor(BOARD[auction.square]!.price! * 0.9));
+      return limit >= contribution ? event('bid', { amount: contribution }) : event('pass');
     }
     return max >= amount ? event('bid', { amount }) : event('pass');
   }
 
-  if (state.turn !== seat) return null;
+  if ((state.phase === 'debt' ? (state.debt?.payer ?? state.turn) : state.turn) !== seat)
+    return null;
   if (state.phase === 'event') return event('confirm-event');
   if (state.phase === 'buy') {
     const price = BOARD[state.pending ?? -1]?.price ?? Infinity;

@@ -1,8 +1,8 @@
 # Luật hiện tại — Cờ tỷ phú Classic
 
-Bản ghi này mô tả code hiện tại sau cập nhật luật và giao diện ngày 02/10/2026:
+Bản ghi này mô tả code hiện tại sau cập nhật luật và giao diện ngày 04/10/2026:
 chủ đất ở tù không thu tiền thuê; xây một cấp khi quay lại đất phố đã sở hữu;
-bến xe đấu giá giữ tiền; thuế theo tiền mặt; điện/nước công cộng và thẻ thiếu hụt trong vòng bàn kế tiếp.
+bến xe góp tiền theo từng lần đến, bước tăng 50 ₫ và phí theo số bến cùng chủ; thuế theo tiền mặt; điện/nước công cộng và thẻ thiếu hụt trong vòng bàn kế tiếp.
 Dùng bản này để đọc và đề xuất sửa luật tiếp. Số tiền là đơn vị quy ước trong game, dù giao diện hiển thị ký hiệu ₫.
 
 Nguồn đối chiếu:
@@ -107,7 +107,7 @@ Tài sản mua được gồm **đất phố, ga, điện và nước**.
 - Nếu không đủ tiền, có thể quản lý tài sản để lấy tiền hoặc mở đấu giá.
 - Không có thao tác bỏ qua tài sản chưa có chủ mà không đấu giá.
 
-### Đấu giá
+### Đấu giá đất phố
 
 - Đấu giá đi **lần lượt** từ người đang có lượt, theo thứ tự ghế: mỗi người tăng giá hoặc bỏ.
   Mỗi lượt trả giá có **10 giây** đếm ngược do server giữ, kể cả khi chơi với máy; hết giờ thì tự
@@ -115,17 +115,43 @@ Tài sản mua được gồm **đất phố, ga, điện và nước**.
   không có đếm ngược.
 - Đất phố từ chối mua vẫn đấu giá thông thường: tăng ít nhất 1, trả giá thắng khi còn người
   giữ giá cao nhất. Người đang giữ giá cao nhất không được bỏ giá; tất cả bỏ mà chưa có giá thì không bán.
-- Bến xe mở đấu giá ngay khi đến, không có nút mua trực tiếp. Người đến là người đặt đầu tiên.
-- Bến xe bắt đầu từ 0, mỗi lần đặt tăng **đúng 10 ₫**. Tiền đặt bị trừ khỏi tiền mặt ngay;
-  khi đặt lại, chỉ trừ chênh lệch với số đang giữ. Muốn đặt phải có ít nhất 200 ₫ tính cả tiền đang giữ.
-- Rút/bỏ cuộc hoàn tiền đặt ngay và loại người đó khỏi phiên. Người giữ giá cao nhất cũng được rút.
-- Khi chỉ còn một người chưa bỏ, hoàn tất cả tiền đặt rồi người thắng trả **giá niêm yết 200 ₫**,
-  không trả giá đặt cao nhất. Nếu người còn lại không đủ giá niêm yết, bến vẫn thuộc ngân hàng.
-- Chấm tròn màu người chơi trên bến hiển thị các ghế đang có tiền đặt.
-- Người đã bỏ không quay lại phiên đó.
 - Không quản lý tài sản hay trao đổi khi đấu giá. Sau phiên, tiếp tục gieo nếu trước đó ra đôi,
-  nếu không thì kết thúc lượt. Chủ lượt rời ván hủy phiên và hoàn toàn bộ tiền đặt; ghế khác
-  rời ván được hoàn tiền đặt của mình trước thanh lý tài sản, phiên tiếp tục với các ghế còn lại.
+  nếu không thì kết thúc lượt. Chủ lượt rời ván hủy phiên.
+
+### Đấu giá bến xe
+
+- Mỗi bến xe chưa có chủ có một cuộc đấu giá riêng, được giữ qua nhiều lượt và nhiều vòng bàn.
+  Bến xe không có nút mua trực tiếp.
+- **Chỉ người vừa bước vào đúng ô bến xe đó** được lựa chọn góp tiền hoặc từ bỏ. Những người
+  khác không được góp hay từ bỏ từ xa. Đi ngang qua ô không được tính là bước vào.
+- Khoản góp đầu tiên là **50 ₫**. Mỗi lần có người góp, **khoản góp mới tăng đúng 50 ₫**
+  so với khoản góp thành công gần nhất tại cùng bến: 50, 100, 150, 200… Từ bỏ không làm
+  tăng mức góp; mỗi bến có mức góp riêng.
+- Toàn bộ khoản góp mới bị trừ khỏi tiền mặt và **cộng thêm** vào tiền tích trữ của người đó
+  tại bến. Đây là khoản góp mới, không phải nâng tổng tiền tích trữ lên mức mới hay chỉ trả
+  phần chênh lệch. Muốn góp phải đủ tiền mặt cho khoản góp của lần đến này.
+- Mỗi lần bước vào chỉ được quyết định một lần. Sau khi góp hoặc từ bỏ, tiếp tục lượt chơi
+  bình thường: gieo tiếp nếu được gieo do đôi, nếu không thì kết thúc lượt. Muốn góp lần nữa
+  phải bước vào chính bến đó ở một lần di chuyển sau.
+- Từ bỏ là vĩnh viễn trong cuộc đấu giá của bến đó. Người chưa từng góp và người đang có
+  tiền tích trữ đều có thể từ bỏ khi bước vào. Tiền đã góp **vẫn được giữ tại bến tới khi chốt**.
+  Người đã từ bỏ quay lại bến chưa chốt không được góp nữa.
+- Với bàn bốn người, khi **ba người đã từ bỏ**, người duy nhất chưa từ bỏ sở hữu bến. Người
+  chưa bước vào bến vẫn được tính là chưa từ bỏ; không thể tự loại họ vì chưa tham gia.
+- Khi chốt, **hoàn toàn bộ tiền tích trữ cho từng người**, kể cả những người đã từ bỏ.
+  Sau đó người thắng trả **giá niêm yết của bến, hiện là 200 ₫**, và nhận quyền sở hữu.
+  Khoản góp cuối hay tổng tiền tích trữ không phải giá mua bến. Nếu người thắng chưa đủ
+  tiền sau khi hoàn, game chờ người đó bán nhà/thế chấp để trả 200 ₫; không đủ tài sản thì
+  xử lý phá sản và bến trở về ngân hàng. Trả xong tiếp tục lượt của người vừa đến bến.
+  Nếu nhiều bến cùng chốt, hoàn tiền tại tất cả các bến đó trước khi thu lần lượt giá từng bến.
+- Với bàn ít hơn bốn người, chốt khi chỉ còn một người chưa từ bỏ trong số người chưa phá sản.
+- Mỗi quyết định của người đến bến có đồng hồ **10 giây**; hết giờ tự từ bỏ tại bến đó.
+  Máy quyết định ngay. Giữa hai lần đến bến, cuộc đấu giá không có đồng hồ và không giữ lượt chơi.
+- Chấm tròn màu trên bến hiển thị những người đang có tiền tích trữ, kể cả người đã từ bỏ.
+
+Ví dụ tại Bến Bắc: A bước vào góp 50 ₫; B bước vào góp 100 ₫; C bước vào góp 150 ₫.
+A quay lại góp thêm 200 ₫, tổng tiền A tích trữ là 250 ₫. D, B và C lần lượt bước vào
+rồi từ bỏ thì A thắng. Game hoàn A 250 ₫, B 100 ₫ và C 150 ₫, sau đó thu A 200 ₫ để mua bến.
 
 ## 5. Tiền thuê
 
@@ -147,17 +173,29 @@ Thuế thu nhập/xa xỉ nộp ngân hàng 10% tiền mặt, làm tròn xuống
 - Điều kiện nhân đôi hiện chỉ kiểm tra quyền sở hữu cả nhóm: một ô khác cùng nhóm đang thế
   chấp không làm mất mức thuê gấp đôi ở ô chưa thế chấp.
 
-### Bến xe
+### Phí bến xe
 
-| Số bến cùng chủ | Tiền thuê |
+Sau khi bến có chủ, người khác bước vào trả phí trực tiếp cho chủ bến. Đi ngang qua không
+thu phí; chủ bước vào bến của mình không trả phí.
+
+**Phí gốc 50 ₫**, bằng một phần tư giá mua bến 200 ₫. Phí của mỗi bến bằng
+**50 ₫ × số bến người đó đang sở hữu**, tính tại lúc người khác bước vào. Các bến cùng chủ
+thu cùng một mức; mua thêm, trao đổi hoặc mất bến làm mức phí thay đổi tương ứng.
+
+| Số bến cùng chủ | Phí mỗi lần bước vào một bến |
 | --- | ---: |
-| 1 | 25 |
-| 2 | 50 |
-| 3 | 100 |
-| 4 | 600 |
+| 1 | 50 ₫ |
+| 2 | 100 ₫ |
+| 3 | 150 ₫ |
+| 4 | 200 ₫ |
 
-Sở hữu cả bốn bến nhân ba mức thuê 200. Số bến tính gồm cả bến đang thế chấp, nhưng bản thân
-bến thế chấp không thu thuê. Thẻ tới bến gần nhất nhân đôi tiền thuê nếu thuộc người khác.
+Ví dụ A sở hữu Bến Bắc và Bến Nam: mỗi bến thu 100 ₫. Nếu A có thêm Bến Đông,
+cả ba bến cùng thu 150 ₫; nếu A chuyển một bến cho người khác, hai bến còn lại trở về 100 ₫.
+
+Số bến tính gồm cả bến đang thế chấp, nhưng bản thân bến thế chấp không thu phí. Chủ ở tù
+không thu phí cho tới khi ra tù, theo quy tắc chung ở trên. Bước vào do gieo xúc xắc, thẻ
+di chuyển hay chuyến bay đều áp dụng cùng công thức; thẻ tới bến gần nhất không nhân đôi phí.
+Nếu người đến thiếu tiền, xử lý nợ với chủ bến theo quy tắc trả nợ chung.
 
 ### Điện lực và Cấp nước
 
@@ -257,7 +295,7 @@ Hai thẻ thiếu điện/nước tăng thuế ô tương ứng gấp đôi tron
 | Thẻ | Hiệu lực |
 | --- | --- |
 | Tiến về Xuất phát. Nhận 200. | Tới ô 0, nhận 200 |
-| Tới Bến xe gần nhất. | Tới bến phía trước gần nhất; thuê gấp đôi nếu thuộc người khác |
+| Tới Bến xe gần nhất. | Tới bến phía trước gần nhất; áp dụng phí bến xe ở mục 5 |
 | Tới Điện lực hoặc Cấp nước gần nhất. | Tới đơn vị phía trước gần nhất; trả thuế công cộng hiện hành cho ngân hàng |
 | Tới Bắc Ninh. | Tới ô 39, xử lý ô đích |
 | Tới Sài Gòn. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
@@ -340,9 +378,13 @@ Phí sửa chữa tính mỗi khách sạn một lần theo giá khách sạn, k
 - Rời ván đang chơi được xử lý như phá sản với **ngân hàng**, kể cả đang nợ một người khác.
 - Nếu đó là người đang có lượt thì chuyển sang người chưa phá sản tiếp theo.
 - Nếu người nhận hoặc gửi đề nghị trao đổi rời ván, đề nghị bị hủy.
-- Ghế rời đấu giá bị loại khỏi phiên. Với bến xe, hoàn tiền của ghế đó và giữ mức đặt gần nhất
-  để lần đặt sau vẫn tăng đúng 10. Chủ lượt rời thì hủy phiên, hoàn tiền cho tất cả.
-  Với đấu giá đất phố, người dẫn đầu rời làm giá cao nhất trở về 0.
+- Người rời ván hoặc phá sản bị loại khỏi các cuộc đấu giá bến xe. Hoàn tiền tích trữ của
+  người đó tại mọi bến trước khi thanh lý tài sản; giữ tiền của các người còn lại và mức góp
+  gần nhất. Người đang có lượt rời cũng không hủy các cuộc đấu giá bến.
+- Khi việc loại người làm một bến chỉ còn một người chưa từ bỏ, chốt bến sau quyết định đang
+  xử lý để không ghi đè nợ, thẻ hoặc đấu giá đất phố. Khi ván kết thúc, hoàn tiền còn giữ tại
+  các bến chưa chốt.
+- Với đấu giá đất phố, người dẫn đầu rời làm giá cao nhất trở về 0; chủ lượt rời thì hủy phiên.
 
 ## 12. Bàn cờ, giá mua và tiền thuê
 
@@ -439,8 +481,10 @@ Máy tuân theo cùng luật hợp lệ; các ngưỡng dưới đây là chiế
 kiện áp dụng cho người thật.
 
 - **Mua:** chỉ mua trực tiếp nếu sau khi mua còn ít nhất 100; nếu không thì mở đấu giá.
-- **Đấu giá:** mỗi lần tăng 10; giá tối đa là mức thấp hơn giữa tiền mặt trừ 100 và 90% giá
+- **Đấu giá đất phố:** mỗi lần tăng 10; giá tối đa là mức thấp hơn giữa tiền mặt trừ 100 và 90% giá
   niêm yết, làm tròn xuống.
+- **Bến xe:** chỉ quyết định khi bước vào; góp mức tiếp theo tăng 50 nếu sau khi góp còn
+  ít nhất 100 và khoản góp không vượt 90% giá niêm yết. Nếu không thì từ bỏ.
 - **Trong tù:** ưu tiên dùng thẻ; sau hai lần thử thất bại thì trả 50 trước lần gieo tiếp
   nếu đủ tiền; còn lại thử gieo đôi.
 - **Sự kiện:** tự xác nhận thẻ, thuế và vào tù.

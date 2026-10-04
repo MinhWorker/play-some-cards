@@ -1,4 +1,4 @@
-import { BOARD, isDeed, type View } from '../game/model.js';
+import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type View } from '../game/model.js';
 import { bankHotels, bankHouses } from '../game/rules.js';
 
 export type TileAction = { label: string; event: string; payload: Record<string, number> };
@@ -20,22 +20,31 @@ export function tileActions(state: View, seat: number | null, square: number): T
   if (state.phase === 'auction') {
     const auction = state.auction;
     if (auction?.square !== square || auction.bidder !== seat) return [];
+    if (cell.kind === 'station') {
+      if (
+        state.turn !== seat ||
+        state.pending !== square ||
+        state.players[seat]!.position !== square ||
+        auction.passed.includes(seat)
+      )
+        return [];
+      const amount = auction.highest + STATION_CONTRIBUTION_STEP;
+      return [
+        ...(amount <= state.players[seat]!.cash
+          ? [{ label: `Góp ${amount} ₫`, event: 'bid', payload: { amount } }]
+          : []),
+        { label: 'Từ bỏ', event: 'pass', payload: {} },
+      ];
+    }
     return [
-      ...(cell.kind === 'station' ? [10] : [1, 10, 50])
-        .filter(
-          (plus) =>
-            auction.highest + plus <= state.players[seat]!.cash + auction.bids[seat]! &&
-            (cell.kind !== 'station' ||
-              state.players[seat]!.cash + auction.bids[seat]! >= cell.price!),
-        )
+      ...[1, 10, 50]
+        .filter((plus) => auction.highest + plus <= state.players[seat]!.cash)
         .map((plus) => ({
           label: `+${plus} (${auction.highest + plus})`,
           event: 'bid',
           payload: { amount: auction.highest + plus },
         })),
-      ...(auction.leader !== seat || cell.kind === 'station'
-        ? [{ label: 'Rút / Bỏ giá', event: 'pass', payload: {} }]
-        : []),
+      ...(auction.leader !== seat ? [{ label: 'Rút / Bỏ giá', event: 'pass', payload: {} }] : []),
     ];
   }
   if (state.phase === 'event' || state.phase === 'trade' || deed.owner !== seat) return [];

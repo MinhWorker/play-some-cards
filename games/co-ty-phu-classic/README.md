@@ -13,15 +13,19 @@ bảng giá mua/thuê và hai bộ thẻ.
 - Mỗi người bắt đầu ở **Xuất phát** với 1.500. Gieo hai xúc xắc và đi theo chiều tăng số ô.
   Đi qua hoặc dừng ở Xuất phát nhận 200. Nếu ra đôi, giải quyết ô đang đứng rồi gieo thêm;
   ra đôi ba lần liên tiếp thì vào tù ngay.
-- Đến đất chưa có chủ, chọn **Mua** theo giá ghi trên ô hoặc **Đấu giá**. Khi đấu giá, từng
+- Đến đất phố chưa có chủ, chọn **Mua** theo giá ghi trên ô hoặc **Đấu giá**. Khi đấu giá, từng
   người lần lượt tăng giá hoặc bỏ cuộc; mỗi lượt có thanh đếm ngược 10 giây màu người đang trả
   giá, hết giờ thì tự bỏ giá. Người trả cao nhất trong số tiền mình có nhận đất.
 - Đến đất người khác sở hữu và chưa thế chấp, trả tiền thuê. Đất cùng màu được một người sở hữu
-  trọn bộ thì tiền thuê đất trống gấp đôi. Bến xe thu 25, 50, 100 hoặc 600 theo số bến cùng chủ. Chủ đang bị giam trong
+  trọn bộ thì tiền thuê đất trống gấp đôi. Bến xe thu 50 ₫ nhân số bến cùng chủ: 50, 100, 150 hoặc 200 ₫; thẻ tới bến gần nhất dùng cùng mức phí. Chủ đang bị giam trong
   tù thì đất và bến xe của họ không thu tiền thuê cho tới khi ra tù.
-- Bến xe chỉ được sở hữu qua đấu giá. Giá đặt tăng đúng 10 ₫ mỗi lần và được giữ từ tiền mặt;
-  rút/bỏ cuộc được hoàn tiền và không được quay lại phiên. Khi còn một người, hoàn tất cả
-  tiền đặt rồi người thắng trả giá bến 200 ₫. Người tham gia phải đủ 200 ₫ tính cả tiền đang giữ.
+- Bến xe đấu giá qua nhiều lượt: chỉ người vừa bước vào bến được góp hoặc từ bỏ. Khoản góp
+  mới tăng 50 ₫ mỗi lần (50, 100, 150…), trừ toàn bộ khoản mới khỏi tiền mặt và cộng vào tiền
+  tích trữ riêng của người đó tại bến. Góp xong tiếp tục lượt; muốn góp nữa phải bước vào lại.
+  Từ bỏ thì không được tham gia lại, tiền vẫn giữ tới lúc chốt. Khi chỉ còn một người chưa
+  từ bỏ (3/4 người bỏ ở bàn bốn người), hoàn toàn bộ tiền cho tất cả rồi người thắng trả giá
+  bến 200 ₫. Nếu thiếu tiền thì xử lý nợ với ngân hàng trước khi tiếp tục lượt người vừa đến.
+  Mỗi bến có cuộc đấu giá và mức góp riêng; người chưa đến bến vẫn được tính là chưa từ bỏ.
 - Hai ô thuế thu 10% tiền mặt tại lúc đến ô, làm tròn xuống, tối thiểu 200 ₫. Điện lực và Cấp nước
   không được mua, thu cố định 100 ₫. Thẻ thiếu điện/nước làm thuế ô tương ứng thành 200 ₫
   trong vòng bàn kế tiếp (từ lúc lượt quay về ghế đầu tiên còn chơi tới lần quay về sau đó).
@@ -69,7 +73,7 @@ Khi còn ít nhất hai người thật, mỗi quyết định có đồng hồ 
 kết thúc lượt, mua nếu đủ tiền hoặc mở đấu giá, từ chối trao đổi, hoặc thanh lý
 tài sản để trả nợ/phá sản. Xây, bán nhà, thế chấp và chuộc không kéo dài thời hạn đang chờ.
 Ván một người thật với máy không dùng đồng hồ này. Sự kiện đặc biệt vẫn tự xác nhận sau 8 giây;
-mỗi lượt trả giá trong đấu giá có đồng hồ 10 giây riêng, kể cả khi chơi với máy.
+mỗi lượt trả giá đất phố hoặc quyết định góp/từ bỏ khi đến bến có đồng hồ 10 giây riêng, kể cả khi chơi với máy.
 
 Chạm một ô để xem giá, chủ đất, tiền thuê và tình trạng nhà ở cột bên phải. Nút giữa bàn thay
 đổi theo bước hiện tại: mua/đấu giá, trả nợ hoặc kết thúc lượt. Chạm hai viên xúc xắc để gieo;
@@ -158,7 +162,9 @@ nhảy và một nhịp đáp riêng; thời gian đi là 0,26 giây mỗi ô v�
 Chuyến bay từ **Sân bay** là một cảnh riêng: một chiếc máy bay hoạt hình bay ngang bàn không dừng
 lại, lướt qua ô Sân bay thì chộp quân (vòng sáng loé, quân thu nhỏ và khuất dưới thân máy bay),
 lượn qua lòng bàn tới ô đích thì thả quân rơi xuống nảy nhẹ, rồi bay tiếp ra ngoài. Bóng máy bay
-in lệch trên mặt bàn cho thấy độ cao. Ảnh `assets/plane.webp` là mô hình 3D nhìn từ trên xuống
+in lệch trên mặt bàn cho thấy độ cao. Tiếng máy bay `assets/tycoon-plane.wav`, cắt từ
+`assets/audio/sfx/pixabay-plane.mp3` do người dùng cung cấp (Pixabay), phát khi chuyến bay
+bắt đầu và dừng khi máy bay rời bàn hoặc hoạt ảnh bị hủy. Ảnh `assets/plane.webp` là mô hình 3D nhìn từ trên xuống
 (chỉ dựng phần nhìn thấy), tạo lại bằng
 `blender -b -t 4 --python games/co-ty-phu-classic/sources/render_plane.py`.
 

@@ -37,7 +37,7 @@ describe('board rent prices', () => {
     const game = testGame(plugin, ['a', 'b']);
     for (const square of [1, 18, 5, 15]) game.state.properties[square]!.owner = 0;
     expect(boardAmounts(game.state)[1]).toBe('4');
-    expect(boardAmounts(game.state)[5]).toBe('50');
+    expect(boardAmounts(game.state)[5]).toBe('100');
     expect(boardAmounts(game.state)[12]).toBe('100');
     game.state.properties[28]!.owner = 0;
     expect(boardAmounts(game.state)[12]).toBe('100');

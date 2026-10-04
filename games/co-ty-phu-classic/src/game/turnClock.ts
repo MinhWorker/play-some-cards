@@ -1,14 +1,16 @@
 import type { Seat } from '@psc/sdk';
 import type { State } from './model.js';
 
-type DecisionState = Pick<State, 'turn' | 'phase' | 'auction' | 'trade'>;
+type DecisionState = Pick<State, 'turn' | 'phase' | 'auction' | 'trade' | 'debt'>;
 
 export function decisionSeat(state: DecisionState) {
   return state.phase === 'auction'
     ? (state.auction?.bidder ?? state.turn)
     : state.phase === 'trade'
       ? (state.trade?.to ?? state.turn)
-      : state.turn;
+      : state.phase === 'debt'
+        ? (state.debt?.payer ?? state.turn)
+        : state.turn;
 }
 
 export function hasPvpClock(state: State, players: Seat[]) {
@@ -24,6 +26,7 @@ export function decisionKey(state: State) {
     state.pending,
     state.auction,
     state.trade,
+    state.debt && { payer: state.debt.payer, amount: state.debt.amount, reason: state.debt.reason },
     event && { ...event, ready: undefined },
   ]);
 }

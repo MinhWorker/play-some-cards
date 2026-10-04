@@ -13,6 +13,7 @@ import {
   isDeed,
   type MoneyTransfer,
   type Property,
+  STATION_BASE_FEE,
   type View,
 } from '../game/model.js';
 import { ownsGroup, rent, utilityTax } from '../game/rules.js';
@@ -781,8 +782,8 @@ export class CoTyPhuClassicView extends GameView<View> {
       );
       const deed = this.shownProperties[i] ?? ctx.state.properties[i]!;
       if (isDeed(cell)) this.drawDeedState(i, deed);
-      if (ctx.state.auction?.square === i && cell.kind === 'station') {
-        ctx.state.auction.bids.forEach((amount, seat) => {
+      if (ctx.state.stationAuctions[i] && cell.kind === 'station') {
+        ctx.state.stationAuctions[i]!.bids.forEach((amount, seat) => {
           if (!amount) return;
           const point = this.surfacePoint(i, 0.22 + seat * 0.18, 0.85);
           this.board.fillStyle(PLAYER_COLORS[seat]!).fillCircle(point.x, point.y, tile * 0.09);
@@ -1121,6 +1122,13 @@ export class CoTyPhuClassicView extends GameView<View> {
         () => this.send(event, payload),
       ]);
     }
+    if (state.phase === 'debt')
+      return decisionSeat(state) === me.seat
+        ? [
+            [`Trả ${state.debt!.amount}`, () => this.send('pay-debt')],
+            ['Phá sản', () => this.send('bankrupt')],
+          ]
+        : [];
     if (state.turn !== me.seat) return [];
     if (state.phase === 'event') return [['Xác nhận', () => this.send('confirm-event')]];
     if (state.phase === 'roll') {
@@ -1143,11 +1151,6 @@ export class CoTyPhuClassicView extends GameView<View> {
       return [
         [`Mua ${BOARD[state.pending!]!.price}`, () => this.send('buy')],
         ['Đấu giá', () => this.send('auction')],
-      ];
-    if (state.phase === 'debt')
-      return [
-        [`Trả ${state.debt!.amount}`, () => this.send('pay-debt')],
-        ['Phá sản', () => this.send('bankrupt')],
       ];
     if (state.phase === 'end')
       return [
@@ -1313,6 +1316,8 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.setMovingTile(seat, to);
     this.plane.setVisible(true).setScale(planeScale);
     this.planeShadow.setVisible(true).setScale(planeScale * 0.8);
+    const flyover = this.runtime.audio.play('tycoon-plane', { maxStartDelayMs: 100 });
+    fx.defer(() => flyover.stop());
     const cursor = { value: 0 };
     const ease = (f: number) => 1 - (1 - f) ** 3;
     const ring = (at: { x: number; y: number }, f: number) => {
@@ -1371,6 +1376,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       },
     });
     fx.checkpoint();
+    flyover.stop();
     this.plane.setVisible(false);
     this.planeShadow.setVisible(false);
     this.planeBeam.clear();
@@ -2136,7 +2142,9 @@ export class CoTyPhuClassicView extends GameView<View> {
                         : `${rollingName} đang đi`
                       : state.phase === 'auction' && state.auction
                         ? `Đấu giá · lượt ${players[state.auction.bidder]?.name ?? ''}`
-                        : `Lượt ${turn}`,
+                        : state.phase === 'debt'
+                          ? `${players[decisionSeat(state)]?.name ?? ''} trả nợ`
+                          : `Lượt ${turn}`,
     );
     if (!presenting && state.specialEvent) {
       const event = state.specialEvent;
@@ -2159,9 +2167,11 @@ export class CoTyPhuClassicView extends GameView<View> {
     const notice =
       state.phase === 'auction' && auction
         ? `${BOARD[auction.square]!.name} · ${
-            auction.leader === null
-              ? 'chưa ai trả giá'
-              : `${players[auction.leader]?.name ?? ''} dẫn ${auction.highest.toLocaleString('vi-VN')} ₫${BOARD[auction.square]!.kind === 'station' ? ' cọc' : ''}`
+            BOARD[auction.square]!.kind === 'station'
+              ? `Lần góp gần nhất ${auction.highest.toLocaleString('vi-VN')} ₫`
+              : auction.leader === null
+                ? 'chưa ai trả giá'
+                : `${players[auction.leader]?.name ?? ''} dẫn ${auction.highest.toLocaleString('vi-VN')} ₫`
           }`
         : state.notice;
     const landedNotice =
@@ -2310,9 +2320,16 @@ export class CoTyPhuClassicView extends GameView<View> {
           ? '0 ₫'
           : cell.kind === 'utility'
             ? `${deed.owner !== null && this.shownProperties[12]?.owner === deed.owner && this.shownProperties[28]?.owner === deed.owner ? 10 : 4}× xúc xắc`
-            : `${(deed.owner === null ? (cell.kind === 'station' ? 25 : (cell.rent?.[0] ?? 0)) : rent({ properties: this.shownProperties, players: state.players }, selected, 0)).toLocaleString('vi-VN')} ₫`;
+            : `${(deed.owner === null ? (cell.kind === 'station' ? STATION_BASE_FEE : (cell.rent?.[0] ?? 0)) : rent({ properties: this.shownProperties, players: state.players }, selected, 0)).toLocaleString('vi-VN')} ₫`;
       deedRows[0] = ['Giá', `${cell.price} ₫`];
-      deedRows[1] = ['Thuê', currentRent];
+      deedRows[1] = [cell.kind === 'station' ? 'Phí' : 'Thuê', currentRent];
+      const stationAuction = state.stationAuctions[selected];
+      if (cell.kind === 'station' && stationAuction) {
+        const deposit = ctx.me
+          ? stationAuction.bids[ctx.me.seat]!
+          : stationAuction.bids.reduce((sum, amount) => sum + amount, 0);
+        deedRows[2] = [ctx.me ? 'Đã góp' : 'Tích trữ', `${deposit.toLocaleString('vi-VN')} ₫`];
+      }
       if (cell.kind === 'street')
         deedRows[2] =
           deed.houses === 5
