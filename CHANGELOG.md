@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/MinhWorker/play-some-cards/compare/v0.12.0...v0.13.0) (2026-10-04)
+
+
+### Features
+
+* **co-ty-phu-classic:** animate jail doors and sync client turns ([#69](https://github.com/MinhWorker/play-some-cards/issues/69)) ([9faffc8](https://github.com/MinhWorker/play-some-cards/commit/9faffc89f18498d17f5bc84e573d3e977ef26c20))
+
 ## [0.12.0](https://github.com/MinhWorker/play-some-cards/compare/v0.11.0...v0.12.0) (2026-10-04)
 
 
