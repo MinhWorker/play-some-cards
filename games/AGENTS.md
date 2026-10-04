@@ -13,6 +13,8 @@ Where to look:
 
 ```
 games/<id>/          Only index.ts + client.ts are required
+  RULES.md             Current Vietnamese gameplay rules (non-starter games)
+  README.md            Component map, development commands and asset credits
   src/index.ts         export default definePlugin({ meta, game: new MyGame(), room? }); server
   src/client.ts        export default defineClient({ scene, setup?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
   src/game/            Pure logic, no Phaser or DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
@@ -95,7 +97,7 @@ games/<id>/          Only index.ts + client.ts are required
   objects and `fx.checkpoint` before direct side effects after await. Reset display fields in
   `onCreate`; rebuild silently in `onResync`. Games with multiple visual rounds per match call
   `runtime.newRound('game-round')` before replacing cards. Never mix managed and raw Phaser
-  tweens on a target. See `docs/engine-runtime-design.md`.
+  tweens on a target. See the presentation/runtime sections of `docs/making-a-game.md`.
 - **Coordinates are design units** on a landscape frame 720 tall and 960–1600 wide
   (`this.view`, `ctx.screen`), never screen pixels: the camera scales the frame to the screen at
   its pixel density. `this.bleed` is how far the screen reaches beyond it (backgrounds only).

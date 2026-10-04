@@ -235,8 +235,8 @@ và lệnh `dice`, `tp`, `cash`, `card`.
 
 ## Màn hình (`GameView`)
 
-Thiết kế phần mở rộng cho quản lý scene, âm thanh, hoạt ảnh và coroutine nằm trong
-[engine-runtime-design.md](engine-runtime-design.md). Các module này đã được triển khai trong SDK trình duyệt; logic và timer server vẫn là nguồn quyết định ván chơi.
+`GameView` quản lý màn chơi qua các hook và runtime của SDK. Logic và timer server quyết định
+trạng thái ván; runtime quản lý thứ tự trình diễn, âm thanh, tốc độ và việc huỷ hiệu ứng trên client.
 
 ### Luồng trình diễn và vòng đời
 

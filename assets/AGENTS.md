@@ -57,4 +57,5 @@ Notes on the options and on Codex:
   - Music is 128 kbps MP3.
 - **Music**: a game's music is every `music*` file in its `assets/`, and a random one plays on its
   board. The app's music is `APP_MUSIC` in `apps/web/src/lib/sound.ts`.
-- **Which sound plays when** is noted per game in `docs/<game>-audio.md`.
+- Asset provenance and license exceptions live in `LICENSE-ASSETS.md` and the game README.
+  Find playback triggers in the game scenes; avoid duplicating them in audio planning documents.
