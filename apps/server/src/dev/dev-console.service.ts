@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import {
   type ConsoleCommand,
   ConsoleError,
+  commandHookName,
   consoleArgs,
   type DevCommandInfo,
   ENGINE_COMMANDS,
@@ -15,8 +16,8 @@ import {
 import { z } from 'zod';
 import { type Room, RoomError, RoomsService } from '../rooms/rooms.service.js';
 import { DevSnapshots } from './dev-snapshots.js';
-import { remember, restoreFrame } from './room-dev.js';
-import { logRoom } from './room-log.js';
+import { remember, restoreFrame, rngOf } from './room-dev.js';
+import { logRoom, runRoomHook } from './room-log.js';
 
 const descriptions: Record<string, [string, string]> = {
   help: ['Liệt kê lệnh hoặc xem cách dùng', 'help [lệnh]'],
@@ -42,12 +43,30 @@ export class DevConsoleService {
 
   schema(room: Room): { commands: DevCommandInfo[]; catalogs: Record<string, string[]> } {
     return {
-      commands: ENGINE_COMMANDS.map((name) => ({
-        name,
-        description: descriptions[name]![0],
-        usage: descriptions[name]![1],
-      })),
-      catalogs: {},
+      commands: [
+        ...ENGINE_COMMANDS.map((name) => ({
+          name,
+          description: descriptions[name]![0],
+          usage: descriptions[name]![1],
+        })),
+        ...Object.entries(room.game.commands ?? {}).map(([name, schema]) => ({
+          name,
+          description: schema.description ?? 'Lệnh của game',
+          usage: `${name} ${Object.keys(schema.shape)
+            .map((key) => `<${key}>`)
+            .join(' ')}`,
+          example: `${name} ${Object.keys(schema.shape)
+            .map((key) => `${key}=…`)
+            .join(' ')}`,
+          parameters: z.toJSONSchema(schema, { unrepresentable: 'any' }) as Record<string, unknown>,
+        })),
+      ],
+      catalogs: Object.fromEntries(
+        Object.entries(room.game.catalogs ?? {}).map(([name, entries]) => [
+          name,
+          entries.map((e) => e.id),
+        ]),
+      ),
     };
   }
   execute(
@@ -84,7 +103,7 @@ export class DevConsoleService {
   }
   private run(room: Room, command: ConsoleCommand): string {
     const { name, tokens } = command;
-    const values = tokens.map((t) => resolveValue(t.value));
+    const values = tokens.map((t) => resolveValue(t.value, room.game.catalogs, t.at));
     const [a, b, c] = values;
     const dev = room.dev!;
     const stored = () => {
@@ -257,12 +276,25 @@ export class DevConsoleService {
         const schema = room.game.events[event];
         if (!schema)
           throw new RoomError(`Không có sự kiện "${event}". Gõ events để xem danh sách.`);
-        const payload = consoleArgs(schema, tokens.slice(2), {}, event);
+        const payload = consoleArgs(schema, tokens.slice(2), room.game.catalogs, event);
         this.rooms.move(room.code, id, { event, payload });
         return `Ghế ${a}: ${event}`;
       }
       default: {
-        const guess = ENGINE_COMMANDS.find((n) => n.startsWith(name.slice(0, 2)));
+        const schema = room.game.commands?.[name];
+        if (schema && room.game.runCommand) {
+          const args = consoleArgs(schema, tokens, room.game.catalogs, name);
+          const state = stored();
+          remember(room);
+          room.state = runRoomHook(room, commandHookName(name), () =>
+            room.game.runCommand!(state, name, args, rngOf(room), this.rooms.context(room)),
+          );
+          this.rooms.settle(room);
+          return `${name} → xong`;
+        }
+        const guess = this.schema(room)
+          .commands.map((c) => c.name)
+          .find((n) => n.startsWith(name.slice(0, 2)));
         throw new ConsoleError({
           message: `Không có lệnh "${name}".${guess ? ` Có phải "${guess}"?` : ' Gõ help để xem danh sách.'}`,
           at: command.at,
