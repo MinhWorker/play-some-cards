@@ -506,6 +506,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.dice.setPosition(cx, this.fieldY(0.58), tile);
     this.layoutReady(ctx);
     this.mortgagePanel.layout(ctx.screen);
+    this.backdrop.layout();
     const rightX = sideX;
     const middle = rightX + sideW / 2;
     this.deedLabel.setPosition(middle, this.geometry.panelTop + 51);

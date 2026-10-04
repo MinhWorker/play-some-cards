@@ -53,7 +53,7 @@ export class MortgagePanel {
       this.container.add(hit);
       return hit;
     };
-    this.title = text(34).setOrigin(0.5);
+    this.title = text(34).setOrigin(0, 0.5);
     this.total = text(26).setOrigin(0.5);
     this.pageLabel = text(22).setOrigin(0.5);
     this.rows = Array.from({ length: 6 }, () => {
@@ -137,7 +137,10 @@ export class MortgagePanel {
     const width = this.width;
     this.ink.clear().fillStyle(0xfff8e5).fillRoundedRect(0, 0, width, 592, 16);
     this.ink.lineStyle(3, 0xd2a14c).strokeRoundedRect(0, 0, width, 592, 16);
-    this.title.setText('Thế chấp tài sản').setPosition(width / 2, 38);
+    this.title.setText('Thế chấp tài sản').setPosition(24, 38);
+    this.pageLabel.setText(`${this.page + 1} / ${pages}`).setPosition(width - 112, 38);
+    this.drawButton(this.previous, '‹', width - 176, 38, 54, 40, this.page > 0);
+    this.drawButton(this.next, '›', width - 48, 38, 54, 40, this.page + 1 < pages);
     this.rows.forEach((row, i) => {
       row.square = squares[this.page * this.rows.length + i];
       const y = 76 + i * 60;
@@ -181,9 +184,7 @@ export class MortgagePanel {
     this.total
       .setText(`${this.selected.size} tài sản · Nhận ${amount.toLocaleString('vi-VN')} ₫`)
       .setPosition(width / 2, 454);
-    this.pageLabel.setText(`${this.page + 1} / ${pages}`).setPosition(width / 2, 497);
-    this.drawButton(this.previous, '‹', width / 2 - 94, 497, 54, 40, this.page > 0);
-    this.drawButton(this.next, '›', width / 2 + 94, 497, 54, 40, this.page + 1 < pages);
+    this.ink.lineStyle(1, 0xd2b885).lineBetween(24, 494, width - 24, 494);
     this.drawButton(this.cancel, 'Hủy', width * 0.22, 550, width * 0.34, 56, true);
     this.drawButton(
       this.confirm,

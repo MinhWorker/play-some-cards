@@ -3,7 +3,7 @@ import type Phaser from 'phaser';
 let nextId = 0;
 
 /**
- * Behind a floating panel (the rent table, the trade offer): everything drawn below `depth` is
+ * Behind a floating panel: everything drawn below `depth` is
  * captured, blurred and darkened, and taps on it don't reach the board.
  */
 export class Backdrop {
@@ -33,19 +33,26 @@ export class Backdrop {
     this.hide();
   }
 
-  show() {
+  /** Follow the full camera viewport, including frame bleed, while a panel stays open. */
+  layout() {
     const camera = this.scene.cameras.main;
     // What the camera shows, in world units (its origin is the top-left corner).
     const x = camera.scrollX;
     const y = camera.scrollY;
     const width = camera.width / camera.zoom;
     const height = camera.height / camera.zoom;
-    this.visible = true;
-    camera.setForceComposite(true);
-    this.capture.setVisible(true);
-    this.blurred.setVisible(true).setPosition(x, y).setDisplaySize(width, height);
-    this.shade.setVisible(true).setPosition(x, y).setSize(width, height);
+    this.blurred.setPosition(x, y).setDisplaySize(width, height);
+    this.shade.setPosition(x, y).setSize(width, height);
     this.shade.input?.hitArea.setTo(0, 0, width, height);
+  }
+
+  show() {
+    this.layout();
+    this.visible = true;
+    this.scene.cameras.main.setForceComposite(true);
+    this.capture.setVisible(true);
+    this.blurred.setVisible(true);
+    this.shade.setVisible(true);
   }
 
   hide() {
