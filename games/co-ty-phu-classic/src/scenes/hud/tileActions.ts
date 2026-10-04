@@ -7,7 +7,13 @@ import {
 } from '../../game/model.js';
 import { bankHotels, bankHouses, mortgageAmount, redeemAmount } from '../../game/rules.js';
 
-export type TileAction = { label: string; event: string; payload: Record<string, number> };
+export type TileAction = {
+  label: string;
+  event: string;
+  payload: Record<string, number>;
+  /** Absent means enabled; unavailable construction remains visible on owned streets. */
+  enabled?: boolean;
+};
 
 /** Actions available to this seat, rather than every possible property command. */
 export function tileActions(state: View, seat: number | null, square: number): TileAction[] {
@@ -56,19 +62,20 @@ export function tileActions(state: View, seat: number | null, square: number): T
   const actions: TileAction[] = [];
   const payload = { square };
   const cash = state.players[seat]!.cash;
-  if (cell.kind === 'street' && state.turn === seat && state.buildable === square) {
-    if (
-      !deed.mortgaged &&
-      deed.houses < 5 &&
-      state.players[seat]!.position === square &&
-      cash >= cell.houseCost! &&
-      (deed.houses === 4 ? bankHotels(state) > 0 : bankHouses(state) > 0)
-    )
-      actions.push({
-        label: deed.houses === 4 ? 'Xây khách sạn' : 'Xây nhà',
-        event: 'build',
-        payload,
-      });
+  if (cell.kind === 'street') {
+    actions.push({
+      label: `${deed.houses >= 4 ? 'Xây khách sạn' : 'Xây nhà'} ${cell.houseCost!.toLocaleString('vi-VN')} ₫`,
+      event: 'build',
+      payload,
+      enabled:
+        state.turn === seat &&
+        state.buildable === square &&
+        state.players[seat]!.position === square &&
+        !deed.mortgaged &&
+        deed.houses < 5 &&
+        cash >= cell.houseCost! &&
+        (deed.houses === 4 ? bankHotels(state) > 0 : bankHouses(state) > 0),
+    });
   }
   if (
     cell.kind === 'street' &&

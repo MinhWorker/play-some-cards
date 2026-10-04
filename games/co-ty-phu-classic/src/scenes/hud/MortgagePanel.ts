@@ -18,6 +18,7 @@ export class MortgagePanel {
   private readonly ink: Phaser.GameObjects.Graphics;
   private readonly title: Phaser.GameObjects.Text;
   private readonly total: Phaser.GameObjects.Text;
+  private readonly terms: Phaser.GameObjects.Text;
   private readonly pageLabel: Phaser.GameObjects.Text;
   readonly rows: Row[];
   readonly confirm: Button;
@@ -55,6 +56,7 @@ export class MortgagePanel {
     };
     this.title = text(34).setOrigin(0, 0.5);
     this.total = text(26).setOrigin(0.5);
+    this.terms = text(18, '#79501e').setOrigin(0.5);
     this.pageLabel = text(22).setOrigin(0.5);
     this.rows = Array.from({ length: 6 }, () => {
       const row: Row = {
@@ -184,11 +186,12 @@ export class MortgagePanel {
     this.total
       .setText(`${this.selected.size} tài sản · Nhận ${amount.toLocaleString('vi-VN')} ₫`)
       .setPosition(width / 2, 454);
-    this.ink.lineStyle(1, 0xd2b885).lineBetween(24, 494, width - 24, 494);
+    this.terms.setText('Hạn chuộc: 3 lượt tiếp theo của người vay').setPosition(width / 2, 485);
+    this.ink.lineStyle(1, 0xd2b885).lineBetween(24, 508, width - 24, 508);
     this.drawButton(this.cancel, 'Hủy', width * 0.22, 550, width * 0.34, 56, true);
     this.drawButton(
       this.confirm,
-      `Thế chấp ${amount.toLocaleString('vi-VN')} ₫`,
+      `Xác nhận +${amount.toLocaleString('vi-VN')} ₫`,
       width * 0.68,
       550,
       width * 0.54,

@@ -26,6 +26,8 @@ sources/                       Script kết xuất và nguồn ảnh
 | --- | --- |
 | Tiền khởi điểm, địa danh, giá mua/xây/thuê, nhóm màu | `src/game/model.ts` |
 | Bảng chọn một/nhiều tài sản và tổng tiền thế chấp | `src/scenes/hud/MortgagePanel.ts` |
+| Xác nhận mở đấu giá tài sản | `src/scenes/hud/AuctionConfirmPanel.ts` |
+| Icon búa đấu giá và ngân hàng trên nút quản lý đất | `src/scenes/hud/PropertyActionIcons.ts` |
 | Mua/xây/thế chấp/trao đổi | `src/game/CoTyPhuClassicGame.ts` |
 | Thuế, di chuyển, tiền thuê và hiệu lực thẻ | `src/game/rules.ts` |
 | Nội dung thẻ | `src/game/cards.ts` |

@@ -64,6 +64,8 @@ góp tiền bên dưới. Điện lực và Cấp nước là ô phí công cộ
 
 Trong lượt mình, người sở hữu có thể mở **Đấu giá** đất phố hoặc bến xe bất kỳ của mình,
 không cần đứng trên ô đó. Người đang nợ tiền mua bến ngoài lượt cũng được mở bán để trả nợ.
+Nút búa đấu giá mở bảng xác nhận tên tài sản, công trình và mức tăng giá tối thiểu;
+chỉ bắt đầu phiên khi chọn **Mở đấu giá**. Chọn **Hủy** thì giữ nguyên tài sản.
 
 - Người bán không trả giá; những người còn chơi trả giá lần lượt từ ghế tiếp theo người bán.
 - Giá khởi đầu là 0. Mỗi lần trả giá phải tăng ít nhất `ceil(20% × giá gốc)` và không vượt tiền mặt.
@@ -106,6 +108,10 @@ Khi quay lại đất phố đã sở hữu trong lượt mình, được xây m
 Không xây ngay lần mua đất và không xây từ xa. Không cần đủ bộ màu hoặc xây đều.
 Đất thế chấp không được xây. Có thể xây tối đa 4 nhà, rồi nâng thành khách sạn ở cấp 5.
 
+Trong bảng thông tin ô, **Mua**, **Xây nhà** và **Xây khách sạn** là thao tác chính,
+đặt phía trên các thao tác quản lý tài sản. Nút xây luôn hiện kèm giá trên đất của bạn;
+khi chưa đủ điều kiện, nút màu xám và không bấm được.
+
 Giá mỗi cấp bằng 50% giá đất. Ngân hàng có 32 nhà và 12 khách sạn.
 Nâng lên khách sạn trả bốn nhà về ngân hàng; không thể xây nếu loại công trình cần dùng đã hết.
 Bán từng cấp nhận 50% giá xây cấp đó. Bán khách sạn xuống 4 nhà cần ngân hàng còn đủ 4 nhà.
@@ -144,7 +150,8 @@ mức đất trống; công trình dùng mức riêng, không nhân đôi thêm.
 
 Có thể thế chấp hoặc chuộc tài sản ở bất kỳ vị trí nào trong lượt mình, hoặc khi đang phải
 trả nợ mua bến ngoài lượt. Chọn một hoặc nhiều tài sản trong bảng **Thế chấp tài sản**;
-bảng hiện khoản nhận của từng ô và tổng tiền trước khi xác nhận.
+bảng mở từ nút ngân hàng, hiện khoản nhận của từng ô, tổng tiền và hạn chuộc.
+Chỉ thực hiện thế chấp khi chọn **Xác nhận**; chọn **Hủy** thì giữ nguyên tài sản và tiền mặt.
 
 Khoản vay bằng `50% × (giá đất + tổng giá xây các cấp hiện có)`.
 Khách sạn tính bằng 5 lần giá xây một cấp. Ví dụ đất 200 có 2 nhà, mỗi cấp 100,
