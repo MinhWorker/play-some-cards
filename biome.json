@@ -65,6 +65,40 @@
       }
     },
     {
+      "includes": ["games/co-ty-phu-classic/src/scenes/*/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "**",
+                      "!@psc/sdk",
+                      "!@psc/sdk/client",
+                      "!phaser",
+                      "!zod",
+                      "!vitest",
+                      "!./**",
+                      "!../**",
+                      "!../../**"
+                    ],
+                    "message": "A game may import only the SDK, Phaser, zod, vitest and its own source files."
+                  },
+                  {
+                    "group": ["../../../**"],
+                    "message": "Stay inside this game's src/ when importing from a nested scene folder."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["apps/**", "packages/**"],
       "linter": {
         "rules": {

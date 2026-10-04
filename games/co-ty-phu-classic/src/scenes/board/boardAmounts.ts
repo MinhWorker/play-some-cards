@@ -1,5 +1,5 @@
-import { BOARD, type State } from '../game/model.js';
-import { rent, utilityTax } from '../game/rules.js';
+import { BOARD, type State } from '../../game/model.js';
+import { rent, utilityTax } from '../../game/rules.js';
 
 /** Unsold deeds show purchase prices; owned deeds show their current ordinary rent. */
 export function boardAmounts(

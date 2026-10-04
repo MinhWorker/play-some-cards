@@ -1,5 +1,5 @@
 import type { GameEvent } from '@psc/sdk';
-import { BOARD, isDeed, type State } from './model.js';
+import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type State } from './model.js';
 import { bankHotels, bankHouses } from './rules.js';
 
 const event = (name: string, payload?: object): GameEvent => ({ event: name, payload });
@@ -20,22 +20,20 @@ export function botMove(state: State, seat: number): GameEvent | null {
   }
 
   if (state.phase === 'auction') {
-    // Open to everyone: a computer still in the auction raises unless it leads or the price
-    // passed what it is willing to pay, then it leaves.
     const auction = state.auction;
-    if (!auction || auction.passed.includes(seat) || auction.leader === seat) return null;
-    const cell = BOARD[auction.square]!;
+    if (!auction || auction.bidder !== seat) return null;
+    const max = Math.min(me.cash - 100, Math.floor((BOARD[auction.square]?.price ?? 0) * 0.9));
     const amount = auction.highest + 10;
-    if (cell.kind === 'station') {
-      const available = me.cash + auction.bids[seat]!;
-      const limit = Math.min(available - 100, Math.floor(cell.price! * 0.9));
-      return available >= cell.price! && limit >= amount ? event('bid', { amount }) : event('pass');
+    if (BOARD[auction.square]!.kind === 'station') {
+      const contribution = auction.highest + STATION_CONTRIBUTION_STEP;
+      const limit = Math.min(me.cash - 100, Math.floor(BOARD[auction.square]!.price! * 0.9));
+      return limit >= contribution ? event('bid', { amount: contribution }) : event('pass');
     }
-    const max = Math.min(me.cash - 100, Math.floor((cell.price ?? 0) * 0.9));
     return max >= amount ? event('bid', { amount }) : event('pass');
   }
 
-  if (state.turn !== seat) return null;
+  if ((state.phase === 'debt' ? (state.debt?.payer ?? state.turn) : state.turn) !== seat)
+    return null;
   if (state.phase === 'event') return event('confirm-event');
   if (state.phase === 'buy') {
     const price = BOARD[state.pending ?? -1]?.price ?? Infinity;

@@ -26,7 +26,7 @@ tiền hoặc đổi chủ đất do server kiểm tra.
 
 | Bước | Người chơi thấy gì | Khi nào chuyển tiếp |
 | --- | --- | --- |
-| Sẵn sàng | Bảng giữa bàn ghi tên, màu quân và 1.500 ₫ của từng ghế. | Người xem chọn **Vào ván**. |
+| Sẵn sàng | Bảng giữa bàn ghi tên, màu quân và 1.000 ₫ của từng ghế. | Tiền tăng xong, giữ lại một giây rồi tự đóng. |
 | Gieo | Hai xúc xắc lăn; quân, số dư và vị trí trong danh sách vẫn ở trạng thái cũ. | Xúc xắc dừng đúng kết quả server sau khoảng 1,1 giây. |
 | Xem kết quả | Hai mặt xúc xắc và tổng số ô đứng yên để người xem đọc. | Sau 1,5 giây. |
 | Đi | Quân nhảy từng ô, đáp xuống từng ô ngắn rồi mới nhảy tiếp; xúc xắc đứng yên, chưa hiện lựa chọn. | Quân đến ô cuối, hoặc tới tù khi luật yêu cầu. |

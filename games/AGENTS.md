@@ -42,6 +42,9 @@ games/<id>/          Only index.ts + client.ts are required
   - `@psc/sdk` and `@psc/sdk/client`;
   - `phaser` and `zod`;
   - its own files.
+- Cờ tỷ phú Classic groups scene helpers under `src/scenes/board/`, `effects/`, `hud/` and
+  `presentation/`; see `co-ty-phu-classic/AGENTS.md`. Its depth-specific Biome override still
+  prevents imports outside the game's `src/`.
 - Every `Game` has tests with `testGame` (`src/game/<Name>Game.test.ts`).
 - A game's browser test is a scenario, `scripts/e2e/scenarios/<id>.mjs` with
   `export const games = ['<id>']` (copy `tien-len.mjs`). CI runs it on its own machine whenever

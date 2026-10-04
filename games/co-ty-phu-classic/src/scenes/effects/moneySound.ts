@@ -1,4 +1,4 @@
-import type { MoneyTransfer } from '../game/model.js';
+import type { MoneyTransfer } from '../../game/model.js';
 
 /** The recipient hears income; the rest of the table hears the payer's expense. */
 export function moneySound(transfer: MoneyTransfer, viewerSeat: number | undefined) {

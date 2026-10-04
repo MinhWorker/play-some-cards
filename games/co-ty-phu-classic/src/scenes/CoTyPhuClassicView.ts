@@ -13,24 +13,31 @@ import {
   isDeed,
   type MoneyTransfer,
   type Property,
+  STARTING_CASH,
+  STATION_BASE_FEE,
   type View,
 } from '../game/model.js';
 import { ownsGroup, rent, utilityTax } from '../game/rules.js';
 import { decisionSeat } from '../game/turnClock.js';
-import { BoardPrices } from './BoardPrices.js';
-import { BoardTileEffect } from './BoardTileEffect.js';
-import { BOARD_CELLS, BOARD_IMAGE_RATIO } from './boardGeometry.js';
-import { Dice3D } from './Dice3D.js';
-import { EventDeck } from './EventDeck.js';
-import { eventNotice, landingHeading } from './eventNotice.js';
-import { MoneyTransferEffect } from './MoneyTransferEffect.js';
-import { moneySound } from './moneySound.js';
-import { PawnCashEffect } from './PawnCashEffect.js';
-import { PropertyPresentation } from './PropertyPresentation.js';
-import { RentTable } from './RentTable.js';
-import { TileOwnerSymbols } from './TileOwnerSymbols.js';
-import { TileTooltip } from './TileTooltip.js';
-import { tileActions } from './tileActions.js';
+import { BoardPrices, ownerInk } from './board/BoardPrices.js';
+import { BoardTileEffect } from './board/BoardTileEffect.js';
+import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './board/boardGeometry.js';
+import { planePoint } from './board/boardPlane.js';
+import { SpecialSymbols } from './board/SpecialSymbols.js';
+import { TileOwnerSymbols } from './board/TileOwnerSymbols.js';
+import { Backdrop } from './effects/Backdrop.js';
+import { addGlow } from './effects/glow.js';
+import { MoneyTransferEffect } from './effects/MoneyTransferEffect.js';
+import { moneySound } from './effects/moneySound.js';
+import { PawnCashEffect } from './effects/PawnCashEffect.js';
+import { PlayerPanel } from './hud/PlayerPanel.js';
+import { RentTable } from './hud/RentTable.js';
+import { TileTooltip } from './hud/TileTooltip.js';
+import { tileActions } from './hud/tileActions.js';
+import { Dice3D } from './presentation/Dice3D.js';
+import { EventDeck } from './presentation/EventDeck.js';
+import { eventNotice, landingHeading } from './presentation/eventNotice.js';
+import { PropertyPresentation } from './presentation/PropertyPresentation.js';
 
 type Ctx = ViewContext<View>;
 type TapButton = {
@@ -115,20 +122,28 @@ export class CoTyPhuClassicView extends GameView<View> {
   private hudPanels!: Phaser.GameObjects.Graphics;
   private boardImage!: Phaser.GameObjects.Image;
   private ownerSymbols!: TileOwnerSymbols;
+  /** Power, water, airport and Start symbols, animated. */
+  private specialSymbols!: SpecialSymbols;
   private boardPrices!: BoardPrices;
   private eventDeck!: EventDeck;
   private squares: Phaser.GameObjects.Zone[] = [];
   private tileEffects: BoardTileEffect[] = [];
   private tokens: Phaser.GameObjects.Image[] = [];
   private pawnShadows: Phaser.GameObjects.Ellipse[] = [];
+  /** The airport's plane, its shadow on the board and the beam that lifts a pawn. */
+  private plane!: Phaser.GameObjects.Image;
+  private planeShadow!: Phaser.GameObjects.Image;
+  private planeBeam!: Phaser.GameObjects.Graphics;
   private tokenNames: Phaser.GameObjects.Text[] = [];
   private dice!: Dice3D;
   private diceHit!: Phaser.GameObjects.Zone;
   private rollHint!: Phaser.GameObjects.Text;
-  private diceGlow!: Phaser.GameObjects.Graphics;
+  private diceGlow!: Phaser.GameObjects.Image;
   private turnAvatar!: Phaser.GameObjects.Image;
   private turnName!: Phaser.GameObjects.Text;
   private turnCash!: Phaser.GameObjects.Text;
+  private playerPanel!: PlayerPanel;
+  private panelClock = false;
   private readyPanel!: Phaser.GameObjects.Graphics;
   private readyTitle!: Phaser.GameObjects.Text;
   private readySubtitle!: Phaser.GameObjects.Text;
@@ -177,10 +192,16 @@ export class CoTyPhuClassicView extends GameView<View> {
   private playerCash: Phaser.GameObjects.Text[] = [];
   private playerPlace: Phaser.GameObjects.Text[] = [];
   private tradeLabels: Phaser.GameObjects.Text[] = [];
+  /** Blurs and darkens the board behind the rent table and the trade offer. */
+  private backdrop!: Backdrop;
+  /** The trade offer's paper, above the backdrop. */
+  private tradePanel!: Phaser.GameObjects.Graphics;
   private heading!: Phaser.GameObjects.Text;
   private notice!: Phaser.GameObjects.Text;
   private eventReadySent = -1;
   private eventCountdown!: Phaser.GameObjects.Graphics;
+  /** The host's crown, over the turn player's picture (above it). */
+  private hostCrown!: Phaser.GameObjects.Graphics;
   private countdownLabel!: Phaser.GameObjects.Text;
   private auctionAttention!: Phaser.GameObjects.Graphics;
   private auctionPulse = 0;
@@ -194,6 +215,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   private deedPrice!: Phaser.GameObjects.Text;
   private deedOwner!: Phaser.GameObjects.Text;
   private deedRent!: Phaser.GameObjects.Text;
+  /** The numbers of the card's price, rent and next-building rows, right-aligned. */
+  private deedValues: Phaser.GameObjects.Text[] = [];
   private main: TapButton[] = [];
   private tools: TapButton[] = [];
   private selected: number | null = null;
@@ -255,12 +278,23 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.autoActionSeen = ctx.state.lastAutoAction?.id ?? 0;
     this.auctionPulse = 0;
     this.eventCountdown = this.add.graphics().setDepth(6);
+    this.hostCrown = this.add.graphics().setDepth(9);
     this.ownerSymbols = new TileOwnerSymbols(this, this.boardImage.texture.key);
-    this.boardPrices = new BoardPrices(this, this.boardImage.texture.key);
+    this.specialSymbols = new SpecialSymbols(this, this.boardImage.texture.key);
+    this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
     this.tileTooltip = new TileTooltip(this);
     this.rentTable = new RentTable(this);
+    // A tap around a floating panel closes it.
+    this.backdrop = new Backdrop(this, 30, () => {
+      if (this.rentTable.visible) this.closeRentTable();
+      else if (this.tradeOpen) {
+        this.tradeOpen = false;
+        this.onState(this.ctx);
+      }
+    });
+    this.tradePanel = this.add.graphics().setDepth(31);
     this.squares = BOARD.map((_, i) =>
       this.add
         .zone(0, 0, 10, 10)
@@ -271,6 +305,14 @@ export class CoTyPhuClassicView extends GameView<View> {
           this.showTileTooltip(i);
         }),
     );
+    this.planeShadow = this.sprite('plane')
+      .setTint(0x2b1d10)
+      .setTintMode(1 /* Phaser.TintModes.FILL */)
+      .setAlpha(0.22)
+      .setDepth(19)
+      .setVisible(false);
+    this.planeBeam = this.add.graphics().setDepth(19.5);
+    this.plane = this.sprite('plane').setDepth(21).setVisible(false);
     this.pawnShadows = PLAYER_COLORS.map(() =>
       this.add.ellipse(0, 0, 10, 5, 0x302014, 0.25).setDepth(4),
     );
@@ -281,7 +323,15 @@ export class CoTyPhuClassicView extends GameView<View> {
         .setDepth(6),
     );
     this.dice = new Dice3D(this);
-    this.diceGlow = this.add.graphics().setDepth(19);
+    const glowKey = 'co-ty-phu-classic.dice-glow';
+    if (!this.textures.exists(glowKey)) {
+      const outline = this.add.graphics();
+      outline.lineStyle(3, 0xffcf65).strokeRoundedRect(8, 8, 170, 96, 18);
+      outline.generateTexture(glowKey, 186, 112);
+      outline.destroy();
+    }
+    this.diceGlow = this.add.image(0, 0, glowKey).setDepth(19).setVisible(false);
+    addGlow(this.diceGlow, 0xffcf65, 2.5, 10);
     this.rollHint = this.label('Chạm để gieo', { size: 24, color: '#79501e' })
       .setStroke('#79501e', 0)
       .setDepth(21)
@@ -315,17 +365,23 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.heading = ink(30, '#57533f').setOrigin(0.5, 0).setScale(1, 0.86);
     this.notice = ink(22, '#625e49').setOrigin(0.5, 0).setScale(1, 0.86);
     this.card = ink(22, '#625e49').setOrigin(0.5, 0).setScale(1, 0.86);
-    this.deedLabel = ink(18, '#906233').setOrigin(0, 0).setText('THÔNG TIN Ô');
-    this.detail = ink(23).setOrigin(0, 0);
-    this.deedPrice = ink(24, '#875020').setOrigin(0, 0);
-    this.deedOwner = ink(20, '#67513e').setOrigin(0, 0);
-    this.deedRent = ink(19, '#47382d').setOrigin(0, 0);
-    this.nextBuilding = ink(19, '#79501e').setOrigin(0, 0);
+    // The tile card: its name (big) and owner centered, then label-left / number-right rows.
+    this.deedLabel = ink(18, '#906233').setOrigin(0.5, 0).setText('THÔNG TIN Ô');
+    this.detail = ink(23).setOrigin(0.5, 0);
+    this.deedOwner = ink(20, '#67513e').setOrigin(0.5, 0);
+    this.deedPrice = ink(20, '#875020').setOrigin(0, 0);
+    this.deedRent = ink(20, '#47382d').setOrigin(0, 0);
+    this.nextBuilding = ink(20, '#79501e').setOrigin(0, 0);
+    this.deedValues = ['#875020', '#47382d', '#79501e'].map((color) =>
+      ink(20, color).setOrigin(1, 0),
+    );
     this.readyTitle = ink(32).setDepth(26).setOrigin(0.5);
     this.readySubtitle = ink(19, '#79501e').setDepth(26).setOrigin(0.5);
     this.readyNames = PLAYER_COLORS.map(() => ink(22).setDepth(26).setOrigin(0, 0.5));
     this.readyCash = PLAYER_COLORS.map(() => ink(22, '#79501e').setDepth(26).setOrigin(1, 0.5));
-    this.tradeLabels = Array.from({ length: 4 }, () => ink(22).setOrigin(0.5).setVisible(false));
+    this.tradeLabels = Array.from({ length: 4 }, () =>
+      ink(22).setOrigin(0.5).setDepth(33).setVisible(false),
+    );
     this.rentTableButton = this.makeButton();
     this.rentCloseButton = this.makeButton();
     this.rentCloseButton.box.setDepth(34);
@@ -343,6 +399,25 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setStroke('#415c59', 0)
       .setDepth(12)
       .setVisible(false);
+    this.playerPanel = new PlayerPanel(this);
+    this.playerPanel.add(this.turnAvatar, () => PLAYER_PANEL.avatar);
+    this.playerPanel.add(this.turnName, () => PLAYER_PANEL.name);
+    this.playerPanel.add(this.turnCash, () => PLAYER_PANEL.cash);
+    this.playerBadges.forEach((badge, seat) => {
+      this.playerPanel.add(badge, () => PLAYER_PANEL.seats[seat]!);
+      this.playerPanel.add(this.playerCash[seat]!, () => ({
+        u: PLAYER_PANEL.seatCash.u,
+        v: PLAYER_PANEL.seats[seat]!.v,
+      }));
+    });
+    this.playerPanel.add(this.countdownLabel, () =>
+      this.panelClock
+        ? {
+            u: PLAYER_PANEL.bar.u1 - PLAYER_PANEL.bar.h * 0.4,
+            v: PLAYER_PANEL.bar.v,
+          }
+        : null,
+    );
     this.auctionAttention = this.add.graphics().setDepth(9);
     this.resetInventory(ctx);
   }
@@ -355,23 +430,28 @@ export class CoTyPhuClassicView extends GameView<View> {
     const label = this.label('', { size: 19, color: '#3d2b20' })
       .setStroke('#3d2b20', 0)
       .setDepth(11);
+    const glow = addGlow(box, 0xffdf84);
+    glow?.setActive(false);
     const button = { box, hit, text: label, action: () => {} };
     hit.on('pointerup', () => button.action());
     hit.on('pointerover', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.wasTouch) {
         box.setTint(0xffedc0);
+        glow?.setActive(true);
         clientHost().playUiSound('hover');
       }
     });
-    hit.on('pointerout', () => box.clearTint());
+    hit.on('pointerout', () => {
+      box.clearTint();
+      glow?.setActive(false);
+    });
     return button;
   }
 
   protected onLayout(ctx: Ctx) {
     this.tileTooltip.hide();
     this.previewTile = null;
-    this.rentTable.hide();
-    this.hide([this.rentCloseButton]);
+    this.closeRentTable();
     if (this.runtime.busy('turn') || this.runtime.busy('money')) this.onResync(ctx);
     const { width, height, top, hud } = ctx.screen;
     const { left, boardTop, size, sideW, sideLeft: sideX } = boardPlace(ctx.screen);
@@ -385,6 +465,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const cx = left + size / 2;
     this.boardImage.setPosition(cx, boardTop + imageH / 2).setDisplaySize(size, imageH);
     this.ownerSymbols.layout(cx, boardTop + imageH / 2, size, imageH);
+    this.specialSymbols.layout(cx, boardTop + imageH / 2, size, imageH);
     this.boardPrices.layout(cx, boardTop + imageH / 2, size, imageH);
     this.eventDeck.layout(left, boardTop, size, imageH);
     BOARD.forEach((_, i) => {
@@ -393,60 +474,62 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.squares[i]!.input?.hitArea.setTo(0, 0, w, h);
       this.tileEffects[i]?.layout(cellQuad(left, boardTop, size, i));
     });
-    this.heading.setPosition(cx, boardTop + imageH * 0.32).setFontSize(26 * this.k);
+    this.heading.setPosition(cx, this.fieldY(0.06)).setFontSize(26 * this.k);
     this.notice
-      .setPosition(cx, boardTop + imageH * 0.405)
+      .setPosition(cx, this.fieldY(0.16))
       .setFontSize(22 * this.k)
       .setAlign('center')
       .setWordWrapWidth(Math.min(size * 0.52, 410), true);
     this.card
-      .setPosition(cx, boardTop + imageH * 0.49)
+      .setPosition(cx, this.fieldY(0.36))
       .setFontSize(20 * this.k)
       .setAlign('center')
       .setWordWrapWidth(Math.min(size * 0.52, 410), true);
-    this.dice.setPosition(cx, boardTop + imageH * 0.57, tile);
+    this.dice.setPosition(cx, this.fieldY(0.58), tile);
     this.layoutReady(ctx);
     const rightX = sideX;
-    this.deedLabel.setPosition(rightX + 14, this.geometry.panelTop + 51).setFontSize(16 * hud);
-    this.detail
-      .setPosition(rightX + 14, this.geometry.panelTop + 80)
-      .setWordWrapWidth(Math.max(95, left - 52))
-      .setFontSize(sideW < 200 ? 23 : 28);
-    this.nextBuilding.setPosition(rightX + 14, this.geometry.panelTop + 198).setWordWrapWidth(0);
-    this.deedPrice.setPosition(rightX + 14, this.geometry.panelTop + 112);
-    this.deedOwner.setPosition(rightX + 14, this.geometry.panelTop + 142);
-    this.deedRent
-      .setPosition(rightX + 14, this.geometry.panelTop + 172)
-      .setWordWrapWidth(Math.max(95, sideW - 28));
+    const middle = rightX + sideW / 2;
+    this.deedLabel.setPosition(middle, this.geometry.panelTop + 51);
+    this.detail.setPosition(middle, this.geometry.panelTop + 80).setFontSize(sideW < 200 ? 23 : 28);
+    this.deedOwner.setPosition(middle, this.geometry.panelTop + 112);
+    for (const row of [this.deedPrice, this.deedRent, this.nextBuilding]) row.setX(rightX + 14);
+    for (const value of this.deedValues) value.setX(rightX + sideW - 14);
+    // The players' panel (printed into the board): each seat's ball and cash in the list on the
+    // right; the turn player's picture, name and cash on the left.
     this.people.forEach((label, i) => {
-      // No names: the 2 × 2 cards show each seat's color and number, and its cash.
-      const { x, y } = this.seatCell(i);
-      this.playerBadges[i]!.setPosition(x, y + 13 * this.k)
+      const { x, y, r, cashX } = this.seatCell(i);
+      this.playerBadges[i]!.setPosition(x, y)
         .setColor('#ffffff')
-        .setFontSize(18 * this.k);
+        .setFontSize(r * 1.25);
       label.setVisible(false);
-      this.playerCash[i]!.setOrigin(0, 0)
-        .setPosition(x + 18 * this.k, y + this.k)
-        .setFontSize(20 * this.k);
+      this.playerCash[i]!.setOrigin(0, 0.5)
+        .setPosition(cashX, y)
+        .setFontSize(r * 1.35);
       this.moneyIcons[i]!.setVisible(false);
       this.locationIcons[i]!.setVisible(false);
       this.playerPlace[i]!.setVisible(false);
     });
+    const { avatar, name, cash } = PLAYER_PANEL;
+    const picture = this.onBoard(avatar.u, avatar.v);
+    const pictureR = this.onBoard(avatar.u + avatar.r, avatar.v).x - picture.x;
     this.turnAvatar
-      .setPosition(left + size * 0.285, boardTop + imageH * 0.235)
-      .setDisplaySize(48, 48);
-    // Board ink: sizes follow the board, not the HUD scale, so the block fits its corner.
+      .setPosition(picture.x, picture.y)
+      .setDisplaySize(pictureR * 1.9, pictureR * 1.9);
+    const nameAt = this.onBoard(name.u, name.v);
     this.turnName
-      .setPosition(left + size * 0.315, boardTop + imageH * 0.185)
-      .setFontSize(24 * this.k);
+      .setOrigin(0, 0.5)
+      .setPosition(nameAt.x, nameAt.y)
+      .setFontSize(pictureR * 0.62);
+    const cashAt = this.onBoard(cash.u, cash.v);
     this.turnCash
-      .setPosition(left + size * 0.315, boardTop + imageH * 0.245)
-      .setFontSize(22 * this.k);
-    this.diceHit.setPosition(cx, boardTop + imageH * 0.57).setSize(180, 100);
+      .setOrigin(0, 0.5)
+      .setPosition(cashAt.x, cashAt.y)
+      .setFontSize(pictureR * 0.5);
+    this.diceHit.setPosition(cx, this.fieldY(0.58)).setSize(180, 100);
     this.diceHit.input?.hitArea.setTo(0, 0, 180, 100);
     // Between the two card decks, never over them.
     // Right under the dice, clear of the pawns standing on the bottom row.
-    this.rollHint.setPosition(cx, boardTop + imageH * 0.653).setFontSize(20 * this.k);
+    this.rollHint.setPosition(cx, this.fieldY(0.81)).setFontSize(20 * this.k);
     this.fitText(this.rollHint, 'Chạm để gieo', size * 0.26, 16);
     this.drawHudFrames(
       ctx,
@@ -475,7 +558,9 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setStroke('#164769', 3)
       .setText('Sẵn sàng vào ván');
     this.fitText(this.readyTitle, this.readyTitle.text, w - 30, 24);
-    this.readySubtitle.setPosition(x + w / 2, y + 92).setText('Mỗi người bắt đầu với 1.500 ₫');
+    this.readySubtitle
+      .setPosition(x + w / 2, y + 92)
+      .setText(`Mỗi người bắt đầu với ${STARTING_CASH.toLocaleString('vi-VN')} ₫`);
     this.fitText(this.readySubtitle, this.readySubtitle.text, w - 30, 16);
     ctx.state.players.forEach((_, seat) => {
       const rowY = y + 134 + seat * rowH;
@@ -516,7 +601,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     // Use the shared round clock so every seat follows the same opening sequence.
     const progress = Math.min(1, Math.max(0, this.readyElapsed / 1800));
     ctx.state.players.forEach((_, seat) => {
-      const amount = Math.floor(progress * 50) * 30;
+      const amount = Math.round((Math.floor(progress * 50) / 50) * STARTING_CASH);
       if (this.readyAmounts[seat] === amount) return;
       this.readyAmounts[seat] = amount;
       const text = `${amount.toLocaleString('vi-VN')} ₫`;
@@ -563,46 +648,61 @@ export class CoTyPhuClassicView extends GameView<View> {
       graphics.lineStyle(1, 0xffffff);
       graphics.lineBetween(x + 18, y + 8, x + w - 18, y + 8);
     };
+    // Colored seat markers and their highlights lie in the printed wells.
+    const deciding = decisionSeat(ctx.state);
     for (let i = 0; i < ctx.state.players.length; i++) {
-      const { x, y, w } = this.seatCell(i);
-      graphics.fillStyle(ctx.state.players[i]!.bankrupt ? 0x888888 : PLAYER_COLORS[i]!, 1);
-      graphics.fillCircle(x, y + 13 * this.k, 13 * this.k);
-      // The host wears a little gold crown on the number badge.
-      if (ctx.players[i] && ctx.players[i]!.id === ctx.hostId) {
-        graphics.fillStyle(0xe8b230, 1).fillPoints(
-          [
-            { x: x - 9, y: y + 1 },
-            { x: x - 9, y: y - 7 },
-            { x: x - 4.5, y: y - 2 },
-            { x, y: y - 9 },
-            { x: x + 4.5, y: y - 2 },
-            { x: x + 9, y: y - 7 },
-            { x: x + 9, y: y + 1 },
-          ] as Phaser.Math.Vector2[],
-          true,
-        );
-        graphics.lineStyle(1, 0x7a4f12, 1).strokePoints(
-          [
-            { x: x - 9, y: y + 1 },
-            { x: x - 9, y: y - 7 },
-            { x: x - 4.5, y: y - 2 },
-            { x, y: y - 9 },
-            { x: x + 4.5, y: y - 2 },
-            { x: x + 9, y: y - 7 },
-            { x: x + 9, y: y + 1 },
-          ] as Phaser.Math.Vector2[],
-          true,
-        );
+      const well = PLAYER_PANEL.seats[i]!;
+      const circle = (radius: number, dx = 0, dy = 0, ry = radius) =>
+        Array.from({ length: 32 }, (_, step) => {
+          const angle = (step / 32) * Math.PI * 2;
+          return this.onBoard(
+            well.u + well.r * (dx + Math.cos(angle) * radius),
+            well.v + well.r * (dy + Math.sin(angle) * ry),
+          );
+        }) as Phaser.Math.Vector2[];
+      const out = ctx.state.players[i]!.bankrupt;
+      const lit = i === deciding && !out;
+      const base = PLAYER_COLORS[i]!;
+      const dark =
+        ((((base >> 16) & 0xff) * 0.3) << 16) |
+        ((((base >> 8) & 0xff) * 0.3) << 8) |
+        ((base & 0xff) * 0.3);
+      const color = out ? 0x44413b : lit ? base : dark;
+      this.playerBadges[i]!.setColor(lit ? '#ffffff' : '#a49b87').setAlpha(lit ? 1 : 0.65);
+      if (lit) {
+        graphics.fillStyle(color, 0.22).fillPoints(circle(1.75), true);
+        graphics.fillStyle(color, 0.35).fillPoints(circle(1.35), true);
       }
-      if (i === decisionSeat(ctx.state) && ctx.state.phase !== 'auction')
-        graphics
-          .lineStyle(2, 0x79501e)
-          .strokeRoundedRect(x - 16 * this.k, y - 3, w, 34 * this.k, 6);
-      // In an auction the leader's row is ringed instead.
-      if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i)
-        graphics
-          .lineStyle(2, 0x8f8a78)
-          .strokeRoundedRect(x - 16 * this.k, y - 3, w, 34 * this.k, 6);
+      graphics.fillStyle(color, 1).fillPoints(circle(0.92), true);
+      graphics.fillStyle(0x000000, 0.14).fillPoints(circle(0.72, 0.12, 0.16), true);
+      graphics.fillStyle(color, 1).fillPoints(circle(0.7, -0.04, -0.05), true);
+      graphics
+        .fillStyle(0xffffff, lit ? 0.85 : 0.08)
+        .fillPoints(circle(0.25, -0.35, -0.42, 0.15), true);
+      if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i && !lit)
+        graphics.lineStyle(2, 0x6b5a3a).strokePoints(circle(1.12), true);
+    }
+    // The host's crown sits on the turn player's picture, when the turn is the host's.
+    this.hostCrown.clear();
+    const turnIsHost = ctx.players[ctx.state.turn]?.id === ctx.hostId;
+    if (turnIsHost && !this.tradeOpen && this.visualPhase !== 'ready') {
+      const { avatar } = PLAYER_PANEL;
+      const k = avatar.r / 16;
+      const crown = [
+        [-9, 1],
+        [-9, -7],
+        [-4.5, -2],
+        [0, -9],
+        [4.5, -2],
+        [9, -7],
+        [9, 1],
+      ].map(([px, py]) =>
+        this.onBoard(avatar.u + px! * k, avatar.v - avatar.r * 1.02 + py! * k),
+      ) as Phaser.Math.Vector2[];
+      this.hostCrown.fillStyle(0xe8b230, 1).fillPoints(crown, true);
+      this.hostCrown
+        .lineStyle(Math.max(1, this.geometry.size * k * 1.2), 0x7a4f12, 1)
+        .strokePoints(crown, true);
     }
     const rightX = this.geometry.sideX;
     const panelH = this.deedPanelHeight(selected);
@@ -618,54 +718,68 @@ export class CoTyPhuClassicView extends GameView<View> {
     );
     if (isDeed(BOARD[selected]!)) {
       graphics.fillStyle(0xffe8bc, 0.82);
+      // The price row's band, under the owner.
       graphics.fillRoundedRect(
         rightX + 10,
-        this.geometry.panelTop + 108 + this.deedTitleExtra,
+        this.geometry.panelTop + 143 + this.deedTitleExtra,
         sideW - 20,
-        32,
+        30,
         8,
       );
-      graphics.lineStyle(1, 0xd4b995);
-      graphics.lineBetween(
-        rightX + 14,
-        this.geometry.panelTop + 169 + this.deedTitleExtra,
-        rightX + sideW - 14,
-        this.geometry.panelTop + 169 + this.deedTitleExtra,
-      );
     }
 
+    this.tradePanel.clear();
     if (this.tradeOpen && this.visualPhase !== 'ready') {
-      graphics
-        .fillStyle(0xf5edd5, 0.96)
-        .fillRoundedRect(left + size * 0.2, top + imageH * 0.18, size * 0.6, imageH * 0.57, 8);
-      graphics
-        .lineStyle(1, 0x625e49)
-        .strokeRoundedRect(left + size * 0.2, top + imageH * 0.18, size * 0.6, imageH * 0.57, 8);
+      const [x, y, w, h] = [left + size * 0.12, top + imageH * 0.14, size * 0.76, imageH * 0.62];
+      this.tradePanel.fillStyle(0xf5edd5).fillRoundedRect(x, y, w, h, 14);
+      this.tradePanel.lineStyle(3, 0xd2a14c).strokeRoundedRect(x, y, w, h, 14);
     }
+    this.syncBackdrop();
   }
 
-  /**
-   * A seat's card in the 2 × 2 grid inside the board (right of the turn player): its badge's
-   * center x, its top y, and the card's width.
-   */
-  private seatCell(seat: number) {
+  private closeRentTable() {
+    this.rentTable.hide();
+    this.hide([this.rentCloseButton]);
+    this.syncBackdrop();
+  }
+
+  /** The board is blurred and darkened while a panel floats over it. */
+  private syncBackdrop() {
+    const floating = this.rentTable.visible || (this.tradeOpen && this.visualPhase !== 'ready');
+    if (floating && !this.backdrop.visible) this.backdrop.show();
+    if (!floating && this.backdrop.visible) this.backdrop.hide();
+  }
+
+  /** A point of the printed board (board units, as PLAYER_PANEL) on screen. */
+  private onBoard(u: number, v: number) {
     const { left, top, size, imageH } = this.geometry;
-    // Two columns with a gap between them, so neighbouring cards never touch.
-    const w = size * 0.128;
-    const gap = Math.max(10, size * 0.022);
-    return {
-      x: left + size * 0.465 + (seat % 2) * (w + gap),
-      y: top + imageH * 0.19 + Math.floor(seat / 2) * 52 * this.k,
-      w,
-    };
+    const point = planePoint(u, v);
+    return { x: left + point.x * size, y: top + point.y * imageH };
   }
 
-  /** A seat card's cash, shrunk to fit its card (it changes while money moves). */
+  /** A height in the open field under the players' panel: 0 at its top edge, 1 at its foot. */
+  private fieldY(share: number) {
+    const { top, bottom } = PLAYER_PANEL.field;
+    return this.onBoard(0.5, top + (bottom - top) * share).y;
+  }
+
+  /** A seat's well in the panel's list: its ball's center and radius, and where its cash goes. */
+  private seatCell(seat: number) {
+    const well = PLAYER_PANEL.seats[seat] ?? PLAYER_PANEL.seats[0];
+    const { x, y } = this.onBoard(well.u, well.v);
+    const r = this.onBoard(well.u + well.r, well.v).x - x;
+    const cashX = this.onBoard(PLAYER_PANEL.seatCash.u, well.v).x;
+    // The cash may run to the panel's right edge.
+    return { x, y, r, cashX, cashW: this.onBoard(0.8, well.v).x - cashX };
+  }
+
+  /** A seat's cash, shrunk to fit beside its ball (it changes while money moves). */
   private setSeatCash(seat: number, text: string) {
     const cash = this.playerCash[seat];
     if (!cash) return;
-    cash.setFontSize(20 * this.k);
-    this.fitText(cash, text, this.seatCell(seat).w - 22, 13);
+    const { r, cashW } = this.seatCell(seat);
+    cash.setFontSize(r * 1.35);
+    this.fitText(cash, text, cashW, 12);
   }
 
   private deedPanelHeight(selected: number) {
@@ -684,7 +798,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   private deedContentHeight(selected: number) {
-    const base = (isDeed(BOARD[selected]!) ? 264 : 180) + this.deedTitleExtra;
+    const base = (isDeed(BOARD[selected]!) ? 282 : 180) + this.deedTitleExtra;
     return selected === 10
       ? Math.max(base, this.deedOwner.y + this.deedOwner.height - this.geometry.panelTop - 34 + 16)
       : base;
@@ -694,6 +808,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     const { tile } = this.geometry;
     this.board.clear();
     this.ownerSymbols.setOwners(
+      this.shownProperties.map((property) => property.owner),
+      PLAYER_COLORS,
+    );
+    this.specialSymbols.setOwners(
       this.shownProperties.map((property) => property.owner),
       PLAYER_COLORS,
     );
@@ -720,8 +838,8 @@ export class CoTyPhuClassicView extends GameView<View> {
       );
       const deed = this.shownProperties[i] ?? ctx.state.properties[i]!;
       if (isDeed(cell)) this.drawDeedState(i, deed);
-      if (ctx.state.auction?.square === i && cell.kind === 'station') {
-        ctx.state.auction.bids.forEach((amount, seat) => {
+      if (ctx.state.stationAuctions[i] && cell.kind === 'station') {
+        ctx.state.stationAuctions[i]!.bids.forEach((amount, seat) => {
           if (!amount) return;
           const point = this.surfacePoint(i, 0.22 + seat * 0.18, 0.85);
           this.board.fillStyle(PLAYER_COLORS[seat]!).fillCircle(point.x, point.y, tile * 0.09);
@@ -798,10 +916,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     const color = PLAYER_COLORS[deed.owner ?? 0]!;
 
     if (BOARD[square]!.kind === 'street' && deed.houses === 5) {
-      // A hotel is a capsule across the tile's foot: a cream rim round a slate body.
+      // A hotel is a capsule across the tile's foot: a cream rim round the owner's color.
       for (const [inset, fill] of [
         [0, 0xfff4db],
-        [0.016, 0x64676b],
+        [0.016, color],
       ] as const) {
         this.fillSurfacePolygon(
           square,
@@ -1054,12 +1172,19 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
     if (this.tradeOpen && state.turn === me.seat) return this.tradeButtons(ctx);
     if (state.phase === 'auction' && state.auction) {
-      // The same choices as on the auctioned tile's card, for everyone still in the auction.
+      // The bidder's choices, the same as on the auctioned tile's card.
       return tileActions(state, me.seat, state.auction.square).map(({ label, event, payload }) => [
         label,
         () => this.send(event, payload),
       ]);
     }
+    if (state.phase === 'debt')
+      return decisionSeat(state) === me.seat
+        ? [
+            [`Trả ${state.debt!.amount}`, () => this.send('pay-debt')],
+            ['Phá sản', () => this.send('bankrupt')],
+          ]
+        : [];
     if (state.turn !== me.seat) return [];
     if (state.phase === 'event') return [['Xác nhận', () => this.send('confirm-event')]];
     if (state.phase === 'roll') {
@@ -1082,11 +1207,6 @@ export class CoTyPhuClassicView extends GameView<View> {
       return [
         [`Mua ${BOARD[state.pending!]!.price}`, () => this.send('buy')],
         ['Đấu giá', () => this.send('auction')],
-      ];
-    if (state.phase === 'debt')
-      return [
-        [`Trả ${state.debt!.amount}`, () => this.send('pay-debt')],
-        ['Phá sản', () => this.send('bankrupt')],
       ];
     if (state.phase === 'end')
       return [
@@ -1136,7 +1256,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     } else {
       const descriptions: Partial<Record<typeof cell.kind, string>> = {
         start: 'Qua hoặc dừng: +200 ₫',
-        tax: 'Thuế: 10% tiền mặt · tối thiểu 200 ₫',
+        tax: `Thuế: 10% tiền mặt · tối thiểu ${cell.tax} ₫`,
         utility: `Thuế: ${utilityTax(state, square)} ₫`,
         chance: 'Rút thẻ Cơ hội',
         chest: 'Rút thẻ Khí vận',
@@ -1175,9 +1295,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     };
   }
 
+  /** A pawn's scale at height `y`: small, so tiles stay readable; bigger nearer the viewer. */
   private pawnScale(y: number) {
     const { top, imageH } = this.geometry;
-    return 0.78 + 0.35 * Math.max(0, Math.min(1, (y - top) / imageH));
+    return 0.5 * (0.78 + 0.35 * Math.max(0, Math.min(1, (y - top) / imageH)));
   }
 
   private setMovingTile(seat: number, square: number | null) {
@@ -1193,6 +1314,132 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
   }
 
+  /**
+   * The airport's flight: a plane sweeps across the board without stopping, snatches the pawn
+   * in a short beam as it passes over it, and drops it on `to` as it passes there, then flies on
+   * off the board. Its shadow runs along the board below it.
+   */
+  private async airlift(fx: FlowContext, seat: number, to: number) {
+    const token = this.tokens[seat]!;
+    const pawnShadow = this.pawnShadows[seat]!;
+    const name = this.tokenNames[seat]!;
+    const { tile, size } = this.geometry;
+    const pick = { x: token.x, y: token.y };
+    const drop = this.pawnSpot(to, seat);
+    // In from beyond the pick-up, out beyond the drop, bowing in over the board's middle so the
+    // whole flight stays on screen (a corner or an edge row is near the frame's edge).
+    const { left, top: boardTop, imageH } = this.geometry;
+    const middle = { x: left + size / 2, y: boardTop + imageH * 0.45 };
+    let dx = pick.x - drop.x;
+    let dy = pick.y - drop.y;
+    const length = Math.hypot(dx, dy) || 1;
+    dx /= length;
+    dy /= length;
+    const far = size * 0.75;
+    const toward = (point: { x: number; y: number }, share: number) => ({
+      x: point.x + (middle.x - point.x) * share,
+      y: point.y + (middle.y - point.y) * share,
+    });
+    const halfway = { x: (pick.x + drop.x) / 2, y: (pick.y + drop.y) / 2 };
+    const entry = toward({ x: pick.x + dx * far, y: pick.y + dy * far }, 0.55);
+    const exit = toward({ x: drop.x - dx * far, y: drop.y - dy * far }, 0.55);
+    const path = sweep([entry, pick, toward(halfway, 0.8), drop, exit]);
+    const total = path.length;
+    // Where along the path (0–1, by distance) the plane is over the pick-up and the drop.
+    const at = (point: { x: number; y: number }) => {
+      let best = 0;
+      let bestDistance = Number.POSITIVE_INFINITY;
+      for (let i = 0; i <= 200; i++) {
+        const p = path.at(i / 200);
+        const d = Math.hypot(p.x - point.x, p.y - point.y);
+        if (d < bestDistance) {
+          bestDistance = d;
+          best = i / 200;
+        }
+      }
+      return best;
+    };
+    const tPick = at(pick);
+    const tDrop = at(drop);
+    // Seen from above, the plane is right over its path; its height shows in its shadow's
+    // offset. A snatched pawn rises a little and shrinks away under the plane.
+    const rise = tile * 0.3;
+    const span = tile * 2.4;
+    const planeScale = span / this.plane.width;
+    const lift = 0.07;
+    this.moving[seat] = true;
+    // The destination is ringed in the pawn's color for the whole flight, as for a walk.
+    this.setMovingTile(seat, to);
+    this.plane.setVisible(true).setScale(planeScale);
+    this.planeShadow.setVisible(true).setScale(planeScale * 0.8);
+    const flyover = this.runtime.audio.play('tycoon-plane', { maxStartDelayMs: 100 });
+    fx.defer(() => flyover.stop());
+    const cursor = { value: 0 };
+    const ease = (f: number) => 1 - (1 - f) ** 3;
+    const ring = (at: { x: number; y: number }, f: number) => {
+      // A flash of light round the pawn as it is taken or set down.
+      if (f <= 0 || f >= 1) return;
+      this.planeBeam
+        .lineStyle(tile * 0.08, 0xfff3b0, 0.8 * (1 - f))
+        .strokeEllipse(at.x, at.y, tile * (0.5 + 0.9 * f), tile * (0.25 + 0.45 * f));
+    };
+    await fx.tween({
+      targets: cursor,
+      value: 1,
+      duration: Math.min(3600, Math.max(2200, (total / size) * 1100)),
+      ease: 'Linear',
+      onUpdate: () => {
+        const t = cursor.value;
+        const ground = path.at(t);
+        const ahead = path.at(Math.min(1, t + 0.01));
+        const behind = path.at(Math.max(0, t - 0.01));
+        const angle = Math.atan2(ahead.y - behind.y, ahead.x - behind.x);
+        this.plane.setPosition(ground.x, ground.y).setRotation(angle);
+        this.planeShadow
+          .setPosition(ground.x + tile * 0.7, ground.y + tile * 0.55)
+          .setRotation(angle);
+        this.planeBeam.clear();
+        // Snatched on the fly, then carried along hidden under the plane.
+        let carried = 0;
+        let x = pick.x;
+        let y = pick.y;
+        if (t >= tPick - lift / 2 && t < tDrop) {
+          carried = ease(Math.min(1, (t - (tPick - lift / 2)) / lift));
+          x = pick.x + (ground.x - pick.x) * carried;
+          y = pick.y + (ground.y - pick.y) * carried;
+          ring(pick, carried);
+        }
+        let height = rise * carried;
+        let shown = 1 - carried;
+        if (t >= tDrop) {
+          // Let go over the drop: it grows back as it falls, with a little bounce.
+          const fall = Math.min(1, (t - tDrop) / 0.09);
+          const bounce = Math.min(1, Math.max(0, (t - tDrop - 0.09) / 0.05));
+          x = drop.x;
+          y = drop.y;
+          height = rise * (1 - fall * fall) + Math.sin(bounce * Math.PI) * tile * 0.2;
+          shown = fall;
+          ring(drop, fall);
+        }
+        const perspective = this.pawnScale(y);
+        const shrink = 0.45 + 0.55 * shown;
+        token
+          .setPosition(x, y - height)
+          .setDepth(shown < 1 ? 20.5 : 5 + y / 1000)
+          .setDisplaySize(tile * 0.76 * perspective * shrink, tile * 1.05 * perspective * shrink);
+        pawnShadow.setPosition(x, y + 2).setAlpha(shown);
+        name.setPosition(x, y - height - tile * 1.22 * perspective * shrink).setAlpha(shown);
+      },
+    });
+    fx.checkpoint();
+    flyover.stop();
+    this.plane.setVisible(false);
+    this.planeShadow.setVisible(false);
+    this.planeBeam.clear();
+    this.setMovingTile(seat, null);
+    this.moving[seat] = false;
+  }
+
   private async travelPawn(
     fx: FlowContext,
     seat: number,
@@ -1200,14 +1447,13 @@ export class CoTyPhuClassicView extends GameView<View> {
     to: number,
     jailing: boolean,
     onStartReached?: () => void,
-    flying = false,
   ) {
     const token = this.tokens[seat]!;
     const shadow = this.pawnShadows[seat]!;
     const name = this.tokenNames[seat]!;
     const start = { x: token.x, y: token.y };
     const steps = (to - from + BOARD.length) % BOARD.length;
-    const direct = (jailing && to === 10) || flying;
+    const direct = jailing && to === 10;
     const points = direct
       ? [this.pawnSpot(to, seat)]
       : Array.from({ length: steps }, (_, i) => this.pawnSpot((from + i + 1) % BOARD.length, seat));
@@ -1228,7 +1474,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     await fx.tween({
       targets: cursor,
       value: points.length,
-      duration: flying ? 800 : direct ? 500 : Math.min(2000, points.length * 260),
+      duration: direct ? 500 : Math.min(2000, points.length * 260),
       ease: 'Linear',
       onUpdate: () => {
         const step = Math.min(points.length - 1, Math.floor(cursor.value));
@@ -1236,9 +1482,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         const after = points[step]!;
         // Each square has its own jump and a short planted beat before the next one.
         const fraction = Math.min(1, (cursor.value - step) / 0.76);
-        const hop =
-          Math.sin(fraction * Math.PI) *
-          Math.min(flying ? 64 : 16, this.geometry.tile * (flying ? 1.1 : 0.28));
+        const hop = Math.sin(fraction * Math.PI) * Math.min(16, this.geometry.tile * 0.28);
         const x = before.x + (after.x - before.x) * fraction;
         const groundY = before.y + (after.y - before.y) * fraction;
         const perspective = this.pawnScale(groundY);
@@ -1305,17 +1549,12 @@ export class CoTyPhuClassicView extends GameView<View> {
         fx.checkpoint();
         this.visualPhase = 'moving';
         this.onState(this.ctx);
-        await this.travelPawn(
-          fx,
-          beat.seat,
-          beat.from,
-          beat.to,
-          beat.jailing,
-          () => {
+        if (!dice && BOARD[beat.from]!.kind === 'airport' && beat.from !== beat.to)
+          await this.airlift(fx, beat.seat, beat.to);
+        else
+          await this.travelPawn(fx, beat.seat, beat.from, beat.to, beat.jailing, () => {
             this.passedStart = Math.max(this.passedStart, beat.id);
-          },
-          !dice && BOARD[beat.from]!.kind === 'airport',
-        );
+          });
         fx.checkpoint();
         this.shownPositions[beat.seat] = beat.to;
         this.selected = null;
@@ -1497,7 +1736,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         ? bank
         : {
             x: this.playerCash[seat]!.x + this.playerCash[seat]!.displayWidth / 2,
-            y: this.playerCash[seat]!.y + 15,
+            y: this.playerCash[seat]!.y,
           };
     this.moneyEffect.draw(transfer, endpoint(transfer.from), endpoint(transfer.to), eased);
   }
@@ -1509,8 +1748,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.resetMoney(ctx);
     this.tileTooltip.hide();
     this.previewTile = null;
-    this.rentTable.hide();
-    this.hide([this.rentCloseButton]);
+    this.closeRentTable();
     this.runtime.cancelLane('turn');
     this.runtime.cancelLane('money');
     this.moving.fill(false);
@@ -1652,17 +1890,13 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   private eventButtonY() {
-    const { top, imageH } = this.geometry;
-    return Math.max(top + imageH * 0.57, this.notice.y + this.notice.displayHeight + 44);
+    return Math.max(this.fieldY(0.62), this.notice.y + this.notice.displayHeight + 44);
   }
 
   private drawEventCountdown(ctx: Ctx) {
     this.eventCountdown.clear();
-    this.countdownLabel.setVisible(false);
-    if (ctx.timer?.event === 'auction-end') {
-      this.drawAuctionCountdown(ctx);
-      return;
-    }
+    this.panelClock = false;
+    this.countdownLabel.setVisible(false).setColor('#415c59');
     const timedTurn = ctx.timer?.event === 'turn-timeout';
     const seat = timedTurn ? decisionSeat(ctx.state) : ctx.state.turn;
     if (
@@ -1678,17 +1912,36 @@ export class CoTyPhuClassicView extends GameView<View> {
     const { left, top, size, imageH } = this.geometry;
     const remaining = Math.max(0, Math.min(1, (ctx.timer.endsAt - Date.now()) / ctx.timer.ms));
     const seconds = Math.max(0, Math.ceil((ctx.timer.endsAt - Date.now()) / 1000));
+    if (timedTurn && ctx.state.phase === 'auction') {
+      this.drawAuctionCountdown(remaining, seconds, PLAYER_COLORS[seat]!);
+      return;
+    }
     if (timedTurn && ctx.state.phase !== 'trade') {
-      // Under the turn player's picture and cash, its seconds right after (never over the list).
-      const width = Math.min(size * 0.09, 72);
-      const x = this.turnAvatar.x - 24;
-      const y = Math.max(top + imageH * 0.32, this.turnCash.y + this.turnCash.displayHeight + 8);
-      this.bar(x, y, width, remaining, PLAYER_COLORS[seat]!);
+      // In the panel's groove under the turn player's cash, its seconds at the groove's end.
+      const { u0, u1, v, h } = PLAYER_PANEL.bar;
+      this.panelClock = true;
+      const height = this.onBoard(u0, v + h / 2).y - this.onBoard(u0, v - h / 2).y;
+      const width = Math.max(h, (u1 - u0) * remaining);
+      if (remaining > 0) {
+        const radius = h / 2;
+        const capsule = Array.from({ length: 34 }, (_, step) => {
+          const right = step < 17;
+          const angle =
+            -Math.PI / 2 + ((right ? step : step - 17) / 16) * Math.PI + (right ? 0 : Math.PI);
+          return this.onBoard(
+            u0 + (right ? width - radius : radius) + Math.cos(angle) * radius,
+            v + Math.sin(angle) * radius,
+          );
+        }) as Phaser.Math.Vector2[];
+        this.eventCountdown.fillStyle(PLAYER_COLORS[seat]!).fillPoints(capsule, true);
+      }
+      const end = this.onBoard(u1 - h * 0.4, v);
       this.countdownLabel
         .setVisible(true)
-        .setOrigin(0, 0.5)
-        .setFontSize(18 * this.k)
-        .setPosition(x + width + 8, y + 5)
+        .setOrigin(1, 0.5)
+        .setFontSize(height * 0.95)
+        .setColor('#fff7e8')
+        .setPosition(end.x, end.y)
         .setText(`${seconds} giây`);
       return;
     }
@@ -1729,26 +1982,19 @@ export class CoTyPhuClassicView extends GameView<View> {
         .fillRoundedRect(x, y, width * remaining, 10 * this.k, 5 * this.k);
   }
 
-  /**
-   * An auction is an event for the whole table: one neutral bar under its line, the seconds
-   * beside it. Every bid starts it again.
-   */
-  private drawAuctionCountdown(ctx: Ctx) {
-    const timer = ctx.timer;
-    if (!timer || this.visualPhase !== 'decision' || this.activeMoney || this.rentTable.visible)
-      return;
+  /** The bidder's countdown, in their color, right under the auction's line. */
+  private drawAuctionCountdown(remaining: number, seconds: number, color: number) {
     const { left, size } = this.geometry;
-    const remaining = Math.max(0, Math.min(1, (timer.endsAt - Date.now()) / timer.ms));
     const width = Math.min(size * 0.36, 240);
     const x = left + (size - width) / 2 - 24;
     const y = this.notice.y + (this.notice.visible ? this.notice.displayHeight : 0) + 12;
-    this.bar(x, y, width, remaining, 0x8f8a78);
+    this.bar(x, y, width, remaining, color);
     this.countdownLabel
       .setVisible(true)
       .setOrigin(0, 0.5)
       .setFontSize(18 * this.k)
       .setPosition(x + width + 8, y + 5)
-      .setText(`${Math.max(0, Math.ceil((timer.endsAt - Date.now()) / 1000))} giây`);
+      .setText(`${seconds} giây`);
   }
 
   private drawAuctionAttention(delta: number) {
@@ -1788,15 +2034,15 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.drawBoard(this.ctx);
     }
     this.drawEventCountdown(this.ctx);
+    this.diceGlow.setVisible(this.rollHint.visible);
     if (this.rollHint.visible) {
       const pulse = 0.55 + 0.45 * Math.sin(Date.now() / 260);
       this.rollHint.setAlpha(pulse);
-      this.diceGlow
-        .clear()
-        .lineStyle(3, 0xd6a137, pulse)
-        .strokeRoundedRect(this.diceHit.x - 85, this.diceHit.y - 48, 170, 96, 18);
+      this.diceGlow.setPosition(this.diceHit.x, this.diceHit.y).setAlpha(pulse).setVisible(true);
     }
     this.drawAuctionAttention(delta);
+    this.specialSymbols.update(this.time.now);
+    this.playerPanel.update(this.geometry);
     const event = this.ctx.state.specialEvent;
     if (
       event &&
@@ -1953,9 +2199,11 @@ export class CoTyPhuClassicView extends GameView<View> {
                       ? this.activeRoll?.jailed
                         ? `Đưa ${rollingName} vào tù`
                         : `${rollingName} đang đi`
-                      : state.phase === 'auction'
-                        ? 'Đấu giá'
-                        : `Lượt ${turn}`,
+                      : state.phase === 'auction' && state.auction
+                        ? `Đấu giá · lượt ${players[state.auction.bidder]?.name ?? ''}`
+                        : state.phase === 'debt'
+                          ? `${players[decisionSeat(state)]?.name ?? ''} trả nợ`
+                          : `Lượt ${turn}`,
     );
     if (!presenting && state.specialEvent) {
       const event = state.specialEvent;
@@ -1978,9 +2226,11 @@ export class CoTyPhuClassicView extends GameView<View> {
     const notice =
       state.phase === 'auction' && auction
         ? `${BOARD[auction.square]!.name} · ${
-            auction.leader === null
-              ? 'chưa ai trả giá'
-              : `${players[auction.leader]?.name ?? ''} dẫn ${auction.highest.toLocaleString('vi-VN')} ₫${BOARD[auction.square]!.kind === 'station' ? ' cọc' : ''}`
+            BOARD[auction.square]!.kind === 'station'
+              ? `Lần góp gần nhất ${auction.highest.toLocaleString('vi-VN')} ₫`
+              : auction.leader === null
+                ? 'chưa ai trả giá'
+                : `${players[auction.leader]?.name ?? ''} dẫn ${auction.highest.toLocaleString('vi-VN')} ₫`
           }`
         : state.notice;
     const landedNotice =
@@ -2085,9 +2335,14 @@ export class CoTyPhuClassicView extends GameView<View> {
     const deed = this.shownProperties[selected] ?? state.properties[selected]!;
     const owner = deed.owner === null ? 'Chưa có chủ' : (players[deed.owner]?.name ?? '');
     const hasDeed = isDeed(cell);
+    // One size for everything but the tile's name.
+    const ink = sideW < 200 ? 18 : 20;
+    const ownerColor = hasDeed && deed.owner !== null ? PLAYER_COLORS[deed.owner] : undefined;
+    this.deedLabel.setFontSize(ink);
     this.detail
       .setFontSize(sideW < 200 ? 23 : 28)
-      .setAlign('left')
+      .setAlign('center')
+      .setColor(ownerColor === undefined ? '#3d2b20' : ownerInk(ownerColor))
       .setWordWrapWidth(sideW - 28, false)
       .setText(cell.name);
     // Measure the wrapped title before placing the rest of the deed card.
@@ -2095,93 +2350,98 @@ export class CoTyPhuClassicView extends GameView<View> {
     while (this.detail.height > 68 && titleSize > 18) this.detail.setFontSize(--titleSize);
     this.deedTitleExtra = Math.max(0, this.detail.height - 24);
     const titleExtra = this.deedTitleExtra;
-    this.deedPrice.setY(this.geometry.panelTop + 112 + titleExtra);
+    const rowY = (row: number) => this.geometry.panelTop + 146 + row * 29 + titleExtra;
+    // Label left, number right; `null` hides the row.
+    const deedRows: ([string, string] | null)[] = [null, null, null];
     this.deedOwner
-      .setY(this.geometry.panelTop + 142 + titleExtra)
-      .setAlign('left')
-      .setWordWrapWidth(0);
-    this.deedRent.setY(this.geometry.panelTop + 172 + titleExtra);
-    this.nextBuilding.setY(this.geometry.panelTop + 198 + titleExtra);
-    this.deedPrice.setVisible(hasDeed);
-    this.deedOwner.setVisible(hasDeed || selected === 10);
-    if (selected === 10) {
+      .setY(this.geometry.panelTop + 112 + titleExtra)
+      .setFontSize(ink)
+      .setAlign('center')
+      .setWordWrapWidth(0)
+      .setVisible(hasDeed || selected === 10);
+    if (selected === 10)
       this.deedOwner
-        .setY(this.geometry.panelTop + 112 + titleExtra)
-        .setFontSize(18)
         .setWordWrapWidth(sideW - 28)
         .setText('Dừng ở đây: ghé thăm.\nBị đưa vào đây: ở tù.');
-    }
-    this.deedRent.setVisible(hasDeed);
     if (hasDeed) {
-      this.deedPrice.setFontSize(sideW < 200 ? 21 : 25);
-      this.fitText(this.deedPrice, `Giá ${cell.price} ₫`, sideW - 28, 18);
+      const ownerJailed = deed.owner !== null && state.players[deed.owner]!.jailed;
       const ownerLine = [
         owner,
         deed.houses ? (deed.houses === 5 ? 'Khách sạn' : `${deed.houses} nhà`) : '',
-        deed.mortgaged ? 'Đang thế chấp' : '',
+        deed.mortgaged ? 'Thế chấp' : '',
+        ownerJailed ? 'Chủ ở tù' : '',
       ]
         .filter(Boolean)
         .join(' • ');
-      this.deedOwner.setFontSize(sideW < 200 ? 18 : 21);
-      this.fitText(this.deedOwner, ownerLine, sideW - 28, 16);
-      const ownerJailed = deed.owner !== null && state.players[deed.owner]!.jailed;
+      this.fitText(this.deedOwner, ownerLine, sideW - 28, 14);
       const currentRent =
         deed.mortgaged || ownerJailed
           ? '0 ₫'
           : cell.kind === 'utility'
             ? `${deed.owner !== null && this.shownProperties[12]?.owner === deed.owner && this.shownProperties[28]?.owner === deed.owner ? 10 : 4}× xúc xắc`
-            : `${(deed.owner === null ? (cell.kind === 'station' ? 25 : (cell.rent?.[0] ?? 0)) : rent({ properties: this.shownProperties, players: state.players }, selected, 0)).toLocaleString('vi-VN')} ₫`;
-      this.deedRent.setFontSize(sideW < 200 ? 18 : 21);
-      this.fitText(
-        this.deedRent,
-        ownerJailed ? 'Thuê: 0 ₫ · Chủ ở tù' : `Thuê: ${currentRent}`,
-        sideW - 28,
-        16,
-      );
-      this.nextBuilding.setVisible(cell.kind === 'street').setFontSize(sideW < 200 ? 17 : 20);
-      this.fitText(
-        this.nextBuilding,
-        deed.houses === 5
-          ? 'Đã có khách sạn'
-          : `${deed.houses === 4 ? 'Khách sạn' : `Nhà ${deed.houses + 1}`}: ${cell.houseCost} ₫`,
-        sideW - 28,
-        15,
-      );
+            : `${(deed.owner === null ? (cell.kind === 'station' ? STATION_BASE_FEE : (cell.rent?.[0] ?? 0)) : rent({ properties: this.shownProperties, players: state.players }, selected, 0)).toLocaleString('vi-VN')} ₫`;
+      deedRows[0] = ['Giá', `${cell.price} ₫`];
+      deedRows[1] = [cell.kind === 'station' ? 'Phí' : 'Thuê', currentRent];
+      const stationAuction = state.stationAuctions[selected];
+      if (cell.kind === 'station' && stationAuction) {
+        const deposit = ctx.me
+          ? stationAuction.bids[ctx.me.seat]!
+          : stationAuction.bids.reduce((sum, amount) => sum + amount, 0);
+        deedRows[2] = [ctx.me ? 'Đã góp' : 'Tích trữ', `${deposit.toLocaleString('vi-VN')} ₫`];
+      }
+      if (cell.kind === 'street')
+        deedRows[2] =
+          deed.houses === 5
+            ? ['Đã có khách sạn', '']
+            : [deed.houses === 4 ? 'Khách sạn' : `Nhà ${deed.houses + 1}`, `${cell.houseCost} ₫`];
     }
-    if (!hasDeed) this.nextBuilding.setVisible(false);
-    if (cell.kind === 'utility' || cell.kind === 'tax') {
-      this.deedOwner
-        .setVisible(true)
-        .setFontSize(20)
-        .setWordWrapWidth(sideW - 28)
-        .setY(this.geometry.panelTop + 112 + titleExtra)
-        .setText(
-          cell.kind === 'tax'
-            ? '10% tiền mặt\nTối thiểu 200 ₫'
-            : `Thuế ${utilityTax(state, selected)} ₫`,
-        );
+    if (cell.kind === 'tax') {
+      deedRows[0] = ['Thuế', '10% tiền mặt'];
+      deedRows[1] = ['Tối thiểu', `${cell.tax} ₫`];
     }
+    if (cell.kind === 'utility') deedRows[0] = ['Thuế', `${utilityTax(state, selected)} ₫`];
+    [this.deedPrice, this.deedRent, this.nextBuilding].forEach((label, i) => {
+      const row = deedRows[i];
+      const value = this.deedValues[i]!;
+      label.setVisible(Boolean(row)).setY(rowY(i)).setFontSize(ink);
+      value.setVisible(Boolean(row)).setY(rowY(i)).setFontSize(ink);
+      if (!row) return;
+      value.setText(row[1]);
+      const room = sideW - 28 - (row[1] ? value.width + 12 : 0);
+      this.fitText(label, row[0], room, 13);
+    });
     this.hide([this.rentTableButton]);
     if (hasDeed && this.visualPhase !== 'ready' && !this.tradeOpen) {
       this.put(
         this.rentTableButton,
         'Bảng thuê',
         this.geometry.sideX + sideW / 2,
-        this.geometry.panelTop + 248 + titleExtra,
+        this.geometry.panelTop + 258 + titleExtra,
         sideW - 24,
         () => {
-          const w = Math.min(size * 0.65, 430);
+          // Floating over the board's middle, the board blurred behind it.
+          const w = Math.min(size * 0.8, 600);
           const x = left + (size - w) / 2;
-          const y = top + imageH * 0.2;
           const table = this.rentTable.show(
             cell,
             deed,
             deed.owner !== null &&
               ownsGroup({ properties: this.shownProperties }, deed.owner, selected),
             x,
-            y,
+            top + imageH * 0.45,
             w,
             deed.owner !== null && state.players[deed.owner]!.jailed,
+            // The row in force: houses built, or stations its owner has.
+            deed.owner === null || deed.mortgaged
+              ? null
+              : cell.kind === 'street'
+                ? deed.houses
+                : cell.kind === 'station'
+                  ? this.shownProperties.filter(
+                      (property, i) =>
+                        BOARD[i]!.kind === 'station' && property.owner === deed.owner,
+                    ).length - 1
+                  : null,
           );
           this.tileTooltip.hide();
           this.previewTile = null;
@@ -2190,15 +2450,13 @@ export class CoTyPhuClassicView extends GameView<View> {
             this.rentCloseButton,
             'Đóng',
             x + w / 2,
-            y + table.height - 26,
-            120,
-            () => {
-              this.rentTable.hide();
-              this.hide([this.rentCloseButton]);
-            },
-            40,
+            table.y + table.height - 32,
+            150,
+            () => this.closeRentTable(),
+            48,
             'secondary',
           );
+          this.syncBackdrop();
         },
         40,
         'secondary',
@@ -2233,7 +2491,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const canRoll = idle && me?.seat === state.turn;
     this.rollHint.setVisible(canRoll);
     this.diceHit.setVisible(canRoll);
-    this.diceGlow.clear();
+    this.diceGlow.setVisible(false);
     if (idle) {
       this.dice.showIdle();
       this.notice.setVisible(false);
@@ -2275,11 +2533,18 @@ export class CoTyPhuClassicView extends GameView<View> {
           ]),
       );
     }
+    // The offer's buttons float with its paper, above the blurred board.
+    const lift = this.tradeOpen ? 30 : 0;
+    for (const button of this.main) {
+      button.box.setDepth(10 + lift);
+      button.text.setDepth(11 + lift);
+      button.hit.setDepth(12 + lift);
+    }
     if (this.tradeOpen) {
-      const innerW = size * 0.54;
-      const columnW = (innerW - 16) / 2;
+      const innerW = size * 0.68;
+      const columnW = (innerW - 24) / 2;
       const cx = left + size / 2;
-      const columnX = [cx - (columnW + 16) / 2, cx + (columnW + 16) / 2];
+      const columnX = [cx - (columnW + 24) / 2, cx + (columnW + 24) / 2];
       const labels = [
         'Bạn đưa',
         'Bạn nhận',
@@ -2289,8 +2554,8 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.tradeLabels.forEach((label, i) => {
         label
           .setVisible(true)
-          .setPosition(columnX[i % 2]!, top + imageH * (i < 2 ? 0.33 : 0.475))
-          .setFontSize(i < 2 ? 24 : 20);
+          .setPosition(columnX[i % 2]!, top + imageH * (i < 2 ? 0.295 : 0.45))
+          .setFontSize(i < 2 ? 28 : 24);
         this.fitText(label, labels[i]!, columnW, 16);
       });
       actions.forEach(([label, action], i) => {
@@ -2298,11 +2563,11 @@ export class CoTyPhuClassicView extends GameView<View> {
         const property = i === 1 || i === 2;
         const money = i >= 3 && i <= 6;
         let x = cx;
-        let y = top + imageH * 0.24;
+        let y = top + imageH * 0.215;
         let w = innerW;
         if (property) {
           x = columnX[i - 1]!;
-          y = top + imageH * 0.395;
+          y = top + imageH * 0.37;
           w = columnW;
         }
         if (money) {
@@ -2310,15 +2575,15 @@ export class CoTyPhuClassicView extends GameView<View> {
           const sign = i % 2 === 1 ? -1 : 1;
           w = (columnW - 8) / 2;
           x = columnX[column]! + (sign * (w + 8)) / 2;
-          y = top + imageH * 0.545;
+          y = top + imageH * 0.525;
         }
         if (i >= 7) {
           x = columnX[i - 7]!;
           y = top + imageH * 0.66;
           w = columnW;
         }
-        this.put(this.main[i]!, label, x, y, w, action, 54, i === 7 ? 'primary' : 'secondary');
-        if (recipient) this.main[i]!.text.setFontSize(19);
+        this.put(this.main[i]!, label, x, y, w, action, 60, i === 7 ? 'primary' : 'secondary');
+        if (recipient) this.main[i]!.text.setFontSize(22);
       });
       return;
     }
@@ -2483,5 +2748,52 @@ export function boardPlace(screen: {
     sideW: Math.max(SIDE.min, Math.min(SIDE.max, width - MARGIN - (seenLeft + w + MARGIN))),
     /** Where the column starts: right of the board's drawn part. */
     sideLeft: seenLeft + w + MARGIN,
+  };
+}
+
+/**
+ * A smooth path through `points` (Catmull-Rom), walked by distance: `at(0…1)` goes at an even
+ * speed from the first point to the last; `length` is its length.
+ */
+function sweep(points: { x: number; y: number }[]) {
+  const samples: { x: number; y: number }[] = [];
+  const pick = (i: number) => points[Math.max(0, Math.min(points.length - 1, i))]!;
+  for (let segment = 0; segment < points.length - 1; segment++) {
+    const [p0, p1, p2, p3] = [
+      pick(segment - 1),
+      pick(segment),
+      pick(segment + 1),
+      pick(segment + 2),
+    ];
+    for (let step = 0; step < 40; step++) {
+      const t = step / 40;
+      const t2 = t * t;
+      const t3 = t2 * t;
+      const blend = (a: number, b: number, c: number, d: number) =>
+        0.5 *
+        (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+      samples.push({ x: blend(p0.x, p1.x, p2.x, p3.x), y: blend(p0.y, p1.y, p2.y, p3.y) });
+    }
+  }
+  samples.push(points[points.length - 1]!);
+  const distance = [0];
+  for (let i = 1; i < samples.length; i++)
+    distance.push(
+      distance[i - 1]! +
+        Math.hypot(samples[i]!.x - samples[i - 1]!.x, samples[i]!.y - samples[i - 1]!.y),
+    );
+  const length = distance[distance.length - 1]!;
+  return {
+    length,
+    at(share: number) {
+      const target = Math.max(0, Math.min(1, share)) * length;
+      let i = 1;
+      while (i < distance.length - 1 && distance[i]! < target) i++;
+      const span = distance[i]! - distance[i - 1]! || 1;
+      const f = (target - distance[i - 1]!) / span;
+      const a = samples[i - 1]!;
+      const b = samples[i]!;
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+    },
   };
 }

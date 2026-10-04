@@ -6,6 +6,7 @@ import {
   isDeed,
   type Options,
   type SpecialEventEffect,
+  STATION_BASE_FEE,
   type State,
 } from './model.js';
 
@@ -20,6 +21,12 @@ export const copy = (state: State): State => ({
   chance: [...state.chance],
   chest: [...state.chest],
   shortages: state.shortages.map((event) => ({ ...event })),
+  stationAuctions: Object.fromEntries(
+    Object.entries(state.stationAuctions).map(([square, auction]) => [
+      square,
+      { ...auction, passed: [...auction.passed], bids: [...auction.bids] },
+    ]),
+  ),
   auction: state.auction && {
     ...state.auction,
     passed: [...state.auction.passed],
@@ -60,7 +67,7 @@ export function rent(
   if (deed.owner === null || deed.mortgaged || s.players[deed.owner]?.jailed) return 0;
   if (cell.kind === 'station') {
     const count = [5, 15, 25, 35].filter((i) => s.properties[i]?.owner === deed.owner).length;
-    return 25 * 2 ** (count - 1) * (count === 4 ? 3 : 1) * multiplier;
+    return STATION_BASE_FEE * count;
   }
   return (
     (cell.rent?.[deed.houses] ?? 0) *
@@ -92,6 +99,7 @@ export function charge(
   if (amount <= 0) return;
   if (s.players[payer]!.cash < amount) {
     s.debt = { amount, creditor, reason, after: s.after };
+    if (payer !== s.turn) s.debt.payer = payer;
     s.phase = 'debt';
     s.notice = `${reason}: cần trả ${amount}. Bán nhà hoặc thế chấp để trả nợ.`;
     return;
@@ -215,19 +223,6 @@ export function utilityTax(s: Pick<State, 'round' | 'shortages'>, square: number
   );
 }
 
-/** Opens the auction of `square` to everyone at the table (the game sets its clock). */
-export function openAuction(s: State, square: number) {
-  s.phase = 'auction';
-  s.auction = {
-    square,
-    highest: 0,
-    leader: null,
-    passed: [],
-    bids: s.players.map(() => 0),
-    round: 0,
-  };
-}
-
 export function land(s: State, seat: number, roll: number, multiplier = 1) {
   const square = s.players[seat]!.position;
   const cell = BOARD[square]!;
@@ -238,9 +233,20 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
   if (isDeed(cell)) {
     const owner = s.properties[square]!.owner;
     if (owner === null) {
+      if (cell.kind === 'station') {
+        s.stationAuctions[square] ??= {
+          square,
+          highest: 0,
+          leader: null,
+          passed: [],
+          bids: s.players.map(() => 0),
+        };
+        const auction = s.stationAuctions[square]!;
+        if (auction.passed.includes(seat)) return;
+        s.auction = { ...auction, bidder: seat };
+      }
       s.pending = square;
-      s.phase = 'buy';
-      if (cell.kind === 'station') openAuction(s, square);
+      s.phase = cell.kind === 'station' ? 'auction' : 'buy';
     } else if (owner === seat && cell.kind === 'street' && !s.players[seat]!.jailed) {
       s.buildable = square;
     } else if (owner !== seat) {
@@ -251,7 +257,7 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
       kind: 'tax',
       amount:
         cell.kind === 'tax'
-          ? Math.max(200, Math.floor(s.players[seat]!.cash * 0.1))
+          ? Math.max(cell.tax!, Math.floor(s.players[seat]!.cash * 0.1))
           : utilityTax(s, square),
       reason: cell.name,
     });
@@ -267,20 +273,55 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
 export function finishIfLast(s: State, ctx: Context) {
   const survivors = active(s);
   if (survivors.length === 1) {
+    for (const auction of Object.values(s.stationAuctions)) {
+      auction.bids.forEach((amount, seat) => {
+        transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
+      });
+    }
+    s.stationAuctions = {};
     s.winner = survivors[0]!;
     ctx.finish([ctx.players[survivors[0]!]!.id]);
   }
 }
 
+/** Resolve between decisions, so a winner's debt cannot overwrite another landing. */
+export function settleStations(s: State) {
+  if (s.winner !== null || (s.phase !== 'roll' && s.phase !== 'end')) return;
+  const settlements = Object.values(s.stationAuctions)
+    .map((auction) => ({
+      auction,
+      remaining: active(s).filter((seat) => !auction.passed.includes(seat)),
+    }))
+    .filter(({ remaining }) => remaining.length <= 1);
+  // All qualifying deposits become spendable before any purchase can create debt.
+  for (const { auction } of settlements) {
+    auction.bids.forEach((amount, seat) => {
+      transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
+      auction.bids[seat] = 0;
+    });
+  }
+  for (const { auction, remaining } of settlements) {
+    delete s.stationAuctions[auction.square];
+    const winner = remaining[0];
+    if (winner === undefined) continue;
+    const resume = s.phase;
+    s.properties[auction.square]!.owner = winner;
+    charge(s, winner, BOARD[auction.square]!.price!, null, `Mua ${BOARD[auction.square]!.name}`);
+    if (s.debt) {
+      s.debt.after = resume;
+      return;
+    }
+    s.notice = `${BOARD[auction.square]!.name} bán giá ${BOARD[auction.square]!.price}.`;
+  }
+}
+
 export function bankrupt(s: State, seat: number, creditor: number | null, ctx: Context) {
   const p = s.players[seat]!;
-  if (s.auction) {
-    s.auction.bids.forEach((amount, bidder) => {
-      if (s.turn === seat || active(s).length <= 2 || bidder === seat) {
-        transferMoney(s, null, bidder, amount, 'Hoàn tiền đấu giá');
-        s.auction!.bids[bidder] = 0;
-      }
-    });
+  for (const auction of Object.values(s.stationAuctions)) {
+    transferMoney(s, null, seat, auction.bids[seat]!, 'Hoàn tiền đấu giá');
+    auction.bids[seat] = 0;
+    if (!auction.passed.includes(seat)) auction.passed.push(seat);
+    if (auction.leader === seat) auction.leader = null;
   }
   p.bankrupt = true;
   for (const [i, deed] of s.properties.entries()) {

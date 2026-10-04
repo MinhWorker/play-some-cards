@@ -1,5 +1,6 @@
+import { FONT } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import type { Property, Square } from '../game/model.js';
+import { type Property, type Square, STATION_BASE_FEE } from '../../game/model.js';
 
 /** Full rent schedule on demand, leaving the persistent tile card compact. */
 export class RentTable {
@@ -11,14 +12,14 @@ export class RentTable {
   constructor(scene: Phaser.Scene) {
     this.panel = scene.add.graphics().setDepth(32);
     const style = {
-      fontFamily: '"Baloo 2"',
-      fontSize: '24px',
+      fontFamily: FONT,
+      fontSize: '30px',
       fontStyle: 'bold',
       color: '#493a28',
     };
     this.title = scene.add.text(0, 0, '', style).setOrigin(0.5).setDepth(33);
     this.rows = Array.from({ length: 21 }, () =>
-      scene.add.text(0, 0, '', { ...style, fontSize: '20px' }).setDepth(33),
+      scene.add.text(0, 0, '', { ...style, fontSize: '24px' }).setDepth(33),
     );
     this.hide();
   }
@@ -28,9 +29,11 @@ export class RentTable {
     deed: Property,
     doubleRent: boolean,
     x: number,
-    y: number,
+    middle: number,
     width: number,
     ownerJailed = false,
+    /** The schedule's row that applies now (houses built, stations owned), or `null`. */
+    level: number | null = null,
   ) {
     this.hide();
     this.visible = true;
@@ -42,31 +45,38 @@ export class RentTable {
             i === 0 ? '—' : `${cell.houseCost} ₫`,
           ])
         : cell.kind === 'station'
-          ? [1, 2, 3, 4].map((i) => [`${i} bến`, `${25 * 2 ** (i - 1) * (i === 4 ? 3 : 1)} ₫`, '—'])
+          ? [1, 2, 3, 4].map((i) => [`${i} bến`, `${STATION_BASE_FEE * i} ₫`, '—'])
           : [
               ['1 đơn vị', '4× xúc xắc', '—'],
               ['2 đơn vị', '10× xúc xắc', '—'],
             ];
-    const height = 140 + schedule.length * 34;
+    // Centered on `middle`, a row every 40.
+    const height = 172 + schedule.length * 40;
+    const y = middle - height / 2;
     this.panel.setVisible(true).fillStyle(0xfff8e5).fillRoundedRect(x, y, width, height, 16);
     this.panel.lineStyle(3, 0xd2a14c).strokeRoundedRect(x, y, width, height, 16);
     this.title
       .setVisible(true)
       .setText(cell.name)
       .setWordWrapWidth(width - 36, true)
-      .setPosition(x + width / 2, y + 27);
-    const columns = [x + 18, x + width * 0.43, x + width * 0.76];
-    [['Cấp', 'Thuê', 'Xây'], ...schedule].forEach((row, i) => {
+      .setPosition(x + width / 2, y + 32);
+    const columns = [x + 28, x + width * 0.43, x + width * 0.74];
+    // The row in force gets a band in the deed's gold and darker ink.
+    if (level !== null && schedule[level])
+      this.panel
+        .fillStyle(0xffd98a)
+        .fillRoundedRect(x + 14, y + 62 + (level + 1) * 40, width - 28, 38, 10);
+    [['Cấp', cell.kind === 'station' ? 'Phí' : 'Thuê', 'Xây'], ...schedule].forEach((row, i) => {
       row.forEach((text, column) => {
         this.rows[i * 3 + column]!.setVisible(true)
           .setText(text)
-          .setPosition(columns[column]!, y + 58 + i * 34)
-          .setColor(i === 0 ? '#906233' : '#493a28');
+          .setPosition(columns[column]!, y + 64 + i * 40)
+          .setColor(i === 0 ? '#906233' : i === (level ?? -2) + 1 ? '#5a2e0c' : '#493a28');
       });
     });
     if (deed.mortgaged) this.title.setText(`${cell.name} · Thế chấp`);
     else if (ownerJailed) this.title.setText(`${cell.name} · Chủ ở tù, thuê 0 ₫`);
-    return { height };
+    return { y, height };
   }
 
   hide() {

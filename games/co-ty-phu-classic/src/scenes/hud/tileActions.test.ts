@@ -1,7 +1,23 @@
 import { testGame } from '@psc/sdk';
 import { expect, it } from 'vitest';
-import plugin from '../index.js';
+import { move } from '../../game/rules.js';
+import plugin from '../../index.js';
 import { tileActions } from './tileActions.js';
+
+it('offers the next full station contribution only to its visitor with enough cash', () => {
+  const game = testGame(plugin, ['a', 'b', 'c']);
+  move(game.state, 0, 5, false, 7);
+  expect(tileActions(game.state, 0, 5)).toEqual([
+    { label: 'Góp 50 ₫', event: 'bid', payload: { amount: 50 } },
+    { label: 'Từ bỏ', event: 'pass', payload: {} },
+  ]);
+  expect(tileActions(game.state, 1, 5)).toEqual([]);
+  game.send('a', 'bid', { amount: 50 });
+  expect(tileActions(game.state, 0, 5)).toEqual([]);
+  move(game.state, 0, 5, false, 7);
+  game.state.players[0]!.cash = 75;
+  expect(tileActions(game.state, 0, 5)).toEqual([{ label: 'Từ bỏ', event: 'pass', payload: {} }]);
+});
 
 it('marks only the pending purchase and respects the buyer balance', () => {
   const game = testGame(plugin, ['a', 'b']);

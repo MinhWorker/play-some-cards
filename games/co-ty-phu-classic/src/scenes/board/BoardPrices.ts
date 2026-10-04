@@ -1,11 +1,14 @@
 import type Phaser from 'phaser';
-import { BOARD, type State } from '../game/model.js';
+import { BOARD, isDeed, type State } from '../../game/model.js';
 import { boardAmounts } from './boardAmounts.js';
 import { BOARD_CELLS } from './boardGeometry.js';
 
 let textureId = 0;
 
-/** Prices and place names printed into the board plane without covering symbols or color bands. */
+/**
+ * Prices and place names printed into the board plane without covering symbols or color bands.
+ * An owned property's name takes its owner's color, as its symbol does (TileOwnerSymbols).
+ */
 export class BoardPrices {
   private readonly image: Phaser.GameObjects.Image;
   private readonly texture: Phaser.Textures.CanvasTexture;
@@ -13,7 +16,11 @@ export class BoardPrices {
   private amounts: (string | null)[] = [];
   private amountsKey = '';
 
-  constructor(scene: Phaser.Scene, sourceKey: string) {
+  constructor(
+    scene: Phaser.Scene,
+    sourceKey: string,
+    private readonly playerColors: readonly number[],
+  ) {
     const source = scene.textures.get(sourceKey).getSourceImage() as HTMLImageElement;
     const canvas = document.createElement('canvas');
     canvas.width = source.width;
@@ -32,7 +39,8 @@ export class BoardPrices {
     state: Pick<State, 'properties' | 'players'> & Partial<Pick<State, 'round' | 'shortages'>>,
   ) {
     const amounts = boardAmounts(state);
-    const key = amounts.join(',');
+    const owners = state.properties.map((property) => property.owner ?? '-');
+    const key = `${amounts.join(',')}|${owners.join(',')}`;
     if (key === this.amountsKey) return;
     this.amountsKey = key;
     this.amounts = amounts;
@@ -118,13 +126,17 @@ export class BoardPrices {
         nameCenter.x,
         nameCenter.y,
       );
-      ink.fillStyle = '#514432';
+      const owner = isDeed(square) ? state.properties[index]?.owner : null;
+      const color = owner === null || owner === undefined ? undefined : this.playerColors[owner];
+      ink.fillStyle = color === undefined ? '#514432' : ownerInk(color);
       ink.textAlign = 'center';
       ink.textBaseline = 'middle';
       ink.font = 'bold 30px "Baloo 2", sans-serif';
-      const words = square.name.split(' ');
-      let lines = [square.name];
-      if (ink.measureText(square.name).width > 154 && words.length > 1) {
+      // The airport's tile says where it goes rather than what it is.
+      const name = square.kind === 'airport' ? 'Chuyến bay đến…' : square.name;
+      const words = name.split(' ');
+      let lines = [name];
+      if (ink.measureText(name).width > 154 && words.length > 1) {
         let narrowest = Number.POSITIVE_INFINITY;
         for (let split = 1; split < words.length; split++) {
           const candidate = [words.slice(0, split).join(' '), words.slice(split).join(' ')];
@@ -149,4 +161,10 @@ export class BoardPrices {
   layout(x: number, y: number, width: number, height: number) {
     this.image.setPosition(x, y).setDisplaySize(width, height);
   }
+}
+
+/** A player color darkened like the owner's symbol ink, as a CSS color. */
+export function ownerInk(color: number) {
+  const channel = (shift: number) => Math.round(((color >> shift) & 0xff) * 0.72);
+  return `rgb(${channel(16)}, ${channel(8)}, ${channel(0)})`;
 }

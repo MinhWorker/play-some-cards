@@ -21,7 +21,7 @@ export default async function run(t) {
     { name: 'go-jail-manual', target: 30 },
     { name: 'go-jail-timer', target: 30, timer: true },
     { name: 'chance-jail', target: 7, deck: 'chance' },
-    { name: 'chest-jail', target: 2, deck: 'chest', timer: true },
+    { name: 'chest-jail', target: 17, deck: 'chest', timer: true },
     { name: 'three-doubles', target: 10, doubles: true, bot: true },
     { name: 'still-in-jail', target: 10, jailed: true },
     { name: 'receive-jail-ticket', target: 7, deck: 'chance', item: true },
