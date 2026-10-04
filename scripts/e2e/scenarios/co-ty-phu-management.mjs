@@ -190,7 +190,7 @@ export default async function run(t) {
       const build = s.tools.find((b) => b.hit.visible && b.text.text === ${JSON.stringify(label)});
       const others = s.tools.filter((b) => b.hit.visible && b !== build);
       return build && build.enabled === ${enabled} && build.hit.input.enabled === ${enabled} &&
-        build.box.texture.key.endsWith(${JSON.stringify(enabled ? '/tile-button-primary' : '/tile-button-disabled')}) &&
+        build.box.texture.key.endsWith(${JSON.stringify(enabled ? '/tile-button-primary' : '/tile-button-primary-disabled')}) &&
         others.every((b) => build.hit.getBounds().bottom < b.hit.getBounds().top &&
           b.box.texture.key.endsWith('/tile-button'));
     }`)(),
@@ -204,7 +204,9 @@ export default async function run(t) {
   await click('Xây nhà 175 ₫');
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    const source = s.textures.get(s.texture('tile-button-disabled')).getSourceImage();
+    const source = s.tools
+      .find((b) => b.hit.visible && b.text.text === 'Xây nhà 175 ₫')
+      .box.texture.getSourceImage();
     const pixels = source.getContext('2d').getImageData(0, 0, source.width, source.height).data;
     for (let i = 0; i < pixels.length; i += 4) {
       if (pixels[i] !== pixels[i + 1] || pixels[i + 1] !== pixels[i + 2]) return false;

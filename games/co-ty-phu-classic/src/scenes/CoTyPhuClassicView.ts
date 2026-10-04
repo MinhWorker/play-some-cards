@@ -1070,7 +1070,7 @@ export class CoTyPhuClassicView extends GameView<View> {
 
   /** Bake the disabled artwork once; no per-button filters or per-frame canvas uploads. */
   private disabledButtonTexture() {
-    const key = this.texture('tile-button-disabled');
+    const key = `${this.texture('tile-button-primary')}-disabled`;
     if (!this.textures.exists(key)) {
       const source = this.textures.get(this.texture('tile-button-primary')).getSourceImage();
       const canvas = document.createElement('canvas');
@@ -1139,8 +1139,9 @@ export class CoTyPhuClassicView extends GameView<View> {
     button.hit.setVisible(true).setPosition(x, y).setSize(width, height);
     button.hit.input?.hitArea.setTo(0, 0, width, height);
     if (button.hit.input) button.hit.input.enabled = enabled;
+    const textColor = enabled ? '#3d2b20' : '#5b5b5b';
+    if (button.text.style.color !== textColor) button.text.setColor(textColor);
     button.text
-      .setColor(enabled ? '#3d2b20' : '#5b5b5b')
       .setVisible(true)
       .setPosition(x + (roll ? height * 0.32 : 0), y - (roll ? 2 : 0))
       .setFontSize(roll ? 30 : height < 62 ? 20 : 22);
