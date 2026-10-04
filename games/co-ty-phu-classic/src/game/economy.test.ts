@@ -43,7 +43,7 @@ describe('station contributions on landing', () => {
     expect(game.state.players[0]!.cash).toBe(150);
     expect(game.state.properties[5]!.owner).toBe(0);
     expect(game.state.properties[15]!.owner).toBe(0);
-    expect(game.state.debt).toMatchObject({ payer: 0, amount: 200, reason: 'Mua Bến Trung' });
+    expect(game.state.debt).toMatchObject({ payer: 0, amount: 200, reason: 'Mua Bến Tây' });
     game.send('a', 'mortgage', { square: 5 }).send('a', 'pay-debt');
     expect(game.state.players[0]!.cash).toBe(50);
     expect(game.state.debt).toBeNull();
@@ -62,7 +62,7 @@ describe('station contributions on landing', () => {
     expect(previous.phase).toBe('end');
     expect(previous.auction).toBeNull();
     expect(previous.pending).toBeNull();
-    expect(previous.players[0]!.cash).toBe(1450);
+    expect(previous.players[0]!.cash).toBe(950);
     expect(game.error('a', 'bid', { amount: 100 })).toBeTruthy();
     game.send('a', 'end-turn');
     expect(game.state.stationAuctions[5]!.bids).toEqual([50, 0, 0]);
@@ -72,7 +72,7 @@ describe('station contributions on landing', () => {
     expect(game.error('a', 'bid', { amount: 200 })).toBeTruthy();
     game.send('a', 'bid', { amount: 150 });
     expect(game.state.stationAuctions[5]!.bids).toEqual([200, 100, 0]);
-    expect(game.state.players[0]!.cash).toBe(1300);
+    expect(game.state.players[0]!.cash).toBe(800);
     expect(previous.stationAuctions[5]!.bids).toEqual([50, 0, 0]);
   });
 
@@ -90,7 +90,7 @@ describe('station contributions on landing', () => {
     expect(game.state.stationAuctions[5]!.bids).toEqual([250, 100, 150, 0]);
     visit(game, 1);
     game.send('b', 'pass');
-    expect(game.state.players[1]!.cash).toBe(1400);
+    expect(game.state.players[1]!.cash).toBe(900);
     expect(game.state.stationAuctions[5]!.highest).toBe(200);
     visit(game, 1);
     expect(game.state.phase).toBe('end');
@@ -101,7 +101,7 @@ describe('station contributions on landing', () => {
     visit(game, 3);
     game.send('d', 'pass');
     expect(game.state.properties[5]!.owner).toBe(0);
-    expect(game.state.players.map((p) => p.cash)).toEqual([1300, 1500, 1500, 1500]);
+    expect(game.state.players.map((p) => p.cash)).toEqual([800, 1000, 1000, 1000]);
     expect(game.state.stationAuctions[5]).toBeUndefined();
     expect(game.state.transfers.map((t) => t.amount)).toEqual([250, 100, 150, 200]);
     expect(game.state.transfers.at(-1)).toMatchObject({ from: 0, to: null, reason: 'Mua Bến Bắc' });
@@ -128,7 +128,7 @@ describe('station contributions on landing', () => {
     visit(game, 0);
     game.send('a', 'pass');
     expect(game.state.stationAuctions[5]!.passed).toEqual([0]);
-    expect(game.state.players[0]!.cash).toBe(1450);
+    expect(game.state.players[0]!.cash).toBe(950);
   });
 
   it('passes only the visitor after the station decision countdown expires', () => {
@@ -153,12 +153,12 @@ describe('station contributions on landing', () => {
     game.leave('b');
     expect(game.state.stationAuctions[5]!.bids).toEqual([50, 0, 0]);
     expect(game.state.stationAuctions[5]!.highest).toBe(100);
-    expect(game.state.players.map((p) => p.cash)).toEqual([1450, 0, 1500]);
+    expect(game.state.players.map((p) => p.cash)).toEqual([950, 0, 1000]);
     expect(game.state.transfers[0]).toMatchObject({ to: 1, amount: 100 });
     visit(game, 2);
     game.send('c', 'pass');
     expect(game.state.properties[5]!.owner).toBe(0);
-    expect(game.state.players[0]!.cash).toBe(1300);
+    expect(game.state.players[0]!.cash).toBe(800);
   });
 
   it('retains other deposits when the current visitor leaves during a station decision', () => {
@@ -177,7 +177,7 @@ describe('station contributions on landing', () => {
     const game = auction();
     game.state.players[0]!.cash = 50;
     game.send('a', 'bid', { amount: 50 });
-    game.state.properties[3]!.owner = 0;
+    game.state.properties[9]!.owner = 0;
     visit(game, 1);
     game.send('b', 'pass');
     visit(game, 2);
@@ -187,8 +187,8 @@ describe('station contributions on landing', () => {
     expect(game.state.turn).toBe(2);
     expect(game.error('c', 'pay-debt')).toBeTruthy();
     expect(botMove(game.state, 0)?.event).toBe('mortgage');
-    game.send('a', 'mortgage', { square: 3 }).send('a', 'pay-debt');
-    expect(game.state.players[0]!.cash).toBe(10);
+    game.send('a', 'mortgage', { square: 9 }).send('a', 'pay-debt');
+    expect(game.state.players[0]!.cash).toBe(50 + BOARD[9]!.price! / 2 - 200);
     expect(game.state.phase).toBe('end');
     expect(game.state.turn).toBe(2);
     expect(game.state.properties[5]!.owner).toBe(0);
@@ -211,17 +211,20 @@ describe('station contributions on landing', () => {
 });
 
 describe('taxes and table rounds', () => {
-  it.each([4, 38])('charges 10%% of cash with a 200 minimum on square %s', (square) => {
+  it.each([
+    [4, 100],
+    [38, 200],
+  ])('charges 10%% of cash on square %s with minimum %s', (square, minimum) => {
     const game = testGame(plugin, ['a', 'b']);
     game.state.players[0]!.cash = 3456;
     move(game.state, 0, square, false, 7);
     expect(game.state.specialEvent).toMatchObject({ kind: 'tax', amount: 345 });
     resolveSpecialEvent(game.state, () => 0);
     expect(game.state.players[0]?.cash).toBe(3111);
-    game.state.players[0]!.cash = 100;
+    game.state.players[0]!.cash = 99;
     move(game.state, 0, square, false, 7);
     resolveSpecialEvent(game.state, () => 0);
-    expect(game.state.debt?.amount).toBe(200);
+    expect(game.state.debt?.amount).toBe(minimum);
   });
 
   it.each([12, 28])('never sells utility %s and doubles only its next table round', (square) => {
@@ -242,7 +245,7 @@ describe('taxes and table rounds', () => {
     move(game.state, 0, square, false, 12);
     expect(game.state.specialEvent).toMatchObject({ kind: 'tax', amount: 200 });
     resolveSpecialEvent(game.state, () => 0);
-    expect(game.state.players[0]?.cash).toBe(1300);
+    expect(game.state.players[0]?.cash).toBe(800);
     game.state.phase = 'end';
     game.send('a', 'end-turn');
     game.state.phase = 'end';
@@ -276,7 +279,7 @@ describe('station fee payments', () => {
       amount: 50 * count,
       reason: 'Tiền thuê Bến Bắc',
     });
-    expect(game.state.players.map((p) => p.cash)).toEqual([1500 - 50 * count, 1500 + 50 * count]);
+    expect(game.state.players.map((p) => p.cash)).toEqual([1000 - 50 * count, 1000 + 50 * count]);
     const before = game.state.players[1]!.cash;
     move(game.state, 1, 5, false, 7);
     expect(game.state.players[1]!.cash).toBe(before);
@@ -284,15 +287,15 @@ describe('station fee payments', () => {
 
   it('uses the same fee for the nearest-station card and creates rent debt when cash is short', () => {
     const game = testGame(plugin, ['a', 'b']);
-    game.state.properties[5]!.owner = 1;
+    game.state.properties[25]!.owner = 1;
     game.state.chance = [
       CHANCE.findIndex((card) => card.kind === 'nearest' && card.target === 'station'),
     ];
-    move(game.state, 0, 36, false, 7);
+    move(game.state, 0, 22, false, 7);
     resolveSpecialEvent(game.state, () => 0);
     expect(game.state.transfers.at(-1)).toMatchObject({ from: 0, to: 1, amount: 50 });
     game.state.players[0]!.cash = 49;
-    move(game.state, 0, 5, false, 7);
+    move(game.state, 0, 25, false, 7);
     expect(game.state.debt).toMatchObject({ creditor: 1, amount: 50 });
   });
 });

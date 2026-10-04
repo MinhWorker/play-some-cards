@@ -16,6 +16,7 @@ import {
   isDeed,
   type Options,
   SPECIAL_EVENT_TIMEOUT,
+  STARTING_CASH,
   STATION_CONTRIBUTION_STEP,
   type State,
   type View,
@@ -91,7 +92,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       moneySequence: 0,
       transfers: [],
       players: players.map(() => ({
-        cash: 1500,
+        cash: STARTING_CASH,
         position: 0,
         jailed: false,
         jailRolls: 0,

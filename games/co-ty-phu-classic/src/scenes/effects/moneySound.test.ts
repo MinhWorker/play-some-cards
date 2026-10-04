@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MoneyTransfer } from '../game/model.js';
+import type { MoneyTransfer } from '../../game/model.js';
 import { moneySound } from './moneySound.js';
 
 describe('money sounds around the table', () => {

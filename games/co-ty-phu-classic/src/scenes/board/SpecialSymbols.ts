@@ -1,4 +1,6 @@
 import type Phaser from 'phaser';
+import { BOARD } from '../../game/model.js';
+import { addGlow } from '../effects/glow.js';
 import { BOARD_CELLS } from './boardGeometry.js';
 
 type SourceImage = CanvasImageSource & { width: number; height: number };
@@ -19,6 +21,7 @@ interface Layer {
   canvas: HTMLCanvasElement;
   texture: Phaser.Textures.CanvasTexture;
   image: Phaser.GameObjects.Image;
+  glow?: Phaser.Filters.Glow;
 }
 
 const START = 0;
@@ -29,17 +32,28 @@ const WATER = 28;
 let nextId = 0;
 
 /**
- * The squares nobody can buy, brought to life on their printed symbols only (never the tile):
+ * Special squares, brought to life on their printed symbols only (never the tile):
  * the power plant's bolt crackles violet, the waterworks' drop sloshes cyan, the airport's plane
  * blinks its night lights, and Start's arrow glows gold in turn with its printed gray.
- * The jail stays plain gray.
+ * Chance, Chest, stations and taxes have distinct glints; the jail stays plain gray.
  */
 export class SpecialSymbols {
   private readonly layers: Layer[] = [];
   private readonly power: Layer;
   private readonly water: Layer;
   private readonly startArrow: Layer;
-  private readonly lights: Phaser.GameObjects.Graphics;
+  private readonly accents: {
+    square: number;
+    kind: 'chance' | 'chest' | 'station' | 'tax';
+    color: number;
+    light: number;
+    layer: Layer;
+  }[] = [];
+  private owners: readonly (number | null)[] = [];
+  private playerColors: readonly number[] = [];
+  private lastPaint = -Infinity;
+  private readonly lights: { image: Phaser.GameObjects.Image; point: Point }[];
+  private readonly lightTexture: Phaser.Textures.CanvasTexture;
   /** The plane's tail, nose-side wingtips (board-image pixels). */
   private readonly plane: { tail: Point; top: Point; bottom: Point };
   private readonly width: number;
@@ -60,13 +74,51 @@ export class SpecialSymbols {
     context.drawImage(source, 0, 0);
     const pixels = context.getImageData(0, 0, this.width, this.height);
 
-    this.power = this.layer(this.inkOf(pixels, POWER));
-    this.water = this.layer(this.inkOf(pixels, WATER));
+    this.power = this.layer(this.inkOf(pixels, POWER), undefined, 0xa78bfa);
+    this.water = this.layer(this.inkOf(pixels, WATER), undefined, 0x22d3ee);
     const arrow = this.inkOf(pixels, START);
-    this.startArrow = this.layer(arrow, 0xf2a922);
+    this.startArrow = this.layer(arrow, 0xf2a922, 0xffcf65);
+    BOARD.forEach((square, index) => {
+      const kind = square.kind;
+      if (kind !== 'chance' && kind !== 'chest' && kind !== 'station' && kind !== 'tax') return;
+      const [color, light] =
+        kind === 'chance'
+          ? [0x9d408f, 0xffcbf2]
+          : kind === 'chest'
+            ? [0xb98221, 0xffe6a0]
+            : kind === 'tax'
+              ? index === 4
+                ? [0xb66b35, 0xffdf91]
+                : [0xa44362, 0xffc7df]
+              : [0x257d77, 0x79bfff];
+      const layer = this.layer(
+        this.inkOf(pixels, index),
+        color,
+        kind === 'chance' || kind === 'chest' ? light : undefined,
+      );
+      if (layer.glow) layer.glow.outerStrength = 1;
+      this.accents.push({ square: index, kind, color: color!, light: light!, layer });
+    });
     const plane = this.inkOf(pixels, AIRPORT);
     this.plane = planePoints(plane);
-    this.lights = scene.add.graphics().setDepth(-0.84);
+    const light = document.createElement('canvas');
+    light.width = light.height = 16;
+    const g = light.getContext('2d')!;
+    g.fillStyle = '#ffffff';
+    g.beginPath();
+    g.arc(8, 8, 3, 0, Math.PI * 2);
+    g.fill();
+    const key = `co-ty-phu-classic.lights.${nextId++}`;
+    this.lightTexture = scene.textures.addCanvas(key, light)!;
+    this.lights = [
+      { point: this.plane.top, color: 0xff4d4d },
+      { point: this.plane.bottom, color: 0x4dff88 },
+      { point: this.plane.tail, color: 0xfffbe6 },
+    ].map(({ point, color }) => {
+      const image = scene.add.image(0, 0, key).setTint(color).setDepth(-0.84).setVisible(false);
+      addGlow(image, color, 3, 10);
+      return { point, image };
+    });
     scene.events.once('shutdown', () => this.destroy());
   }
 
@@ -77,6 +129,11 @@ export class SpecialSymbols {
       const at = this.toWorld(ink.x, ink.y);
       image.setPosition(at.x, at.y).setDisplaySize(...this.size(ink.w, ink.h));
     }
+    const diameter = this.size(this.width * 0.0021, 0)[0] * (16 / 3);
+    for (const { point, image } of this.lights) {
+      const at = this.toWorld(point.x, point.y);
+      image.setPosition(at.x, at.y).setDisplaySize(diameter, diameter);
+    }
   }
 
   /** Animates the symbols; `time` in ms. */
@@ -85,8 +142,83 @@ export class SpecialSymbols {
     this.drawPower(t);
     this.drawWater(t);
     // Start: its arrow glows gold, then fades back to the printed gray.
-    this.startArrow.image.setAlpha((Math.sin(t * Math.PI * 1.4) + 1) / 2);
+    const pulse = (Math.sin(t * Math.PI * 1.4) + 1) / 2;
+    this.startArrow.image.setAlpha(pulse);
+    if (this.startArrow.glow) this.startArrow.glow.outerStrength = 1 + pulse * 2;
     this.drawPlaneLights(t);
+    // Limit canvas uploads while keeping glow and plane lights smooth on every frame.
+    if (time - this.lastPaint >= 1000 / 24) {
+      this.lastPaint = time;
+      for (const accent of this.accents) this.drawAccent(accent, t);
+    }
+  }
+
+  setOwners(owners: readonly (number | null)[], colors: readonly number[]) {
+    this.owners = owners;
+    this.playerColors = colors;
+  }
+
+  private drawAccent(accent: (typeof this.accents)[number], time: number) {
+    const { layer, kind, square, light } = accent;
+    const { ink, canvas, texture } = layer;
+    const { w, h } = ink;
+    const g = canvas.getContext('2d')!;
+    const t = time + square * 0.17;
+    const owner = this.owners[square];
+    const color =
+      kind === 'station' && owner !== null && owner !== undefined
+        ? (this.playerColors[owner] ?? accent.color)
+        : accent.color;
+    const hex = (value: number) => `#${value.toString(16).padStart(6, '0')}`;
+    g.globalCompositeOperation = 'source-over';
+    g.clearRect(0, 0, w, h);
+    g.fillStyle = hex(color);
+    g.fillRect(0, 0, w, h);
+    if (kind === 'chance') {
+      // Four rotating glints inside the printed star, with a breathing bright center.
+      const radius = Math.max(w, h) * (0.25 + 0.14 * Math.sin(t * 2));
+      const glow = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, radius);
+      glow.addColorStop(0, '#fff5fd');
+      glow.addColorStop(0.45, hex(light));
+      glow.addColorStop(1, hex(color));
+      g.fillStyle = glow;
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(255,245,253,0.75)';
+      g.lineWidth = Math.max(1, w * 0.065);
+      for (let ray = 0; ray < 4; ray++) {
+        const angle = t * 0.65 + (ray * Math.PI) / 2;
+        g.beginPath();
+        g.moveTo(w / 2, h / 2);
+        g.lineTo(w / 2 + Math.cos(angle) * w * 0.5, h / 2 + Math.sin(angle) * h * 0.5);
+        g.stroke();
+      }
+    } else {
+      // Chest: a rising gold sheen; stations: a passing headlight; taxes: falling coin glints.
+      const vertical = kind !== 'station' || square === 15 || square === 35;
+      const length = vertical ? h : w;
+      const speed = kind === 'chest' ? 0.3 : kind === 'station' ? 0.55 : 0.4;
+      const progress = (t * speed) % 1;
+      const position = (kind === 'chest' ? 1 - progress : progress) * length * 1.8 - length * 0.4;
+      const band = length * (kind === 'station' ? 0.3 : 0.4);
+      const shine = vertical
+        ? g.createLinearGradient(0, position - band, 0, position + band)
+        : g.createLinearGradient(position - band, 0, position + band, 0);
+      shine.addColorStop(0, hex(color));
+      shine.addColorStop(0.4, hex(color));
+      shine.addColorStop(0.5, hex(light));
+      shine.addColorStop(0.6, hex(color));
+      shine.addColorStop(1, hex(color));
+      g.fillStyle = shine;
+      g.fillRect(0, 0, w, h);
+      if (kind === 'chest') {
+        g.fillStyle = `rgba(255,245,204,${0.2 + (Math.sin(t * 3) + 1) * 0.25})`;
+        g.beginPath();
+        g.arc(w * 0.5, h * 0.55, Math.min(w, h) * 0.12, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    this.cutTo(g, ink);
+    texture.update();
   }
 
   private drawPower(t: number) {
@@ -142,20 +274,12 @@ export class SpecialSymbols {
 
   /** Red and green wingtips blinking together, a white double strobe at the tail. */
   private drawPlaneLights(t: number) {
-    const g = this.lights.clear();
-    const radius = this.size(this.width * 0.0021, 0)[0];
-    const glow = (point: Point, color: number, on: number) => {
-      if (on <= 0) return;
-      const at = this.toWorld(point.x, point.y);
-      g.fillStyle(color, 0.3 * on).fillCircle(at.x, at.y, radius * 2.2);
-      g.fillStyle(color, on).fillCircle(at.x, at.y, radius);
-    };
-    const blink = t % 1.1 < 0.16 ? 1 : 0;
+    const blink = t % 1.1 < 0.16;
     const strobe = t % 1.6;
-    const white = strobe < 0.07 || (strobe > 0.16 && strobe < 0.23) ? 1 : 0;
-    glow(this.plane.top, 0xff4d4d, blink);
-    glow(this.plane.bottom, 0x4dff88, blink);
-    glow(this.plane.tail, 0xfffbe6, white);
+    const white = strobe < 0.07 || (strobe > 0.16 && strobe < 0.23);
+    this.lights.forEach(({ image }, i) => {
+      image.setVisible(i === 2 ? white : blink);
+    });
   }
 
   /** Keeps only the symbol's ink of what was painted. */
@@ -219,7 +343,7 @@ export class SpecialSymbols {
   }
 
   /** A canvas over `ink`'s box; with `tint`, a still copy of the symbol in that color. */
-  private layer(ink: Ink, tint?: number): Layer {
+  private layer(ink: Ink, tint?: number, glowColor?: number): Layer {
     const canvas = document.createElement('canvas');
     canvas.width = ink.w;
     canvas.height = ink.h;
@@ -237,7 +361,8 @@ export class SpecialSymbols {
     const key = `co-ty-phu-classic.symbol.${nextId++}`;
     const texture = this.scene.textures.addCanvas(key, canvas)!;
     const image = this.scene.add.image(0, 0, key).setOrigin(0).setDepth(-0.85);
-    const layer = { ink, canvas, texture, image };
+    const glow = glowColor === undefined ? undefined : addGlow(image, glowColor);
+    const layer = { ink, canvas, texture, image, glow };
     this.layers.push(layer);
     return layer;
   }
@@ -258,7 +383,8 @@ export class SpecialSymbols {
       image.destroy();
       this.scene.textures.remove(texture.key);
     }
-    this.lights.destroy();
+    for (const { image } of this.lights) image.destroy();
+    this.scene.textures.remove(this.lightTexture.key);
   }
 }
 

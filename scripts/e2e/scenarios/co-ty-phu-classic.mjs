@@ -24,12 +24,14 @@ export default async function run(t) {
     const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
     return {
       phase: scene.visualPhase,
+      subtitle: scene.readySubtitle.text,
       names: scene.readyNames.filter((text) => text.visible).map((text) => text.text),
       cash: scene.readyCash.filter((text) => text.visible).map((text) => text.text),
     };
   });
   if (
     ready.phase !== 'ready' ||
+    ready.subtitle !== 'Mỗi người bắt đầu với 1.000 ₫' ||
     ready.names.length !== 2 ||
     ready.cash.some((cash) => !cash.endsWith(' ₫'))
   )
@@ -37,7 +39,7 @@ export default async function run(t) {
   await page.screenshot({ path: t.shot('10-start.png') });
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.readyAmounts.length === 2 && s.readyAmounts.every((amount) => amount === 1500);
+    return s.readyAmounts.length === 2 && s.readyAmounts.every((amount) => amount === 1000);
   });
   await page.screenshot({ path: t.shot('10-money.png') });
   await page.waitForFunction(
@@ -62,7 +64,7 @@ export default async function run(t) {
   const detail = await page.evaluate(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').detail.text,
   );
-  if (!detail.includes('Vĩnh Long')) throw new Error('Selecting a property did not show its deed');
+  if (!detail.includes('Việt Trì')) throw new Error('Selecting a property did not show its deed');
   await page.screenshot({ path: t.shot('11-deed.png') });
 
   let purchases = 0;
@@ -215,12 +217,34 @@ export default async function run(t) {
         window.__phaser.scene.getScene('co-ty-phu-classic').runtime.inspect().epoch > epoch,
       epoch,
     );
+    // Roll a double to visit Jail first; the next roll reaches the remaining Chest at 17.
+    await eventsPage.waitForFunction(
+      () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
+    );
+    await eventsPage.evaluate(() => {
+      const original = Math.random;
+      try {
+        Math.random = () => 2 / 3;
+        window.__phaser.scene.getScene('co-ty-phu-classic').send('roll');
+      } finally {
+        Math.random = original;
+      }
+    });
+    await eventsPage.waitForFunction(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        s.visualPhase === 'decision' &&
+        s.ctx.state.players[0].position === 10 &&
+        s.ctx.state.phase === 'roll'
+      );
+    });
   };
   const rollEvent = async () =>
     eventsPage.evaluate(() => {
       const original = Math.random;
       try {
-        Math.random = () => 0;
+        const dice = [2 / 6, 3 / 6];
+        Math.random = () => dice.shift() ?? 0;
         window.__phaser.scene.getScene('co-ty-phu-classic').send('roll');
       } finally {
         Math.random = original;
@@ -254,7 +278,7 @@ export default async function run(t) {
       cash: s.ctx.state.players[0].cash,
     };
   });
-  if (!drawing.hidden || drawing.text || drawing.timer !== 'prepare-event' || drawing.cash !== 1500)
+  if (!drawing.hidden || drawing.text || drawing.timer !== 'prepare-event' || drawing.cash !== 1000)
     throw new Error(`Card leaked before its draw finished: ${JSON.stringify(drawing)}`);
   await eventsPage.screenshot({ path: t.shot('13-card-draw.png') });
   await eventsPage.waitForFunction(() => {
@@ -283,8 +307,8 @@ export default async function run(t) {
     };
   });
   if (
-    preview.cash !== 1500 ||
-    preview.shownCash !== 1500 ||
+    preview.cash !== 1000 ||
+    preview.shownCash !== 1000 ||
     preview.label !== 'Xác nhận' ||
     !preview.countdown ||
     !preview.notice.includes('200 ₫')
@@ -295,8 +319,8 @@ export default async function run(t) {
   await eventsPage.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return (
-      s.ctx.state.players[0].cash === 1700 &&
-      s.shownCash[0] === 1700 &&
+      s.ctx.state.players[0].cash === 1200 &&
+      s.shownCash[0] === 1200 &&
       s.visualPhase === 'decision' &&
       s.ctx.timer?.event === 'turn-timeout'
     );
@@ -304,7 +328,7 @@ export default async function run(t) {
   await restartEvents();
   await eventsPage.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.visualPhase === 'decision' && s.ctx.state.players[0].cash === 1500;
+    return s.visualPhase === 'decision' && s.ctx.state.players[0].cash === 1000;
   });
   await rollEvent();
   await eventsPage.waitForFunction(() => {
@@ -325,7 +349,7 @@ export default async function run(t) {
   await eventsPage.screenshot({ path: t.shot('14-event-countdown.png') });
   await eventsPage.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.ctx.state.specialEvent === null && s.ctx.state.players[0].cash === 1700;
+    return s.ctx.state.specialEvent === null && s.ctx.state.players[0].cash === 1200;
   });
   await eventsPage.screenshot({ path: t.shot('15-event-auto-confirm.png') });
   await eventsPage.waitForFunction(() => {
@@ -393,6 +417,12 @@ export default async function run(t) {
   await rulesPage.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx?.state,
   );
+  // Keep presentation within the live turn deadlines on software-rendered headless Chromium.
+  await rulesPage.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+    scene.playbackSpeed = 3;
+    scene.runtime.setSpeed(3);
+  });
   await rulesPage.getByRole('button', { name: 'Ván mới', exact: true }).click();
   const idle = () =>
     rulesPage.waitForFunction(() => {
@@ -481,6 +511,16 @@ export default async function run(t) {
       await idle();
     }
     if (end) {
+      await rulesPage.waitForFunction((seat) => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        return (
+          s.ctx.me?.seat === seat &&
+          s.ctx.state.turn === seat &&
+          s.ctx.state.phase === 'end' &&
+          s.main[0].hit.visible &&
+          s.main[0].text.text === 'Hết lượt'
+        );
+      }, seat);
       const endControl = await rulesPage.evaluate(() => {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
         const button = s.main[0];
@@ -527,7 +567,9 @@ export default async function run(t) {
     [4, 6],
     [3, 5],
   ].entries()) {
-    await takeTurn(1, [1, 2]);
+    // With 1,000 starting cash, avoid buying both expensive streets at 6 and 9:
+    // this player must also pay for the two stations the visitor declines.
+    await takeTurn(1, index === 1 ? [2, 4] : [1, 3]);
     await takeTurn(0, dice, index < 3);
   }
   const returnVisit = await rulesPage.evaluate(() => {

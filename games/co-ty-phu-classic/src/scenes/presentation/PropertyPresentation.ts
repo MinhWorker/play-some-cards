@@ -1,4 +1,4 @@
-import type { Property } from '../game/model.js';
+import type { Property } from '../../game/model.js';
 
 type Snapshot = { sequence: number; afterRoll: number; properties: Property[]; notice: string };
 

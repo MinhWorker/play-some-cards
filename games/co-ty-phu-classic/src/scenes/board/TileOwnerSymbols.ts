@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { BOARD, isDeed } from '../game/model.js';
+import { BOARD, isDeed } from '../../game/model.js';
 import { BOARD_CELLS } from './boardGeometry.js';
 
 type Owner = number | null;

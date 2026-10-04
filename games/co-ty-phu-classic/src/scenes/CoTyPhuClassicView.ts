@@ -13,28 +13,31 @@ import {
   isDeed,
   type MoneyTransfer,
   type Property,
+  STARTING_CASH,
   STATION_BASE_FEE,
   type View,
 } from '../game/model.js';
 import { ownsGroup, rent, utilityTax } from '../game/rules.js';
 import { decisionSeat } from '../game/turnClock.js';
-import { Backdrop } from './Backdrop.js';
-import { BoardPrices, ownerInk } from './BoardPrices.js';
-import { BoardTileEffect } from './BoardTileEffect.js';
-import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './boardGeometry.js';
-import { planePoint } from './boardPlane.js';
-import { Dice3D } from './Dice3D.js';
-import { EventDeck } from './EventDeck.js';
-import { eventNotice, landingHeading } from './eventNotice.js';
-import { MoneyTransferEffect } from './MoneyTransferEffect.js';
-import { moneySound } from './moneySound.js';
-import { PawnCashEffect } from './PawnCashEffect.js';
-import { PropertyPresentation } from './PropertyPresentation.js';
-import { RentTable } from './RentTable.js';
-import { SpecialSymbols } from './SpecialSymbols.js';
-import { TileOwnerSymbols } from './TileOwnerSymbols.js';
-import { TileTooltip } from './TileTooltip.js';
-import { tileActions } from './tileActions.js';
+import { BoardPrices, ownerInk } from './board/BoardPrices.js';
+import { BoardTileEffect } from './board/BoardTileEffect.js';
+import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './board/boardGeometry.js';
+import { planePoint } from './board/boardPlane.js';
+import { SpecialSymbols } from './board/SpecialSymbols.js';
+import { TileOwnerSymbols } from './board/TileOwnerSymbols.js';
+import { Backdrop } from './effects/Backdrop.js';
+import { addGlow } from './effects/glow.js';
+import { MoneyTransferEffect } from './effects/MoneyTransferEffect.js';
+import { moneySound } from './effects/moneySound.js';
+import { PawnCashEffect } from './effects/PawnCashEffect.js';
+import { PlayerPanel } from './hud/PlayerPanel.js';
+import { RentTable } from './hud/RentTable.js';
+import { TileTooltip } from './hud/TileTooltip.js';
+import { tileActions } from './hud/tileActions.js';
+import { Dice3D } from './presentation/Dice3D.js';
+import { EventDeck } from './presentation/EventDeck.js';
+import { eventNotice, landingHeading } from './presentation/eventNotice.js';
+import { PropertyPresentation } from './presentation/PropertyPresentation.js';
 
 type Ctx = ViewContext<View>;
 type TapButton = {
@@ -135,10 +138,12 @@ export class CoTyPhuClassicView extends GameView<View> {
   private dice!: Dice3D;
   private diceHit!: Phaser.GameObjects.Zone;
   private rollHint!: Phaser.GameObjects.Text;
-  private diceGlow!: Phaser.GameObjects.Graphics;
+  private diceGlow!: Phaser.GameObjects.Image;
   private turnAvatar!: Phaser.GameObjects.Image;
   private turnName!: Phaser.GameObjects.Text;
   private turnCash!: Phaser.GameObjects.Text;
+  private playerPanel!: PlayerPanel;
+  private panelClock = false;
   private readyPanel!: Phaser.GameObjects.Graphics;
   private readyTitle!: Phaser.GameObjects.Text;
   private readySubtitle!: Phaser.GameObjects.Text;
@@ -318,7 +323,15 @@ export class CoTyPhuClassicView extends GameView<View> {
         .setDepth(6),
     );
     this.dice = new Dice3D(this);
-    this.diceGlow = this.add.graphics().setDepth(19);
+    const glowKey = 'co-ty-phu-classic.dice-glow';
+    if (!this.textures.exists(glowKey)) {
+      const outline = this.add.graphics();
+      outline.lineStyle(3, 0xffcf65).strokeRoundedRect(8, 8, 170, 96, 18);
+      outline.generateTexture(glowKey, 186, 112);
+      outline.destroy();
+    }
+    this.diceGlow = this.add.image(0, 0, glowKey).setDepth(19).setVisible(false);
+    addGlow(this.diceGlow, 0xffcf65, 2.5, 10);
     this.rollHint = this.label('Chạm để gieo', { size: 24, color: '#79501e' })
       .setStroke('#79501e', 0)
       .setDepth(21)
@@ -386,6 +399,25 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setStroke('#415c59', 0)
       .setDepth(12)
       .setVisible(false);
+    this.playerPanel = new PlayerPanel(this);
+    this.playerPanel.add(this.turnAvatar, () => PLAYER_PANEL.avatar);
+    this.playerPanel.add(this.turnName, () => PLAYER_PANEL.name);
+    this.playerPanel.add(this.turnCash, () => PLAYER_PANEL.cash);
+    this.playerBadges.forEach((badge, seat) => {
+      this.playerPanel.add(badge, () => PLAYER_PANEL.seats[seat]!);
+      this.playerPanel.add(this.playerCash[seat]!, () => ({
+        u: PLAYER_PANEL.seatCash.u,
+        v: PLAYER_PANEL.seats[seat]!.v,
+      }));
+    });
+    this.playerPanel.add(this.countdownLabel, () =>
+      this.panelClock
+        ? {
+            u: PLAYER_PANEL.bar.u1 - PLAYER_PANEL.bar.h * 0.4,
+            v: PLAYER_PANEL.bar.v,
+          }
+        : null,
+    );
     this.auctionAttention = this.add.graphics().setDepth(9);
     this.resetInventory(ctx);
   }
@@ -398,15 +430,21 @@ export class CoTyPhuClassicView extends GameView<View> {
     const label = this.label('', { size: 19, color: '#3d2b20' })
       .setStroke('#3d2b20', 0)
       .setDepth(11);
+    const glow = addGlow(box, 0xffdf84);
+    glow?.setActive(false);
     const button = { box, hit, text: label, action: () => {} };
     hit.on('pointerup', () => button.action());
     hit.on('pointerover', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.wasTouch) {
         box.setTint(0xffedc0);
+        glow?.setActive(true);
         clientHost().playUiSound('hover');
       }
     });
-    hit.on('pointerout', () => box.clearTint());
+    hit.on('pointerout', () => {
+      box.clearTint();
+      glow?.setActive(false);
+    });
     return button;
   }
 
@@ -520,7 +558,9 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setStroke('#164769', 3)
       .setText('Sẵn sàng vào ván');
     this.fitText(this.readyTitle, this.readyTitle.text, w - 30, 24);
-    this.readySubtitle.setPosition(x + w / 2, y + 92).setText('Mỗi người bắt đầu với 1.500 ₫');
+    this.readySubtitle
+      .setPosition(x + w / 2, y + 92)
+      .setText(`Mỗi người bắt đầu với ${STARTING_CASH.toLocaleString('vi-VN')} ₫`);
     this.fitText(this.readySubtitle, this.readySubtitle.text, w - 30, 16);
     ctx.state.players.forEach((_, seat) => {
       const rowY = y + 134 + seat * rowH;
@@ -561,7 +601,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     // Use the shared round clock so every seat follows the same opening sequence.
     const progress = Math.min(1, Math.max(0, this.readyElapsed / 1800));
     ctx.state.players.forEach((_, seat) => {
-      const amount = Math.floor(progress * 50) * 30;
+      const amount = Math.round((Math.floor(progress * 50) / 50) * STARTING_CASH);
       if (this.readyAmounts[seat] === amount) return;
       this.readyAmounts[seat] = amount;
       const text = `${amount.toLocaleString('vi-VN')} ₫`;
@@ -608,35 +648,46 @@ export class CoTyPhuClassicView extends GameView<View> {
       graphics.lineStyle(1, 0xffffff);
       graphics.lineBetween(x + 18, y + 8, x + w - 18, y + 8);
     };
-    // Each seat's glass ball in its well: lit for whoever decides now, dim otherwise.
+    // Colored seat markers and their highlights lie in the printed wells.
     const deciding = decisionSeat(ctx.state);
     for (let i = 0; i < ctx.state.players.length; i++) {
-      const { x, y, r } = this.seatCell(i);
+      const well = PLAYER_PANEL.seats[i]!;
+      const circle = (radius: number, dx = 0, dy = 0, ry = radius) =>
+        Array.from({ length: 32 }, (_, step) => {
+          const angle = (step / 32) * Math.PI * 2;
+          return this.onBoard(
+            well.u + well.r * (dx + Math.cos(angle) * radius),
+            well.v + well.r * (dy + Math.sin(angle) * ry),
+          );
+        }) as Phaser.Math.Vector2[];
       const out = ctx.state.players[i]!.bankrupt;
-      const color = out ? 0x8a8a8a : PLAYER_COLORS[i]!;
       const lit = i === deciding && !out;
+      const base = PLAYER_COLORS[i]!;
+      const dark =
+        ((((base >> 16) & 0xff) * 0.3) << 16) |
+        ((((base >> 8) & 0xff) * 0.3) << 8) |
+        ((base & 0xff) * 0.3);
+      const color = out ? 0x44413b : lit ? base : dark;
+      this.playerBadges[i]!.setColor(lit ? '#ffffff' : '#a49b87').setAlpha(lit ? 1 : 0.65);
       if (lit) {
-        graphics.fillStyle(color, 0.22).fillCircle(x, y, r * 1.75);
-        graphics.fillStyle(color, 0.35).fillCircle(x, y, r * 1.35);
+        graphics.fillStyle(color, 0.22).fillPoints(circle(1.75), true);
+        graphics.fillStyle(color, 0.35).fillPoints(circle(1.35), true);
       }
-      graphics.fillStyle(color, lit ? 1 : 0.5).fillCircle(x, y, r * 0.92);
-      graphics.fillStyle(0x000000, 0.14).fillCircle(x + r * 0.12, y + r * 0.16, r * 0.72);
-      graphics.fillStyle(color, lit ? 1 : 0.5).fillCircle(x - r * 0.04, y - r * 0.05, r * 0.7);
+      graphics.fillStyle(color, 1).fillPoints(circle(0.92), true);
+      graphics.fillStyle(0x000000, 0.14).fillPoints(circle(0.72, 0.12, 0.16), true);
+      graphics.fillStyle(color, 1).fillPoints(circle(0.7, -0.04, -0.05), true);
       graphics
-        .fillStyle(0xffffff, lit ? 0.85 : 0.5)
-        .fillEllipse(x - r * 0.35, y - r * 0.42, r * 0.5, r * 0.3);
-      // In an auction the leader's ball gets a quiet ring while another seat bids.
+        .fillStyle(0xffffff, lit ? 0.85 : 0.08)
+        .fillPoints(circle(0.25, -0.35, -0.42, 0.15), true);
       if (ctx.state.phase === 'auction' && ctx.state.auction?.leader === i && !lit)
-        graphics.lineStyle(2, 0x6b5a3a).strokeCircle(x, y, r * 1.12);
+        graphics.lineStyle(2, 0x6b5a3a).strokePoints(circle(1.12), true);
     }
     // The host's crown sits on the turn player's picture, when the turn is the host's.
     this.hostCrown.clear();
     const turnIsHost = ctx.players[ctx.state.turn]?.id === ctx.hostId;
     if (turnIsHost && !this.tradeOpen && this.visualPhase !== 'ready') {
       const { avatar } = PLAYER_PANEL;
-      const picture = this.onBoard(avatar.u, avatar.v);
-      const r = this.onBoard(avatar.u + avatar.r, avatar.v).x - picture.x;
-      const k = r / 16;
+      const k = avatar.r / 16;
       const crown = [
         [-9, 1],
         [-9, -7],
@@ -645,12 +696,13 @@ export class CoTyPhuClassicView extends GameView<View> {
         [4.5, -2],
         [9, -7],
         [9, 1],
-      ].map(([px, py]) => ({
-        x: picture.x + px! * k,
-        y: picture.y - r * 1.02 + py! * k,
-      })) as Phaser.Math.Vector2[];
+      ].map(([px, py]) =>
+        this.onBoard(avatar.u + px! * k, avatar.v - avatar.r * 1.02 + py! * k),
+      ) as Phaser.Math.Vector2[];
       this.hostCrown.fillStyle(0xe8b230, 1).fillPoints(crown, true);
-      this.hostCrown.lineStyle(Math.max(1, k * 1.2), 0x7a4f12, 1).strokePoints(crown, true);
+      this.hostCrown
+        .lineStyle(Math.max(1, this.geometry.size * k * 1.2), 0x7a4f12, 1)
+        .strokePoints(crown, true);
     }
     const rightX = this.geometry.sideX;
     const panelH = this.deedPanelHeight(selected);
@@ -756,6 +808,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     const { tile } = this.geometry;
     this.board.clear();
     this.ownerSymbols.setOwners(
+      this.shownProperties.map((property) => property.owner),
+      PLAYER_COLORS,
+    );
+    this.specialSymbols.setOwners(
       this.shownProperties.map((property) => property.owner),
       PLAYER_COLORS,
     );
@@ -1200,7 +1256,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     } else {
       const descriptions: Partial<Record<typeof cell.kind, string>> = {
         start: 'Qua hoặc dừng: +200 ₫',
-        tax: 'Thuế: 10% tiền mặt · tối thiểu 200 ₫',
+        tax: `Thuế: 10% tiền mặt · tối thiểu ${cell.tax} ₫`,
         utility: `Thuế: ${utilityTax(state, square)} ₫`,
         chance: 'Rút thẻ Cơ hội',
         chest: 'Rút thẻ Khí vận',
@@ -1839,6 +1895,7 @@ export class CoTyPhuClassicView extends GameView<View> {
 
   private drawEventCountdown(ctx: Ctx) {
     this.eventCountdown.clear();
+    this.panelClock = false;
     this.countdownLabel.setVisible(false).setColor('#415c59');
     const timedTurn = ctx.timer?.event === 'turn-timeout';
     const seat = timedTurn ? decisionSeat(ctx.state) : ctx.state.turn;
@@ -1862,26 +1919,29 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (timedTurn && ctx.state.phase !== 'trade') {
       // In the panel's groove under the turn player's cash, its seconds at the groove's end.
       const { u0, u1, v, h } = PLAYER_PANEL.bar;
-      const start = this.onBoard(u0, v);
-      const end = this.onBoard(u1, v);
+      this.panelClock = true;
       const height = this.onBoard(u0, v + h / 2).y - this.onBoard(u0, v - h / 2).y;
-      const width = (end.x - start.x) * remaining;
-      if (width > 0)
-        this.eventCountdown
-          .fillStyle(PLAYER_COLORS[seat]!)
-          .fillRoundedRect(
-            start.x,
-            start.y - height / 2,
-            Math.max(height, width),
-            height,
-            height / 2,
+      const width = Math.max(h, (u1 - u0) * remaining);
+      if (remaining > 0) {
+        const radius = h / 2;
+        const capsule = Array.from({ length: 34 }, (_, step) => {
+          const right = step < 17;
+          const angle =
+            -Math.PI / 2 + ((right ? step : step - 17) / 16) * Math.PI + (right ? 0 : Math.PI);
+          return this.onBoard(
+            u0 + (right ? width - radius : radius) + Math.cos(angle) * radius,
+            v + Math.sin(angle) * radius,
           );
+        }) as Phaser.Math.Vector2[];
+        this.eventCountdown.fillStyle(PLAYER_COLORS[seat]!).fillPoints(capsule, true);
+      }
+      const end = this.onBoard(u1 - h * 0.4, v);
       this.countdownLabel
         .setVisible(true)
         .setOrigin(1, 0.5)
         .setFontSize(height * 0.95)
         .setColor('#fff7e8')
-        .setPosition(end.x - height * 0.4, end.y)
+        .setPosition(end.x, end.y)
         .setText(`${seconds} giây`);
       return;
     }
@@ -1974,16 +2034,15 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.drawBoard(this.ctx);
     }
     this.drawEventCountdown(this.ctx);
+    this.diceGlow.setVisible(this.rollHint.visible);
     if (this.rollHint.visible) {
       const pulse = 0.55 + 0.45 * Math.sin(Date.now() / 260);
       this.rollHint.setAlpha(pulse);
-      this.diceGlow
-        .clear()
-        .lineStyle(3, 0xd6a137, pulse)
-        .strokeRoundedRect(this.diceHit.x - 85, this.diceHit.y - 48, 170, 96, 18);
+      this.diceGlow.setPosition(this.diceHit.x, this.diceHit.y).setAlpha(pulse).setVisible(true);
     }
     this.drawAuctionAttention(delta);
     this.specialSymbols.update(this.time.now);
+    this.playerPanel.update(this.geometry);
     const event = this.ctx.state.specialEvent;
     if (
       event &&
@@ -2338,7 +2397,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
     if (cell.kind === 'tax') {
       deedRows[0] = ['Thuế', '10% tiền mặt'];
-      deedRows[1] = ['Tối thiểu', '200 ₫'];
+      deedRows[1] = ['Tối thiểu', `${cell.tax} ₫`];
     }
     if (cell.kind === 'utility') deedRows[0] = ['Thuế', `${utilityTax(state, selected)} ₫`];
     [this.deedPrice, this.deedRent, this.nextBuilding].forEach((label, i) => {
@@ -2432,7 +2491,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const canRoll = idle && me?.seat === state.turn;
     this.rollHint.setVisible(canRoll);
     this.diceHit.setVisible(canRoll);
-    this.diceGlow.clear();
+    this.diceGlow.setVisible(false);
     if (idle) {
       this.dice.showIdle();
       this.notice.setVisible(false);

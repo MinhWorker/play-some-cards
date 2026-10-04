@@ -257,7 +257,7 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
       kind: 'tax',
       amount:
         cell.kind === 'tax'
-          ? Math.max(200, Math.floor(s.players[seat]!.cash * 0.1))
+          ? Math.max(cell.tax!, Math.floor(s.players[seat]!.cash * 0.1))
           : utilityTax(s, square),
       reason: cell.name,
     });

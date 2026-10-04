@@ -1,7 +1,7 @@
 import { testGame } from '@psc/sdk';
 import { expect, it } from 'vitest';
-import { move } from '../game/rules.js';
-import plugin from '../index.js';
+import { move } from '../../game/rules.js';
+import plugin from '../../index.js';
 import { tileActions } from './tileActions.js';
 
 it('offers the next full station contribution only to its visitor with enough cash', () => {

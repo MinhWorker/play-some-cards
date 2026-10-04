@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { BOARD, isDeed, type State } from '../game/model.js';
+import { BOARD, isDeed, type State } from '../../game/model.js';
 import { boardAmounts } from './boardAmounts.js';
 import { BOARD_CELLS } from './boardGeometry.js';
 

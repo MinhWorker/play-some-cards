@@ -1,5 +1,5 @@
-import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type View } from '../game/model.js';
-import { bankHotels, bankHouses } from '../game/rules.js';
+import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type View } from '../../game/model.js';
+import { bankHotels, bankHouses } from '../../game/rules.js';
 
 export type TileAction = { label: string; event: string; payload: Record<string, number> };
 

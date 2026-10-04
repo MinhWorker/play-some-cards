@@ -118,7 +118,7 @@ export default async function run(t) {
       bids: s.ctx.state.stationAuctions[5].bids,
     };
   });
-  if (preview.dots !== 3 || JSON.stringify(preview.cash) !== '[1450,1400,1350,1500]')
+  if (preview.dots !== 3 || JSON.stringify(preview.cash) !== '[950,900,850,1000]')
     throw new Error(`Station deposits or dots are incorrect: ${JSON.stringify(preview)}`);
   await page.screenshot({ path: t.shot('station-deposits-phone.png') });
   await arrive(3);
@@ -136,7 +136,7 @@ export default async function run(t) {
   const held = await page.evaluate(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players[1].cash,
   );
-  if (held !== 1400) throw new Error('Withdrawal refunded the deposit before settlement');
+  if (held !== 900) throw new Error('Withdrawal refunded the deposit before settlement');
   await arrive(2);
   await pass();
   const result = await page.evaluate(() => {
@@ -152,7 +152,7 @@ export default async function run(t) {
     result.owner !== 0 ||
     result.auction ||
     result.dots ||
-    JSON.stringify(result.cash) !== '[1300,1500,1500,1500]'
+    JSON.stringify(result.cash) !== '[800,1000,1000,1000]'
   )
     throw new Error(`Station settlement is incorrect: ${JSON.stringify(result)}`);
   await page.screenshot({ path: t.shot('station-settled-phone.png') });
@@ -165,7 +165,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return { cash: s.ctx.state.players.map((p) => p.cash), amount: s.boardPrices.amounts[5] };
   });
-  if (JSON.stringify(fee.cash) !== '[1400,1400,1500,1500]' || fee.amount !== '100')
+  if (JSON.stringify(fee.cash) !== '[900,900,1000,1000]' || fee.amount !== '100')
     throw new Error(`Station fee must be 50 times two stations: ${JSON.stringify(fee)}`);
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.rentTableButton.hit);
   const schedule = await page.evaluate(() => {

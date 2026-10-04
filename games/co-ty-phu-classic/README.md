@@ -8,9 +8,12 @@ là tham khảo cho cấu trúc bàn và các cơ chế chính.
 [Bản luật hiện tại đầy đủ](../../docs/co-ty-phu-classic-rules.md) ghi các điều kiện theo code,
 bảng giá mua/thuê và hai bộ thẻ.
 
+Bàn có 24 ô đất, mỗi cạnh 6 địa danh theo chiều kim đồng hồ từ Xuất phát; có 2 ô Cơ hội
+và 2 ô Khí vận. Bảng địa danh và giá xây/thuê đầy đủ nằm trong bản luật liên kết ở trên.
+
 ## Một lượt chơi
 
-- Mỗi người bắt đầu ở **Xuất phát** với 1.500. Gieo hai xúc xắc và đi theo chiều tăng số ô.
+- Mỗi người bắt đầu ở **Xuất phát** với 1.000. Gieo hai xúc xắc và đi theo chiều tăng số ô.
   Đi qua hoặc dừng ở Xuất phát nhận 200. Nếu ra đôi, giải quyết ô đang đứng rồi gieo thêm;
   ra đôi ba lần liên tiếp thì vào tù ngay.
 - Đến đất phố chưa có chủ, chọn **Mua** theo giá ghi trên ô hoặc **Đấu giá**. Khi đấu giá, từng
@@ -26,7 +29,8 @@ bảng giá mua/thuê và hai bộ thẻ.
   từ bỏ (3/4 người bỏ ở bàn bốn người), hoàn toàn bộ tiền cho tất cả rồi người thắng trả giá
   bến 200 ₫. Nếu thiếu tiền thì xử lý nợ với ngân hàng trước khi tiếp tục lượt người vừa đến.
   Mỗi bến có cuộc đấu giá và mức góp riêng; người chưa đến bến vẫn được tính là chưa từ bỏ.
-- Hai ô thuế thu 10% tiền mặt tại lúc đến ô, làm tròn xuống, tối thiểu 200 ₫. Điện lực và Cấp nước
+- Hai ô thuế thu 10% tiền mặt tại lúc đến ô, làm tròn xuống: Thuế thu nhập tối thiểu 100 ₫,
+  Thuế xa xỉ tối thiểu 200 ₫. Điện lực và Cấp nước
   không được mua, thu cố định 100 ₫. Thẻ thiếu điện/nước làm thuế ô tương ứng thành 200 ₫
   trong vòng bàn kế tiếp (từ lúc lượt quay về ghế đầu tiên còn chơi tới lần quay về sau đó).
 - **Cơ hội** và **Khí vận** rút thẻ theo thứ tự bí mật. Thuế nộp cho ngân hàng. **Sân bay**
@@ -49,7 +53,8 @@ Nếu người chơi thật không báo sẵn sàng trong 30 giây, server vẫn
 - Quay lại đúng đất phố đã sở hữu và chưa thế chấp thì được xây **một cấp mỗi lần ghé**,
   trong lượt mình. Lần vừa mua chưa được xây. Không cần đủ bộ màu hoặc xây/bán đều.
   Mỗi ô tối đa bốn nhà, sau đó là một khách sạn. Ngân hàng có 32 nhà và 12 khách sạn.
-  Bán từng cấp công trình thu lại nửa giá xây.
+  Bán từng cấp công trình thu lại nửa giá xây. Giá xây mỗi cấp bằng 50% giá đất; tiền thuê
+  từ đất trống tới khách sạn bằng 10%, 40%, 110%, 300%, 400% và 500% giá đất, làm tròn tới số nguyên.
 - Thế chấp đất sau khi đã bán hết nhà trên chính ô đó: nhận nửa giá đất, không thu tiền thuê trong
   lúc thế chấp. Chuộc với 110% tiền đã vay.
 - Người đang có lượt có thể đề nghị trao đổi đất và tiền với một người khác. Hai bên phải xác
@@ -87,12 +92,16 @@ khi chấp nhận.
 Mặt bàn dùng biểu tượng đơn sắc thay cho tên ô: nhà phố, ga, điện, nước, thẻ, thuế, tù và các ô
 đặc biệt có dấu hiệu riêng. Biểu tượng được in theo phối cảnh trên mặt bàn, không có dải màu trang trí;
 biểu tượng và tên địa danh của đất đổi sang màu người sở hữu để dễ nhận biết; nhà, khách sạn và
-dấu thế chấp được vẽ theo đúng mặt phẳng của từng ô. Tên địa danh không có tiền tố "Tp."; ô Sân
+dấu thế chấp được vẽ theo đúng mặt phẳng của từng ô. Tên địa danh dùng đúng danh sách, gồm "Tp. HCM"; ô Sân
 bay ghi "Chuyến bay đến…". Quân cờ nhỏ (bằng nửa cỡ cũ) để không che tên và giá ô.
-Các ô không mua được có biểu tượng động (`SpecialSymbols`, chỉ tô lên nét biểu tượng, không tô
+Các ô đặc biệt có biểu tượng động (`SpecialSymbols`, chỉ tô lên nét biểu tượng, không tô
 nền ô): tia điện ở Điện lực màu tím, có dải sáng chạy nhanh và chớp như điện; giọt nước ở Cấp
 nước màu cyan, mặt nước sóng sánh; máy bay ở Sân bay có đèn đỏ, xanh ở hai đầu cánh và đèn trắng
 chớp đôi ở đuôi như máy bay ban đêm; mũi tên ở ô Xuất phát sáng vàng rồi mờ về xám theo nhịp.
+Cơ hội có ngôi sao tím hồng với tia lấp lánh xoay; Khí vận có ánh vàng quét lên và khóa sáng
+theo nhịp. Bến Bắc, Tây, Nam, Đông có vệt đèn xanh chạy qua biểu tượng; khi có chủ, biểu tượng
+giữ màu người sở hữu. Thuế thu nhập dùng ánh đồng và thuế xa xỉ dùng ánh đỏ hồng, có vệt
+tiền sáng chạy xuống. Hiệu ứng mới cập nhật texture tối đa 24 lần/giây.
 Ô tù giữ màu xám. Sau khi
 quân cờ đáp xuống, tên địa điểm được giữ ở giữa mặt bàn trước khi hiện quyết định hoặc lượt
 gieo tiếp của máy. Bảng bên phải tự chuyển sang ô vừa đến; chạm ô bất kỳ để đọc chi tiết ô khác.
@@ -103,6 +112,49 @@ tiền thuê và tình trạng nhà; thẻ tự đóng sau 2 giây, đồng th�
 Viền theo quân đang đứng vẫn được giữ.
 
 Chơi thử cùng nhiều ghế tại `/?play=co-ty-phu-classic&players=2` khi chạy `npm run dev`.
+
+Bảng người chơi dùng `PlayerPanel` để chiếu tên, avatar, số ghế, số tiền và chữ đếm giờ
+theo cùng phối cảnh của mặt bàn. Vương miện, dấu màu người chơi và thanh thời gian cũng
+nằm trên mặt phẳng này; số tiền vẫn cập nhật trong lúc hoạt ảnh chuyển tiền chạy.
+Nền panel có hoa văn hình thoi xanh ngọc và viền vàng, giữ nguyên các ổ avatar, số ghế và
+rãnh đồng hồ. Ghế không active có nền tối, số mờ và ánh phản chiếu yếu; chỉ ghế đang quyết
+định có số trắng, màu sáng và quầng sáng.
+
+## Tìm thành phần để sửa
+
+```text
+src/
+  index.ts, client.ts           Đăng ký luật và giao diện
+  game/                        Luật thuần, dữ liệu bàn, thẻ, máy và đồng hồ
+  scenes/
+    CoTyPhuClassicView.ts       Điều phối scene, bố cục và luồng thao tác
+    Setup.ts                   Tạo phòng và tuỳ chỉnh
+    board/                     Ô bàn, giá trên ô, ký hiệu chủ đất, điện/nước
+    effects/                   Nền trời, phát sáng, chuyển tiền và âm thanh tiền
+    hud/                       Thẻ đất nổi, bảng thuê và thao tác quản lý đất
+    presentation/              Xúc xắc, rút thẻ, thông báo và hàng đợi tài sản
+assets/                        Ảnh và âm thanh dùng trực tiếp
+sources/                       Script kết xuất và nguồn ảnh
+```
+
+| Muốn sửa | File |
+| --- | --- |
+| Địa danh, giá mua/xây/thuê, nhóm màu | `src/game/model.ts` |
+| Tiền khởi điểm, mua/xây/thế chấp/trao đổi | `src/game/CoTyPhuClassicGame.ts` |
+| Thuế, di chuyển, tiền thuê và hiệu lực thẻ | `src/game/rules.ts` |
+| Nội dung thẻ | `src/game/cards.ts` |
+| Vị trí ô và biểu tượng in trên bàn | `sources/render_board_25d.py` → `src/scenes/board/boardGeometry.ts` |
+| Giá hiện trên bàn | `src/scenes/board/BoardPrices.ts`, `boardAmounts.ts` |
+| Viền ô, dấu chủ đất và biểu tượng đặc biệt | `src/scenes/board/` |
+| Quầng sáng | `src/scenes/effects/glow.ts` |
+| Tiền bay và âm thanh tiền | `src/scenes/effects/` |
+| Thẻ thông tin đất và bảng thuê | `src/scenes/hud/` |
+| Tên, avatar, số tiền và phối cảnh bảng người chơi | `src/scenes/hud/PlayerPanel.ts` |
+| Hoa văn nền bảng người chơi | `src/scenes/hud/PlayerPanelPattern.ts` |
+| Hoạt ảnh xúc xắc và rút thẻ | `src/scenes/presentation/` |
+
+Test đặt cạnh file được kiểm tra với đuôi `.test.ts`. Tọa độ bàn được tạo bởi Blender;
+chỉnh script kết xuất rồi tạo lại ảnh và tọa độ cùng nhau.
 
 ## Hình
 
@@ -149,7 +201,7 @@ góc nhìn mặt bàn, tự xuống dòng và không có nền hay khung; ô đ�
 che bớt nền. Bảng tự co theo khung ngang của điện thoại, máy tính bảng và máy tính.
 
 Đầu ván, bảng giữa bàn cờ giới thiệu tất cả người chơi bằng màu quân và số tiền khởi điểm;
-tiền tăng từ 0 đến 1.500 trong 1,8 giây, giữ lại một giây rồi bảng tự đóng. Mọi ghế dùng
+tiền tăng từ 0 đến 1.000 trong 1,8 giây, giữ lại một giây rồi bảng tự đóng. Mọi ghế dùng
 chung thời điểm bắt đầu ván, không cần bấm nút. Danh sách trên cùng được ẩn vì các thẻ
 trong lòng bàn đã hiển thị tên, màu quân và tiền của từng người.
 Mỗi ô có lớp hiệu ứng riêng qua `BoardTileEffect`: viền màu theo quân đang đứng,
@@ -253,3 +305,9 @@ tiền từ ngân hàng thì mọi người nghe tiền vào. Riêng xây nhà/k
 Thẻ trạng thái người phá sản chuyển sang trắng đen, gồm nền, viền, số ghế, quân và các
 biểu tượng tiền/vị trí; bắt đầu ván mới khôi phục màu ghế. Số 0 trên ô chỉ dùng khi thực sự
 miễn phí (thế chấp hoặc chủ đang ở tù); các ô thuế vẫn ghi mức phải nộp.
+
+
+Phát sáng dùng [Glow của Phaser 4](https://docs.phaser.io/api-documentation/class/filters-glow)
+trên biểu tượng Điện lực, Cấp nước, mũi tên Xuất phát, đèn máy bay, viền gieo xúc xắc và
+nút khi rê chuột. Quầng sáng mềm dùng padding tự động để không bị cắt ở mép, chất lượng
+10 mẫu; chỉ áp dụng lên ảnh nhỏ thay vì lọc cả bàn. Renderer Canvas vẫn hiện đối tượng gốc.

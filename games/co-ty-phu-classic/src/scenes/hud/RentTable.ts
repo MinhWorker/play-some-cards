@@ -1,6 +1,6 @@
 import { FONT } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import { type Property, type Square, STATION_BASE_FEE } from '../game/model.js';
+import { type Property, type Square, STATION_BASE_FEE } from '../../game/model.js';
 
 /** Full rent schedule on demand, leaving the persistent tile card compact. */
 export class RentTable {

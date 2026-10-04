@@ -12,12 +12,12 @@ Nguồn đối chiếu:
 - [Bàn cờ và dữ liệu người chơi](../games/co-ty-phu-classic/src/game/model.ts).
 - [Hai bộ thẻ](../games/co-ty-phu-classic/src/game/cards.ts).
 - [Quyết định của máy](../games/co-ty-phu-classic/src/game/bot.ts).
-- [Điều kiện hiện nút quản lý đất](../games/co-ty-phu-classic/src/scenes/tileActions.ts).
+- [Điều kiện hiện nút quản lý đất](../games/co-ty-phu-classic/src/scenes/hud/tileActions.ts).
 
 ## 1. Người chơi, khởi đầu và thắng ván
 
 - Một phòng có **2–4 người**, gồm người thật và máy. Khi tạo phòng có thể chọn **0–3 máy**.
-- Mỗi người bắt đầu với **1.500 tiền mặt**, đứng tại ô **0 — Xuất phát**, chưa có đất hoặc thẻ.
+- Mỗi người bắt đầu với **1.000 tiền mặt**, đứng tại ô **0 — Xuất phát**, chưa có đất hoặc thẻ.
 - Toàn bộ tài sản ban đầu thuộc ngân hàng, chưa xây dựng và chưa thế chấp.
 - Người ở ghế đầu tiên đi trước; lượt tiếp theo theo thứ tự ghế, bỏ qua người đã phá sản.
 - Hai bộ Cơ hội và Khí vận được xáo riêng một lần ở đầu ván. Thứ tự thẻ không công khai.
@@ -64,7 +64,7 @@ Thời hạn sự kiện Cơ hội/Khí vận, Sân bay, thuế và vào tù v�
 | Xuất phát | Nhận 200 khi đi qua hoặc dừng ở đây |
 | Cơ hội | Rút một thẻ Cơ hội |
 | Khí vận | Rút một thẻ Khí vận |
-| Thuế thu nhập | Nộp 10% tiền mặt, tối thiểu 200 |
+| Thuế thu nhập | Nộp 10% tiền mặt, tối thiểu 100 |
 | Thuế xa xỉ | Nộp 10% tiền mặt, tối thiểu 200 |
 | Nhà tù | Đến bằng di chuyển thông thường chỉ là ghé thăm, không bị giam |
 | Sân bay | Sau khi xác nhận, bay tới một trong 39 ô khác ngẫu nhiên và xử lý ô đến |
@@ -98,7 +98,7 @@ khi đủ điều kiện. Tốc độ trình bày 1×/2× không đổi luật h
 
 ## 4. Mua tài sản và đấu giá
 
-Tài sản mua được gồm **đất phố, ga, điện và nước**.
+Tài sản mua được gồm **đất phố và bến xe**. Điện lực và Cấp nước là ô thuế công cộng.
 
 ### Mua trực tiếp
 
@@ -162,7 +162,7 @@ hiển thị thuế cố định hiện hành; ô thuế hiển thị 10%. Chủ
 Đến tài sản của người khác thì trả tiền thuê cho chủ sở hữu. Không trả khi đó là tài sản của
 mình, tài sản đang thế chấp hoặc tài sản có **chủ đang bị giam trong tù**. Quy tắc chủ ở tù
 áp dụng cho đất phố và bến xe. Khi chủ ra tù, các ô đó thu thuê bình thường trở lại.
-Thuế thu nhập/xa xỉ nộp ngân hàng 10% tiền mặt, làm tròn xuống, tối thiểu 200; khoản thuế
+Thuế thu nhập/xa xỉ nộp ngân hàng 10% tiền mặt, làm tròn xuống; tối thiểu lần lượt 100 và 200. Khoản thuế
 được chốt khi đến ô, trước bước xác nhận.
 
 ### Đất phố
@@ -297,8 +297,8 @@ Hai thẻ thiếu điện/nước tăng thuế ô tương ứng gấp đôi tron
 | Tiến về Xuất phát. Nhận 200. | Tới ô 0, nhận 200 |
 | Tới Bến xe gần nhất. | Tới bến phía trước gần nhất; áp dụng phí bến xe ở mục 5 |
 | Tới Điện lực hoặc Cấp nước gần nhất. | Tới đơn vị phía trước gần nhất; trả thuế công cộng hiện hành cho ngân hàng |
-| Tới Bắc Ninh. | Tới ô 39, xử lý ô đích |
-| Tới Sài Gòn. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
+| Tới Cà Mau. | Tới ô 39, xử lý ô đích |
+| Tới Vinh. | Tới ô 18, nhận 200 nếu đi qua Xuất phát, xử lý ô đích |
 | Ngân hàng trả lãi 50. | Nhận 50 từ ngân hàng |
 | Nhận cổ tức 100. | Nhận 100 từ ngân hàng |
 | Nộp phạt chạy quá tốc độ 15. | Nộp ngân hàng 15 |
@@ -405,75 +405,79 @@ mua. Giá bến xe là 200; điện/nước không bán.
 | Ô | Tên | Loại / nhóm màu | Giá mua |
 | ---: | --- | --- | ---: |
 | 0 | Xuất phát | Ô đặc biệt | — |
-| 1 | Hà Nội | nau | 60 |
-| 2 | Khí vận | Ô đặc biệt | — |
-| 3 | Vĩnh Long | xanh-la | 320 |
-| 4 | Thuế thu nhập | Thuế 10%, tối thiểu 200 | — |
+| 1 | Phú Quốc | nau | 200 |
+| 2 | Lào Cai | nau | 150 |
+| 3 | Việt Trì | xanh-la | 180 |
+| 4 | Thuế thu nhập | Thuế 10%, tối thiểu 100 | — |
 | 5 | Bến Bắc | Bến xe | 200 |
-| 6 | Hải Phòng | hong | 140 |
+| 6 | Hạ Long | hong | 280 |
 | 7 | Cơ hội | Ô đặc biệt | — |
-| 8 | Đồng Nai | vang | 260 |
-| 9 | Hưng Yên | do | 220 |
+| 8 | Hải Phòng | vang | 320 |
+| 9 | Hà Nội | do | 350 |
 | 10 | Nhà tù | Ô đặc biệt | — |
-| 11 | Đà Nẵng | xanh-nhat | 100 |
+| 11 | Hải Dương | xanh-nhat | 220 |
 | 12 | Điện lực | Thuế công cộng 100 / 200 | — |
-| 13 | Đồng Tháp | xanh-dam | 350 |
-| 14 | Khánh Hòa | hong | 160 |
-| 15 | Bến Trung | Bến xe | 200 |
-| 16 | Tây Ninh | vang | 280 |
+| 13 | Thái Bình | xanh-dam | 260 |
+| 14 | Nam Định | hong | 240 |
+| 15 | Bến Tây | Bến xe | 200 |
+| 16 | Thanh Hóa | vang | 270 |
 | 17 | Khí vận | Ô đặc biệt | — |
-| 18 | Sài Gòn | nau | 60 |
-| 19 | Cần Thơ | xanh-nhat | 120 |
+| 18 | Vinh | nau | 260 |
+| 19 | Hà Tĩnh | xanh-nhat | 170 |
 | 20 | Sân bay | Ô đặc biệt | — |
-| 21 | Gia Lai | do | 240 |
+| 21 | Huế | do | 270 |
 | 22 | Cơ hội | Ô đặc biệt | — |
-| 23 | Cà Mau | xanh-la | 300 |
-| 24 | Lâm Đồng | cam | 180 |
+| 23 | Đà Nẵng | xanh-la | 300 |
+| 24 | Hội An | cam | 250 |
 | 25 | Bến Nam | Bến xe | 200 |
-| 26 | Phú Thọ | xanh-dam | 400 |
-| 27 | Huế | xanh-nhat | 100 |
+| 26 | Kon Tum | xanh-dam | 140 |
+| 27 | Pleiku | xanh-nhat | 160 |
 | 28 | Cấp nước | Thuế công cộng 100 / 200 | — |
-| 29 | Đắk Lắk | vang | 260 |
+| 29 | Đà Lạt | vang | 270 |
 | 30 | Vào tù | Ô đặc biệt | — |
-| 31 | An Giang | xanh-la | 300 |
-| 32 | Quảng Ninh | hong | 140 |
+| 31 | Nha Trang | xanh-la | 280 |
+| 32 | Vũng Tàu | hong | 260 |
 | 33 | Khí vận | Ô đặc biệt | — |
-| 34 | Ninh Bình | cam | 180 |
+| 34 | Biên Hòa | cam | 220 |
 | 35 | Bến Đông | Bến xe | 200 |
-| 36 | Cơ hội | Ô đặc biệt | — |
-| 37 | Quảng Trị | do | 220 |
+| 36 | Tp. HCM | xanh-dam | 350 |
+| 37 | Cần Thơ | do | 300 |
 | 38 | Thuế xa xỉ | Thuế 10%, tối thiểu 200 | — |
-| 39 | Bắc Ninh | cam | 200 |
+| 39 | Cà Mau | cam | 180 |
 
 ### Bảng xây và thuê đất phố
 
-**Giá xây** là chi phí mỗi lần tăng một cấp. Cột **Trống** là giá gốc khi chưa trọn bộ màu;
+**Giá xây** là chi phí mỗi lần tăng một cấp, bằng 50% giá đất. Tiền thuê từ đất trống tới khách sạn
+lần lượt bằng 10%, 40%, 110%, 300%, 400% và 500% giá đất, làm tròn tới số nguyên. Đất
+có cùng giá dùng cùng bảng xây/thuê; giá đất cao hơn thì giá xây và thuê ở mọi cấp cao hơn. Cột **Trống** là giá gốc khi chưa trọn bộ màu;
 khi sở hữu đủ bộ thì nhân đôi cột này. **KS** là một khách sạn.
 
 | Ô | Tên | Giá xây | Trống | 1 nhà | 2 nhà | 3 nhà | 4 nhà | KS |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1 | Hà Nội | 50 | 2 | 10 | 30 | 90 | 160 | 250 |
-| 3 | Vĩnh Long | 200 | 28 | 150 | 450 | 1000 | 1200 | 1400 |
-| 6 | Hải Phòng | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
-| 8 | Đồng Nai | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
-| 9 | Hưng Yên | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
-| 11 | Đà Nẵng | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
-| 13 | Đồng Tháp | 200 | 35 | 175 | 500 | 1100 | 1300 | 1500 |
-| 14 | Khánh Hòa | 100 | 12 | 60 | 180 | 500 | 700 | 900 |
-| 16 | Tây Ninh | 150 | 24 | 120 | 360 | 850 | 1025 | 1200 |
-| 18 | Sài Gòn | 50 | 4 | 20 | 60 | 180 | 320 | 450 |
-| 19 | Cần Thơ | 50 | 8 | 40 | 100 | 300 | 450 | 600 |
-| 21 | Gia Lai | 150 | 20 | 100 | 300 | 750 | 925 | 1100 |
-| 23 | Cà Mau | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
-| 24 | Lâm Đồng | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
-| 26 | Phú Thọ | 200 | 50 | 200 | 600 | 1400 | 1700 | 2000 |
-| 27 | Huế | 50 | 6 | 30 | 90 | 270 | 400 | 550 |
-| 29 | Đắk Lắk | 150 | 22 | 110 | 330 | 800 | 975 | 1150 |
-| 31 | An Giang | 200 | 26 | 130 | 390 | 900 | 1100 | 1275 |
-| 32 | Quảng Ninh | 100 | 10 | 50 | 150 | 450 | 625 | 750 |
-| 34 | Ninh Bình | 100 | 14 | 70 | 200 | 550 | 750 | 950 |
-| 37 | Quảng Trị | 150 | 18 | 90 | 250 | 700 | 875 | 1050 |
-| 39 | Bắc Ninh | 100 | 16 | 80 | 220 | 600 | 800 | 1000 |
+| 1 | Phú Quốc | 100 | 20 | 80 | 220 | 600 | 800 | 1000 |
+| 2 | Lào Cai | 75 | 15 | 60 | 165 | 450 | 600 | 750 |
+| 3 | Việt Trì | 90 | 18 | 72 | 198 | 540 | 720 | 900 |
+| 6 | Hạ Long | 140 | 28 | 112 | 308 | 840 | 1120 | 1400 |
+| 8 | Hải Phòng | 160 | 32 | 128 | 352 | 960 | 1280 | 1600 |
+| 9 | Hà Nội | 175 | 35 | 140 | 385 | 1050 | 1400 | 1750 |
+| 11 | Hải Dương | 110 | 22 | 88 | 242 | 660 | 880 | 1100 |
+| 13 | Thái Bình | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
+| 14 | Nam Định | 120 | 24 | 96 | 264 | 720 | 960 | 1200 |
+| 16 | Thanh Hóa | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
+| 18 | Vinh | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
+| 19 | Hà Tĩnh | 85 | 17 | 68 | 187 | 510 | 680 | 850 |
+| 21 | Huế | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
+| 23 | Đà Nẵng | 150 | 30 | 120 | 330 | 900 | 1200 | 1500 |
+| 24 | Hội An | 125 | 25 | 100 | 275 | 750 | 1000 | 1250 |
+| 26 | Kon Tum | 70 | 14 | 56 | 154 | 420 | 560 | 700 |
+| 27 | Pleiku | 80 | 16 | 64 | 176 | 480 | 640 | 800 |
+| 29 | Đà Lạt | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
+| 31 | Nha Trang | 140 | 28 | 112 | 308 | 840 | 1120 | 1400 |
+| 32 | Vũng Tàu | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
+| 34 | Biên Hòa | 110 | 22 | 88 | 242 | 660 | 880 | 1100 |
+| 36 | Tp. HCM | 175 | 35 | 140 | 385 | 1050 | 1400 | 1750 |
+| 37 | Cần Thơ | 150 | 30 | 120 | 330 | 900 | 1200 | 1500 |
+| 39 | Cà Mau | 90 | 18 | 72 | 198 | 540 | 720 | 900 |
 
 ## 13. Cách máy quyết định hiện tại
 

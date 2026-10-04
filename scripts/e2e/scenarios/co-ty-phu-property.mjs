@@ -104,7 +104,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     s.selected = 3;
     s.onState(s.ctx);
-    if (s.boardPrices.amounts[3] !== '150' || !s.deedValues[1].text.includes('150'))
+    if (s.boardPrices.amounts[3] !== '72' || !s.deedValues[1].text.includes('72'))
       throw new Error('Building did not update the board and deed rent');
     if (s.propertySounds.join() !== 'tycoon-buy')
       throw new Error('Building did not play purchase sound only');

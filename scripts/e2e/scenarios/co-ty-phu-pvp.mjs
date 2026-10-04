@@ -116,7 +116,7 @@ export default async function run(t) {
   const balances = await host.evaluate(() =>
     window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players.map((p) => p.cash),
   );
-  if (balances.some((cash) => cash !== 1500)) throw new Error('An expired trade transferred money');
+  if (balances.some((cash) => cash !== 1000)) throw new Error('An expired trade transferred money');
   await host.waitForFunction(
     () => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');

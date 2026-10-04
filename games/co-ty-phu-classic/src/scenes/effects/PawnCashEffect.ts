@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import type { MoneyTransfer } from '../game/model.js';
+import type { MoneyTransfer } from '../../game/model.js';
 
 type Point = { x: number; y: number };
 

@@ -1,6 +1,6 @@
 import type { FlowContext, GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import type { Deck } from '../game/cards.js';
+import type { Deck } from '../../game/cards.js';
 
 const INK = 0x415c59;
 
