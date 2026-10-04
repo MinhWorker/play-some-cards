@@ -1,5 +1,11 @@
-import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type View } from '../../game/model.js';
-import { bankHotels, bankHouses } from '../../game/rules.js';
+import {
+  auctionRaise,
+  BOARD,
+  isDeed,
+  STATION_CONTRIBUTION_STEP,
+  type View,
+} from '../../game/model.js';
+import { bankHotels, bankHouses, mortgageAmount, redeemAmount } from '../../game/rules.js';
 
 export type TileAction = { label: string; event: string; payload: Record<string, number> };
 
@@ -14,13 +20,13 @@ export function tileActions(state: View, seat: number | null, square: number): T
       ...(state.players[seat]!.cash >= cell.price!
         ? [{ label: `Mua ${cell.price} ₫`, event: 'buy', payload: {} }]
         : []),
-      { label: 'Đấu giá', event: 'auction', payload: {} },
+      { label: 'Hết lượt', event: 'end-turn', payload: {} },
     ];
   }
   if (state.phase === 'auction') {
     const auction = state.auction;
     if (auction?.square !== square || auction.bidder !== seat) return [];
-    if (cell.kind === 'station') {
+    if (auction.seller === undefined) {
       if (
         state.turn !== seat ||
         state.pending !== square ||
@@ -37,7 +43,8 @@ export function tileActions(state: View, seat: number | null, square: number): T
       ];
     }
     return [
-      ...[1, 10, 50]
+      ...[1, 2, 3]
+        .map((step) => step * auctionRaise(square))
         .filter((plus) => auction.highest + plus <= state.players[seat]!.cash)
         .map((plus) => ({
           label: `+${plus} (${auction.highest + plus})`,
@@ -65,13 +72,30 @@ export function tileActions(state: View, seat: number | null, square: number): T
         payload,
       });
   }
-  if (cell.kind === 'street' && deed.houses > 0 && (deed.houses !== 5 || bankHouses(state) >= 4))
+  if (
+    cell.kind === 'street' &&
+    !deed.mortgaged &&
+    deed.houses > 0 &&
+    (deed.houses !== 5 || bankHouses(state) >= 4)
+  )
     actions.push({ label: 'Bán nhà', event: 'sell-house', payload });
+  const canManage =
+    (state.phase === 'debt' ? (state.debt?.payer ?? state.turn) : state.turn) === seat;
+  if (!canManage) return actions;
+  actions.push({ label: 'Đấu giá', event: 'auction', payload });
   if (deed.mortgaged) {
-    if (cash >= Math.ceil((cell.price! / 2) * 1.1))
-      actions.push({ label: 'Chuộc đất', event: 'redeem', payload });
-  } else if (!deed.houses) {
-    actions.push({ label: 'Thế chấp', event: 'mortgage', payload });
+    if (cash >= redeemAmount(state, square))
+      actions.push({
+        label: `Chuộc ${redeemAmount(state, square).toLocaleString('vi-VN')} ₫`,
+        event: 'redeem',
+        payload,
+      });
+  } else {
+    actions.push({
+      label: `Thế chấp +${mortgageAmount(state, square).toLocaleString('vi-VN')} ₫`,
+      event: 'mortgage',
+      payload,
+    });
   }
   return actions;
 }

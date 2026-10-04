@@ -16,9 +16,13 @@ và 2 ô Khí vận. Bảng địa danh và giá xây/thuê đầy đủ nằm t
 - Mỗi người bắt đầu ở **Xuất phát** với 1.000. Gieo hai xúc xắc và đi theo chiều tăng số ô.
   Đi qua hoặc dừng ở Xuất phát nhận 200. Nếu ra đôi, giải quyết ô đang đứng rồi gieo thêm;
   ra đôi ba lần liên tiếp thì vào tù ngay.
-- Đến đất phố chưa có chủ, chọn **Mua** theo giá ghi trên ô hoặc **Đấu giá**. Khi đấu giá, từng
-  người lần lượt tăng giá hoặc bỏ cuộc; mỗi lượt có thanh đếm ngược 10 giây màu người đang trả
-  giá, hết giờ thì tự bỏ giá. Người trả cao nhất trong số tiền mình có nhận đất.
+- Đến đất phố chưa có chủ, chọn **Mua** theo giá ghi trên ô nếu đủ tiền hoặc **Hết lượt**.
+  Hết lượt chuyển ngay sang người tiếp theo, giữ đất chưa có chủ; không ép đấu giá. Nếu vừa
+  ra đôi, chọn Hết lượt cũng bỏ lần gieo thêm.
+- Trong lượt mình, chọn bất động sản đang sở hữu để mở **Đấu giá**. Người bán không trả giá;
+  các ghế khác lần lượt tăng ít nhất `ceil(20% × giá gốc)`, mỗi quyết định có 10 giây.
+  Người thắng trả tiền cho người bán; không ai mua thì người bán giữ tài sản. Sau phiên tiếp
+  tục bước đang chờ, kể cả bước nợ hoặc mua đất khác. Bến xe đang sở hữu cũng được mở bán.
 - Đến đất người khác sở hữu và chưa thế chấp, trả tiền thuê. Đất cùng màu được một người sở hữu
   trọn bộ thì tiền thuê đất trống gấp đôi. Bến xe thu 50 ₫ nhân số bến cùng chủ: 50, 100, 150 hoặc 200 ₫; thẻ tới bến gần nhất dùng cùng mức phí. Chủ đang bị giam trong
   tù thì đất và bến xe của họ không thu tiền thuê cho tới khi ra tù.
@@ -55,8 +59,14 @@ Nếu người chơi thật không báo sẵn sàng trong 30 giây, server vẫn
   Mỗi ô tối đa bốn nhà, sau đó là một khách sạn. Ngân hàng có 32 nhà và 12 khách sạn.
   Bán từng cấp công trình thu lại nửa giá xây. Giá xây mỗi cấp bằng 50% giá đất; tiền thuê
   từ đất trống tới khách sạn bằng 10%, 40%, 110%, 300%, 400% và 500% giá đất, làm tròn tới số nguyên.
-- Thế chấp đất sau khi đã bán hết nhà trên chính ô đó: nhận nửa giá đất, không thu tiền thuê trong
-  lúc thế chấp. Chuộc với 110% tiền đã vay.
+- Bảng **Thế chấp tài sản** cho chọn một hoặc nhiều ô, hiện tiền nhận từng ô và tổng tiền
+  trước khi xác nhận; có phân trang và nút Hủy. Nhận **50% tổng giá đất và giá xây công trình**.
+  Nhà/khách sạn giữ trên đất, cùng được thế chấp; không thu thuê và không bán riêng khi thế chấp.
+  Chuộc trả 110% khoản đã vay, làm tròn lên; khôi phục cả đất, công trình và tiền thuê.
+  Có thể thế chấp/chuộc từ xa trong lượt mình, hoặc khi trả nợ bến ngoài lượt.
+  Hạn chuộc là 3 lượt tiếp theo của người thế chấp; cuối lượt thứ 3 chưa chuộc thì ngân hàng
+  thu hồi đất và tháo dỡ công trình, trả về đất trống. Gieo đôi không tính thêm lượt. Đổi chủ
+  vẫn giữ hạn gốc; người vay phá sản/rời ván thì ngân hàng thu hồi khoản vay của người đó.
 - Người đang có lượt có thể đề nghị trao đổi đất và tiền với một người khác. Hai bên phải xác
   nhận; ô đất đem đổi phải không còn công trình.
 - Khi thiếu tiền trả, ván tạm ở bước **Nợ**. Bán nhà hoặc thế chấp để đủ tiền rồi chọn **Trả**;
@@ -75,15 +85,16 @@ trả lời đề nghị trao đổi. Có thể chơi một mình với máy ho�
 
 Màn tạo phòng/tuỳ chỉnh có **Thời gian lượt PvP**: 15/30/60/90 giây, mặc định 30 giây.
 Khi còn ít nhất hai người thật, mỗi quyết định có đồng hồ do server giữ; hết hạn tự gieo,
-kết thúc lượt, mua nếu đủ tiền hoặc mở đấu giá, từ chối trao đổi, hoặc thanh lý
-tài sản để trả nợ/phá sản. Xây, bán nhà, thế chấp và chuộc không kéo dài thời hạn đang chờ.
+kết thúc lượt, mua nếu đủ tiền hoặc kết thúc lượt, từ chối trao đổi, hoặc thanh lý
+tài sản để trả nợ/phá sản. Bảng chọn thế chấp tự đóng khi đổi lượt; mở bảng không kéo dài
+thời gian. Xây, bán nhà, thế chấp và chuộc không kéo dài thời hạn đang chờ.
 Ván một người thật với máy không dùng đồng hồ này. Sự kiện đặc biệt vẫn tự xác nhận sau 8 giây;
 mỗi lượt trả giá đất phố hoặc quyết định góp/từ bỏ khi đến bến có đồng hồ 10 giây riêng, kể cả khi chơi với máy.
 
 Chạm một ô để xem giá, chủ đất, tiền thuê và tình trạng nhà ở cột bên phải. Nút giữa bàn thay
 đổi theo bước hiện tại: mua/đấu giá, trả nợ hoặc kết thúc lượt. Chạm hai viên xúc xắc để gieo;
 viền sáng và chữ **Chạm để gieo** nhấp nháy khi bạn được gieo. Khi chọn đất của
-mình, cột bên phải hiện các nút xây, bán nhà, thế chấp và chuộc. Nút **Trao đổi** cho phép lần
+mình, cột bên phải hiện các nút xây, bán nhà, đấu giá, thế chấp và chuộc, cùng hạn chuộc nếu đang vay. Nút **Trao đổi** cho phép lần
 lượt chọn người nhận rồi chọn đất trong hai cột **Bạn đưa** và **Bạn nhận**. Nút mũi tên
 đổi người hoặc đất; mỗi cột có số tiền và nút **−50 / +50**, giới hạn theo số dư của bên đó.
 Nút **Gửi đề nghị** xác nhận lựa chọn; người nhận đọc được đất và tiền của cả hai bên trước
@@ -117,8 +128,9 @@ Bảng người chơi dùng `PlayerPanel` để chiếu tên, avatar, số ghế
 theo cùng phối cảnh của mặt bàn. Vương miện, dấu màu người chơi và thanh thời gian cũng
 nằm trên mặt phẳng này; số tiền vẫn cập nhật trong lúc hoạt ảnh chuyển tiền chạy.
 Nền panel có hoa văn hình thoi xanh ngọc và viền vàng, giữ nguyên các ổ avatar, số ghế và
-rãnh đồng hồ. Ghế không active có nền tối, số mờ và ánh phản chiếu yếu; chỉ ghế đang quyết
-định có số trắng, màu sáng và quầng sáng.
+rãnh đồng hồ. Ghế không active có nền tối, số mờ và ánh phản chiếu yếu; chỉ ghế của chủ lượt
+có số trắng, màu sáng và quầng sáng, khớp với tên và avatar. Khi người khác trả giá hoặc trả
+nợ sau đấu giá bến, node vẫn theo chủ lượt; đồng hồ và nút thao tác theo người cần quyết định.
 
 ## Tìm thành phần để sửa
 
@@ -140,6 +152,7 @@ sources/                       Script kết xuất và nguồn ảnh
 | Muốn sửa | File |
 | --- | --- |
 | Địa danh, giá mua/xây/thuê, nhóm màu | `src/game/model.ts` |
+| Bảng chọn một/nhiều tài sản và tổng tiền thế chấp | `src/scenes/hud/MortgagePanel.ts` |
 | Tiền khởi điểm, mua/xây/thế chấp/trao đổi | `src/game/CoTyPhuClassicGame.ts` |
 | Thuế, di chuyển, tiền thuê và hiệu lực thẻ | `src/game/rules.ts` |
 | Nội dung thẻ | `src/game/cards.ts` |
@@ -307,10 +320,27 @@ biểu tượng tiền/vị trí; bắt đầu ván mới khôi phục màu gh�
 miễn phí (thế chấp hoặc chủ đang ở tù); các ô thuế vẫn ghi mức phải nộp.
 
 
-Phát sáng dùng [Glow của Phaser 4](https://docs.phaser.io/api-documentation/class/filters-glow)
-trên biểu tượng Điện lực, Cấp nước, mũi tên Xuất phát, đèn máy bay, viền gieo xúc xắc và
-nút khi rê chuột. Quầng sáng mềm dùng padding tự động để không bị cắt ở mép, chất lượng
-10 mẫu; chỉ áp dụng lên ảnh nhỏ thay vì lọc cả bàn. Renderer Canvas vẫn hiện đối tượng gốc.
+Biểu tượng đặc biệt dùng `SymbolAtlas`: vẽ sẵn các vòng hoạt ảnh ở 24 khung/giây vào một
+texture chung, rồi đổi frame khi chạy. Quầng sáng trên biểu tượng, đèn máy bay và viền gieo
+xúc xắc cũng được vẽ sẵn; không chạy bộ lọc Glow hoặc tải lại canvas lên GPU mỗi frame.
+Bến xe có sẵn các frame theo bốn màu chủ sở hữu. Canvas và WebGL đều giữ hoạt ảnh và quầng sáng.
+Frame được chọn theo đồng hồ scene, nên tốc độ không phụ thuộc FPS và không phải chạy
+các frame bị lỡ khi thiết bị chậm. Texture có khoảng đệm giữa các frame để tránh lẫn màu
+khi GPU nội suy ở mép; texture riêng của scene được giải phóng khi scene đóng.
+
+Nút khi rê chuột vẫn dùng [Glow của Phaser 4](https://docs.phaser.io/api-documentation/class/filters-glow),
+padding tự động và chất lượng 4 mẫu mỗi vòng; tắt bộ lọc khi rời nút. Theo tài liệu
+[Filters](https://docs.phaser.io/api-documentation/namespace/gameobjects-components-filters),
+mỗi bộ lọc cần thêm lượt render nên chỉ dùng cho hiệu ứng ngắn này.
+
+Mỗi chữ hoặc avatar trên player panel có texture chiếu riêng và chỉ vẽ lại khi nội dung
+thay đổi. Đếm giờ không vẽ lại avatar hoặc số tiền; chuyển tiền không vẽ lại toàn bộ panel.
+Chữ đếm giờ chỉ đổi màu khi cần. Canvas thay đổi dùng `refresh()` thay vì `update()` để
+tránh đọc pixel về CPU không cần thiết, theo tài liệu
+[CanvasTexture](https://docs.phaser.io/api-documentation/class/textures-canvastexture).
+
+Các lựa chọn này theo [Performance Cheat Sheet trong Phaser 4 Rendering Concepts](https://github.com/phaserjs/phaser/blob/v4.2.1/docs/Phaser%204%20Rendering%20Concepts/Phaser%204%20Rendering%20Concepts.md#performance-cheat-sheet):
+gom ảnh cùng texture để batch, giảm bộ lọc, giảm upload chữ/texture và giới hạn vùng cần vẽ lại.
 
 ## Lệnh Dev Console
 
