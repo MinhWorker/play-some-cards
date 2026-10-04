@@ -37,6 +37,8 @@ export interface Property {
   /** 0–4 houses; 5 is a hotel. */
   houses: number;
   mortgaged: boolean;
+  /** Original borrower and deadline, measured in their own turns (not dice rolls). */
+  mortgage?: { borrower: number; deadline: number; principal: number };
 }
 
 export interface TycoonPlayer {
@@ -55,6 +57,9 @@ export const AUCTION_TURN_MS = 10_000;
 
 export interface Auction {
   square: number;
+  /** Absent for the persistent station contribution mechanic. */
+  seller?: number;
+  resume?: Phase;
   bidder: number;
   highest: number;
   leader: number | null;
@@ -67,6 +72,8 @@ export type StationAuction = Omit<Auction, 'bidder'>;
 
 export const STATION_CONTRIBUTION_STEP = 50;
 export const STATION_BASE_FEE = 50;
+
+export const auctionRaise = (square: number) => Math.ceil(BOARD[square]!.price! / 5);
 
 export interface Debt {
   /** A station winner may owe the bank during another player's turn. */
@@ -117,6 +124,7 @@ export interface State {
   players: TycoonPlayer[];
   properties: Property[];
   turn: number;
+  playerTurns: number[];
   round: number;
   shortages: { square: number; round: number }[];
   phase: Phase;

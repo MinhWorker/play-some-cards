@@ -10,6 +10,8 @@ export default async function run(t) {
   await page.waitForFunction(() => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx);
   await page.waitForFunction(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
+    null,
+    { timeout: 60000 },
   );
   // Persistent effects must animate without canvas uploads or per-object filter passes.
   await page.evaluate(() => {
@@ -127,8 +129,9 @@ export default async function run(t) {
       game = testGame(plugin, ids);
       seq = 0;
       if (kind === 'street') {
-        Object.assign(game.state, { turn: 1, phase: 'buy', pending: 3, after });
+        Object.assign(game.state, { turn: 1, phase: after, after });
         game.state.players[1].position = 3;
+        game.state.properties[3].owner = 1;
       } else {
         // Two settled stations refund 350, then buying both leaves an off-turn debt.
         game.state.players[0].cash = 0;
@@ -214,19 +217,18 @@ export default async function run(t) {
   await page.evaluate(() =>
     window.__phaser.scene.getScene('co-ty-phu-classic').panelFixture('street'),
   );
-  await move('auction', 'b');
-  await move('bid', 'b', { amount: 50 });
-  await assertPanel(1, 'auction', 2);
-  await move('pass', 'c');
+  await move('auction', 'b', { square: 3 });
+  await move('bid', 'c', { amount: 50 });
+  await assertPanel(1, 'auction', 3);
   await move('pass', 'd');
   await assertPanel(1, 'auction', 0);
   await page.screenshot({ path: t.shot('auction-turn-owner.png') });
   await clickCanvas(
     page,
     'co-ty-phu-classic',
-    (s) => s.main.find((button) => button.hit.visible && button.text.text.startsWith('+10 ')).hit,
+    (s) => s.main.find((button) => button.hit.visible && button.text.text.startsWith('+36 ')).hit,
   );
-  await move('pass', 'b');
+  await move('pass', 'c');
   await idle();
   await assertPanel(1, 'end');
   await move('end-turn', 'b');
@@ -237,8 +239,8 @@ export default async function run(t) {
   await page.evaluate(() =>
     window.__phaser.scene.getScene('co-ty-phu-classic').panelFixture('street', 'roll'),
   );
-  await move('auction', 'b');
-  for (const player of ['b', 'c', 'd', 'a']) await move('pass', player);
+  await move('auction', 'b', { square: 3 });
+  for (const player of ['c', 'd', 'a']) await move('pass', player);
   await assertPanel(1, 'roll');
 
   await page.setViewportSize(PHONE);

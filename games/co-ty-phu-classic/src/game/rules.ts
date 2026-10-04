@@ -16,8 +16,9 @@ export const copy = (state: State): State => ({
   ...state,
   moneySequence: (state.moneySequence ?? 0) + 1,
   transfers: [],
+  playerTurns: [...state.playerTurns],
   players: state.players.map((p) => ({ ...p, freeCards: [...p.freeCards] })),
-  properties: state.properties.map((p) => ({ ...p })),
+  properties: state.properties.map((p) => ({ ...p, mortgage: p.mortgage && { ...p.mortgage } })),
   chance: [...state.chance],
   chest: [...state.chest],
   shortages: state.shortages.map((event) => ({ ...event })),
@@ -44,6 +45,59 @@ export function next(s: State, from: number): number {
     if (!s.players[i]?.bankrupt) return i;
   }
   return from;
+}
+
+/** Count a new personal turn after ending a turn or bankruptcy, never after extra rolls. */
+export function startTurn(s: State, seat: number) {
+  s.turn = seat;
+  s.playerTurns[seat]!++;
+}
+
+/** Foreclose at the end of the borrower's third subsequent turn. */
+export function expireMortgages(s: State, borrower: number, forced = false): string[] {
+  const expired: string[] = [];
+  for (const [square, deed] of s.properties.entries()) {
+    if (
+      !deed.mortgaged ||
+      deed.mortgage?.borrower !== borrower ||
+      (!forced && s.playerTurns[borrower]! < deed.mortgage.deadline)
+    )
+      continue;
+    deed.owner = null;
+    deed.houses = 0;
+    deed.mortgaged = false;
+    deed.mortgage = undefined;
+    expired.push(BOARD[square]!.name);
+  }
+  return expired;
+}
+
+/** Buildings stay on the deed and are pledged at their full original construction cost. */
+export function mortgageAmount(s: Pick<State, 'properties'>, square: number) {
+  const cell = BOARD[square]!;
+  return (cell.price! + s.properties[square]!.houses * (cell.houseCost ?? 0)) / 2;
+}
+
+export function redeemAmount(s: Pick<State, 'properties'>, square: number) {
+  const principal = s.properties[square]!.mortgage?.principal ?? mortgageAmount(s, square);
+  return Math.ceil((principal * 11) / 10);
+}
+
+export function mortgageSquares(s: Pick<State, 'properties'>, seat: number) {
+  return s.properties.flatMap((deed, square) =>
+    deed.owner === seat && !deed.mortgaged && isDeed(BOARD[square]!) ? [square] : [],
+  );
+}
+
+export function mortgageStatus(
+  s: Pick<State, 'playerTurns' | 'turn'>,
+  deed: State['properties'][number],
+) {
+  if (!deed.mortgage) return 'Đang thế chấp';
+  const { borrower, deadline } = deed.mortgage;
+  const remaining = deadline - s.playerTurns[borrower]!;
+  const turnsLeft = remaining + (s.turn === borrower && remaining < 3 ? 1 : 0);
+  return remaining <= 0 ? 'Chuộc: hết lượt này' : `Chuộc: còn ${turnsLeft} lượt`;
 }
 
 export function ownsGroup(s: Pick<State, 'properties'>, owner: number, square: number): boolean {
@@ -324,6 +378,7 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
     if (auction.leader === seat) auction.leader = null;
   }
   p.bankrupt = true;
+  expireMortgages(s, seat, true);
   for (const [i, deed] of s.properties.entries()) {
     if (deed.owner === seat && deed.houses)
       transferMoney(s, null, seat, (deed.houses * BOARD[i]!.houseCost!) / 2, 'Thanh lý nhà');
@@ -342,7 +397,10 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
     if (deed.owner !== seat) continue;
     deed.owner = creditor;
     deed.houses = 0;
-    if (creditor === null) deed.mortgaged = false;
+    if (creditor === null) {
+      deed.mortgaged = false;
+      deed.mortgage = undefined;
+    }
   }
   p.freeCards = [];
   if (s.turn === seat) s.specialEvent = null;
@@ -354,7 +412,7 @@ export function bankrupt(s: State, seat: number, creditor: number | null, ctx: C
   s.notice = `${ctx.players[seat]?.name ?? 'Người chơi'} đã phá sản.`;
   finishIfLast(s, ctx);
   if (s.winner === null && s.turn === seat) {
-    s.turn = next(s, seat);
+    startTurn(s, next(s, seat));
     if (s.turn <= seat) s.round++;
     s.phase = 'roll';
     s.doubles = 0;

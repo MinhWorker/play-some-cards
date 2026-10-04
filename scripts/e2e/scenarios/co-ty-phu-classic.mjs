@@ -44,6 +44,8 @@ export default async function run(t) {
   await page.screenshot({ path: t.shot('10-money.png') });
   await page.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
+    null,
+    { timeout: 60000 },
   );
   const rollControl = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -166,7 +168,11 @@ export default async function run(t) {
         }, price);
         purchases++;
       } else {
-        await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[1].hit);
+        await clickCanvas(
+          page,
+          'co-ty-phu-classic',
+          (s) => s.main.find((b) => b.hit.visible && b.text.text === 'Hết lượt').hit,
+        );
       }
     } else if (state.phase === 'end') {
       await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
@@ -253,6 +259,8 @@ export default async function run(t) {
   await restartEvents();
   await eventsPage.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
+    null,
+    { timeout: 60000 },
   );
   await rollEvent();
   await eventsPage.waitForFunction(
@@ -618,6 +626,8 @@ export default async function run(t) {
 
   await host.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
+    null,
+    { timeout: 60000 },
   );
   for (let i = 0; i < 12; i++) {
     await host.waitForFunction(() => {

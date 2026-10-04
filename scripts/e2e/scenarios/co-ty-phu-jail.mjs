@@ -211,8 +211,8 @@ export default async function run(t) {
     ]);
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const game = testGame(plugin, ['a', 'b']);
-    game.state.phase = 'buy';
-    game.state.pending = 3;
+    game.state.phase = 'end';
+    game.state.properties[3].owner = 0;
     game.state.players[0].position = 3;
     const props = {
       ...s.props,
@@ -222,11 +222,11 @@ export default async function run(t) {
       view: game.view('a'),
     };
     s.receive(props);
-    game.send('a', 'auction');
+    game.send('a', 'auction', { square: 3 });
     s.receive({
       ...props,
       view: game.view('a'),
-      last: { seq: 1, player: 'a', move: { event: 'auction' } },
+      last: { seq: 1, player: 'a', move: { event: 'auction', payload: { square: 3 } } },
     });
   }, root);
   await page.waitForFunction(

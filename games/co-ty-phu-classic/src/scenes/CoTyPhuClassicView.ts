@@ -17,7 +17,7 @@ import {
   STATION_BASE_FEE,
   type View,
 } from '../game/model.js';
-import { ownsGroup, rent, utilityTax } from '../game/rules.js';
+import { mortgageSquares, mortgageStatus, ownsGroup, rent, utilityTax } from '../game/rules.js';
 import { decisionSeat } from '../game/turnClock.js';
 import { BoardPrices, ownerInk } from './board/BoardPrices.js';
 import { BoardTileEffect } from './board/BoardTileEffect.js';
@@ -30,6 +30,7 @@ import { addGlow } from './effects/glow.js';
 import { MoneyTransferEffect } from './effects/MoneyTransferEffect.js';
 import { moneySound } from './effects/moneySound.js';
 import { PawnCashEffect } from './effects/PawnCashEffect.js';
+import { MortgagePanel } from './hud/MortgagePanel.js';
 import { PlayerPanel } from './hud/PlayerPanel.js';
 import { RentTable } from './hud/RentTable.js';
 import { TileTooltip } from './hud/TileTooltip.js';
@@ -219,6 +220,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private deedValues: Phaser.GameObjects.Text[] = [];
   private main: TapButton[] = [];
   private tools: TapButton[] = [];
+  private mortgagePanel!: MortgagePanel;
   private selected: number | null = null;
   private tileActionCount = 0;
   private tradeOpen = false;
@@ -286,9 +288,18 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
     this.tileTooltip = new TileTooltip(this);
     this.rentTable = new RentTable(this);
+    this.mortgagePanel = new MortgagePanel(
+      this,
+      (squares) => {
+        this.closeMortgagePanel();
+        this.send('mortgage', { squares });
+      },
+      () => this.closeMortgagePanel(),
+    );
     // A tap around a floating panel closes it.
     this.backdrop = new Backdrop(this, 30, () => {
-      if (this.rentTable.visible) this.closeRentTable();
+      if (this.mortgagePanel.visible) this.closeMortgagePanel();
+      else if (this.rentTable.visible) this.closeRentTable();
       else if (this.tradeOpen) {
         this.tradeOpen = false;
         this.onState(this.ctx);
@@ -494,6 +505,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setWordWrapWidth(Math.min(size * 0.52, 410), true);
     this.dice.setPosition(cx, this.fieldY(0.58), tile);
     this.layoutReady(ctx);
+    this.mortgagePanel.layout(ctx.screen);
     const rightX = sideX;
     const middle = rightX + sideW / 2;
     this.deedLabel.setPosition(middle, this.geometry.panelTop + 51);
@@ -746,6 +758,22 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.syncBackdrop();
   }
 
+  private openMortgagePanel(initial?: number) {
+    const { state, me } = this.ctx;
+    if (!me || !mortgageSquares(state, me.seat).length) return;
+    this.closeRentTable();
+    this.tileTooltip.hide();
+    this.mortgagePanel.show(state, me.seat, initial);
+    this.mortgagePanel.layout(this.ctx.screen);
+    this.onState(this.ctx);
+  }
+
+  private closeMortgagePanel() {
+    this.mortgagePanel.hide();
+    this.syncBackdrop();
+    this.onState(this.ctx);
+  }
+
   private closeRentTable() {
     this.rentTable.hide();
     this.hide([this.rentCloseButton]);
@@ -754,7 +782,10 @@ export class CoTyPhuClassicView extends GameView<View> {
 
   /** The board is blurred and darkened while a panel floats over it. */
   private syncBackdrop() {
-    const floating = this.rentTable.visible || (this.tradeOpen && this.visualPhase !== 'ready');
+    const floating =
+      this.mortgagePanel.visible ||
+      this.rentTable.visible ||
+      (this.tradeOpen && this.visualPhase !== 'ready');
     if (floating && !this.backdrop.visible) this.backdrop.show();
     if (!floating && this.backdrop.visible) this.backdrop.hide();
   }
@@ -835,6 +866,7 @@ export class CoTyPhuClassicView extends GameView<View> {
           !this.payments.length &&
           !this.runtime.pending('turn') &&
           !this.tradeOpen &&
+          !this.mortgagePanel.visible &&
           tileActions(ctx.state, ctx.me?.seat ?? null, i).length > 0,
       );
       effect?.setOccupants(
@@ -1213,10 +1245,10 @@ export class CoTyPhuClassicView extends GameView<View> {
       return actions;
     }
     if (state.phase === 'buy')
-      return [
-        [`Mua ${BOARD[state.pending!]!.price}`, () => this.send('buy')],
-        ['Đấu giá', () => this.send('auction')],
-      ];
+      return tileActions(state, me.seat, state.pending!).map(({ label, event, payload }) => [
+        label,
+        () => this.send(event, payload),
+      ]);
     if (state.phase === 'end')
       return [
         ['Hết lượt', () => this.send('end-turn')],
@@ -1232,7 +1264,13 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   private showTileTooltip(square: number) {
-    if (this.visualPhase === 'ready' || this.tradeOpen || this.rentTable.visible) return;
+    if (
+      this.visualPhase === 'ready' ||
+      this.tradeOpen ||
+      this.rentTable.visible ||
+      this.mortgagePanel.visible
+    )
+      return;
     const { state, players } = this.ctx;
     const cell = BOARD[square]!;
     const deed = state.properties[square]!;
@@ -1240,8 +1278,11 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (isDeed(cell)) {
       lines.push(`Giá: ${cell.price!.toLocaleString('vi-VN')} ₫`);
       lines.push(deed.owner === null ? 'Chưa có chủ' : `Chủ: ${players[deed.owner]?.name ?? ''}`);
-      if (deed.mortgaged) lines.push('Đang thế chấp');
-      else if (deed.owner !== null && state.players[deed.owner]!.jailed) {
+      if (deed.mortgaged) {
+        lines.push(mortgageStatus(state, deed));
+        if (deed.mortgage && deed.mortgage.borrower !== deed.owner)
+          lines.push(`Hạn theo lượt: ${players[deed.mortgage.borrower]?.name ?? ''}`);
+      } else if (deed.owner !== null && state.players[deed.owner]!.jailed) {
         lines.push('Chủ đang ở tù · Tiền thuê: 0 ₫');
       } else if (cell.kind === 'utility') {
         const both =
@@ -1751,6 +1792,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   protected onStart(ctx: Ctx) {
+    this.mortgagePanel.hide();
     this.autoActionSeen = ctx.state.lastAutoAction?.id ?? 0;
     this.runtime.cancelLane('inventory');
     this.resetInventory(ctx);
@@ -1807,6 +1849,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   protected onResync(ctx: Ctx) {
+    this.mortgagePanel.hide();
     this.autoActionSeen = ctx.state.lastAutoAction?.id ?? 0;
     this.runtime.cancelLane('inventory');
     this.resetInventory(ctx);
@@ -2131,6 +2174,19 @@ export class CoTyPhuClassicView extends GameView<View> {
 
   protected onState(ctx: Ctx) {
     const { state, players, me, result } = ctx;
+    if (this.mortgagePanel.visible) {
+      if (
+        !me ||
+        me.seat !== this.mortgagePanel.ownerSeat ||
+        result ||
+        state.winner !== null ||
+        state.players[me.seat]!.bankrupt ||
+        (state.phase === 'debt' ? decisionSeat(state) : state.turn) !== me.seat ||
+        !['roll', 'buy', 'debt', 'end'].includes(state.phase)
+      )
+        this.mortgagePanel.hide();
+      else this.mortgagePanel.update(state);
+    }
     const { left, top, size, imageH, tile, sideW } = this.geometry;
     const auto = state.lastAutoAction;
     if (auto && auto.id > this.autoActionSeen) {
@@ -2242,7 +2298,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const notice =
       state.phase === 'auction' && auction
         ? `${BOARD[auction.square]!.name} · ${
-            BOARD[auction.square]!.kind === 'station'
+            auction.seller === undefined
               ? `Lần góp gần nhất ${auction.highest.toLocaleString('vi-VN')} ₫`
               : auction.leader === null
                 ? 'chưa ai trả giá'
@@ -2366,7 +2422,8 @@ export class CoTyPhuClassicView extends GameView<View> {
     while (this.detail.height > 68 && titleSize > 18) this.detail.setFontSize(--titleSize);
     this.deedTitleExtra = Math.max(0, this.detail.height - 24);
     const titleExtra = this.deedTitleExtra;
-    const rowY = (row: number) => this.geometry.panelTop + 146 + row * 29 + titleExtra;
+    if (hasDeed && deed.mortgaged) this.deedTitleExtra += 22;
+    const rowY = (row: number) => this.geometry.panelTop + 146 + row * 29 + this.deedTitleExtra;
     // Label left, number right; `null` hides the row.
     const deedRows: ([string, string] | null)[] = [null, null, null];
     this.deedOwner
@@ -2384,12 +2441,16 @@ export class CoTyPhuClassicView extends GameView<View> {
       const ownerLine = [
         owner,
         deed.houses ? (deed.houses === 5 ? 'Khách sạn' : `${deed.houses} nhà`) : '',
-        deed.mortgaged ? 'Thế chấp' : '',
         ownerJailed ? 'Chủ ở tù' : '',
       ]
         .filter(Boolean)
         .join(' • ');
-      this.fitText(this.deedOwner, ownerLine, sideW - 28, 14);
+      this.fitText(
+        this.deedOwner,
+        deed.mortgaged ? `${ownerLine}\n${mortgageStatus(state, deed)}` : ownerLine,
+        sideW - 28,
+        14,
+      );
       const currentRent =
         deed.mortgaged || ownerJailed
           ? '0 ₫'
@@ -2432,7 +2493,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         this.rentTableButton,
         'Bảng thuê',
         this.geometry.sideX + sideW / 2,
-        this.geometry.panelTop + 258 + titleExtra,
+        this.geometry.panelTop + 258 + this.deedTitleExtra,
         sideW - 24,
         () => {
           // Floating over the board's middle, the board blurred behind it.
@@ -2503,7 +2564,12 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.hide(this.main);
     this.hide(this.tools);
     this.drawEventCountdown(ctx);
-    const idle = !presenting && !this.tradeOpen && !result && state.phase === 'roll';
+    const idle =
+      !presenting &&
+      !this.tradeOpen &&
+      !this.mortgagePanel.visible &&
+      !result &&
+      state.phase === 'roll';
     const canRoll = idle && me?.seat === state.turn;
     this.rollHint.setVisible(canRoll);
     this.diceHit.setVisible(canRoll);
@@ -2522,7 +2588,10 @@ export class CoTyPhuClassicView extends GameView<View> {
         `${(this.shownCash[state.turn] ?? state.players[state.turn]!.cash).toLocaleString('vi-VN')} ₫`,
       )
       .setVisible(!this.tradeOpen && this.visualPhase !== 'ready');
-    if (presenting) return;
+    if (presenting || this.mortgagePanel.visible) {
+      if (this.mortgagePanel.visible) this.hide([this.rentTableButton, this.speedButton]);
+      return;
+    }
     if (state.phase === 'event') {
       if (me?.seat === state.turn && !result)
         this.put(
@@ -2542,12 +2611,27 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (!result && !this.tradeOpen) {
       controls.push(
         ...tileActions(state, me?.seat ?? null, selected)
-          .filter((action) => ['build', 'sell-house', 'mortgage', 'redeem'].includes(action.event))
+          .filter(
+            (action) =>
+              ['build', 'sell-house', 'mortgage', 'redeem', 'auction'].includes(action.event) &&
+              state.phase !== 'auction',
+          )
           .map((action): [string, () => void] => [
             action.label,
-            () => this.send(action.event, action.payload),
+            () =>
+              action.event === 'mortgage'
+                ? this.openMortgagePanel(action.payload.square)
+                : this.send(action.event, action.payload),
           ]),
       );
+      const manager = me && (state.phase === 'debt' ? decisionSeat(state) : state.turn) === me.seat;
+      if (
+        manager &&
+        ['roll', 'buy', 'debt', 'end'].includes(state.phase) &&
+        mortgageSquares(state, me.seat).length &&
+        !tileActions(state, me.seat, selected).some((action) => action.event === 'mortgage')
+      )
+        controls.push(['Thế chấp tài sản', () => this.openMortgagePanel()]);
     }
     // The offer's buttons float with its paper, above the blurred board.
     const lift = this.tradeOpen ? 30 : 0;
@@ -2643,7 +2727,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       );
     });
     const buttons =
-      state.phase === 'buy' || state.phase === 'auction'
+      state.phase === 'auction' || (state.phase === 'buy' && contextualActions)
         ? []
         : actions.map(([label, action], i) => ({ button: this.main[i]!, label, action }));
     const bottom = ctx.screen.height - 24;
