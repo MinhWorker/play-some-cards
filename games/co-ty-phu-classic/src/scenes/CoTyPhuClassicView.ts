@@ -31,8 +31,10 @@ import { JailGateEffect } from './effects/JailGateEffect.js';
 import { MoneyTransferEffect } from './effects/MoneyTransferEffect.js';
 import { moneySound } from './effects/moneySound.js';
 import { PawnCashEffect } from './effects/PawnCashEffect.js';
+import { AuctionConfirmPanel } from './hud/AuctionConfirmPanel.js';
 import { MortgagePanel } from './hud/MortgagePanel.js';
 import { PlayerPanel } from './hud/PlayerPanel.js';
+import { type PropertyActionIcon, propertyActionIcon } from './hud/PropertyActionIcons.js';
 import { RentTable } from './hud/RentTable.js';
 import { TileTooltip } from './hud/TileTooltip.js';
 import { tileActions } from './hud/tileActions.js';
@@ -46,6 +48,8 @@ type TapButton = {
   box: Phaser.GameObjects.NineSlice;
   hit: Phaser.GameObjects.Zone;
   text: Phaser.GameObjects.Text;
+  icon: Phaser.GameObjects.Image;
+  kind: PropertyActionIcon | null;
   action: () => void;
   enabled: boolean;
   glow: ReturnType<typeof addGlow>;
@@ -229,6 +233,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private main: TapButton[] = [];
   private tools: TapButton[] = [];
   private mortgagePanel!: MortgagePanel;
+  private auctionConfirm!: AuctionConfirmPanel;
   private jailGate!: JailGateEffect;
   private selected: number | null = null;
   private tileActionCount = 0;
@@ -307,9 +312,20 @@ export class CoTyPhuClassicView extends GameView<View> {
       },
       () => this.closeMortgagePanel(),
     );
+    this.auctionConfirm = new AuctionConfirmPanel(
+      this,
+      () => {
+        const square = this.auctionConfirm.square;
+        const valid = this.canConfirmAuction();
+        this.closeAuctionConfirm();
+        if (valid && square !== null) this.send('auction', { square });
+      },
+      () => this.closeAuctionConfirm(),
+    );
     // A tap around a floating panel closes it.
     this.backdrop = new Backdrop(this, 30, () => {
-      if (this.mortgagePanel.visible) this.closeMortgagePanel();
+      if (this.auctionConfirm.visible) this.closeAuctionConfirm();
+      else if (this.mortgagePanel.visible) this.closeMortgagePanel();
       else if (this.rentTable.visible) this.closeRentTable();
       else if (this.tradeOpen) {
         this.tradeOpen = false;
@@ -461,7 +477,20 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setDepth(11);
     const glow = addGlow(box, 0xffdf84);
     glow?.setActive(false);
-    const button: TapButton = { box, hit, text: label, action: () => {}, enabled: true, glow };
+    const icon = this.add
+      .image(0, 0, propertyActionIcon(this, 'auction'))
+      .setDepth(11)
+      .setVisible(false);
+    const button: TapButton = {
+      box,
+      hit,
+      text: label,
+      icon,
+      kind: null,
+      action: () => {},
+      enabled: true,
+      glow,
+    };
     hit.on('pointerup', () => {
       if (button.enabled) button.action();
     });
@@ -519,6 +548,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.dice.setPosition(cx, this.fieldY(0.58), tile);
     this.layoutReady(ctx);
     this.mortgagePanel.layout(ctx.screen);
+    this.auctionConfirm.layout(ctx.screen);
     this.backdrop.layout();
     const rightX = sideX;
     const middle = rightX + sideW / 2;
@@ -788,6 +818,34 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.onState(this.ctx);
   }
 
+  private canConfirmAuction() {
+    const { state, me, result } = this.ctx;
+    const square = this.auctionConfirm.square;
+    return (
+      !result &&
+      square !== null &&
+      this.auctionConfirm.matches(state, me?.seat ?? null) &&
+      tileActions(state, me?.seat ?? null, square).some((action) => action.event === 'auction')
+    );
+  }
+
+  private openAuctionConfirm(square: number) {
+    const { state, me, result } = this.ctx;
+    if (result || !me || !tileActions(state, me.seat, square).some((a) => a.event === 'auction'))
+      return;
+    this.closeRentTable();
+    this.tileTooltip.hide();
+    this.auctionConfirm.show(state, me.seat, square);
+    this.auctionConfirm.layout(this.ctx.screen);
+    this.onState(this.ctx);
+  }
+
+  private closeAuctionConfirm() {
+    this.auctionConfirm.hide();
+    this.syncBackdrop();
+    this.onState(this.ctx);
+  }
+
   private closeRentTable() {
     this.rentTable.hide();
     this.hide([this.rentCloseButton]);
@@ -797,6 +855,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   /** The board is blurred and darkened while a panel floats over it. */
   private syncBackdrop() {
     const floating =
+      this.auctionConfirm.visible ||
       this.mortgagePanel.visible ||
       this.rentTable.visible ||
       (this.tradeOpen && this.visualPhase !== 'ready');
@@ -1103,11 +1162,14 @@ export class CoTyPhuClassicView extends GameView<View> {
     height = 62,
     cardStyle: 'primary' | 'secondary' | 'roll' | null = null,
     enabled = true,
+    icon: PropertyActionIcon | null = null,
   ) {
     const roll = cardStyle === 'roll';
     const nativeHeight = roll ? 192 : cardStyle ? 112 : 133;
     const scale = height / nativeHeight;
     button.enabled = enabled;
+    button.kind = icon;
+    button.icon.setVisible(false);
     button.glow?.setActive(false);
     button.box.clearTint();
     button.box.setTexture(
@@ -1145,7 +1207,24 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setVisible(true)
       .setPosition(x + (roll ? height * 0.32 : 0), y - (roll ? 2 : 0))
       .setFontSize(roll ? 30 : height < 62 ? 20 : 22);
-    this.fitText(button.text, text, width - (roll ? height * 1.2 : 14), roll ? 24 : 16);
+    const iconSize = icon ? Math.min(34, height - 16, width < 150 ? 28 : 34) : 0;
+    this.fitText(
+      button.text,
+      text,
+      width - (roll ? height * 1.2 : icon ? iconSize + 16 : 14),
+      roll ? 24 : 16,
+    );
+    if (icon) {
+      const size = iconSize;
+      const groupWidth = size + (text ? 7 + button.text.width : 0);
+      const left = x - groupWidth / 2;
+      button.icon
+        .setTexture(propertyActionIcon(this, icon))
+        .setDisplaySize(size, size)
+        .setPosition(left + size / 2, y)
+        .setVisible(true);
+      button.text.setPosition(left + size + 7 + button.text.width / 2, y);
+    }
     button.action = enabled ? action : () => {};
   }
 
@@ -1157,6 +1236,8 @@ export class CoTyPhuClassicView extends GameView<View> {
       button.box.setVisible(false);
       button.hit.setVisible(false);
       button.text.setVisible(false);
+      button.icon.setVisible(false);
+      button.kind = null;
       button.action = () => {};
     }
   }
@@ -1317,6 +1398,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.visualPhase === 'ready' ||
       this.tradeOpen ||
       this.rentTable.visible ||
+      this.auctionConfirm.visible ||
       this.mortgagePanel.visible
     )
       return;
@@ -1849,6 +1931,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   protected onStart(ctx: Ctx) {
     this.resetTurn(ctx);
     this.jailGate.hide();
+    this.auctionConfirm.hide();
     this.mortgagePanel.hide();
     this.autoActionSeen = ctx.state.lastAutoAction?.id ?? 0;
     this.runtime.cancelLane('inventory');
@@ -1908,6 +1991,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   protected onResync(ctx: Ctx) {
     this.resetTurn(ctx);
     this.jailGate.hide();
+    this.auctionConfirm.hide();
     this.mortgagePanel.hide();
     this.autoActionSeen = ctx.state.lastAutoAction?.id ?? 0;
     this.runtime.cancelLane('inventory');
@@ -2263,6 +2347,7 @@ export class CoTyPhuClassicView extends GameView<View> {
 
   protected onState(ctx: Ctx) {
     const { state, players, me, result } = ctx;
+    if (this.auctionConfirm.visible && !this.canConfirmAuction()) this.auctionConfirm.hide();
     if (this.mortgagePanel.visible) {
       if (
         !me ||
@@ -2659,6 +2744,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       !presenting &&
       !this.tradeOpen &&
       !this.mortgagePanel.visible &&
+      !this.auctionConfirm.visible &&
       !result &&
       state.phase === 'roll';
     const canRoll = idle && me?.seat === state.turn;
@@ -2679,8 +2765,9 @@ export class CoTyPhuClassicView extends GameView<View> {
         `${(this.shownCash[this.shownTurn] ?? state.players[this.shownTurn]!.cash).toLocaleString('vi-VN')} ₫`,
       )
       .setVisible(!this.tradeOpen && this.visualPhase !== 'ready');
-    if (presenting || this.mortgagePanel.visible) {
-      if (this.mortgagePanel.visible) this.hide([this.rentTableButton, this.speedButton]);
+    if (presenting || this.mortgagePanel.visible || this.auctionConfirm.visible) {
+      if (this.mortgagePanel.visible || this.auctionConfirm.visible)
+        this.hide([this.rentTableButton, this.speedButton]);
       return;
     }
     if (state.phase === 'event') {
@@ -2698,7 +2785,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       return;
     }
     const actions = this.actions(ctx);
-    const controls: [string, () => void, boolean][] = [];
+    const controls: [string, () => void, boolean, PropertyActionIcon | null][] = [];
     if (!result && !this.tradeOpen) {
       controls.push(
         ...tileActions(state, me?.seat ?? null, selected)
@@ -2707,13 +2794,16 @@ export class CoTyPhuClassicView extends GameView<View> {
               ['build', 'sell-house', 'mortgage', 'redeem', 'auction'].includes(action.event) &&
               state.phase !== 'auction',
           )
-          .map((action): [string, () => void, boolean] => [
-            action.label,
+          .map((action): [string, () => void, boolean, PropertyActionIcon | null] => [
+            action.event === 'auction' ? '' : action.label.replace(/^Thế chấp /, ''),
             () =>
               action.event === 'mortgage'
                 ? this.openMortgagePanel(action.payload.square)
-                : this.send(action.event, action.payload),
+                : action.event === 'auction'
+                  ? this.openAuctionConfirm(action.payload.square!)
+                  : this.send(action.event, action.payload),
             action.enabled !== false,
+            action.event === 'auction' || action.event === 'mortgage' ? action.event : null,
           ]),
       );
       const manager = me && (state.phase === 'debt' ? decisionSeat(state) : state.turn) === me.seat;
@@ -2723,13 +2813,14 @@ export class CoTyPhuClassicView extends GameView<View> {
         mortgageSquares(state, me.seat).length &&
         !tileActions(state, me.seat, selected).some((action) => action.event === 'mortgage')
       )
-        controls.push(['Thế chấp tài sản', () => this.openMortgagePanel(), true]);
+        controls.push(['Tài sản', () => this.openMortgagePanel(), true, 'mortgage']);
     }
     // The offer's buttons float with its paper, above the blurred board.
     const lift = this.tradeOpen ? 30 : 0;
     for (const button of this.main) {
       button.box.setDepth(10 + lift);
       button.text.setDepth(11 + lift);
+      button.icon.setDepth(11 + lift);
       button.hit.setDepth(12 + lift);
     }
     if (this.tradeOpen) {
@@ -2790,11 +2881,12 @@ export class CoTyPhuClassicView extends GameView<View> {
           ])
         : actions;
     const tileButtons = [
-      ...controls.map(([label, action, enabled], i) => ({
+      ...controls.map(([label, action, enabled, icon], i) => ({
         button: this.tools[i]!,
         label,
         action,
         enabled,
+        icon,
         primary: label.startsWith('Xây '),
       })),
       ...(contextualActions
@@ -2804,34 +2896,48 @@ export class CoTyPhuClassicView extends GameView<View> {
             label,
             action,
             enabled: true,
+            icon: null,
             primary: label.startsWith('Mua ') || (state.phase === 'auction' && i === 0),
           }))
         : []),
     ];
     tileButtons.sort((a, b) => Number(b.primary) - Number(a.primary));
-    this.tileActionCount = tileButtons.length;
+    // Auction and mortgage share a row; construction remains above management.
+    const auctionButton = tileButtons.find((entry) => entry.icon === 'auction');
+    const mortgage = tileButtons.find((entry) => entry.icon === 'mortgage');
+    const paired = auctionButton && mortgage ? [auctionButton, mortgage] : [];
+    const rows = tileButtons.filter((entry) => !paired.includes(entry)).map((entry) => [entry]);
+    if (paired.length) rows.push(paired);
+    this.tileActionCount = rows.length;
     this.drawHudFrames(ctx, selected);
     const cardButtonW = sideW - 24;
     const cardStep = this.deedActionStep(selected);
-    tileButtons.forEach(({ button, label, action, enabled, primary }, i) => {
-      const x = this.geometry.sideX + 12 + cardButtonW / 2;
+    rows.forEach((row, i) => {
       const y =
         this.geometry.panelTop +
         34 +
         this.deedContentHeight(selected) +
         (cardStep - 6) / 2 +
         i * cardStep;
-      this.put(
-        button,
-        label,
-        x,
-        y,
-        cardButtonW,
-        action,
-        cardStep - 6,
-        primary ? 'primary' : 'secondary',
-        enabled,
-      );
+      row.forEach(({ button, label, action, enabled, primary, icon }, column) => {
+        const paired = row.length === 2;
+        const auctionW = Math.floor(cardButtonW * 0.28);
+        const width = paired ? (column === 0 ? auctionW : cardButtonW - auctionW - 8) : cardButtonW;
+        const x =
+          this.geometry.sideX + 12 + (paired && column === 1 ? auctionW + 8 : 0) + width / 2;
+        this.put(
+          button,
+          label,
+          x,
+          y,
+          width,
+          action,
+          cardStep - 6,
+          primary ? 'primary' : 'secondary',
+          enabled,
+          icon,
+        );
+      });
     });
     const buttons =
       state.phase === 'auction'
@@ -2840,10 +2946,10 @@ export class CoTyPhuClassicView extends GameView<View> {
     const bottom = ctx.screen.height - 24;
     // The speed button takes the column's bottom-left corner.
     const buttonW = Math.min(190, sideW - 66);
-    const rows = buttons.filter(
+    const turnRows = buttons.filter(
       ({ label }) => label !== 'Gieo xúc xắc' && label !== 'Hết lượt',
     ).length;
-    const startY = bottom - 31 - (rows - 1) * 70;
+    const startY = bottom - 31 - (turnRows - 1) * 70;
     const cardBottom = this.geometry.panelTop + 34 + this.deedPanelHeight(selected);
     const turnRight =
       tileButtons.length && startY - 31 < cardBottom + 12

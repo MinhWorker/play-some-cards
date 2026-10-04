@@ -108,9 +108,29 @@ export default async function run(t) {
     await clickCanvas(
       page,
       'co-ty-phu-classic',
-      (s) => s.tools.find((b) => b.hit.visible && b.text.text.startsWith('Thế chấp')).hit,
+      (s) => s.tools.find((b) => b.hit.visible && b.kind === 'mortgage').hit,
     );
+    await assertState(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        s.mortgagePanel.visible &&
+        s.mortgagePanel.confirm.enabled &&
+        s.mortgagePanel.confirm.label.text.startsWith('Xác nhận +') &&
+        !s.ctx.state.properties[1].mortgaged &&
+        s.ctx.state.players[0].cash === 1000
+      );
+    }, 'Tapping the bank bypassed the mortgage confirmation');
     await clickCanvas(page, 'co-ty-phu-classic', (s) => s.mortgagePanel.confirm.hit);
+  };
+  const clickProperty = async (kind) => {
+    await idle();
+    await clickCanvas(
+      page,
+      'co-ty-phu-classic',
+      new Function(
+        `return (s) => s.tools.find((b) => b.hit.visible && b.kind === ${JSON.stringify(kind)}).hit`,
+      )(),
+    );
   };
   const fixture = async (kind) => {
     await page.evaluate(
@@ -157,7 +177,7 @@ export default async function run(t) {
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const buy = s.main.find((b) => b.hit.visible && b.text.text === 'Mua 180 ₫');
-    const mortgage = s.tools.find((b) => b.hit.visible && b.text.text === 'Thế chấp tài sản');
+    const mortgage = s.tools.find((b) => b.hit.visible && b.kind === 'mortgage');
     return (
       buy.enabled &&
       buy.box.texture.key.endsWith('/tile-button-primary') &&
@@ -198,8 +218,38 @@ export default async function run(t) {
     );
   };
   await construction('build-poor', 'Xây nhà 175 ₫', false);
+  const compactControls = () => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const auction = s.tools.find((b) => b.hit.visible && b.kind === 'auction');
+    const mortgage = s.tools.find((b) => b.hit.visible && b.kind === 'mortgage');
+    const bounds = [auction, mortgage].map((b) => b.hit.getBounds());
+    return (
+      auction.icon.visible &&
+      mortgage.icon.visible &&
+      auction.text.text === '' &&
+      mortgage.text.text === '+175 ₫' &&
+      auction.hit.y === mortgage.hit.y &&
+      bounds[0].right + 7 < bounds[1].left &&
+      s.tileActionCount === 2 &&
+      [auction, mortgage].every((b) => {
+        const icon = b.icon.getBounds(),
+          hit = b.hit.getBounds(),
+          text = b.text.getBounds();
+        return (
+          icon.left >= hit.left &&
+          icon.right <= hit.right &&
+          (!b.text.text || (text.left > icon.right && text.right <= hit.right))
+        );
+      })
+    );
+  };
+  await assertState(
+    compactControls,
+    'Property icons did not share a row or the payout was clipped',
+  );
   await page.screenshot({ path: t.shot('build-disabled-desktop.png') });
   await page.setViewportSize(PHONE);
+  await assertState(compactControls, 'Compact property controls overlap on a phone');
   await page.screenshot({ path: t.shot('build-disabled-phone.png') });
   await click('Xây nhà 175 ₫');
   await assertState(() => {
@@ -215,7 +265,17 @@ export default async function run(t) {
   }, 'Disabled construction changed the game or the baked texture was not gray');
   await construction('build-remote', 'Xây nhà 175 ₫', false);
   await construction('build-mortgaged', 'Xây nhà 175 ₫', false);
+  await page.setViewportSize({ width: 1024, height: 768 });
   await construction('hotel-full', 'Xây khách sạn 175 ₫', false);
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const bank = s.tools.find((b) => b.hit.visible && b.kind === 'mortgage');
+    return (
+      bank.text.text === '+612,5 ₫' && bank.text.getBounds().right < bank.hit.getBounds().right
+    );
+  }, 'The largest fractional mortgage payout was truncated on a narrow tile card');
+  await page.screenshot({ path: t.shot('hotel-mortgage-payout-tablet.png') });
+  await page.setViewportSize(PHONE);
   await construction('hotel-poor', 'Xây khách sạn 175 ₫', false);
   await page.screenshot({ path: t.shot('hotel-disabled-phone.png') });
   await construction('hotel-rich', 'Xây khách sạn 175 ₫', true);
@@ -244,7 +304,59 @@ export default async function run(t) {
 
   await fixture('owned');
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
-  await click('Đấu giá');
+  await clickProperty('auction');
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.auctionConfirm.visible &&
+      s.backdrop.visible &&
+      s.ctx.state.auction === null &&
+      s.ctx.state.properties[1].owner === 0 &&
+      s.ctx.state.players[0].cash === 1000 &&
+      s.auctionConfirm.name.text === 'Phú Quốc' &&
+      s.auctionConfirm.raise.text.includes('40 ₫') &&
+      ![...s.main, ...s.tools].some((b) => b.hit.visible)
+    );
+  }, 'Tapping the gavel bypassed confirmation or left the board controls active');
+  await page.screenshot({ path: t.shot('auction-confirm-desktop.png') });
+  await page.setViewportSize(PHONE);
+  await page.screenshot({ path: t.shot('auction-confirm-phone.png') });
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.auctionConfirm.cancel);
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      !s.auctionConfirm.visible &&
+      !s.backdrop.visible &&
+      s.ctx.state.auction === null &&
+      s.ctx.state.properties[1].owner === 0 &&
+      s.ctx.state.players[0].cash === 1000
+    );
+  }, 'Canceling the auction changed money or ownership');
+  await clickProperty('auction');
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    // A snapshot may skip intervening bot turns and arrive back at the same seat.
+    s.managementGame.state.playerTurns[0]++;
+    s.receive({ ...s.props, view: s.managementGame.view('a'), last: null });
+  });
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return !s.auctionConfirm.visible && s.ctx.state.auction === null;
+  }, 'An auction confirmation from a previous personal turn remained actionable');
+  await clickProperty('auction');
+  await page.evaluate(() => window.__phaser.scene.getScene('co-ty-phu-classic').send('end-turn'));
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return !s.auctionConfirm.visible && s.ctx.state.auction === null;
+  }, 'An old auction confirmation survived a turn change');
+  await fixture('owned');
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
+  await clickProperty('auction');
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.auctionConfirm.confirm);
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return !s.auctionConfirm.visible && s.ctx.state.auction?.square === 1;
+  }, 'Confirming did not start the selected deed auction');
   await click('+40 (40)');
   await click('Rút / Bỏ giá');
   await click('Rút / Bỏ giá');
@@ -323,7 +435,7 @@ export default async function run(t) {
   // A paged selector reviews several deeds, including houses/hotels, before one payment.
   await page.setViewportSize(DESKTOP);
   await fixture('bulk');
-  await click('Thế chấp tài sản');
+  await clickProperty('mortgage');
   await assertState(() => {
     const panel = window.__phaser.scene.getScene('co-ty-phu-classic').mortgagePanel;
     return panel.visible && !panel.confirm.enabled && panel.total.text.includes('Nhận 0 ₫');
@@ -362,7 +474,7 @@ export default async function run(t) {
       !state.properties[3].mortgaged
     );
   }, 'Canceling a mortgage changed the bank balance or deeds');
-  await click('Thế chấp tài sản');
+  await clickProperty('mortgage');
   await select(1);
   await select(3);
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.mortgagePanel.confirm.hit);
@@ -411,7 +523,7 @@ export default async function run(t) {
   }, 'Foreclosure failed to demolish the hotel or damaged the separately redeemed houses');
   await page.screenshot({ path: t.shot('hotel-foreclosed-phone.png') });
   await fixture('bulk');
-  await click('Thế chấp tài sản');
+  await clickProperty('mortgage');
   await page.evaluate(() => window.__phaser.scene.getScene('co-ty-phu-classic').send('end-turn'));
   await assertState(
     () => !window.__phaser.scene.getScene('co-ty-phu-classic').mortgagePanel.visible,
