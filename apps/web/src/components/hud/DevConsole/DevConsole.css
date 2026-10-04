@@ -1,5 +1,6 @@
-/* Transparent keyboard console: every descendant lets mouse and touch reach the game. */
+/* Translucent keyboard console: every descendant lets mouse and touch reach the game. */
 .dev-console {
+  box-sizing: border-box;
   position: fixed;
   top: calc(env(safe-area-inset-top, 0px) + 10px);
   left: calc(env(safe-area-inset-left, 0px) + 10px);
@@ -11,6 +12,9 @@
     env(safe-area-inset-bottom, 0px)
   );
   z-index: 2;
+  padding: 8px;
+  border-radius: 6px;
+  background: #071727cc;
   pointer-events: none;
   user-select: none;
   color: #fff;

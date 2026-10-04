@@ -79,7 +79,8 @@ chỉ hiện ai thắng khi ván kết thúc.
 
 Trong phòng thật của server chạy `npm run dev` (`PSC_DEV=1`), bật **Dev Console** trong **DEV**.
 `Ctrl+/` gõ lệnh, `` Ctrl+` `` hiện/ẩn, `Esc` thoát và `?` trong ô trống mở bảng phím tắt.
-Lớp phủ trong suốt, mọi chuột/chạm đi xuống game; không đổi kích thước khung chơi.
+Toàn bộ lớp phủ có nền tối bán trong suốt để đọc rõ trên cảnh sáng; `.opacity` chỉnh độ đậm.
+Mọi chuột/chạm đi xuống game; không đổi kích thước khung chơi.
 Chi tiết cú pháp, ghim và log: [hướng dẫn tạo game](../../docs/making-a-game.md#dùng-dev-console).
 
 Mã ở `components/hud/DevConsole/`; store, socket và lệnh nằm trong `lib/devConsole.ts`, phím

@@ -256,15 +256,15 @@ server, `testing.ts` và web cùng dùng.
 
 ## 5. Giao diện Dev Console trên web
 
-Dev Console là một **lớp phủ trong suốt, chỉ dùng bàn phím**, giống khung chat và console của
+Dev Console là một **lớp phủ có nền tối bán trong suốt, chỉ dùng bàn phím**, giống khung chat và console của
 Minecraft hay Quake. Ba quy tắc không được phá:
 
 1. **Không nhận chuột hay chạm.** Toàn bộ lớp phủ, kể cả ô gõ lệnh, có `pointer-events: none`.
    Mọi cú bấm đi thẳng xuống game như thể lớp phủ không có ở đó.
 2. **Không giữ bàn phím khi chưa được gọi.** Ngoài các tổ hợp phím của nó (mục 5.2), lớp phủ
    không nghe phím nào cho tới khi ô lệnh được focus.
-3. **Không làm xê dịch hay che giao diện game.** Lớp phủ là `position: fixed`, không đổi kích
-   thước khung game (`lib/frame.ts`), nền trong suốt, chữ mờ dần; ẩn/hiện bằng một phím.
+3. **Không làm xê dịch giao diện game.** Lớp phủ là `position: fixed`, không đổi kích
+   thước khung game (`lib/frame.ts`), nền tối bán trong suốt, chữ mờ dần; ẩn/hiện bằng một phím.
 
 Người mới vẫn dùng được nhờ: bảng phím tắt hiện bằng `?`, gợi ý hiện ngay khi gõ, và lỗi có
 gợi ý sửa. Mọi lệnh đều đi qua cùng một hàm `runCommand(line)`.
@@ -333,10 +333,10 @@ Dùng `Ctrl` trên cả macOS (vì `` Cmd+` `` là phím chuyển cửa sổ c�
 - **Vị trí:** dính góc trên bên trái, rộng tối đa 45% màn hình, chừa tai thỏ bằng
   `env(safe-area-inset-*)`. Đổi sang góc khác bằng lệnh `.dock` (mục 5.5). Ô lệnh nằm ở mép dưới
   của khung log.
-- **Không nền đặc:** chữ trắng có viền bóng (`text-shadow`) để đọc được trên mọi nền; chỉ ô lệnh
-  có một dải nền mờ. Độ đậm chỉnh bằng `.opacity`.
+- **Nền tối bán trong suốt:** nền phủ toàn bộ khung log, ô lệnh và gợi ý để chữ rõ trên cảnh
+  sáng; chữ trắng có viền bóng (`text-shadow`). Độ đậm của cả lớp phủ chỉnh bằng `.opacity`.
 - **Mờ dần:** ở trạng thái **Xem**, mỗi dòng hiện tối đa 10 giây rồi mờ đi, tối đa 8 dòng. Dòng
-  lỗi giữ lâu hơn (30 giây). Ở trạng thái **Gõ lệnh**, hiện 20 dòng gần nhất, không mờ.
+  lỗi giữ lâu hơn (30 giây). Khi hết log, nền cũng ẩn. Ở trạng thái **Gõ lệnh**, hiện 20 dòng gần nhất, không mờ.
 - **Thứ tự lớp:** trên canvas và HUD của game, dưới các hộp thoại của app (ví dụ hộp hồ sơ),
   để không che chữ của hộp thoại. `z-index: 2` nằm dưới modal (`3`); bảng DEV hiện có dùng tầng riêng (`101`).
 - **Không chọn chữ được** (vì không nhận chuột): sao chép bằng `.copy`.

@@ -1,4 +1,4 @@
-/** Three-state transparent overlay: hidden, fading room logs, and focused keyboard commands. */
+/** Three-state translucent overlay: hidden, fading room logs, and focused keyboard commands. */
 import type { RoomSnapshot } from '@psc/shared';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
@@ -17,6 +17,7 @@ export default function DevConsole({ room }: { room: RoomSnapshot | null }) {
   const input = useRef<HTMLInputElement>(null);
   const log = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'hidden' | 'view' | 'typing'>('view');
+  const [, refreshView] = useState(0);
   const state = useSyncExternalStore(subscribeConsole, consoleSnapshot);
   const initialRoom = useRef(room);
   const exit = useCallback(() => {
@@ -53,6 +54,17 @@ export default function DevConsole({ room }: { room: RoomSnapshot | null }) {
   const entries = filteredConsoleEntries().filter(
     (entry) => typing || Date.now() - entry.t < (entry.level === 'error' ? 30_000 : 10_000),
   );
+  useEffect(() => {
+    if (mode !== 'view' || entries.length === 0) return;
+    const expiresAt = Math.min(
+      ...entries.map((entry) => entry.t + (entry.level === 'error' ? 30_000 : 10_000)),
+    );
+    const timer = window.setTimeout(
+      () => refreshView((value) => value + 1),
+      Math.max(0, expiresAt - Date.now()),
+    );
+    return () => window.clearTimeout(timer);
+  }, [mode, entries]);
   const latest = state.entries.at(-1)?.id;
   useEffect(() => {
     if (latest !== undefined && log.current)
@@ -63,7 +75,7 @@ export default function DevConsole({ room }: { room: RoomSnapshot | null }) {
     <div
       className={`dev-console dev-console-${dock}`}
       data-mode={mode}
-      hidden={mode === 'hidden'}
+      hidden={mode === 'hidden' || (!typing && entries.length === 0)}
       style={{ opacity: opacity / 100 }}
     >
       <div className="dev-console-log" ref={log}>

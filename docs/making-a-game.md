@@ -134,9 +134,10 @@ trình duyệt và không nhận các lệnh phòng.
 - `.filter reject` chỉ xem nước bị từ chối; `.find "Chưa tới lượt"` tìm lý do; `.copy 20`
   chép các dòng đang lọc. `.dock tr`, `.opacity 60`, `.clear` và `.console off` chỉnh lớp phủ.
 
+Toàn bộ lớp phủ có nền tối bán trong suốt để đọc rõ trên cảnh sáng; `.opacity` chỉnh độ đậm.
 Lớp phủ chỉ dùng bàn phím: chuột và chạm luôn đi xuống game, kể cả ô lệnh. Bấm vào game sẽ
 thoát chế độ gõ. Log ở chế độ xem mờ sau 10 giây (lỗi 30 giây); phím tắt bỏ qua bộ gõ đang ghép
-chữ và ô nhập khác của ứng dụng. Khi gõ lệnh, bàn phím Phaser tạm dừng. Enter gửi lệnh và xoá
+chữ và ô nhập khác của ứng dụng. Khi hết log, nền cũng ẩn. Khi gõ lệnh, bàn phím Phaser tạm dừng. Enter gửi lệnh và xoá
 ô ngay để gõ tiếp trong lúc chờ trả lời. Chuỗi `;` chạy và in kết quả từng lệnh; lỗi dừng chuỗi,
 `.clear` ở cuối xoá những dòng đã in trước nó.
 
