@@ -153,7 +153,7 @@ export function App() {
 
   return (
     <>
-      <DevConsoleLoader />
+      <DevConsoleLoader room={session ? snapshot : null} />
       <PhaserStage stage={stage} onReady={revealCurtain} />
       <main className="ui">
         {version === 'newer' ? (

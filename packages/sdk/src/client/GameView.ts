@@ -184,15 +184,19 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       this.pendingOptions = null;
     }
     this.ctx = this.makeContext();
-    if (props.round !== before.round) {
+    const roundChanged = props.round !== before.round;
+    const restoredRound = roundChanged && Boolean(props.last || props.result);
+    if (roundChanged) {
       this.runtime.newRound();
-      this.lastSeq = 0;
-      this.hook('onStart', this.ctx);
+      this.lastSeq = props.last?.seq ?? 0;
+      this.hook(restoredRound ? 'onResync' : 'onStart', this.ctx);
     }
     const last = props.last;
     const gap =
       props.round === before.round &&
-      ((last && last.seq > this.lastSeq + 1) || props.me !== before.me);
+      ((last && last.seq > this.lastSeq + 1) ||
+        (last?.seq ?? 0) < this.lastSeq ||
+        props.me !== before.me);
     if (gap) {
       this.runtime.newRound('resync');
       this.lastSeq = last?.seq ?? 0;
@@ -209,7 +213,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       } satisfies ViewEvent);
     }
     this.hook('onState', this.ctx);
-    if (!gap && props.result && !before.result) this.hook('onEnd', this.ctx);
+    if (!gap && !restoredRound && props.result && !before.result) this.hook('onEnd', this.ctx);
   }
 
   /** When the timer ends on this device's clock (the server sends how much is left). */

@@ -3,7 +3,9 @@
  * Its screens (Phaser, browser only) use `@psc/sdk/client`.
  */
 
+export * from './console/completion.js';
 export * from './console/definitions.js';
+export * from './console/logging.js';
 export * from './console/parser.js';
 export * from './engine.js';
 export * from './game.js';

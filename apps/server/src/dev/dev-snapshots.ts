@@ -82,7 +82,13 @@ export class DevSnapshots {
         }));
         // Reject stale snapshots before replacing the live room.
         room.game.seats(stored);
-        room.game.getView(stored, room.players[0]!.id);
+        room.game.getView(stored, room.players[0]!.id, {
+          players: room.players.map((p) => ({ ...p, bot: Boolean(p.bot) })),
+          hostId: room.hostId,
+          score: frame.score,
+          options: room.options,
+          lastResult: frame.lastResult,
+        });
       }
       return frame;
     } catch (err) {

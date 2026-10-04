@@ -35,6 +35,7 @@ export interface DevCommandInfo {
   usage: string;
   example?: string;
   parameters?: Record<string, unknown>;
+  kind?: 'engine' | 'game' | 'event';
 }
 export const ENGINE_COMMANDS = [
   'help',
@@ -229,4 +230,13 @@ export function cloneConsoleValue<T>(value: T): T {
       Object.entries(value).map(([k, v]) => [k, cloneConsoleValue(v)]),
     ) as T;
   return value;
+}
+
+/** Dev-only metadata sent by the server; values stay in the game, labels travel to suggestions. */
+export interface DevConsoleSchema {
+  commands: DevCommandInfo[];
+  catalogs: Record<string, string[]>;
+  catalogLabels?: Record<string, Record<string, string>>;
+  statePaths?: string[];
+  snapshots?: string[];
 }

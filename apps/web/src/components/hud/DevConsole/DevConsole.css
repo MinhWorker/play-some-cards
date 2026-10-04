@@ -1,22 +1,149 @@
-/* Every console element lets clicks and taps through to the board. */
+/* Transparent keyboard console: every descendant lets mouse and touch reach the game. */
 .dev-console {
   position: fixed;
-  top: env(safe-area-inset-top, 8px);
-  left: env(safe-area-inset-left, 8px);
-  width: 45vw;
-  z-index: 20;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  left: calc(env(safe-area-inset-left, 0px) + 10px);
+  width: min(45vw, 720px);
+  max-height: calc(
+    100dvh -
+    20px -
+    env(safe-area-inset-top, 0px) -
+    env(safe-area-inset-bottom, 0px)
+  );
+  z-index: 2;
   pointer-events: none;
-  color: white;
-  text-shadow: 0 1px 3px black;
+  user-select: none;
+  color: #fff;
+  font:
+    12px / 1.5 ui-monospace,
+    monospace;
+  text-shadow:
+    0 1px 2px #000,
+    1px 0 2px #000,
+    -1px 0 2px #000;
+  display: flex;
+  flex-direction: column;
+}
+.dev-console[hidden] {
+  display: none;
 }
 .dev-console * {
+  /* biome-ignore lint/complexity/noImportantStyles: descendants must never intercept game clicks. */
   pointer-events: none !important;
 }
-.dev-console input {
-  width: 100%;
-  color: white;
-  background: #0004;
+.dev-console-tr,
+.dev-console-br {
+  left: auto;
+  right: calc(env(safe-area-inset-right, 0px) + 10px);
 }
-.dev-console pre {
+.dev-console-bl,
+.dev-console-br {
+  top: auto;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 10px);
+}
+.dev-console-log {
+  overflow: hidden;
+  max-height: 35vh;
+  flex-shrink: 1;
+}
+.dev-console[data-mode="typing"] .dev-console-log {
+  max-height: 50vh;
+}
+.dev-log-line {
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+.dev-log-line time {
+  color: #cde5f2;
+}
+.dev-log-error {
+  color: #ffadad;
+}
+.dev-log-warn {
+  color: #ffe397;
+}
+.dev-log-stack {
+  padding-left: 3em;
+  font-size: 0.9em;
+}
+.dev-log-fade {
+  animation: dev-log-fade 10s linear both;
+}
+@keyframes dev-log-fade {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.dev-command {
+  flex-shrink: 0;
+}
+.dev-command-usage,
+.dev-command-suggestions,
+.dev-console-help {
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.dev-command-usage strong {
+  color: #ffe188;
+}
+.dev-command-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  color: #a8e8ff;
+  max-height: 6em;
+  overflow: hidden;
+}
+.dev-command-suggestions .selected {
+  color: #ffe188;
+}
+.dev-command-field {
+  position: relative;
+  background: #07172760;
+  border-bottom: 1px solid #ffffff80;
+}
+.dev-command-field input,
+.dev-command-mirror {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 6px 6px 6px 22px;
+  border: 0;
+  font: inherit;
+  line-height: 1.5;
+  white-space: pre;
+  overflow: hidden;
+}
+.dev-command-field input {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: #fff;
+  text-shadow: none;
+  outline: none;
+  border-radius: 0;
+}
+.dev-command-prompt {
+  position: absolute;
+  left: 5px;
+  top: 6px;
+}
+.dev-command-error-span {
+  color: #ff9292;
+  text-decoration: underline wavy;
+}
+.dev-command-error {
+  color: #ffadad;
+  overflow-wrap: anywhere;
+}
+@media (max-height: 500px) {
+  .dev-console {
+    font-size: 10px;
+  }
 }

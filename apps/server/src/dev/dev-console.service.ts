@@ -4,8 +4,9 @@ import {
   type ConsoleCommand,
   ConsoleError,
   commandHookName,
+  commandUsage,
   consoleArgs,
-  type DevCommandInfo,
+  type DevConsoleSchema,
   ENGINE_COMMANDS,
   getStatePath,
   parseConsoleLine,
@@ -41,26 +42,57 @@ export class DevConsoleService {
     private readonly snapshots: DevSnapshots,
   ) {}
 
-  schema(room: Room): { commands: DevCommandInfo[]; catalogs: Record<string, string[]> } {
+  schema(room: Room): DevConsoleSchema {
     return {
       commands: [
         ...ENGINE_COMMANDS.map((name) => ({
           name,
+          kind: 'engine' as const,
           description: descriptions[name]![0],
           usage: descriptions[name]![1],
         })),
         ...Object.entries(room.game.commands ?? {}).map(([name, schema]) => ({
           name,
+          kind: 'game' as const,
           description: schema.description ?? 'Lệnh của game',
           usage: `${name} ${Object.keys(schema.shape)
             .map((key) => `<${key}>`)
             .join(' ')}`,
-          example: `${name} ${Object.keys(schema.shape)
-            .map((key) => `${key}=…`)
+          example: `${name} ${Object.entries(schema.shape)
+            .map(([, field]) => {
+              const info = z.toJSONSchema(field as z.ZodType, { unrepresentable: 'any' }) as Record<
+                string,
+                unknown
+              >;
+              if (typeof info.catalog === 'string')
+                return `@${info.catalog}:${room.game.catalogs?.[info.catalog]?.[0]?.id ?? 'id'}`;
+              if (Array.isArray(info.enum)) return JSON.stringify(info.enum[0]);
+              if (info.type === 'integer' || info.type === 'number')
+                return String(info.minimum ?? 0);
+              if (info.type === 'boolean') return 'true';
+              if (info.type === 'object') return '{}';
+              if (info.type === 'array') return '[]';
+              return '"tên"';
+            })
             .join(' ')}`,
           parameters: z.toJSONSchema(schema, { unrepresentable: 'any' }) as Record<string, unknown>,
         })),
+        ...Object.entries(room.game.events).map(([name, schema]) => ({
+          name: `as ${name}`,
+          kind: 'event' as const,
+          description: 'Sự kiện của game',
+          usage: `as <ghế> ${name}`,
+          parameters: z.toJSONSchema(schema, { unrepresentable: 'any' }) as Record<string, unknown>,
+        })),
       ],
+      catalogLabels: Object.fromEntries(
+        Object.entries(room.game.catalogs ?? {}).map(([name, entries]) => [
+          name,
+          Object.fromEntries(entries.map((e) => [e.id, e.label])),
+        ]),
+      ),
+      statePaths: this.statePaths(room.state ? (room.state as Stored<unknown>).state : null),
+      snapshots: this.snapshots.list(room),
       catalogs: Object.fromEntries(
         Object.entries(room.game.catalogs ?? {}).map(([name, entries]) => [
           name,
@@ -68,6 +100,21 @@ export class DevConsoleService {
         ]),
       ),
     };
+  }
+  private statePaths(state: unknown) {
+    const paths: string[] = [];
+    const visit = (value: unknown, prefix: string, depth: number) => {
+      if (!value || typeof value !== 'object' || depth > 6 || paths.length >= 800) return;
+      for (const [key, child] of Object.entries(value)) {
+        if (['__proto__', 'constructor', 'prototype'].includes(key) || paths.length >= 800)
+          continue;
+        const path = prefix ? `${prefix}.${key}` : key;
+        paths.push(path);
+        visit(child, path, depth + 1);
+      }
+    };
+    visit(state, '', 0);
+    return paths;
   }
   execute(
     code: string,
@@ -128,12 +175,17 @@ export class DevConsoleService {
     switch (name) {
       case 'help': {
         count(0, 1);
-        const commands = this.schema(room).commands;
+        const commands = this.schema(room).commands.filter(
+          (c) => a !== undefined || c.kind !== 'event',
+        );
         if (a !== undefined && !commands.some((x) => x.name === a))
           throw new RoomError(`Không có lệnh "${a}"`);
         return commands
           .filter((x) => a === undefined || x.name === a)
-          .map((x) => `${x.usage} · ${x.description}${x.example ? ` · ${x.example}` : ''}`)
+          .map(
+            (x) =>
+              `${commandUsage(x)}${x.parameters ? '' : ` · ${x.description}`}${x.example ? ` · ${x.example}` : ''}`,
+          )
           .join('\n');
       }
       case 'state':

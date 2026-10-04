@@ -1,6 +1,6 @@
-import type { ConsoleIssue, DevCommandInfo } from '@psc/sdk';
+import type { ConsoleIssue, DevConsoleSchema } from '@psc/sdk';
 
-export type { DevCommandInfo } from '@psc/sdk';
+export type { DevCommandInfo, DevConsoleSchema } from '@psc/sdk';
 
 import type { ProfileUpdate, User } from './account.js';
 import type { GameResult, PlayerId } from './game.js';
@@ -170,10 +170,7 @@ export interface ClientToServerEvents {
       res: { ok: true; output: string } | { ok: false; error: string; issue?: ConsoleIssue },
     ) => void,
   ) => void;
-  'dev:schema': (
-    req: Record<string, never>,
-    ack: Ack<{ commands: DevCommandInfo[]; catalogs: Record<string, string[]> }>,
-  ) => void;
+  'dev:schema': (req: Record<string, never>, ack: Ack<DevConsoleSchema>) => void;
 }
 
 export interface ServerToClientEvents {

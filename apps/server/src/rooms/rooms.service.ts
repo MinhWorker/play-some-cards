@@ -14,8 +14,8 @@ import {
   type RoomSummary,
 } from '@psc/shared';
 import { DEV_MODE } from '../dev/dev-mode.js';
-import { newRoomDev, type RoomDev, remember, rngOf } from '../dev/room-dev.js';
-import { logRoom, runRoomHook } from '../dev/room-log.js';
+import { frameOf, newRoomDev, type RoomDev, remember, rngOf } from '../dev/room-dev.js';
+import { captureConsole, logRoom, runRoomHook } from '../dev/room-log.js';
 
 export class RoomError extends Error {}
 
@@ -313,7 +313,7 @@ export class RoomsService {
       const error = room.game.validateMove(room.state, parsed.data, playerId, context);
       if (error) throw new RoomError(error);
       remember(room);
-      room.state = runRoomHook(room, hookName(event), () =>
+      room.state = captureConsole(room, () =>
         room.game.applyMove(room.state, parsed.data, playerId, rngOf(room), context),
       );
       room.last = { seq: (room.last?.seq ?? 0) + 1, player: playerId, move: parsed.data };
@@ -340,7 +340,7 @@ export class RoomsService {
           kind: 'error',
           level: 'error',
           seat,
-          text: `Lỗi khi gửi ${event}`,
+          text: `Lỗi trong ${hookName(event)}: ${err instanceof Error ? err.message : String(err)}`,
           data: err,
         });
       throw err;
@@ -355,11 +355,15 @@ export class RoomsService {
     const timer = room.status === 'playing' ? room.game.timer(room.state) : null;
     if (!timer) {
       room.timer = null;
+      if (room.dev) room.dev.remaining = null;
       return null;
     }
     const key = `${room.round}:${timer.id}`;
     if (room.timer?.key === key) return null;
-    const ms = room.dev?.remaining ?? timer.ms;
+    const ms =
+      room.timer && !room.timer.key.startsWith('restore:')
+        ? timer.ms
+        : (room.dev?.remaining ?? timer.ms);
     if (room.dev) room.dev.remaining = room.dev.timerPaused ? ms : null;
     room.timer = { key, event: timer.event, ms: timer.ms, endsAt: Date.now() + ms };
     logRoom(room, {
@@ -374,11 +378,12 @@ export class RoomsService {
   fireTimer(code: string, key: string) {
     const room = this.rooms.get(code);
     if (!room || room.status !== 'playing' || room.timer?.key !== key) return null;
-    logRoom(room, { kind: 'timer', level: 'info', text: `Timer ${room.timer.event} đã chạy` });
+    const event = room.timer.event;
+    logRoom(room, { kind: 'timer', level: 'info', text: `Timer ${event} đã chạy` });
     remember(room);
     room.timer = null;
     if (room.dev) room.dev.remaining = null;
-    room.state = runRoomHook(room, 'timer', () =>
+    room.state = runRoomHook(room, hookName(event), () =>
       room.game.fireTimer(room.state, rngOf(room), this.context(room)),
     );
     this.settle(room);
@@ -411,6 +416,7 @@ export class RoomsService {
     const room = this.rooms.get(code);
     if (!room?.game.bot || room.status !== 'playing' || (room.dev?.botsPaused && !step))
       return null;
+    const checkpoint = room.dev ? frameOf(room) : null;
     for (const seat of room.players) {
       if (!seat.bot) continue;
       const move = runRoomHook(room, 'bot', () =>
@@ -424,7 +430,9 @@ export class RoomsService {
           text: `Máy chọn ${(move as { event?: string }).event ?? '?'}`,
           data: move,
         });
-        return this.move(code, seat.id, move);
+        const changed = this.move(code, seat.id, move);
+        if (checkpoint && room.dev) room.dev.history[room.dev.history.length - 1] = checkpoint;
+        return changed;
       }
     }
     return null;

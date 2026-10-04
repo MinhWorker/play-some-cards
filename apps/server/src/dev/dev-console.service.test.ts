@@ -44,7 +44,7 @@ describe('DevConsoleService', () => {
     expect(cmd('help')).toContain('snapshot');
     expect(cmd('help as')).toContain('<ghế>');
     expect(cmd('events')).toContain('place');
-    expect(service.schema(room).commands).toHaveLength(12);
+    expect(service.schema(room).commands.filter((c) => c.kind === 'engine')).toHaveLength(12);
     expect(() => cmd('hep')).toThrow('Có phải "help"');
   });
   it('reads, writes and dumps raw state without changing last', () => {
@@ -119,6 +119,32 @@ describe('DevConsoleService', () => {
     cmd('bot resume');
     expect(room.dev?.botsPaused).toBe(false);
   });
+  it('undo restores RNG before a bot chooses its move', () => {
+    const { cmd, room } = setup('tic-tac-toe', { opponent: 'bot', level: 'easy' });
+    cmd('seed 42; as 0 place 0 0');
+    const random = room.dev?.random;
+    cmd('bot step');
+    expect(room.dev?.random).not.toBe(random);
+    cmd('undo');
+    expect(room.dev?.random).toBe(random);
+  });
+
+  it('a replacement timer gets its own duration while paused', () => {
+    const { cmd, room, rooms } = setup('tien-len', { bots: 1 });
+    room.timer!.endsAt = Date.now() + 1000;
+    cmd('timer pause');
+    const stored = room.state as Stored<unknown>;
+    room.state = {
+      ...stored,
+      timer: { id: stored.timers + 1, ms: 5000, event: 'begin' },
+      timers: stored.timers + 1,
+    };
+    expect(rooms.syncTimer(room)).toBeNull();
+    expect(room.dev?.remaining).toBe(5000);
+    cmd('timer resume');
+    expect(room.timer?.endsAt).toBeGreaterThan(Date.now() + 4500);
+  });
+
   it('finishes as a draw or seat win, then restarts with normal setup', () => {
     const { cmd, room } = setup();
     cmd('finish');
