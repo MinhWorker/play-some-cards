@@ -565,7 +565,7 @@ export default async function run(t) {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
       return (
         s.ctx.state.buildable !== null ||
-        s.tools.some((b) => b.hit.visible && b.text.text.startsWith('Xây'))
+        s.tools.some((b) => b.hit.visible && b.enabled && b.text.text.startsWith('Xây'))
       );
     })
   )
@@ -598,7 +598,7 @@ export default async function run(t) {
   await clickCanvas(
     rulesPage,
     'co-ty-phu-classic',
-    (s) => s.tools.find((b) => b.hit.visible && b.text.text === 'Xây nhà').hit,
+    (s) => s.tools.find((b) => b.hit.visible && b.text.text === 'Xây nhà 90 ₫').hit,
   );
   await rulesPage.waitForFunction(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.properties[3].houses === 1,
@@ -607,7 +607,7 @@ export default async function run(t) {
   if (
     await rulesPage.evaluate(() => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-      return s.tools.some((b) => b.hit.visible && b.text.text.startsWith('Xây'));
+      return s.tools.some((b) => b.hit.visible && b.enabled && b.text.text.startsWith('Xây'));
     })
   )
     throw new Error('The return visit permits a second upgrade');

@@ -32,6 +32,15 @@ export default async function run(t) {
         game.state.players[0].cash = kind === 'buy' ? 1 : 1000;
         if (kind === 'buy-rich') game.state.properties[1].owner = 0;
         move(game.state, 0, 3, false, 3);
+      } else if (kind.startsWith('build') || kind.startsWith('hotel')) {
+        game.state.properties[9].owner = 0;
+        game.state.properties[1].owner = 0;
+        game.state.properties[9].houses = kind.startsWith('hotel') ? 4 : 0;
+        game.state.players[0].cash = kind.endsWith('poor') ? 158 : 175;
+        move(game.state, 0, 9, false, 9);
+        if (kind === 'build-remote') game.state.players[0].position = 0;
+        if (kind === 'build-mortgaged') game.state.properties[9].mortgaged = true;
+        if (kind === 'hotel-full') game.state.properties[9].houses = 5;
       } else {
         game.state.phase = 'end';
         game.state.properties[1].owner = 0;
@@ -145,6 +154,17 @@ export default async function run(t) {
     return end.length === 1 && Math.abs(end[0].hit.x - (s.geometry.left + s.geometry.size / 2)) < 1;
   };
   await assertState(centralEnd, 'The affordable purchase replaced the central end-turn button');
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const buy = s.main.find((b) => b.hit.visible && b.text.text === 'Mua 180 ₫');
+    const mortgage = s.tools.find((b) => b.hit.visible && b.text.text === 'Thế chấp tài sản');
+    return (
+      buy.enabled &&
+      buy.box.texture.key.endsWith('/tile-button-primary') &&
+      buy.hit.y < mortgage.hit.y &&
+      mortgage.box.texture.key.endsWith('/tile-button')
+    );
+  }, 'The purchase did not take priority over mortgage management');
   await page.screenshot({ path: t.shot('affordable-purchase-phone.png') });
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
   await assertState(
@@ -158,6 +178,66 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return s.ctx.state.properties[3].owner === 0 && s.ctx.state.players[0].cash === 820;
   }, 'The purchase button on the tile card was overwritten by the central end-turn control');
+  await page.setViewportSize(DESKTOP);
+
+  // Visible, priced construction must explain unavailable actions without sending a move.
+  const construction = async (kind, label, enabled) => {
+    await fixture(kind);
+    await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[9]);
+    await assertState(
+      new Function(`return () => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      const build = s.tools.find((b) => b.hit.visible && b.text.text === ${JSON.stringify(label)});
+      const others = s.tools.filter((b) => b.hit.visible && b !== build);
+      return build && build.enabled === ${enabled} && build.hit.input.enabled === ${enabled} &&
+        build.box.texture.key.endsWith(${JSON.stringify(enabled ? '/tile-button-primary' : '/tile-button-disabled')}) &&
+        others.every((b) => build.hit.getBounds().bottom < b.hit.getBounds().top &&
+          b.box.texture.key.endsWith('/tile-button'));
+    }`)(),
+      'Construction was hidden, unpriced, wrongly styled, or below secondary actions',
+    );
+  };
+  await construction('build-poor', 'Xây nhà 175 ₫', false);
+  await page.screenshot({ path: t.shot('build-disabled-desktop.png') });
+  await page.setViewportSize(PHONE);
+  await page.screenshot({ path: t.shot('build-disabled-phone.png') });
+  await click('Xây nhà 175 ₫');
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const source = s.textures.get(s.texture('tile-button-disabled')).getSourceImage();
+    const pixels = source.getContext('2d').getImageData(0, 0, source.width, source.height).data;
+    for (let i = 0; i < pixels.length; i += 4) {
+      if (pixels[i] !== pixels[i + 1] || pixels[i + 1] !== pixels[i + 2]) return false;
+    }
+    return s.ctx.state.players[0].cash === 158 && s.ctx.state.properties[9].houses === 0;
+  }, 'Disabled construction changed the game or the baked texture was not gray');
+  await construction('build-remote', 'Xây nhà 175 ₫', false);
+  await construction('build-mortgaged', 'Xây nhà 175 ₫', false);
+  await construction('hotel-full', 'Xây khách sạn 175 ₫', false);
+  await construction('hotel-poor', 'Xây khách sạn 175 ₫', false);
+  await page.screenshot({ path: t.shot('hotel-disabled-phone.png') });
+  await construction('hotel-rich', 'Xây khách sạn 175 ₫', true);
+  await page.screenshot({ path: t.shot('hotel-primary-phone.png') });
+  await click('Xây khách sạn 175 ₫');
+  await idle();
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Xây khách sạn 175 ₫');
+    return (
+      s.ctx.state.properties[9].houses === 5 && s.ctx.state.players[0].cash === 0 && !build.enabled
+    );
+  }, 'The enabled hotel failed to build or allowed another upgrade');
+  await construction('build-rich', 'Xây nhà 175 ₫', true);
+  await page.screenshot({ path: t.shot('build-primary-phone.png') });
+  await click('Xây nhà 175 ₫');
+  await idle();
+  await assertState(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Xây nhà 175 ₫');
+    return (
+      s.ctx.state.properties[9].houses === 1 && s.ctx.state.players[0].cash === 0 && !build.enabled
+    );
+  }, 'The enabled house failed to build or allowed a second construction on the same visit');
   await page.setViewportSize(DESKTOP);
 
   await fixture('owned');

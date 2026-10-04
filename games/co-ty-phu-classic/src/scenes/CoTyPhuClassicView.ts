@@ -47,6 +47,8 @@ type TapButton = {
   hit: Phaser.GameObjects.Zone;
   text: Phaser.GameObjects.Text;
   action: () => void;
+  enabled: boolean;
+  glow: ReturnType<typeof addGlow>;
 };
 
 const PLAYER_COLORS = [0xdf6554, 0x5793d3, 0x60af72, 0xe6be52];
@@ -459,10 +461,12 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setDepth(11);
     const glow = addGlow(box, 0xffdf84);
     glow?.setActive(false);
-    const button = { box, hit, text: label, action: () => {} };
-    hit.on('pointerup', () => button.action());
+    const button: TapButton = { box, hit, text: label, action: () => {}, enabled: true, glow };
+    hit.on('pointerup', () => {
+      if (button.enabled) button.action();
+    });
     hit.on('pointerover', (pointer: Phaser.Input.Pointer) => {
-      if (!pointer.wasTouch) {
+      if (button.enabled && !pointer.wasTouch) {
         box.setTint(0xffedc0);
         glow?.setActive(true);
         clientHost().playUiSound('hover');
@@ -877,7 +881,9 @@ export class CoTyPhuClassicView extends GameView<View> {
           !this.runtime.pending('turn') &&
           !this.tradeOpen &&
           !this.mortgagePanel.visible &&
-          tileActions(ctx.state, ctx.me?.seat ?? null, i).length > 0,
+          tileActions(ctx.state, ctx.me?.seat ?? null, i).some(
+            (action) => action.enabled !== false,
+          ),
       );
       effect?.setOccupants(
         ctx.state.players.flatMap((player, seat) => {
@@ -1062,6 +1068,31 @@ export class CoTyPhuClassicView extends GameView<View> {
     );
   }
 
+  /** Bake the disabled artwork once; no per-button filters or per-frame canvas uploads. */
+  private disabledButtonTexture() {
+    const key = this.texture('tile-button-disabled');
+    if (!this.textures.exists(key)) {
+      const source = this.textures.get(this.texture('tile-button-primary')).getSourceImage();
+      const canvas = document.createElement('canvas');
+      canvas.width = source.width;
+      canvas.height = source.height;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(source as CanvasImageSource, 0, 0);
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < pixels.data.length; i += 4) {
+        const gray = Math.round(
+          pixels.data[i]! * 0.2126 + pixels.data[i + 1]! * 0.7152 + pixels.data[i + 2]! * 0.0722,
+        );
+        pixels.data[i] = gray;
+        pixels.data[i + 1] = gray;
+        pixels.data[i + 2] = gray;
+      }
+      ctx.putImageData(pixels, 0, 0);
+      this.textures.addCanvas(key, canvas);
+    }
+    return key;
+  }
+
   private put(
     button: TapButton,
     text: string,
@@ -1071,20 +1102,26 @@ export class CoTyPhuClassicView extends GameView<View> {
     action: () => void,
     height = 62,
     cardStyle: 'primary' | 'secondary' | 'roll' | null = null,
+    enabled = true,
   ) {
     const roll = cardStyle === 'roll';
     const nativeHeight = roll ? 192 : cardStyle ? 112 : 133;
     const scale = height / nativeHeight;
+    button.enabled = enabled;
+    button.glow?.setActive(false);
+    button.box.clearTint();
     button.box.setTexture(
-      this.texture(
-        roll
-          ? 'roll-button'
-          : cardStyle === 'primary'
-            ? 'tile-button-primary'
-            : cardStyle
-              ? 'tile-button'
-              : 'button',
-      ),
+      !enabled
+        ? this.disabledButtonTexture()
+        : this.texture(
+            roll
+              ? 'roll-button'
+              : cardStyle === 'primary'
+                ? 'tile-button-primary'
+                : cardStyle
+                  ? 'tile-button'
+                  : 'button',
+          ),
     );
     button.box.setSlices(
       width / scale,
@@ -1101,16 +1138,21 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setScale(scale);
     button.hit.setVisible(true).setPosition(x, y).setSize(width, height);
     button.hit.input?.hitArea.setTo(0, 0, width, height);
+    if (button.hit.input) button.hit.input.enabled = enabled;
     button.text
+      .setColor(enabled ? '#3d2b20' : '#5b5b5b')
       .setVisible(true)
       .setPosition(x + (roll ? height * 0.32 : 0), y - (roll ? 2 : 0))
       .setFontSize(roll ? 30 : height < 62 ? 20 : 22);
     this.fitText(button.text, text, width - (roll ? height * 1.2 : 14), roll ? 24 : 16);
-    button.action = action;
+    button.action = enabled ? action : () => {};
   }
 
   private hide(buttons: TapButton[]) {
     for (const button of buttons) {
+      button.enabled = false;
+      button.glow?.setActive(false);
+      if (button.hit.input) button.hit.input.enabled = false;
       button.box.setVisible(false);
       button.hit.setVisible(false);
       button.text.setVisible(false);
@@ -2655,7 +2697,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       return;
     }
     const actions = this.actions(ctx);
-    const controls: [string, () => void][] = [];
+    const controls: [string, () => void, boolean][] = [];
     if (!result && !this.tradeOpen) {
       controls.push(
         ...tileActions(state, me?.seat ?? null, selected)
@@ -2664,12 +2706,13 @@ export class CoTyPhuClassicView extends GameView<View> {
               ['build', 'sell-house', 'mortgage', 'redeem', 'auction'].includes(action.event) &&
               state.phase !== 'auction',
           )
-          .map((action): [string, () => void] => [
+          .map((action): [string, () => void, boolean] => [
             action.label,
             () =>
               action.event === 'mortgage'
                 ? this.openMortgagePanel(action.payload.square)
                 : this.send(action.event, action.payload),
+            action.enabled !== false,
           ]),
       );
       const manager = me && (state.phase === 'debt' ? decisionSeat(state) : state.turn) === me.seat;
@@ -2679,7 +2722,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         mortgageSquares(state, me.seat).length &&
         !tileActions(state, me.seat, selected).some((action) => action.event === 'mortgage')
       )
-        controls.push(['Thế chấp tài sản', () => this.openMortgagePanel()]);
+        controls.push(['Thế chấp tài sản', () => this.openMortgagePanel(), true]);
     }
     // The offer's buttons float with its paper, above the blurred board.
     const lift = this.tradeOpen ? 30 : 0;
@@ -2746,21 +2789,30 @@ export class CoTyPhuClassicView extends GameView<View> {
           ])
         : actions;
     const tileButtons = [
-      ...controls.map(([label, action], i) => ({ button: this.tools[i]!, label, action })),
+      ...controls.map(([label, action, enabled], i) => ({
+        button: this.tools[i]!,
+        label,
+        action,
+        enabled,
+        primary: label.startsWith('Xây '),
+      })),
       ...(contextualActions
         ? tileChoices.map(([label, action], i) => ({
             // Reserve the turn controls while the purchase stays on the tile's card.
             button: this.main[i + (state.phase === 'buy' ? actions.length : 0)]!,
             label,
             action,
+            enabled: true,
+            primary: label.startsWith('Mua ') || (state.phase === 'auction' && i === 0),
           }))
         : []),
     ];
+    tileButtons.sort((a, b) => Number(b.primary) - Number(a.primary));
     this.tileActionCount = tileButtons.length;
     this.drawHudFrames(ctx, selected);
     const cardButtonW = sideW - 24;
     const cardStep = this.deedActionStep(selected);
-    tileButtons.forEach(({ button, label, action }, i) => {
+    tileButtons.forEach(({ button, label, action, enabled, primary }, i) => {
       const x = this.geometry.sideX + 12 + cardButtonW / 2;
       const y =
         this.geometry.panelTop +
@@ -2776,7 +2828,8 @@ export class CoTyPhuClassicView extends GameView<View> {
         cardButtonW,
         action,
         cardStep - 6,
-        i === 0 ? 'primary' : 'secondary',
+        primary ? 'primary' : 'secondary',
+        enabled,
       );
     });
     const buttons =

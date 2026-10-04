@@ -106,6 +106,10 @@ Khi quay lại đất phố đã sở hữu trong lượt mình, được xây m
 Không xây ngay lần mua đất và không xây từ xa. Không cần đủ bộ màu hoặc xây đều.
 Đất thế chấp không được xây. Có thể xây tối đa 4 nhà, rồi nâng thành khách sạn ở cấp 5.
 
+Trong bảng thông tin ô, **Mua**, **Xây nhà** và **Xây khách sạn** là thao tác chính,
+đặt phía trên các thao tác quản lý tài sản. Nút xây luôn hiện kèm giá trên đất của bạn;
+khi chưa đủ điều kiện, nút màu xám và không bấm được.
+
 Giá mỗi cấp bằng 50% giá đất. Ngân hàng có 32 nhà và 12 khách sạn.
 Nâng lên khách sạn trả bốn nhà về ngân hàng; không thể xây nếu loại công trình cần dùng đã hết.
 Bán từng cấp nhận 50% giá xây cấp đó. Bán khách sạn xuống 4 nhà cần ngân hàng còn đủ 4 nhà.
