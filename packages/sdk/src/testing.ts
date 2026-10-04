@@ -10,6 +10,7 @@ import { seededRng } from './rng.js';
  *   game.send('b', 'place', { x: 4, y: 4 });              // throws if the game rejects it
  *   expect(game.error('b', 'place', { x: 5, y: 4 })).toBe('Chưa tới lượt bạn');
  *   expect(game.state.board.cells[40]).toBe('X');
+ *   game.command('tp 0 @square:start');                    // optional game command
  *   game.fireTimer();                                      // a ctx.setTimer went off
  *   game.leave('b');                                       // b leaves mid-game (onLeave)
  *

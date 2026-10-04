@@ -12,6 +12,15 @@
  * The server runs it: a player's event is checked against `events`, its hook returns the next
  * state, and every screen gets the new state and hears the event (see `GameView`). Hooks get one
  * `ctx` with everything about the room. They must not change `ctx.state`: return a new one.
+ *
+ * Optional `override readonly commands` maps names to z.object argument schemas and cmd<Name>
+ * hooks ("move-token" → cmdMoveToken). CommandContext<State, Options, Args> adds args/reject to
+ * GameContext. Object key order defines positional arguments; named arguments also work.
+ * `override readonly catalogs` lists { id, value, label }; catalog(name, schema?) annotates
+ * parameters for @catalog:id references and Tab completion. The default value schema is number.
+ * gameRules checks declarations at startup; testGame.command(line) uses the same pure parser.
+ * Synchronous console.log/info/warn/error is available to pure game builds and captured per room
+ * when the server starts with PSC_DEV=1. All command hooks still return new state and use ctx.rng.
  */
 import { z } from 'zod';
 import { commandHookName, validateConsoleDefinitions } from './console/definitions.js';

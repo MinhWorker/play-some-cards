@@ -7,7 +7,7 @@
  *   onLayout(ctx)          after onCreate and whenever the frame changes: place them
  *   onStart(ctx)           a new game began
  *   on<Event>(ctx, event)  someone's event was played (`press` → onPress): animate it
- *   onResync(ctx)          missed events: rebuild the current snapshot without replay
+ *   onResync(ctx)          missed/rewound events or loaded snapshots: rebuild without replay
  *   onState(ctx)           the state changed (after any of the above): show it
  *   onEnd(ctx)             the game is over (`ctx.result`)
  *   onUpdate(ctx, dt)      every frame (browser only; the server has no frames)

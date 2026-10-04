@@ -311,3 +311,20 @@ Phát sáng dùng [Glow của Phaser 4](https://docs.phaser.io/api-documentation
 trên biểu tượng Điện lực, Cấp nước, mũi tên Xuất phát, đèn máy bay, viền gieo xúc xắc và
 nút khi rê chuột. Quầng sáng mềm dùng padding tự động để không bị cắt ở mép, chất lượng
 10 mẫu; chỉ áp dụng lên ảnh nhỏ thay vì lọc cả bàn. Renderer Canvas vẫn hiện đối tượng gốc.
+
+## Lệnh Dev Console
+
+Trong phòng thật trên `npm run dev`, bật **DEV → Dev Console**, gõ `Ctrl+/` rồi dùng:
+
+| Lệnh | Tác dụng |
+| --- | --- |
+| `dice 1 1` | Lần đổ tới ra hai số đã đặt (mỗi số 1–6), sau đó xoá chỉ định |
+| `tp 0 @square:san-bay` | Đưa ghế 0 tới ô Sân bay (20); không tự kích hoạt ô |
+| `cash 0 1000` | Đặt tiền của ghế 0 |
+| `card @card:chance-bank-interest` | Rút lá Cơ hội đã chọn, vẫn chờ xác nhận như bình thường |
+
+`Tab` gợi ý toàn bộ ô và lá bài kèm tên tiếng Việt. Lá thoát tù đang được giữ không rút lại
+được. `bot pause; timer pause` giữ nguyên tình huống để quan sát;
+`.pin 1 tp 0 18; dice 1 1` và `!1` dựng lại hai bước trước sân bay. `as 0 roll` đổ thay ghế 0
+qua luật thật; `undo` quay lại, `snapshot save airport` lưu ra file. Xem
+[hướng dẫn Dev Console](../../docs/making-a-game.md#dùng-dev-console).
