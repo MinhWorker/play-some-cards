@@ -37,6 +37,7 @@ assets/                   button.webp, press.wav, island.webp
 | `onEnd(ctx)` | sau `ctx.finish(winners)` (tuỳ chọn) |
 | `onLeave(ctx)` | một người rời bàn giữa ván và ván chơi tiếp không có họ (tuỳ chọn; không có thì ván dừng) |
 | `on<Timer>(ctx)` | hẹn giờ `ctx.setTimer(ms, '<timer>')` đã tới (tuỳ chọn) |
+| `cmd<Name>(ctx)` | lệnh dev tuỳ chọn trong `commands`: context thường cộng `args` và `reject()` |
 | `view(ctx, viewer)` | mỗi người chơi được thấy gì (tuỳ chọn; giấu bài ở đây) |
 
 | `CounterView` (trình duyệt) | khi nào |
@@ -45,7 +46,7 @@ assets/                   button.webp, press.wav, island.webp
 | `onLayout(ctx)` | sau onCreate và khi khung đổi: đặt vị trí (`ctx.screen`, đơn vị thiết kế trên khung cao 720; `ctx.screen.gap` = chỗ trống giữa hàng thanh phòng, có thể `null`) |
 | `onStart(ctx)` | một ván mới bắt đầu |
 | `on<Event>(ctx, event)` | sự kiện của ai đó vừa được chơi: làm hiệu ứng (`event.player`, `event.isMe`) |
-| `onResync(ctx)` | mất sự kiện hoặc đổi người xem: dựng snapshot, không phát tiếng cũ |
+| `onResync(ctx)` | mất/quay lùi sự kiện, nạp snapshot hoặc đổi người xem: dựng snapshot, không phát tiếng cũ |
 | `onState(ctx)` | sau mọi thay đổi: hiện state |
 | `onEnd(ctx)` | ván kết thúc (`ctx.result`) |
 | `onUpdate(ctx, dt)` | mỗi khung hình (chỉ trên trình duyệt) |
@@ -67,3 +68,21 @@ phòng; kết thúc ván giữ hoạt ảnh nước cuối. Flow có `done` vớ
 `fx.parallel` nối các bước; `fx.defer` dọn object tạm và `fx.checkpoint` chặn continuation cũ
 sau `await`. `runtime.tween`/`after` dành cho phản hồi UI ngắn độc lập. Chi tiết lane, âm thanh
 trễ và timer server: [hướng dẫn tạo game](../../docs/making-a-game.md).
+
+## Dev Console và lệnh riêng
+
+Trong phòng thật trên `npm run dev`, bật **Dev Console** ở nút **DEV**, gõ `Ctrl+/` rồi
+`help`, `state get count`, `state set count 5` hoặc `as 0 press`. `undo` khôi phục thay đổi;
+`?` trong ô trống hiện phím tắt. Sandbox ở link trên vẫn chạy luật riêng trong trình duyệt.
+
+Game có thể thêm `override readonly commands` (`z.object`) và `cmd<Name>(ctx)`.
+`CommandContext<State, Options, Args>` gồm context thường, `args` đã kiểm tra và `reject()`;
+trả về state mới, dùng `ctx.rng`. Thứ tự khoá schema là thứ tự đối số theo vị trí.
+`override readonly catalogs` liệt kê `{ id, value, label }`; `catalog(name, schema?)` nhận
+`@name:id` và gợi ý bằng Tab (mặc định value là số). Tên lệnh không trùng engine, id là
+kebab-case duy nhất, hook và danh mục được kiểm tra khi tạo `gameRules`.
+
+`testGame(...).command(line)` test các lệnh riêng, kể cả chuỗi `;`, bằng cùng parser với server.
+`console.log/info/warn/error` trong hook hiện trong log phòng và terminal khi `PSC_DEV=1`;
+chi tiết mở trong DevTools của trình duyệt. Cách khai báo và ví dụ:
+[hướng dẫn tạo game](../../docs/making-a-game.md#lệnh-dev-tuỳ-chọn).

@@ -25,6 +25,10 @@ npm run dev        # mở http://localhost:5033
 Không cần tài khoản hay khoá bí mật nào: không có database thì server giữ tài khoản trong bộ nhớ.
 Mở thêm một cửa sổ trình duyệt (hoặc cửa sổ ẩn danh) để tự chơi với chính mình.
 
+`npm run dev` bật Dev Console trên server. Trong phòng thật, bật **DEV → Dev Console** rồi
+`Ctrl+/` để gõ `help`, sửa state, điều khiển bot/timer hoặc lưu ván. Xem
+[hướng dẫn Dev Console](docs/making-a-game.md#dùng-dev-console).
+
 ## Bên trong có gì
 
 - `games/<id>`: mỗi game một thư mục (luật, màn chơi, hình, âm thanh). Tự làm game với

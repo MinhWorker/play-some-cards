@@ -242,3 +242,63 @@ export const BOARD_CELLS = [
   ],
 ] as const;
 export const BOARD_IMAGE_RATIO = 1.2727272727272727 as const;
+/** Board units (0–1 across the printed board) to the image: x = (h0 u + h1 v + h2) / w, … */
+export const BOARD_HOMOGRAPHY = [
+  0.765042, -0.09543849, 0.117479, 0.0, 0.73190475, 0.020574, -0.0, -0.19087698, 1,
+] as const;
+/** The players' panel in board units: sockets the game fills in, and the field below it. */
+export const PLAYER_PANEL = {
+  avatar: {
+    u: 0.262,
+    v: 0.296,
+    r: 0.058,
+  },
+  name: {
+    u: 0.34,
+    v: 0.243,
+  },
+  cash: {
+    u: 0.34,
+    v: 0.292,
+  },
+  bar: {
+    u0: 0.34,
+    u1: 0.565,
+    v: 0.344,
+    h: 0.016,
+  },
+  rule: {
+    u: 0.589,
+    v0: 0.2,
+    v1: 0.392,
+  },
+  seats: [
+    {
+      u: 0.618,
+      v: 0.217,
+      r: 0.019,
+    },
+    {
+      u: 0.618,
+      v: 0.2655,
+      r: 0.019,
+    },
+    {
+      u: 0.618,
+      v: 0.314,
+      r: 0.019,
+    },
+    {
+      u: 0.618,
+      v: 0.3625,
+      r: 0.019,
+    },
+  ],
+  seatCash: {
+    u: 0.646,
+  },
+  field: {
+    top: 0.412,
+    bottom: 0.79,
+  },
+} as const;

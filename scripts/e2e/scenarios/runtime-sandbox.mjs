@@ -13,6 +13,7 @@ export const games = [
 
 export default async function run(t) {
   const page = await t.page(DESKTOP);
+  page.setDefaultTimeout(60000);
   const open = async (id) => {
     await page.goto(`${t.url}/?play=${id}&players=2`);
     await page.waitForFunction((key) => window.__phaser?.scene.isActive(key), id);
@@ -89,15 +90,40 @@ export default async function run(t) {
 
   for (const id of ['tien-len', 'mau-binh']) {
     await open(id);
+    if (id === 'mau-binh') {
+      // Keep the reveal round available even if rendering lags behind server timers.
+      await page.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+      await clickCanvas(
+        page,
+        'mau-binh:setup',
+        (s) => s.rows.find((row) => row.row.key === 'rounds').chips[0].container,
+      );
+      await clickCanvas(page, 'mau-binh:setup', (s) => s.submitButton.container);
+      await page.waitForFunction(() => window.__phaser.scene.isActive('mau-binh'));
+      await page.evaluate(() => window.__phaser.scene.getScene('mau-binh').runtime.setSpeed(4));
+    }
     await restart(id); // cancel an actual deal and its temporary deck/parallel card flights.
     await page.waitForFunction((key) => !window.__phaser.scene.getScene(key).dealing, id, {
-      timeout: 30000,
+      timeout: 60000,
     });
-    const cards = await page.evaluate((key) => {
+    const hand = await page.evaluate((key) => {
       const s = window.__phaser.scene.getScene(key);
-      return key === 'tien-len' ? s.hand.size : s.blocks[0].cards.length;
+      if (key === 'tien-len')
+        return {
+          cards: [...s.hand.keys()].sort((a, b) => a - b),
+          expected: [...s.ctx.state.hand].sort((a, b) => a - b),
+        };
+      return { count: s.blocks[0].cards.length };
     }, id);
-    if (cards !== 13) throw new Error(`${id}: cancelled deal did not restore 13 cards (${cards})`);
+    // The turn clock may already have played a card while headless renders the deal.
+    if (
+      id === 'tien-len'
+        ? JSON.stringify(hand.cards) !== JSON.stringify(hand.expected)
+        : hand.count !== 13
+    )
+      throw new Error(
+        `${id}: cancelled deal did not restore the current hand (${JSON.stringify(hand)})`,
+      );
     await page.screenshot({ path: t.shot(`${id}-dealt.png`) });
     if (id === 'mau-binh') {
       await page.waitForFunction(
@@ -117,7 +143,7 @@ export default async function run(t) {
           return !s.runtime.busy('reveal') && s.board.visible;
         },
         null,
-        { timeout: 30000 },
+        { timeout: 60000 },
       );
       await page.screenshot({ path: t.shot('mau-binh-revealed.png') });
     }
@@ -135,11 +161,22 @@ export default async function run(t) {
   }
 
   await open('co-ty-phu-classic');
+  // Test presentation cancellation before the PvP AFK clock can start a different action.
+  await page.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+  await clickCanvas(page, 'co-ty-phu-classic:setup', (s) => s.clockChoices[3].container);
+  await clickCanvas(page, 'co-ty-phu-classic:setup', (s) => s.submitButton.container);
+  await page.waitForFunction(() => window.__phaser.scene.isActive('co-ty-phu-classic'));
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.playbackSpeed = 2;
+    s.runtime.setSpeed(2);
+  });
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.visualPhase === 'decision' && s.main[0].hit.visible;
+    return s.visualPhase === 'decision' && s.diceHit.visible;
   });
-  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
+  // The dice themselves are the roll control.
+  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.diceHit);
   await page.waitForFunction(() =>
     window.__phaser.scene.getScene('co-ty-phu-classic').runtime.busy('turn'),
   );

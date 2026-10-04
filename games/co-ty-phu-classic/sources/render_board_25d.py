@@ -7,11 +7,10 @@ Run from the repository root:
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 
 import bpy
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from bpy_extras.object_utils import world_to_camera_view
 from mathutils import Vector
 
@@ -20,7 +19,7 @@ SOURCE = ROOT / "assets" / "board.webp"
 PNG = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-board.png"
 PRINT = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-board-print.png"
 WEBP = ROOT / "assets" / "board-25d.webp"
-GEOMETRY = ROOT / "src" / "scenes" / "boardGeometry.ts"
+GEOMETRY = ROOT / "src" / "scenes" / "board" / "boardGeometry.ts"
 BLEND = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-board.blend"
 WIDTH, HEIGHT = 1400, 1200
 CROP_X, CROP_Y, CROP_WIDTH, CROP_HEIGHT = 35, 145, 1330, 1045
@@ -35,48 +34,65 @@ GROUP_COLORS = {
     "xanh-la": (93, 169, 104, 255),
     "xanh-dam": (65, 111, 189, 255),
 }
+# The players' panel: the tile ring widened into the field's upper part, with sockets the game
+# fills in (the turn player's picture, name, cash and clock; each seat's ball and cash). In board
+# units (0–1 across the printed board); exported with the projection to boardGeometry.ts.
+FIELD = (0.18, 0.18, 0.82, 0.79)  # the inner field's edges: left, top, right, bottom
+PANEL_BOTTOM = 0.412  # where the field now starts
+PANEL = {
+    "avatar": {"u": 0.262, "v": 0.296, "r": 0.058},
+    "name": {"u": 0.34, "v": 0.243},
+    "cash": {"u": 0.34, "v": 0.292},
+    "bar": {"u0": 0.34, "u1": 0.565, "v": 0.344, "h": 0.016},
+    "rule": {"u": 0.589, "v0": 0.2, "v1": 0.392},
+    "seats": [{"u": 0.618, "v": round(0.217 + i * 0.0485, 4), "r": 0.019} for i in range(4)],
+    "seatCash": {"u": 0.646},
+    "field": {"top": PANEL_BOTTOM, "bottom": FIELD[3]},
+}
+INLAY = {"ring": (215, 164, 67, 255), "edge": (107, 58, 16, 255), "shine": (246, 216, 140, 255), "well": (201, 180, 140, 255), "deep": (74, 56, 40, 255)}
+
 # Keep this order and the group colors in sync with BOARD and GROUP_COLORS in game/model.ts.
 SQUARES = [
     ("start", None),
     ("street", "nau"),
-    ("chest", None),
     ("street", "nau"),
+    ("street", "xanh-la"),
     ("tax", None),
     ("station", None),
-    ("street", "xanh-nhat"),
+    ("street", "hong"),
     ("chance", None),
-    ("street", "xanh-nhat"),
-    ("street", "xanh-nhat"),
+    ("street", "vang"),
+    ("street", "do"),
     ("jail", None),
-    ("street", "hong"),
+    ("street", "xanh-nhat"),
     ("power", None),
-    ("street", "hong"),
+    ("street", "xanh-dam"),
     ("street", "hong"),
     ("station", None),
-    ("street", "cam"),
+    ("street", "vang"),
     ("chest", None),
-    ("street", "cam"),
-    ("street", "cam"),
-    ("free", None),
+    ("street", "nau"),
+    ("street", "xanh-nhat"),
+    ("airport", None),
     ("street", "do"),
     ("chance", None),
-    ("street", "do"),
-    ("street", "do"),
+    ("street", "xanh-la"),
+    ("street", "cam"),
     ("station", None),
-    ("street", "vang"),
-    ("street", "vang"),
+    ("street", "xanh-dam"),
+    ("street", "xanh-nhat"),
     ("water", None),
     ("street", "vang"),
     ("go-jail", None),
     ("street", "xanh-la"),
-    ("street", "xanh-la"),
+    ("street", "hong"),
     ("chest", None),
-    ("street", "xanh-la"),
+    ("street", "cam"),
     ("station", None),
-    ("chance", None),
     ("street", "xanh-dam"),
+    ("street", "do"),
     ("tax", None),
-    ("street", "xanh-dam"),
+    ("street", "cam"),
 ]
 
 
@@ -194,8 +210,13 @@ def draw_icon(draw, kind, size):
             rect((x, 22, x + 7, 78), radius=3)
         if kind == "go-jail":
             poly([(6, 47), (26, 34), (26, 42), (44, 42), (44, 52), (26, 52), (26, 61)])
-    elif kind == "free":
-        poly([(50, 7), (61, 39), (93, 50), (61, 61), (50, 93), (39, 61), (7, 50), (39, 39)])
+    elif kind == "airport":
+        poly([
+            (46, 8), (54, 8), (59, 39), (91, 60), (91, 68),
+            (58, 56), (56, 78), (70, 88), (70, 94), (50, 88),
+            (30, 94), (30, 88), (44, 78), (42, 56), (9, 68),
+            (9, 60), (41, 39),
+        ])
 
 
 def widen_track(image):
@@ -264,7 +285,7 @@ def make_print_texture():
         pad_y = max(2, round(height * 0.055))
         center_x = (x0 + x1) / 2
         center_y = (y0 + y1) / 2
-        band_color = GROUP_COLORS.get(group) if group else ((112, 132, 129, 255) if kind == "station" else None)
+        band_color = None
         if band_color:
             if side == "bottom":
                 band = (x0 + pad_x, y0 + pad_y, x1 - pad_x, y0 + round(height * 0.18))
@@ -284,14 +305,129 @@ def make_print_texture():
                 )
         icon_canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
         draw_icon(ImageDraw.Draw(icon_canvas, "RGBA"), kind, 512)
-        icon_size = round(min(width, height) * (0.62 if side == "corner" else 0.88))
+        icon_size = round(min(width, height) * (0.42 if side == "corner" else 0.54))
+        # Leave the inner half of every face for the live Vietnamese place label.
+        if side == "bottom":
+            center_y = y0 + height * 0.6
+        elif side == "top":
+            center_y = y0 + height * 0.4
+        elif side == "left":
+            center_x = x0 + width * 0.4
+        elif side == "right":
+            center_x = x0 + width * 0.6
+        else:
+            center_y = y0 + height * 0.38
         icon_canvas = icon_canvas.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
         image.alpha_composite(
             icon_canvas,
             (round(center_x - icon_size / 2), round(center_y - icon_size / 2)),
         )
+    image = widen_into_field(image)
     PRINT.parent.mkdir(parents=True, exist_ok=True)
     image.save(PRINT)
+
+
+def widen_into_field(image):
+    """The tile ring's top band reaches down into the field as one big tile (the players' panel).
+
+    The field's border, with its corner pieces, moves down to the panel's foot; the side columns
+    of tiles are left untouched, so the two corners where panel and field meet stay clean.
+    """
+    W, H = image.size
+    px = lambda u: round(u * W)
+    py = lambda v: round(v * H)
+    # The field's border band runs from 14 px outside its edge to 11 px inside it.
+    left, right, top, bottom = px(FIELD[0]) - 14, px(FIELD[2]) + 9, py(FIELD[1]) - 14, py(FIELD[3]) + 1
+    foot = py(PANEL_BOTTOM) - 14
+    # One top-row tile (square 25: its face and bevel); its inner half is blank paper. The dark
+    # line just left of it is the groove between tiles.
+    u0, v0, u1, v1 = square_bounds(25)
+    tile = image.crop((px(u0) + 3, py(v0) + 12, px(u1) - 3, py(v1) - 18))
+    groove = image.getpixel((px(u0) - 1, py((v0 + v1) / 2)))
+    tw, th = tile.size
+    raw = tile.crop((26, th - 140, tw - 26, th - 26))
+    import numpy as np  # bundled with Blender
+
+    # Keep only the paper's fine grain over one even tone, so laid side by side it shows no seams.
+    grain = np.asarray(raw, np.float32) - np.asarray(raw.filter(ImageFilter.GaussianBlur(10)), np.float32)
+    tone = np.asarray(raw, np.float32).reshape(-1, 4).mean(axis=0)
+    paper = Image.fromarray(np.clip(grain + tone, 0, 255).astype(np.uint8), "RGBA")
+
+    def big_tile(w, h, m=30):
+        out = Image.new("RGBA", (w, h))
+        pw, ph = paper.size
+        for y in range(0, h, ph):
+            for x in range(0, w, pw):
+                patch = paper
+                if (x // pw + y // ph) % 2:
+                    patch = patch.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                if (x // pw) % 3 == 1:
+                    patch = patch.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+                out.paste(patch, (x, y))
+        out.paste(tile.crop((m, 0, tw - m, m)).resize((w - 2 * m, m)), (m, 0))
+        out.paste(tile.crop((m, th - m, tw - m, th)).resize((w - 2 * m, m)), (m, h - m))
+        out.paste(tile.crop((0, m, m, th - m)).resize((m, h - 2 * m)), (0, m))
+        out.paste(tile.crop((tw - m, m, tw, th - m)).resize((m, h - 2 * m)), (w - m, m))
+        for sx, sy, dx, dy in ((0, 0, 0, 0), (tw - m, 0, w - m, 0), (0, th - m, 0, h - m), (tw - m, th - m, w - m, h - m)):
+            out.paste(tile.crop((sx, sy, sx + m, sy + m)), (dx, dy))
+        return out
+
+    # The border's top run and its two corner pieces, taken from inside the side columns only.
+    strip = image.crop((left, top - 2, right, top + 110))
+    # Its outer line carries a gold tab under every top-row tile seam; under the big tile there
+    # are no seams, so the line is relaid from a seamless stretch (mid-tile) end to end. At the
+    # two ends it then meets the field's side lines in a clean corner.
+    mid = px(sum(square_bounds(25)[0::2]) / 2) - left
+    clean = strip.crop((mid - 20, 0, mid + 20, 16))
+    for x in range(0, strip.width, clean.width):
+        strip.paste(clean, (x, 0))
+    image.paste(Image.new("RGBA", (right - left, foot - top + 4), groove), (left, top - 2))
+    image.alpha_composite(strip, (left, foot - 2))
+    image.alpha_composite(big_tile(right - left - 4, foot - top - 4), (left + 2, top))
+    # A soft shadow on the field under the raised paper.
+    shade = np.asarray(image, np.float32).copy()
+    for i in range(28):
+        shade[foot + 28 + i, left + 26 : right - 26, :3] *= 1 - 0.18 * (1 - i / 28)
+    image = Image.fromarray(shade.astype(np.uint8), "RGBA")
+    return inlay_sockets(image)
+
+
+def inlay_sockets(image):
+    """Cartoon inlays on the panel: gold-rimmed wells for the pictures and balls, the clock's groove
+    and a rule before the seats' list. Drawn 3× and scaled down for smooth edges."""
+    W, H = image.size
+    x0, y0, x1, y1 = round(FIELD[0] * W), round(FIELD[1] * H), round(FIELD[2] * W), round(PANEL_BOTTOM * H)
+    S = 3
+    layer = Image.new("RGBA", ((x1 - x0) * S, (y1 - y0) * S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    at = lambda u, v: ((u * W - x0) * S, (v * H - y0) * S)
+
+    def well(u, v, r, rim):
+        cx, cy = at(u, v)
+        R = r * W * S
+        rim *= S
+        d.ellipse((cx - R - rim, cy - R - rim, cx + R + rim, cy + R + rim), fill=INLAY["edge"])
+        d.ellipse((cx - R - rim * 0.8, cy - R - rim * 0.8, cx + R + rim * 0.8, cy + R + rim * 0.8), fill=INLAY["ring"])
+        d.arc((cx - R - rim * 0.55, cy - R - rim * 0.55, cx + R + rim * 0.55, cy + R + rim * 0.55), 200, 320, fill=INLAY["shine"], width=max(2, round(rim * 0.25)))
+        d.ellipse((cx - R, cy - R, cx + R, cy + R), fill=INLAY["edge"])
+        d.ellipse((cx - R * 0.94, cy - R * 0.94, cx + R * 0.94, cy + R * 0.94), fill=INLAY["well"])
+
+    a = PANEL["avatar"]
+    well(a["u"], a["v"], a["r"], 22)
+    for seat in PANEL["seats"]:
+        well(seat["u"], seat["v"], seat["r"], 9)
+    b = PANEL["bar"]
+    (bx0, by0), (bx1, by1) = at(b["u0"], b["v"] - b["h"] / 2), at(b["u1"], b["v"] + b["h"] / 2)
+    radius = (by1 - by0) / 2
+    d.rounded_rectangle((bx0 - 7 * S, by0 - 7 * S, bx1 + 7 * S, by1 + 7 * S), radius=radius + 7 * S, fill=INLAY["edge"])
+    d.rounded_rectangle((bx0 - 5 * S, by0 - 5 * S, bx1 + 5 * S, by1 + 5 * S), radius=radius + 5 * S, fill=INLAY["ring"])
+    d.rounded_rectangle((bx0, by0, bx1, by1), radius=radius, fill=INLAY["deep"])
+    r = PANEL["rule"]
+    (rx, ry0), (_, ry1) = at(r["u"], r["v0"]), at(r["u"], r["v1"])
+    d.rounded_rectangle((rx - 4 * S, ry0, rx + 4 * S, ry1), radius=4 * S, fill=INLAY["edge"])
+    d.rounded_rectangle((rx - 2 * S, ry0 + 2 * S, rx + 1 * S, ry1 - 2 * S), radius=2 * S, fill=INLAY["ring"])
+    image.alpha_composite(layer.resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS), (x0, y0))
+    return image
 
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
@@ -314,10 +450,10 @@ gold = material("Warm brass reveal", (0.72, 0.38, 0.065), 0.68, 0.23)
 
 
 def rounded_slab(name, size, z, height, bevel, mat):
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, z))
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0.082, z))
     obj = bpy.context.object
     obj.name = name
-    obj.dimensions = (size, size, height)
+    obj.dimensions = (size, size - 0.164, height)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     modifier = obj.modifiers.new("Soft carved edge", "BEVEL")
     modifier.width = bevel
@@ -327,21 +463,21 @@ def rounded_slab(name, size, z, height, bevel, mat):
     return obj
 
 
-rounded_slab("lower wood tier", 4.22, -0.18, 0.22, 0.07, dark_wood)
-rounded_slab("brass inset", 4.19, -0.065, 0.045, 0.025, gold)
-rounded_slab("upper wood tier", 4.14, -0.018, 0.09, 0.045, wood)
+rounded_slab("lower wood tier", 3.74, -0.10, 0.10, 0.025, dark_wood)
+rounded_slab("brass inset", 3.72, -0.035, 0.025, 0.012, gold)
+rounded_slab("upper wood tier", 3.70, -0.005, 0.05, 0.012, wood)
 
 # The base illustration keeps the board's material detail; monochrome symbols and group bands
 # are printed into its UV texture before Blender renders the perspective.
 mesh = bpy.data.meshes.new("board surface")
 mesh.from_pydata(
-    [(-2, -2, 0.035), (2, -2, 0.035), (2, 2, 0.035), (-2, 2, 0.035)],
+    [(-1.848, -1.684, 0.035), (1.848, -1.684, 0.035), (1.848, 1.848, 0.035), (-1.848, 1.848, 0.035)],
     [],
     [(0, 1, 2, 3)],
 )
 mesh.update()
 uv = mesh.uv_layers.new(name="board UV")
-for loop, coord in zip(mesh.polygons[0].loop_indices, [(0, 0), (1, 0), (1, 1), (0, 1)]):
+for loop, coord in zip(mesh.polygons[0].loop_indices, [(0.038, 0.079), (0.962, 0.079), (0.962, 0.962), (0.038, 0.962)]):
     uv.data[loop].uv = coord
 surface = bpy.data.objects.new("printed board", mesh)
 bpy.context.collection.objects.link(surface)
@@ -422,6 +558,17 @@ for i in range(40):
     v, h = axis(row, False)
     cells.append([project(u, v), project(u + w, v), project(u + w, v + h), project(u, v + h)])
 
+# The board's plane seen by the camera: a projective map from board units to the image.
+import numpy as np  # bundled with Blender
+
+corners = [(0, 0), (1, 0), (1, 1), (0, 1)]
+rows, rhs = [], []
+for (u, v), (x, y) in zip(corners, [project(u, v) for u, v in corners]):
+    rows.append([u, v, 1, 0, 0, 0, -u * x, -v * x])
+    rows.append([0, 0, 0, u, v, 1, -u * y, -v * y])
+    rhs += [x, y]
+homography = [round(float(value), 8) for value in np.linalg.solve(np.array(rows), np.array(rhs))] + [1]
+
 GEOMETRY.write_text(
     "// Generated by sources/render_board_25d.py; coordinates are normalized to board-25d.webp.\n"
     "export const BOARD_CELLS = [\n"
@@ -431,17 +578,15 @@ GEOMETRY.write_text(
     )
     + "] as const;\n"
     + f"export const BOARD_IMAGE_RATIO = {CROP_WIDTH / CROP_HEIGHT} as const;\n"
+    + "/** Board units (0–1 across the printed board) to the image: x = (h0 u + h1 v + h2) / w, … */\n"
+    + f"export const BOARD_HOMOGRAPHY = {json.dumps(homography)} as const;\n"
+    + "/** The players' panel in board units: sockets the game fills in, and the field below it. */\n"
+    + f"export const PLAYER_PANEL = {json.dumps(PANEL, indent=2)} as const;\n"
 )
 
 BLEND.parent.mkdir(parents=True, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=str(BLEND))
 bpy.ops.render.render(write_still=True)
-subprocess.run(
-    [
-        "ffmpeg", "-v", "error", "-y", "-i", str(PNG),
-        "-vf", f"crop={CROP_WIDTH}:{CROP_HEIGHT}:{CROP_X}:{CROP_Y}",
-        "-quality", "92", str(WEBP),
-    ],
-    check=True,
-)
+# Crop to the board and save as WebP (Pillow, so no ffmpeg is needed).
+Image.open(PNG).crop((CROP_X, CROP_Y, CROP_X + CROP_WIDTH, CROP_Y + CROP_HEIGHT)).save(WEBP, "WEBP", quality=92)
 print(f"Wrote {WEBP} and {GEOMETRY}")

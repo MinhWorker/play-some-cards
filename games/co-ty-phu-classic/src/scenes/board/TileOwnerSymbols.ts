@@ -1,5 +1,5 @@
 import type Phaser from 'phaser';
-import { BOARD, isDeed } from '../game/model.js';
+import { BOARD, isDeed } from '../../game/model.js';
 import { BOARD_CELLS } from './boardGeometry.js';
 
 type Owner = number | null;
@@ -66,7 +66,7 @@ export class TileOwnerSymbols {
     });
 
     this.context.putImageData(frame, 0, 0);
-    this.texture.update();
+    this.texture.refresh();
   }
 
   destroy() {
@@ -104,8 +104,9 @@ export class TileOwnerSymbols {
         const chroma = Math.max(red, green, blue) - Math.min(red, green, blue);
         if (this.original.data[offset + 3] === 0 || light > 132 || chroma > 58) continue;
 
-        // Keep the printed symbol's soft antialiasing while shifting its dark ink to the owner hue.
-        const coverage = Math.min(1, (142 - light) / 95);
+        // Cover the printed ink fully (only its soft edge stays partial), so the symbol reads in
+        // the owner's color, the same ink as the tile's name.
+        const coverage = Math.min(1, (142 - light) / 40);
         pixels[offset] = targetRed;
         pixels[offset + 1] = targetGreen;
         pixels[offset + 2] = targetBlue;

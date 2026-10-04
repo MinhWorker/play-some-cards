@@ -12,8 +12,19 @@
  * The server runs it: a player's event is checked against `events`, its hook returns the next
  * state, and every screen gets the new state and hears the event (see `GameView`). Hooks get one
  * `ctx` with everything about the room. They must not change `ctx.state`: return a new one.
+ *
+ * Optional `override readonly commands` maps names to z.object argument schemas and cmd<Name>
+ * hooks ("move-token" → cmdMoveToken). CommandContext<State, Options, Args> adds args/reject to
+ * GameContext. Object key order defines positional arguments; named arguments also work.
+ * `override readonly catalogs` lists { id, value, label }; catalog(name, schema?) annotates
+ * parameters for @catalog:id references and Tab completion. The default value schema is number.
+ * gameRules checks declarations at startup; testGame.command(line) uses the same pure parser.
+ * Synchronous console.log/info/warn/error is available to pure game builds and captured per room
+ * when the server starts with PSC_DEV=1. All command hooks still return new state and use ctx.rng.
  */
 import { z } from 'zod';
+import { commandHookName, validateConsoleDefinitions } from './console/definitions.js';
+import type { Catalogs } from './console/parser.js';
 import type { GameResult, GameRules, PlayerId, RoomContext } from './game.js';
 import { type Rng, seededRng } from './rng.js';
 
@@ -70,6 +81,13 @@ export interface EventContext<State, Payload = Record<string, never>, Options = 
   reject(message: string): never;
 }
 
+/** Dev command hook: the normal pure game context plus schema-validated arguments. */
+export interface CommandContext<State, Options = undefined, Args = Record<string, never>>
+  extends GameContext<State, Options> {
+  args: Args;
+  reject(message: string): never;
+}
+
 /** What a timer's hook gets (see `setTimer`). */
 export interface TimerContext<State, Payload = undefined, Options = undefined>
   extends GameContext<State, Options> {
@@ -98,6 +116,10 @@ export abstract class Game<State, Options = undefined, View = State> {
   abstract readonly events: Record<string, z.ZodType>;
   /** Events whose data other players must not see (e.g. a card passed face down). */
   readonly secretEvents: string[] = [];
+  /** Optional dev commands: z.object key order is positional argument order; name → cmd<Name>. */
+  readonly commands: Record<string, z.ZodObject> = {};
+  /** Optional named values for @catalog:id references and Tab suggestions. */
+  readonly catalogs: Catalogs = {};
 
   /** A new game begins ("Bắt đầu", "Chơi ván mới"): return the first state. */
   abstract onStart(ctx: StartContext<Options>): State;
@@ -171,6 +193,11 @@ export function gameRules<State, Options, View>(
   game: Game<State, Options, View>,
 ): GameRules<Stored<State>, GameEvent, View, Options> {
   const hooks = game as Game<State, Options, View> & OptionalHooks<State, Options, View>;
+  validateConsoleDefinitions(game.commands, game.catalogs, game.events);
+  for (const name of Object.keys(game.commands)) {
+    if (typeof (game as unknown as Record<string, unknown>)[commandHookName(name)] !== 'function')
+      throw new Error(`Command "${name}" needs a ${commandHookName(name)}(ctx) method`);
+  }
   const names = Object.keys(game.events);
   for (const name of names) {
     if (typeof (game as unknown as Record<string, unknown>)[hookName(name)] !== 'function') {
@@ -264,6 +291,27 @@ export function gameRules<State, Options, View>(
   };
 
   return {
+    events: game.events,
+    commands: game.commands,
+    catalogs: game.catalogs,
+    runCommand(stored, name, args, rng, room) {
+      const schema = game.commands[name];
+      if (!schema) throw new Error(`Không có lệnh "${name}"`);
+      const parsed = schema.safeParse(args);
+      if (!parsed.success) throw new Error(`Tham số của ${name} không hợp lệ`);
+      const hook = (game as unknown as Record<string, (ctx: unknown) => State>)[
+        commandHookName(name)
+      ]!;
+      return runHook(stored, rng, room, (ctx) =>
+        hook.call(game, {
+          ...ctx,
+          args: parsed.data,
+          reject: (message: string): never => {
+            throw new Rejected(message);
+          },
+        }),
+      );
+    },
     moveSchema: z.object({ event: z.string(), payload: z.unknown().optional() }),
 
     setup(players, rng, options, room) {

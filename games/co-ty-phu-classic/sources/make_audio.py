@@ -154,3 +154,14 @@ for source, destination in selected.items():
     shutil.copyfile(PREVIEW / source, ASSETS / destination)
 shutil.copyfile(PREVIEW / "tien-len-standings.mp3", ASSETS / "tycoon-win.mp3")
 (ASSETS / "tycoon-win.wav").unlink(missing_ok=True)
+
+# Preserve the selected Tiến Lên card effects when rebuilding the audio pack.
+TIEN_LEN = ASSETS.parents[1] / "tien-len" / "assets"
+shutil.copyfile(TIEN_LEN / "tien-len-card-select.wav", ASSETS / "tycoon-card.wav")
+shutil.copyfile(TIEN_LEN / "tien-len-card-play.wav", ASSETS / "tycoon-card-flip.wav")
+
+NOTIFICATIONS = ASSETS.parents[2] / "assets" / "audio" / "sfx"
+shutil.copyfile(NOTIFICATIONS / "freesound_gamestudio-material-buy-success-394517.mp3",
+                ASSETS / "tycoon-trade-request.mp3")
+shutil.copyfile(NOTIFICATIONS / "freesound_community-item-pick-up-38258.mp3",
+                ASSETS / "tycoon-item-receive.mp3")

@@ -1,5 +1,11 @@
-import { BOARD, groupSquares, isDeed, type View } from '../game/model.js';
-import { bankHotels, bankHouses, buildingsInGroup, ownsGroup } from '../game/rules.js';
+import {
+  auctionRaise,
+  BOARD,
+  isDeed,
+  STATION_CONTRIBUTION_STEP,
+  type View,
+} from '../../game/model.js';
+import { bankHotels, bankHouses, mortgageAmount, redeemAmount } from '../../game/rules.js';
 
 export type TileAction = { label: string; event: string; payload: Record<string, number> };
 
@@ -14,34 +20,49 @@ export function tileActions(state: View, seat: number | null, square: number): T
       ...(state.players[seat]!.cash >= cell.price!
         ? [{ label: `Mua ${cell.price} ₫`, event: 'buy', payload: {} }]
         : []),
-      { label: 'Đấu giá', event: 'auction', payload: {} },
+      { label: 'Hết lượt', event: 'end-turn', payload: {} },
     ];
   }
   if (state.phase === 'auction') {
     const auction = state.auction;
     if (auction?.square !== square || auction.bidder !== seat) return [];
+    if (auction.seller === undefined) {
+      if (
+        state.turn !== seat ||
+        state.pending !== square ||
+        state.players[seat]!.position !== square ||
+        auction.passed.includes(seat)
+      )
+        return [];
+      const amount = auction.highest + STATION_CONTRIBUTION_STEP;
+      return [
+        ...(amount <= state.players[seat]!.cash
+          ? [{ label: `Góp ${amount} ₫`, event: 'bid', payload: { amount } }]
+          : []),
+        { label: 'Từ bỏ', event: 'pass', payload: {} },
+      ];
+    }
     return [
-      ...[1, 10, 50]
+      ...[1, 2, 3]
+        .map((step) => step * auctionRaise(square))
         .filter((plus) => auction.highest + plus <= state.players[seat]!.cash)
         .map((plus) => ({
           label: `+${plus} (${auction.highest + plus})`,
           event: 'bid',
           payload: { amount: auction.highest + plus },
         })),
-      { label: 'Bỏ giá', event: 'pass', payload: {} },
+      ...(auction.leader !== seat ? [{ label: 'Rút / Bỏ giá', event: 'pass', payload: {} }] : []),
     ];
   }
   if (state.phase === 'event' || state.phase === 'trade' || deed.owner !== seat) return [];
   const actions: TileAction[] = [];
   const payload = { square };
   const cash = state.players[seat]!.cash;
-  const buildings = groupSquares(cell.group ?? 'nau').map((i) => state.properties[i]!.houses);
-  if (cell.kind === 'street' && ownsGroup(state, seat, square)) {
-    const mortgaged = groupSquares(cell.group!).some((i) => state.properties[i]!.mortgaged);
+  if (cell.kind === 'street' && state.turn === seat && state.buildable === square) {
     if (
-      !mortgaged &&
+      !deed.mortgaged &&
       deed.houses < 5 &&
-      deed.houses === Math.min(...buildings) &&
+      state.players[seat]!.position === square &&
       cash >= cell.houseCost! &&
       (deed.houses === 4 ? bankHotels(state) > 0 : bankHouses(state) > 0)
     )
@@ -53,16 +74,28 @@ export function tileActions(state: View, seat: number | null, square: number): T
   }
   if (
     cell.kind === 'street' &&
+    !deed.mortgaged &&
     deed.houses > 0 &&
-    deed.houses === Math.max(...buildings) &&
     (deed.houses !== 5 || bankHouses(state) >= 4)
   )
     actions.push({ label: 'Bán nhà', event: 'sell-house', payload });
+  const canManage =
+    (state.phase === 'debt' ? (state.debt?.payer ?? state.turn) : state.turn) === seat;
+  if (!canManage) return actions;
+  actions.push({ label: 'Đấu giá', event: 'auction', payload });
   if (deed.mortgaged) {
-    if (cash >= Math.ceil((cell.price! / 2) * 1.1))
-      actions.push({ label: 'Chuộc đất', event: 'redeem', payload });
-  } else if (!buildingsInGroup(state, square)) {
-    actions.push({ label: 'Thế chấp', event: 'mortgage', payload });
+    if (cash >= redeemAmount(state, square))
+      actions.push({
+        label: `Chuộc ${redeemAmount(state, square).toLocaleString('vi-VN')} ₫`,
+        event: 'redeem',
+        payload,
+      });
+  } else {
+    actions.push({
+      label: `Thế chấp +${mortgageAmount(state, square).toLocaleString('vi-VN')} ₫`,
+      event: 'mortgage',
+      payload,
+    });
   }
   return actions;
 }

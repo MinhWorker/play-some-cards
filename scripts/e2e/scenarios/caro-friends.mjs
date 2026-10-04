@@ -32,7 +32,7 @@ export default async function run(t) {
   await host.getByRole('button', { name: '+ Tạo phòng' }).click();
   // Caro has its own setup screen: "Bạn bè" creates a room for people.
   await caroSetup(host, 'opponents[0]');
-  await host.getByText('Phòng của Minh').waitFor();
+  await host.getByRole('heading', { name: 'Đang chờ người chơi' }).waitFor();
 
   // The guest finds Minh's room in the live list and takes the free seat.
   await openRooms(guest, 'tic-tac-toe');
@@ -66,7 +66,7 @@ export default async function run(t) {
   await guest.getByLabel('Tên đăng nhập').fill(t.username('Lan').toUpperCase());
   await guest.getByLabel('Mật khẩu', { exact: true }).fill(PASSWORD);
   await guest.getByRole('button', { name: 'Vào chơi' }).click();
-  await guest.getByRole('button', { name: '← Rời phòng' }).waitFor();
+  await guest.getByRole('button', { name: 'Về danh sách phòng' }).waitFor();
   await guest.waitForTimeout(800);
   await guest.screenshot({ path: t.shot('3b-back-in-seat-phone.png') });
 
@@ -123,7 +123,7 @@ export default async function run(t) {
   await leaveRoom(host);
   await guest.getByText('👑 Lan').waitFor();
   await guest.getByRole('button', { name: 'Bắt đầu' }).waitFor();
-  await guest.getByRole('button', { name: '← Rời phòng' }).click();
+  await guest.getByRole('button', { name: 'Về danh sách phòng' }).click();
   await fan.getByText('Phòng đã giải tán').waitFor();
   await fan.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
   await fan.screenshot({ path: t.shot('7-disbanded-spectator.png') });

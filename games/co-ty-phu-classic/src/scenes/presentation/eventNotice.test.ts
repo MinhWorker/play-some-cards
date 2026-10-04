@@ -8,9 +8,9 @@ it('avoids repeating arrival and turn context', () => {
 
 it('presents a card once and retains its charge or debt outcome', () => {
   const card = 'Phí khám bệnh 50.';
-  expect(eventNotice(card, card, 'Cộng đồng')).toBe('Khoẻ người, nhẹ ví: khám bệnh 50 ₫.');
+  expect(eventNotice(card, card, 'Khí vận')).toBe('Khoẻ người, nhẹ ví: khám bệnh 50 ₫.');
   expect(
-    eventNotice(`${card}: cần trả 50. Bán nhà hoặc thế chấp để trả nợ.`, card, 'Cộng đồng'),
+    eventNotice(`${card}: cần trả 50. Bán nhà hoặc thế chấp để trả nợ.`, card, 'Khí vận'),
   ).toContain('Chưa đủ tiền: cần trả 50 ₫.');
   expect(eventNotice('Đến Xuất phát.', 'Tiến về Xuất phát. Nhận 200.', 'Xuất phát')).toContain(
     '200',
@@ -25,8 +25,8 @@ it('keeps purchase price and unfamiliar events intact', () => {
 });
 
 it('distinguishes visiting jail, imprisonment and failed release', () => {
-  expect(landingHeading(10, 'Nhà tù / Thăm', false)).toBe('Ghé thăm nhà tù');
-  expect(landingHeading(10, 'Nhà tù / Thăm', true)).toBe('Bị đưa vào tù!');
+  expect(landingHeading(10, 'Nhà tù', false)).toBe('Ghé thăm nhà tù');
+  expect(landingHeading(10, 'Nhà tù', true)).toBe('Bị đưa vào tù!');
   expect(eventNotice('Chưa ra tù: 2 + 3.', null, '')).toBe('Chưa tung được đôi: vẫn ở trong tù.');
   expect(eventNotice('Ba lần xúc xắc đôi: vào tù!', null, '')).toContain('3 lần liên tiếp');
 });
