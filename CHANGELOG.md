@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/MinhWorker/play-some-cards/compare/v0.10.0...v0.11.0) (2026-10-04)
+
+
+### Features
+
+* **co-ty-phu-classic:** rebalance board and polish perspective UI ([#63](https://github.com/MinhWorker/play-some-cards/issues/63)) ([78b453b](https://github.com/MinhWorker/play-some-cards/commit/78b453b05783870ad89a48ffba2398138a871f5b))
+
 ## [0.10.0](https://github.com/MinhWorker/play-some-cards/compare/v0.9.0...v0.10.0) (2026-10-02)
 
 
