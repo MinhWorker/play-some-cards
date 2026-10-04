@@ -5,6 +5,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { ConsoleError, type ConsoleIssue } from '@psc/sdk';
 import {
   type ClientToServerEvents,
   type JoinedRoom,
@@ -16,6 +17,7 @@ import {
 } from '@psc/shared';
 import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
+import { DevConsoleService } from '../dev/dev-console.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 interface SocketData {
@@ -29,7 +31,9 @@ interface SocketData {
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
-type Result = { ok: true; [key: string]: unknown } | { ok: false; error: string };
+type Result =
+  | { ok: true; [key: string]: unknown }
+  | { ok: false; error: string; issue?: ConsoleIssue };
 
 const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
 /**
@@ -60,6 +64,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   constructor(
     private readonly rooms: RoomsService,
     private readonly accounts: AccountsService,
+    private readonly devConsole: DevConsoleService,
   ) {}
 
   afterInit(server: AppServer) {
@@ -204,6 +209,28 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('dev:command')
+  devCommand(socket: AppSocket, req: { line: string }) {
+    return this.handle(() => {
+      this.requireDev();
+      const { roomCode, playerId } = this.requireSeat(socket);
+      return this.devConsole.execute(roomCode, playerId, req?.line, (room) => this.broadcast(room));
+    });
+  }
+
+  @SubscribeMessage('dev:schema')
+  devSchema(socket: AppSocket) {
+    return this.handle(() => {
+      this.requireDev();
+      const { roomCode, playerId } = this.requireSeat(socket);
+      return this.devConsole.schema(this.rooms.devRoom(roomCode, playerId));
+    });
+  }
+
+  private requireDev() {
+    if (!this.rooms.devEnabled) throw new RoomError('Server không bật chế độ dev');
+  }
+
   private enter(socket: AppSocket, room: Room): JoinedRoom {
     const userId = socket.data.user.id;
     this.unwatchLobby(socket);
@@ -288,11 +315,11 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** Waits for the game's new timer (if any), then runs its hook; drops a cancelled one. */
   private scheduleTimer(room: Room, timer: { key: string; ms: number } | null) {
-    if (!room.timer) {
+    if (!room.timer || room.dev?.timerPaused) {
       clearTimeout(this.gameTimers.get(room.code));
       this.gameTimers.delete(room.code);
     }
-    if (!timer) return;
+    if (!timer || room.dev?.timerPaused) return;
     clearTimeout(this.gameTimers.get(room.code));
     const handle = setTimeout(() => {
       this.gameTimers.delete(room.code);
@@ -308,7 +335,10 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** After a change in a game with computer seats, let a bot move after a short pause. */
   private scheduleBot(room: Room) {
-    if (room.status !== 'playing' || !room.players.some((p) => p.bot)) return;
+    clearTimeout(this.botTimers.get(room.code));
+    this.botTimers.delete(room.code);
+    if (room.status !== 'playing' || room.dev?.botsPaused || !room.players.some((p) => p.bot))
+      return;
     clearTimeout(this.botTimers.get(room.code));
     const timer = setTimeout(() => {
       this.botTimers.delete(room.code);
@@ -326,6 +356,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     try {
       return { ok: true, ...(await fn()) };
     } catch (err) {
+      if (err instanceof ConsoleError) return { ok: false, error: err.message, issue: err.issue };
       if (err instanceof RoomError || err instanceof AccountError) {
         return { ok: false, error: err.message };
       }

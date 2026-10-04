@@ -264,6 +264,7 @@ export function gameRules<State, Options, View>(
   };
 
   return {
+    events: game.events,
     moveSchema: z.object({ event: z.string(), payload: z.unknown().optional() }),
 
     setup(players, rng, options, room) {

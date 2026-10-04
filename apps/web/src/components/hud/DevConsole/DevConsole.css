@@ -1,0 +1,22 @@
+/* Every console element lets clicks and taps through to the board. */
+.dev-console {
+  position: fixed;
+  top: env(safe-area-inset-top, 8px);
+  left: env(safe-area-inset-left, 8px);
+  width: 45vw;
+  z-index: 20;
+  pointer-events: none;
+  color: white;
+  text-shadow: 0 1px 3px black;
+}
+.dev-console * {
+  pointer-events: none !important;
+}
+.dev-console input {
+  width: 100%;
+  color: white;
+  background: #0004;
+}
+.dev-console pre {
+  white-space: pre-wrap;
+}

@@ -16,3 +16,4 @@ coverage/
 __pycache__/
 # Written by scripts/libs.mjs
 packages/shared/src/generated/
+.dev/

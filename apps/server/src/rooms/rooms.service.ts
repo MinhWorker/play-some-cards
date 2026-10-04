@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
   type AnyGameDefinition,
   defaultOptions,
@@ -12,6 +12,9 @@ import {
   type RoomStatus,
   type RoomSummary,
 } from '@psc/shared';
+
+import { DEV_MODE } from '../dev/dev-mode.js';
+import { newRoomDev, type RoomDev, remember, rngOf } from '../dev/room-dev.js';
 
 export class RoomError extends Error {}
 
@@ -56,11 +59,12 @@ export interface Room {
   startedAt: number | null;
   endedAt: number | null;
   createdAt: number;
+  /** Available only when the server starts with PSC_DEV=1. */
+  dev?: RoomDev;
 }
 
 // No 0/O/1/I so codes are easy to read. Codes are internal ids; players pick rooms from a list.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const rng = () => Math.random();
 
 /**
  * All room and game state lives here, in memory. Restarting the server clears every room.
@@ -72,6 +76,19 @@ const rng = () => Math.random();
 @Injectable()
 export class RoomsService {
   private readonly rooms = new Map<string, Room>();
+
+  constructor(@Optional() @Inject(DEV_MODE) readonly devEnabled = false) {
+    if (devEnabled) new Logger('DevConsole').warn('PSC_DEV=1: Dev Console đang bật');
+  }
+
+  /** Dev requests require an actual member, including spectators. */
+  devRoom(code: string, memberId: string) {
+    if (!this.devEnabled) throw new RoomError('Server không bật chế độ dev');
+    const room = this.get(code);
+    if (!this.members(room).some((m) => m.id === memberId))
+      throw new RoomError('Bạn chưa ở trong phòng này');
+    return room;
+  }
 
   /** `options` come from the game's setup screen, checked by `game.room.options`. */
   create(gameId: string, account: Account, rawOptions?: unknown) {
@@ -98,6 +115,7 @@ export class RoomsService {
       startedAt: null,
       endedAt: null,
       createdAt: Date.now(),
+      ...(this.devEnabled && { dev: newRoomDev() }),
     };
     this.rooms.set(room.code, room);
     return { room, player };
@@ -175,6 +193,7 @@ export class RoomsService {
    */
   leave(code: string, memberId: PlayerId) {
     const room = this.get(code);
+    remember(room);
     const seat = room.players.findIndex((p) => p.id === memberId);
     room.players = room.players.filter((p) => p.id !== memberId);
     room.spectators = room.spectators.filter((m) => m.id !== memberId);
@@ -183,7 +202,7 @@ export class RoomsService {
       if (room.game.leave) {
         // The others play on (a finished board stays up).
         if (room.status === 'playing') {
-          room.state = room.game.leave(room.state, memberId, rng, this.context(room));
+          room.state = room.game.leave(room.state, memberId, rngOf(room), this.context(room));
           this.settle(room);
         }
       } else {
@@ -239,10 +258,11 @@ export class RoomsService {
     if (count < room.game.minPlayers) {
       throw new RoomError(`Cần ít nhất ${room.game.minPlayers} người chơi`);
     }
+    remember(room);
     room.lastResult = room.result;
     room.state = room.game.setup(
       room.players.map((p) => p.id),
-      rng,
+      rngOf(room),
       room.options,
       this.context(room),
     );
@@ -268,7 +288,8 @@ export class RoomsService {
     const context = this.context(room);
     const error = room.game.validateMove(room.state, parsed.data, playerId, context);
     if (error) throw new RoomError(error);
-    room.state = room.game.applyMove(room.state, parsed.data, playerId, rng, context);
+    remember(room);
+    room.state = room.game.applyMove(room.state, parsed.data, playerId, rngOf(room), context);
     room.last = { seq: (room.last?.seq ?? 0) + 1, player: playerId, move: parsed.data };
     this.settle(room);
     return room;
@@ -286,22 +307,26 @@ export class RoomsService {
     }
     const key = `${room.round}:${timer.id}`;
     if (room.timer?.key === key) return null;
-    room.timer = { key, event: timer.event, ms: timer.ms, endsAt: Date.now() + timer.ms };
-    return { key, ms: timer.ms };
+    const ms = room.dev?.remaining ?? timer.ms;
+    if (room.dev) room.dev.remaining = room.dev.timerPaused ? ms : null;
+    room.timer = { key, event: timer.event, ms: timer.ms, endsAt: Date.now() + ms };
+    return room.dev?.timerPaused ? null : { key, ms };
   }
 
   /** The timer `key` went off: runs its hook. Returns the room, or `null` if it's outdated. */
   fireTimer(code: string, key: string) {
     const room = this.rooms.get(code);
     if (!room || room.status !== 'playing' || room.timer?.key !== key) return null;
+    remember(room);
     room.timer = null;
-    room.state = room.game.fireTimer(room.state, rng, this.context(room));
+    if (room.dev) room.dev.remaining = null;
+    room.state = room.game.fireTimer(room.state, rngOf(room), this.context(room));
     this.settle(room);
     return room;
   }
 
   /** After the game's state changed: is it over? */
-  private settle(room: Room) {
+  settle(room: Room) {
     room.result = room.game.getResult(room.state, this.context(room));
     if (room.result && room.status === 'playing') {
       room.status = 'finished';
@@ -316,12 +341,19 @@ export class RoomsService {
    * was made, `null` otherwise (no bot's turn, game over, room gone). The gateway calls it after
    * a short pause following every change.
    */
-  botMove(code: string) {
+  botMove(code: string, step = false) {
     const room = this.rooms.get(code);
-    if (!room?.game.bot || room.status !== 'playing') return null;
+    if (!room?.game.bot || room.status !== 'playing' || (room.dev?.botsPaused && !step))
+      return null;
     for (const seat of room.players) {
       if (!seat.bot) continue;
-      const move = room.game.bot(room.state, seat.id, rng, room.options, this.context(room));
+      const move = room.game.bot(
+        room.state,
+        seat.id,
+        rngOf(room),
+        room.options,
+        this.context(room),
+      );
       if (move !== null) return this.move(code, seat.id, move);
     }
     return null;
@@ -372,7 +404,9 @@ export class RoomsService {
       timer: room.timer && {
         event: room.timer.event,
         ms: room.timer.ms,
-        left: Math.max(0, room.timer.endsAt - Date.now()),
+        left: room.dev?.timerPaused
+          ? (room.dev.remaining ?? room.timer.ms)
+          : Math.max(0, room.timer.endsAt - Date.now()),
       },
       played:
         room.status === 'lobby' || room.startedAt === null
@@ -442,7 +476,7 @@ export class RoomsService {
   }
 
   /** What the rules get to know about the room around the game. */
-  private context(room: Room) {
+  context(room: Room) {
     return {
       players: room.players.map((p) => ({
         id: p.id,

@@ -1,3 +1,7 @@
+import type { ConsoleIssue, DevCommandInfo } from '@psc/sdk';
+
+export type { DevCommandInfo } from '@psc/sdk';
+
 import type { ProfileUpdate, User } from './account.js';
 import type { GameResult, PlayerId } from './game.js';
 
@@ -146,6 +150,17 @@ export interface ClientToServerEvents {
   'game:start': (req: Record<string, never>, ack: Ack) => void;
   'game:move': (req: { move: unknown }, ack: Ack) => void;
   'game:restart': (req: Record<string, never>, ack: Ack) => void;
+  /** Dev only: execute in the sender's room. Older clients need none of these events. */
+  'dev:command': (
+    req: { line: string },
+    ack: (
+      res: { ok: true; output: string } | { ok: false; error: string; issue?: ConsoleIssue },
+    ) => void,
+  ) => void;
+  'dev:schema': (
+    req: Record<string, never>,
+    ack: Ack<{ commands: DevCommandInfo[]; catalogs: Record<string, string[]> }>,
+  ) => void;
 }
 
 export interface ServerToClientEvents {

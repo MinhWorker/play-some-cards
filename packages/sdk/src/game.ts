@@ -32,6 +32,8 @@ export interface RoomContext<Options = unknown> {
 export interface GameRules<State, Move, View = State, Options = undefined> {
   /** Validates the shape of an incoming move before any game logic runs. */
   moveSchema: z.ZodType<Move>;
+  /** Event parameter schemas, for the dev console. */
+  events: Record<string, z.ZodType>;
   /**
    * Creates the initial state. `rng` returns a float in [0, 1). `options` are the room's
    * options (see `RoomSetup`), `undefined` for a game without them. Copy into the state what
