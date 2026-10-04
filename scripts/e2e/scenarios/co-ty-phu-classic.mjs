@@ -153,15 +153,16 @@ export default async function run(t) {
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.pending,
       );
       if (
-        state.cash >=
-        (await page.evaluate((n) => {
+        await page.evaluate(() => {
           const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
-          return scene.ctx.state.pending === n
-            ? Number(scene.main[0].text.text.match(/\d+/)?.[0])
-            : 0;
-        }, price))
+          return scene.main.some((b) => b.hit.visible && b.text.text.startsWith('Mua '));
+        })
       ) {
-        await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
+        await clickCanvas(
+          page,
+          'co-ty-phu-classic',
+          (s) => s.main.find((b) => b.hit.visible && b.text.text.startsWith('Mua ')).hit,
+        );
         await page.waitForFunction((square) => {
           const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
           return scene.ctx.state.properties[square].owner === scene.ctx.me.seat;
@@ -471,7 +472,11 @@ export default async function run(t) {
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'buy',
       )
     ) {
-      await clickCanvas(rulesPage, 'co-ty-phu-classic', (s) => s.main[0].hit);
+      await clickCanvas(
+        rulesPage,
+        'co-ty-phu-classic',
+        (s) => s.main.find((b) => b.hit.visible && b.text.text.startsWith('Mua ')).hit,
+      );
       await rulesPage.waitForFunction(
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase !== 'buy',
       );

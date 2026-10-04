@@ -103,7 +103,8 @@ Tài sản mua được gồm **đất phố và bến xe**. Điện lực và C
 ### Mua trực tiếp
 
 - Đến đất phố chưa có chủ, chọn **Mua** theo giá niêm yết nếu đủ tiền hoặc **Hết lượt**.
-- Nút **Hết lượt** luôn có ở bước mua, kể cả khi không đủ tiền. Không tự mở đấu giá.
+- Nút **Hết lượt** ở tâm bàn luôn có ở bước mua, kể cả khi không đủ tiền hoặc đang xem ô khác.
+  Bảng thông tin ô chỉ hiện **Mua** khi đủ tiền. Không tự mở đấu giá.
 - Hết lượt chuyển ngay sang ghế tiếp theo; đất vẫn chưa có chủ. Nếu lần gieo vừa rồi ra đôi,
   chọn Hết lượt cũng kết thúc lượt thay vì dùng lần gieo thêm.
 - Có thể thế chấp tài sản khác để lấy tiền rồi mua; không cần đứng trên ô tài sản thế chấp.
@@ -139,7 +140,10 @@ Tài sản mua được gồm **đất phố và bến xe**. Điện lực và C
   phần chênh lệch. Muốn góp phải đủ tiền mặt cho khoản góp của lần đến này.
 - Mỗi lần bước vào chỉ được quyết định một lần. Sau khi góp hoặc từ bỏ, tiếp tục lượt chơi
   bình thường: gieo tiếp nếu được gieo do đôi, nếu không thì kết thúc lượt. Muốn góp lần nữa
-  phải bước vào chính bến đó ở một lần di chuyển sau.
+  phải bước vào chính bến đó ở một lần di chuyển sau và đã có người khác góp giá tại bến đó.
+- Nếu người góp gần nhất quay lại trước khi có người khác góp thêm, lượt đến bến tự đi tiếp:
+  không mở bước góp/từ bỏ, không trừ thêm tiền hoặc bật đồng hồ đấu giá. Khoản góp và tiền tích
+  trữ được giữ nguyên. Góp ở một bến khác hoặc người khác từ bỏ không mở quyền góp lại ở bến này.
 - Từ bỏ là vĩnh viễn trong cuộc đấu giá của bến đó. Người chưa từng góp và người đang có
   tiền tích trữ đều có thể từ bỏ khi bước vào. Tiền đã góp **vẫn được giữ tại bến tới khi chốt**.
   Người đã từ bỏ quay lại bến chưa chốt không được góp nữa.
@@ -283,6 +287,10 @@ Phú Quốc có hai nhà ở ví dụ trên vay 200, chuộc cả đất và hai
 ## 8. Nhà tù
 
 Người chơi bị giam khi đến ô Vào tù, rút thẻ vào tù hoặc ra đôi ba lần trong cùng lượt.
+Khi vừa bị đưa vào tù, riêng người đó thấy hai cửa song sắt cao hết màn hình đóng sầm từ
+hai phía, bật lùi nhẹ rồi khít lại và mờ đi. Hiệu ứng bắt đầu cùng lúc quân cờ chuyển vào
+ô Nhà tù sau khi xác nhận sự kiện. Người đã ở trong tù, người ghé thăm và người đồng bộ
+lại ván không thấy hiệu ứng này lặp lại.
 Quân chuyển tới ô 10; không nhận thưởng cho chặng chuyển thẳng này, chuỗi đôi bị xóa và
 lượt đó chuyển sang bước kết thúc.
 
@@ -416,7 +424,10 @@ Phí sửa chữa tính mỗi khách sạn một lần theo giá khách sạn, k
 
 Giá mua được in trực tiếp trên mặt các ô tài sản; hai ô thuế in 10%.
 Chạm hai viên xúc xắc ở giữa bàn để gieo. Khi được gieo, viền sáng và chữ **Chạm để gieo**
-nhấp nháy. Nút **Hết lượt** nằm bên dưới vùng thông báo.
+nhấp nháy. Nút **Hết lượt** nằm ở tâm bàn, bên dưới vùng thông báo, kể cả trong bước chờ mua đất.
+Node ghế sáng, ảnh đại diện và tên theo lượt đang được trình diễn trên client; chỉ chuyển sau
+animation gieo, di chuyển và thanh toán của lượt trước, dù server đã xử lý xong lượt của bot.
+Đấu giá hoặc trả nợ ngoài lượt không đổi node của chủ lượt. Khi đồng bộ lại, panel lấy trạng thái hiện tại.
 Khung đấu giá nhấp nháy viền vàng để các ghế chú ý trả hoặc bỏ giá. Khi nhận đề nghị trao
 đổi, chỉ người nhận nghe tiếng thông báo. Các nút trên máy tính sáng và phát tiếng hover
 mặc định của nền tảng khi rê chuột.

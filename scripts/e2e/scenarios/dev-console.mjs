@@ -178,26 +178,52 @@ export default async function run(t) {
   await page.keyboard.press('Escape');
   await page.keyboard.press('Escape');
   await cmd(page, '.dock br; tp 0 0; dice 1 2; state set phase "roll"; as 0 roll');
-  await page.waitForFunction(() => {
-    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return (
-      s.visualPhase === 'decision' &&
-      s.ctx.state.phase === 'buy' &&
-      !s.runtime.busy('turn') &&
-      !s.activeMoney &&
-      s.main[0].hit.visible
-    );
-  });
+  await page
+    .waitForFunction(() => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        s.visualPhase === 'decision' &&
+        s.ctx.state.phase === 'buy' &&
+        !s.runtime.busy('turn') &&
+        !s.activeMoney &&
+        s.main.some((button) => button.hit.visible && button.text.text.startsWith('Mua '))
+      );
+    })
+    .catch(async (error) => {
+      const details = await page.evaluate(() => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        return {
+          state: s.ctx.state,
+          phase: s.visualPhase,
+          me: s.ctx.me,
+          activeRoll: s.activeRoll,
+          payments: s.payments,
+          changingTurn: s.changingTurn,
+          runtime: s.runtime.inspect(),
+        };
+      });
+      throw new Error(
+        `Purchase fixture did not settle: ${error.message}: ${JSON.stringify(details)}`,
+      );
+    });
   await cmd(page, 'help');
   await page.keyboard.press('Control+/');
   await input.waitFor();
-  const buy = await canvasPoint(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
+  const buy = await canvasPoint(
+    page,
+    'co-ty-phu-classic',
+    (s) => s.main.find((button) => button.hit.visible && button.text.text.startsWith('Mua ')).hit,
+  );
   const beneath = await overlay.evaluate((e, p) => {
     const r = e.getBoundingClientRect();
     return p.x >= r.x && p.x <= r.right && p.y >= r.y && p.y <= r.bottom;
   }, buy);
   assert(beneath, 'Buy button is not beneath the overlay in this fixture');
-  await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
+  await clickCanvas(
+    page,
+    'co-ty-phu-classic',
+    (s) => s.main.find((button) => button.hit.visible && button.text.text.startsWith('Mua ')).hit,
+  );
   await page.waitForFunction(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.properties[3].owner === 0,
   );

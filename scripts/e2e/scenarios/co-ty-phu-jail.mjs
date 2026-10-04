@@ -1,5 +1,5 @@
 // A fast player confirms and ends their turn while another viewer still shows the roll.
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['co-ty-phu-classic'];
 
@@ -19,14 +19,20 @@ export default async function run(t) {
   const root = new URL('../../../', import.meta.url).pathname;
   const cases = [
     { name: 'go-jail-manual', target: 30 },
+    { name: 'go-jail-owner', target: 30, own: true },
+    { name: 'go-jail-owner-phone', target: 30, own: true, phone: true },
+    { name: 'go-jail-owner-resync', target: 30, own: true, cancel: true },
     { name: 'go-jail-timer', target: 30, timer: true },
     { name: 'chance-jail', target: 7, deck: 'chance' },
-    { name: 'chest-jail', target: 17, deck: 'chest', timer: true },
+    { name: 'chest-jail', target: 17, deck: 'chest', timer: true, own: true },
     { name: 'three-doubles', target: 10, doubles: true, bot: true },
     { name: 'still-in-jail', target: 10, jailed: true },
+    { name: 'still-in-jail-owner', target: 10, jailed: true, own: true },
+    { name: 'visiting-jail-owner', target: 10, visit: true, own: true },
     { name: 'receive-jail-ticket', target: 7, deck: 'chance', item: true },
   ];
   for (const fixture of cases) {
+    await page.setViewportSize(fixture.phone ? PHONE : DESKTOP);
     await page.evaluate(
       async ({ root, fixture }) => {
         const [{ default: plugin }, { testGame }, { seededRng }] = await Promise.all([
@@ -35,8 +41,8 @@ export default async function run(t) {
           import(`/@fs${root}packages/sdk/src/rng.ts`),
         ]);
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-        s.playbackSpeed = 2;
-        s.runtime.setSpeed(2);
+        s.playbackSpeed = fixture.own ? 1 : 2;
+        s.runtime.setSpeed(s.playbackSpeed);
         const doubleSeed = Array.from({ length: 100 }, (_, i) => i + 1).find((seed) => {
           const rng = seededRng(seed);
           for (let i = 0; i < 24; i++) rng();
@@ -57,7 +63,7 @@ export default async function run(t) {
         if (fixture.deck) game.state[fixture.deck] = [fixture.item ? 10 : 9];
         const props = {
           ...s.props,
-          me: 'a',
+          me: fixture.own ? 'b' : 'a',
           players: [
             { id: 'a', name: 'Người 1', connected: true },
             { id: 'b', name: 'Người 2', connected: true, bot: !!fixture.bot },
@@ -74,7 +80,7 @@ export default async function run(t) {
           if (event) last = { seq: ++seq, player, move: { event } };
           s.receive({
             ...props,
-            view: game.view('a'),
+            view: game.view(props.me),
             last,
           });
         };
@@ -94,6 +100,23 @@ export default async function run(t) {
             return play.call(this, scope, name, ...args);
           };
           s.events.on('update', () => {
+            if (s.jailGate.visible)
+              s.gateFrames.push({
+                stage: s.jailGate.stage,
+                closure: s.jailGate.closure,
+                alpha: s.jailGate.doors[0].alpha,
+                moving: s.moving[1],
+              });
+            if (
+              s.freezeJailGate &&
+              !s.jailGateFrozen &&
+              s.jailGate.visible &&
+              s.jailGate.closure > 0.999 &&
+              s.moving[1]
+            ) {
+              s.jailGateFrozen = true;
+              s.scene.pause();
+            }
             if (s.activeRoll?.jailing && s.moving[1])
               s.jailFlight.add(`${s.tokens[1].x.toFixed(2)},${s.tokens[1].y.toFixed(2)}`);
           });
@@ -101,11 +124,14 @@ export default async function run(t) {
         s.jailSounds = [];
         s.itemSounds = [];
         s.jailFlight = new Set();
+        s.gateFrames = [];
+        s.freezeJailGate = !!fixture.own;
+        s.jailGateFrozen = false;
         game.send('b', 'roll');
         deliver('roll');
         if (game.state.players[1].position !== fixture.target)
           throw new Error('Fixture did not reach the expected event square');
-        if (!fixture.jailed) {
+        if (!fixture.jailed && !fixture.visit) {
           if (fixture.timer) {
             game.send('b', 'event-ready', { id: game.state.specialEvent.id });
             deliver('event-ready');
@@ -126,7 +152,7 @@ export default async function run(t) {
       },
       { root, fixture },
     );
-    if (!fixture.jailed && !fixture.item) {
+    if (!fixture.jailed && !fixture.item && !fixture.visit) {
       await page
         .waitForFunction(() => {
           const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -151,6 +177,41 @@ export default async function run(t) {
           });
           throw new Error(`${fixture.name}: jail flight did not start: ${JSON.stringify(details)}`);
         });
+      if (fixture.own) {
+        await page.waitForFunction(() => {
+          const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+          return s.jailGateFrozen;
+        });
+        await page.evaluate(() => {
+          const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+          const gate = s.jailGate;
+          const camera = s.cameras.main;
+          const height = camera.height / camera.zoom;
+          const width = camera.width / camera.zoom;
+          if (!s.moving[1] || s.ctx.me.seat !== 1)
+            throw new Error('Private jail doors did not coincide with the owner’s pawn journey');
+          // The static door frame, including bleed, spans the viewport vertically.
+          if (
+            gate.doors.some((door) => Math.abs(door.y - camera.scrollY) > 0.1) ||
+            Math.abs(gate.halfWidth * 2 - width) > 0.1 ||
+            !gate.doors.every((door) => door.commandBuffer.includes(height))
+          )
+            throw new Error('Jail doors did not cover the full camera viewport');
+        });
+        await page.screenshot({ path: t.shot(`${fixture.name}-closed.png`) });
+        await page.evaluate(() => {
+          window.__phaser.scene.getScene('co-ty-phu-classic').scene.resume();
+        });
+        if (fixture.cancel) {
+          await page.evaluate(() => {
+            const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+            s.onResync(s.ctx);
+            s.onState(s.ctx);
+            if (s.jailGate.visible || s.jailGate.doors.some((door) => door.visible))
+              throw new Error('Resync left private jail doors on screen');
+          });
+        }
+      }
       await page.screenshot({ path: t.shot(`${fixture.name}-flight.png`) });
     }
     await page.waitForFunction(() => {
@@ -169,6 +230,8 @@ export default async function run(t) {
         turn: s.ctx.state.turn,
         items: s.inventory[1].freeCards,
         itemSounds: s.itemSounds,
+        gateFrames: s.gateFrames,
+        gateVisible: s.jailGate.visible,
       };
     });
     if (fixture.item) {
@@ -187,12 +250,34 @@ export default async function run(t) {
       await page.screenshot({ path: t.shot('jail-ticket.png') });
       continue;
     }
-    const expectedSounds = fixture.jailed ? 0 : 1;
+    if (result.gateVisible) throw new Error('Jail doors remained after their scoped journey');
+    const privateGate = fixture.own && !fixture.jailed && !fixture.visit && !fixture.item;
+    if (privateGate) {
+      const closing = result.gateFrames.filter((frame) => frame.stage === 'closing');
+      const recoil = result.gateFrames.filter((frame) => frame.stage === 'recoil');
+      const settled = result.gateFrames.filter((frame) => frame.stage === 'settling');
+      const faded = result.gateFrames.filter((frame) => frame.stage === 'fading');
+      if (
+        !closing.length ||
+        !closing[0].moving ||
+        (!fixture.cancel &&
+          (!recoil.some((frame) => frame.closure < 0.995) ||
+            !settled.some((frame) => frame.closure > 0.999) ||
+            !faded.some((frame) => frame.alpha < 0.5)))
+      )
+        throw new Error(
+          `${fixture.name}: missing slam/recoil/settle/fade: ${JSON.stringify(result)}`,
+        );
+    } else if (result.gateFrames.length) {
+      throw new Error(`${fixture.name}: jail doors replayed or leaked to another viewer`);
+    }
+    const expectedSounds = fixture.jailed || fixture.visit ? 0 : 1;
     if (
       result.position !== 10 ||
       result.turn !== 0 ||
       result.sounds.length !== expectedSounds ||
       (!fixture.jailed &&
+        !fixture.visit &&
         (result.sounds[0].seat !== 1 ||
           !result.sounds[0].moving ||
           result.sounds[0].phase !== 'moving' ||
@@ -216,6 +301,7 @@ export default async function run(t) {
     game.state.players[0].position = 3;
     const props = {
       ...s.props,
+      me: 'a',
       round: s.props.round + 1,
       last: null,
       timer: null,

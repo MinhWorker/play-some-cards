@@ -466,6 +466,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       if (s.players[s.turn]!.position !== s.auction!.square || s.pending !== s.auction!.square)
         ctx.reject('Chỉ được góp tiền khi bước vào bến xe');
       if (s.auction!.passed.includes(s.turn)) ctx.reject('Bạn đã từ bỏ bến xe này');
+      if (s.auction!.leader === ctx.player.seat)
+        ctx.reject('Cần người khác góp giá trước khi bạn góp tiếp tại bến này');
     }
     if (
       (station
