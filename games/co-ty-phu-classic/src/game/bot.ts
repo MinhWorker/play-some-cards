@@ -1,6 +1,6 @@
 import type { GameEvent } from '@psc/sdk';
-import { BOARD, isDeed, STATION_CONTRIBUTION_STEP, type State } from './model.js';
-import { bankHotels, bankHouses } from './rules.js';
+import { auctionRaise, BOARD, isDeed, STATION_CONTRIBUTION_STEP, type State } from './model.js';
+import { bankHotels, bankHouses, redeemAmount } from './rules.js';
 
 const event = (name: string, payload?: object): GameEvent => ({ event: name, payload });
 const deedValue = (square: number | null) =>
@@ -23,8 +23,8 @@ export function botMove(state: State, seat: number): GameEvent | null {
     const auction = state.auction;
     if (!auction || auction.bidder !== seat) return null;
     const max = Math.min(me.cash - 100, Math.floor((BOARD[auction.square]?.price ?? 0) * 0.9));
-    const amount = auction.highest + 10;
-    if (BOARD[auction.square]!.kind === 'station') {
+    const amount = auction.highest + auctionRaise(auction.square);
+    if (auction.seller === undefined) {
       const contribution = auction.highest + STATION_CONTRIBUTION_STEP;
       const limit = Math.min(me.cash - 100, Math.floor(BOARD[auction.square]!.price! * 0.9));
       return limit >= contribution ? event('bid', { amount: contribution }) : event('pass');
@@ -37,27 +37,32 @@ export function botMove(state: State, seat: number): GameEvent | null {
   if (state.phase === 'event') return event('confirm-event');
   if (state.phase === 'buy') {
     const price = BOARD[state.pending ?? -1]?.price ?? Infinity;
-    return event(me.cash >= price + 100 ? 'buy' : 'auction');
+    return event(me.cash >= price + 100 ? 'buy' : 'end-turn');
   }
   if (state.phase === 'debt') {
     if (me.cash >= state.debt!.amount) return event('pay-debt');
     const house = state.properties.findIndex(
       (property) =>
         property.owner === seat &&
+        !property.mortgaged &&
         property.houses > 0 &&
         (property.houses !== 5 || bankHouses(state) >= 4),
     );
     if (house >= 0) return event('sell-house', { square: house });
     const mortgage = state.properties.findIndex(
       (property, square) =>
-        property.owner === seat &&
-        !property.mortgaged &&
-        isDeed(BOARD[square]!) &&
-        !property.houses,
+        property.owner === seat && !property.mortgaged && isDeed(BOARD[square]!),
     );
     return mortgage >= 0 ? event('mortgage', { square: mortgage }) : event('bankrupt');
   }
   if (state.phase === 'end' || state.phase === 'roll') {
+    const redeem = state.properties.findIndex(
+      (property, square) =>
+        property.owner === seat &&
+        property.mortgaged &&
+        me.cash >= redeemAmount(state, square) + 100,
+    );
+    if (redeem >= 0) return event('redeem', { square: redeem });
     const build = state.properties.findIndex((property, square) => {
       const cell = BOARD[square]!;
       if (property.owner !== seat || cell.kind !== 'street' || property.houses >= 5) return false;

@@ -29,16 +29,15 @@ describe('PvP turn clock', () => {
     expect(game.error('a', 'turn-timeout')).toBeTruthy();
   });
 
-  it('opens an auction when a timed-out buyer cannot afford the property, then passes AFK bidders', () => {
+  it('ends the turn when a timed-out buyer cannot afford the property', () => {
     const game = gameAt(8, 1);
     game.send('a', 'roll');
     game.fireTimer();
-    expect(game.state.phase).toBe('auction');
-    game.fireTimer();
-    expect(game.state.auction?.bidder).toBe(1);
-    game.fireTimer();
-    expect(game.state.phase).toBe('end');
+    expect(game.state.phase).toBe('roll');
+    expect(game.state.turn).toBe(1);
+    expect(game.state.auction).toBeNull();
     expect(game.state.properties[8]!.owner).toBeNull();
+    expect(game.state.lastAutoAction).toMatchObject({ seat: 0, event: 'end-turn' });
   });
 
   it('declines an unanswered trade instead of accepting someone’s assets', () => {
@@ -79,7 +78,7 @@ describe('PvP turn clock', () => {
     expect(game.timer).toBeNull();
   });
 
-  it('does not restart a deadline for optional actions or another player’s property management', () => {
+  it('does not restart a deadline for optional property management', () => {
     const options = plugin.room!.options.parse({ turnSeconds: 60 });
     const rules = plugin.rules;
     let stored = rules.setup(['a', 'b'], seededRng(1), options);
@@ -90,12 +89,6 @@ describe('PvP turn clock', () => {
       stored,
       { event: 'mortgage', payload: { square: 1 } },
       'a',
-      seededRng(1),
-    );
-    stored = rules.applyMove(
-      stored,
-      { event: 'mortgage', payload: { square: 3 } },
-      'b',
       seededRng(1),
     );
     expect(rules.timer(stored)).toEqual(before);

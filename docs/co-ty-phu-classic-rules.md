@@ -50,7 +50,7 @@ bán nhà, thế chấp, chuộc hoặc thao tác của người khác không k�
 | --- | --- |
 | Gieo | Gieo xúc xắc, kể cả khi đang ở tù |
 | Kết thúc lượt | Hết lượt; không tự xây thêm |
-| Mua đất | Mua nếu đủ tiền; nếu thiếu tiền thì mở đấu giá |
+| Mua đất | Mua nếu đủ tiền; nếu thiếu tiền thì hết lượt, đất vẫn chưa có chủ |
 | Trao đổi | Từ chối đề nghị; không tự nhận trao đổi |
 | Nợ | Bán công trình, thế chấp đất tới khi đủ tiền rồi trả; không đủ tài sản thì phá sản |
 
@@ -102,21 +102,28 @@ Tài sản mua được gồm **đất phố và bến xe**. Điện lực và C
 
 ### Mua trực tiếp
 
-- Đến tài sản chưa có chủ thì phải xử lý bước mua: **Mua** theo giá niêm yết hoặc **Đấu giá**.
-- Chỉ người đang có lượt được mua trực tiếp, và phải có đủ tiền mặt trả toàn bộ giá.
-- Nếu không đủ tiền, có thể quản lý tài sản để lấy tiền hoặc mở đấu giá.
-- Không có thao tác bỏ qua tài sản chưa có chủ mà không đấu giá.
+- Đến đất phố chưa có chủ, chọn **Mua** theo giá niêm yết nếu đủ tiền hoặc **Hết lượt**.
+- Nút **Hết lượt** luôn có ở bước mua, kể cả khi không đủ tiền. Không tự mở đấu giá.
+- Hết lượt chuyển ngay sang ghế tiếp theo; đất vẫn chưa có chủ. Nếu lần gieo vừa rồi ra đôi,
+  chọn Hết lượt cũng kết thúc lượt thay vì dùng lần gieo thêm.
+- Có thể thế chấp tài sản khác để lấy tiền rồi mua; không cần đứng trên ô tài sản thế chấp.
+- Bến xe chưa có chủ vẫn dùng cơ chế góp tiền riêng dưới đây, không mua trực tiếp.
 
-### Đấu giá đất phố
+### Đấu giá tài sản đang sở hữu
 
-- Đấu giá đi **lần lượt** từ người đang có lượt, theo thứ tự ghế: mỗi người tăng giá hoặc bỏ.
-  Mỗi lượt trả giá có **10 giây** đếm ngược do server giữ, kể cả khi chơi với máy; hết giờ thì tự
-  bỏ giá, riêng người đang giữ giá cao nhất của đất phố chỉ bị chuyển lượt. Máy trả giá ngay,
-  không có đếm ngược.
-- Đất phố từ chối mua vẫn đấu giá thông thường: tăng ít nhất 1, trả giá thắng khi còn người
-  giữ giá cao nhất. Người đang giữ giá cao nhất không được bỏ giá; tất cả bỏ mà chưa có giá thì không bán.
-- Không quản lý tài sản hay trao đổi khi đấu giá. Sau phiên, tiếp tục gieo nếu trước đó ra đôi,
-  nếu không thì kết thúc lượt. Chủ lượt rời ván hủy phiên.
+- Người đang có lượt chọn đất phố hoặc bến xe của mình để mở **Đấu giá**, không cần đứng
+  trên ô đó. Người đang nợ tiền mua bến ngoài lượt cũng được mở bán tài sản để trả nợ.
+- Các người còn chơi trả giá lần lượt từ ghế tiếp theo người bán; người bán không tham gia.
+  Giá bắt đầu từ 0; mỗi lần tăng ít nhất **`ceil(20% × giá gốc)`**, kể cả giá đầu tiên.
+  Ví dụ đất giá 180 tăng ít nhất 36 mỗi lần. Giá trả phải nằm trong tiền mặt của người đấu.
+- Mỗi lượt trả giá có **10 giây** do server giữ, kể cả khi chơi với máy; hết giờ tự bỏ.
+  Người giữ giá cao nhất không được rút giá; hết giờ chỉ chuyển quyền trả giá. Máy quyết định
+  ngay, không có đếm ngược.
+- Khi chỉ còn người giữ giá cao nhất, người thắng trả toàn bộ giá thắng cho **người bán** và
+  nhận tài sản, giữ số công trình và trạng thái thế chấp. Tất cả bỏ khi chưa có giá thì không bán.
+- Không quản lý tài sản hay trao đổi trong phiên. Sau phiên trở lại bước đang chờ trước đó
+  (gieo, mua, trả nợ hoặc kết thúc lượt); không xóa ô đang chờ mua hoặc khoản nợ.
+- Người bán hoặc chủ lượt rời ván hủy phiên; người dẫn đầu rời làm giá cao nhất trở về 0.
 
 ### Đấu giá bến xe
 
@@ -238,23 +245,40 @@ Khi xây, cả bàn nghe tiếng mua.
 ### Khi nào được quản lý tài sản?
 
 **Xây** chỉ được thực hiện trong lượt mình, ở lần quay lại ô đủ điều kiện nêu trên.
-**Bán nhà, thế chấp và chuộc** được phép trên tài sản của mình **kể cả ngoài lượt mình**,
-trong các bước gieo, mua, nợ hoặc kết thúc lượt. Các thao tác này bị khóa khi đang xác nhận
+**Bán nhà** vẫn được phép ngoài lượt. **Thế chấp và chuộc** chỉ được quản lý trong lượt mình,
+ở các bước gieo, mua, nợ hoặc kết thúc lượt, không cần đứng trên ô tương ứng. Người thắng bến
+đang trả nợ ngoài lượt được quản lý tài sản của mình để giải quyết khoản nợ. Các thao tác này bị khóa khi đang xác nhận
 sự kiện, đấu giá hoặc trao đổi. Mỗi thao tác vẫn phải thỏa điều kiện về quyền sở hữu, tiền,
-số công trình và nguồn cung.
+số công trình và nguồn cung. Thế chấp có thể bao gồm công trình; bán nhà trên tài sản đang
+thế chấp bị khóa cho đến khi chuộc.
 
 ## 7. Thế chấp và chuộc
 
-- Phải bán hết công trình **trên chính ô đất đó** trước khi thế chấp; công trình trên các
-  ô khác cùng màu không ảnh hưởng.
-- Thế chấp nhận **50% giá niêm yết**; tài sản vẫn thuộc người đang sở hữu.
-- Tài sản thế chấp không thu tiền thuê.
-- Chuộc trả **110% khoản thế chấp**, làm tròn lên tới số nguyên.
-- Không có lãi tăng theo thời gian hoặc thời hạn bắt buộc chuộc.
-- Tài sản thế chấp vẫn được trao đổi. Khi chuyển chủ bằng trao đổi hoặc phá sản, trạng thái
-  thế chấp được giữ; người nhận chưa phải trả phí nhận tài sản hay tiền chuộc ngay.
+- Bảng **Thế chấp tài sản** cho chọn một hoặc nhiều ô thuộc sở hữu. Mỗi dòng hiện tên,
+  công trình và khoản tiền nhận; phía dưới hiện số tài sản và tổng tiền trước khi xác nhận.
+  Có phân trang khi sở hữu nhiều ô; lựa chọn được giữ khi chuyển trang. Hủy không đổi tài sản/tiền.
+- Thế chấp nhận **50% tổng giá gốc của đất và giá xây các cấp công trình hiện có**.
+  Nhà/khách sạn được thế chấp cùng đất, vẫn giữ trên ô; không cần bán trước.
+  Ví dụ Phú Quốc giá 200, hai nhà giá xây mỗi cấp 100: nhận `(200 + 2 × 100) / 2 = 200`.
+- Xác nhận một lần thế chấp toàn bộ các ô đã chọn. Nếu có ô không còn hợp lệ, server từ chối
+  cả giao dịch, không thế chấp/trả tiền một phần. Tài sản vẫn thuộc người đang sở hữu.
+- Tài sản thế chấp không thu tiền thuê và không được xây hoặc bán riêng công trình.
+- Chuộc trả **110% khoản đã vay**, làm tròn lên tới số nguyên, chuộc cả đất và công trình.
+  Nút Chuộc hiện số tiền cần trả; công trình và tiền thuê được khôi phục sau khi chuộc.
+- Khách sạn tính theo năm cấp xây đã trả. Công trình đang thế chấp vẫn chiếm nguồn cung
+  nhà/khách sạn của ngân hàng.
+- Hạn chuộc là **3 lượt tiếp theo của người đã thế chấp**, không tính lượt vừa vay. Vẫn có
+  thể chuộc trong lượt thứ 3; cuối lượt đó ngân hàng thu hồi tài sản chưa chuộc, xóa thế chấp, tháo dỡ toàn bộ công trình
+  và trả đất về chưa có chủ, không còn nhà. Nhà/khách sạn được trả về nguồn cung ngân hàng. Người đến sau được xử lý mua như bình thường.
+- Lượt ở tù vẫn tính; gieo thêm do đôi, lượt người khác và thao tác quản lý tài sản không tính
+  thêm lượt. Nút Hết lượt và thao tác hết giờ cùng thực hiện việc thu hồi.
+- Tài sản thế chấp vẫn được trao đổi hoặc đấu giá; **hạn gốc theo người thế chấp được giữ**,
+  không kéo dài khi đổi chủ. Người nhận có thể chuộc trong lượt của họ.
+- Khi người vay phá sản hoặc rời ván, tài sản gắn với khoản vay đó trở về ngân hàng ngay,
+  tránh giữ thời hạn theo một người không còn lượt. Không có lãi tăng theo thời gian.
 
-Ví dụ: đất giá 350 thế chấp nhận 175; chuộc phải trả `ceil(175 × 1,1) = 193`.
+Ví dụ: đất trống giá 350 thế chấp nhận 175; chuộc phải trả `ceil(175 × 1,1) = 193`.
+Phú Quốc có hai nhà ở ví dụ trên vay 200, chuộc cả đất và hai nhà với 220.
 
 ## 8. Nhà tù
 
@@ -352,7 +376,8 @@ Phí sửa chữa tính mỗi khách sạn một lần theo giá khách sạn, k
 - Nếu thiếu tiền mặt để trả một khoản bắt buộc, game ghi **toàn bộ số tiền phải trả** làm nợ.
   Chưa chuyển tiền từng phần và chưa trừ tiền mặt ngay.
 - Người đang nợ có thể bán công trình hoặc thế chấp, rồi chọn **Trả** khi có đủ tiền.
-- Không được trao đổi trong bước nợ; không có trả góp hoặc vay khác ngoài thế chấp.
+- Không được trao đổi trong bước nợ; có thể đấu giá tài sản đang sở hữu để lấy tiền trả nợ.
+  Không có trả góp hoặc vay khác ngoài thế chấp.
 - Sau khi trả, trở lại bước gieo tiếp hoặc kết thúc lượt theo kết quả trước đó. Nợ bảo lãnh
   ở lần thử thứ ba được trả xong thì tiếp tục di chuyển bằng xúc xắc đã gieo.
 
@@ -365,12 +390,13 @@ Phí sửa chữa tính mỗi khách sạn một lần theo giá khách sạn, k
   mỗi nhà; khách sạn hiện tính bằng **5 × nửa giá xây**.
 - Nếu chủ nợ là một người còn trong ván:
   - Toàn bộ tiền mặt còn lại, gồm tiền thanh lý công trình, chuyển cho chủ nợ.
-  - Toàn bộ đất và thẻ ra tù chuyển cho chủ nợ; đất giữ trạng thái thế chấp.
+  - Đất còn sở hữu và thẻ ra tù chuyển cho chủ nợ; tài sản có khoản vay của người phá sản
+    được ngân hàng thu hồi trước. Khoản vay của người khác còn giữ thời hạn gốc.
   - Không thu phí nhận đất thế chấp và không mở đấu giá đất của người phá sản.
 - Nếu chủ nợ là ngân hàng:
   - Tiền mặt còn lại trả về ngân hàng; đất trở lại chưa có chủ và bỏ trạng thái thế chấp.
   - Thẻ ra tù trở về cuối bộ tương ứng.
-  - Không đấu giá ngay số đất được trả lại; người tới các ô này về sau có thể mua/đấu giá.
+  - Không đấu giá ngay số đất được trả lại; người tới đất phố này về sau có thể mua hoặc hết lượt.
 - Người phá sản bị bỏ qua trong các lượt sau; nếu còn một người thì ván kết thúc.
 
 ### Rời ván
@@ -484,8 +510,8 @@ khi sở hữu đủ bộ thì nhân đôi cột này. **KS** là một khách s
 Máy tuân theo cùng luật hợp lệ; các ngưỡng dưới đây là chiến lược tự động, không phải điều
 kiện áp dụng cho người thật.
 
-- **Mua:** chỉ mua trực tiếp nếu sau khi mua còn ít nhất 100; nếu không thì mở đấu giá.
-- **Đấu giá đất phố:** mỗi lần tăng 10; giá tối đa là mức thấp hơn giữa tiền mặt trừ 100 và 90% giá
+- **Mua:** chỉ mua trực tiếp nếu sau khi mua còn ít nhất 100; nếu không thì hết lượt.
+- **Đấu giá tài sản đang sở hữu:** mỗi lần tăng `ceil(20% × giá gốc)`; giá tối đa là mức thấp hơn giữa tiền mặt trừ 100 và 90% giá
   niêm yết, làm tròn xuống.
 - **Bến xe:** chỉ quyết định khi bước vào; góp mức tiếp theo tăng 50 nếu sau khi góp còn
   ít nhất 100 và khoản góp không vượt 90% giá niêm yết. Nếu không thì từ bỏ.
@@ -499,7 +525,8 @@ kiện áp dụng cho người thật.
 - **Trao đổi:** máy không tự mở đề nghị. Khi nhận đề nghị, định giá mỗi tài sản bằng 110%
   giá niêm yết, cộng tiền; chấp nhận nếu tổng nhận ít nhất bằng tổng đưa. Chưa điều chỉnh
   định giá theo thế chấp hoặc khả năng hoàn thành bộ màu.
-- Máy chưa chủ động chuộc tài sản đã thế chấp.
+- **Chuộc:** ở bước gieo/kết thúc lượt, máy chuộc khi còn ít nhất 100 sau khi trả tiền chuộc.
+  Máy chưa tự mở phiên bán đấu giá tài sản.
 
 ## 14. Những điểm hiện tại cần lưu ý khi duyệt luật
 
@@ -507,11 +534,12 @@ Các điểm này đều đang có trong triển khai, để dễ chọn chỗ c
 
 1. Thẻ tới điện/nước thu mức thuế công cộng hiện hành, không phụ thuộc xúc xắc.
 2. Sở hữu ô cùng nhóm đang thế chấp vẫn được tính khi xác định trọn bộ màu, số bến xe để tính thuê ở ô chưa thế chấp.
-3. Bán nhà/thế chấp/chuộc được phép ngoài lượt và cả trong bước nợ; xây chỉ được một cấp
-   khi quay lại ô của mình. Trao đổi vẫn bị cấm khi đang nợ.
+3. Bán nhà được phép ngoài lượt; thế chấp/chuộc chỉ trong lượt mình hoặc khi trả nợ bến
+   ngoài lượt. Có thể mở bán đấu giá trong bước nợ; trao đổi vẫn bị cấm khi đang nợ.
+   Xây chỉ được một cấp khi quay lại ô của mình.
 4. Có thể tự chọn phá sản ngay khi thiếu tiền mặt dù còn tài sản có thể thanh lý.
-5. Phá sản thanh lý khách sạn bằng 5 lần nửa giá xây; đất thế chấp chuyển cho chủ nợ không
-   có phí nhận ngay.
+5. Phá sản thanh lý khách sạn bằng 5 lần nửa giá xây; ngân hàng thu hồi các khoản vay
+   của người phá sản, tài sản còn lại chuyển cho chủ nợ theo quy tắc ở mục 11.
 6. Đất trả ngân hàng do phá sản/rời ván không được đấu giá ngay.
 7. Rời ván luôn thanh lý về ngân hàng, kể cả đang nợ người khác.
 8. Trao đổi chỉ hỗ trợ một tài sản mỗi bên, chưa hỗ trợ thẻ ra tù.

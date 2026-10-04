@@ -233,31 +233,30 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.transfers).toEqual([]);
   });
 
-  it('auctions a declined street to the highest bidder', () => {
-    const game = at(3);
-    game.send('a', 'roll').send('a', 'auction');
-    game.send('a', 'bid', { amount: 50 });
-    expect(game.error('b', 'bid', { amount: 50 })).toBe(
-      'Giá đấu phải cao hơn và trong số tiền bạn có',
-    );
-    game.send('b', 'bid', { amount: 60 });
-    game.send('a', 'pass');
-    expect(game.state.properties[3]?.owner).toBe(1);
-    expect(game.state.players[1]?.cash).toBe(940);
+  it('auctions an owned street and pays the seller', () => {
+    const game = testGame(plugin, ['a', 'b', 'c']);
+    game.state.properties[3]!.owner = 0;
+    game.send('a', 'auction', { square: 3 });
+    expect(game.error('a', 'bid', { amount: 50 })).toBeTruthy();
+    game.send('b', 'bid', { amount: 50 });
+    expect(game.error('c', 'bid', { amount: 60 })).toBeTruthy();
+    game.send('c', 'bid', { amount: 86 });
+    game.send('b', 'pass');
+    expect(game.state.properties[3]?.owner).toBe(2);
+    expect(game.state.players.map((p) => p.cash)).toEqual([1086, 1000, 914]);
     expect(game.state.auction).toBeNull();
+    expect(game.state.phase).toBe('roll');
   });
 
-  it('gives each bidder a countdown, even against the computer, and passes when it runs out', () => {
-    const game = testGame(plugin, ['a', 'b'], { seed: 1, bots: ['b'] });
-    const [x, y] = firstRoll();
-    game.state.players[0]!.position = (3 - x - y + 40) % 40;
-    game.send('a', 'roll').send('a', 'auction');
-    expect(game.state.auction?.bidder).toBe(0);
+  it('gives each bidder a countdown and passes when it runs out', () => {
+    const game = testGame(plugin, ['a', 'b', 'c'], { bots: ['c'] });
+    game.state.properties[3]!.owner = 0;
+    game.send('a', 'auction', { square: 3 });
+    expect(game.state.auction?.bidder).toBe(1);
     expect(game.timer).toMatchObject({ event: 'turn-timeout', ms: AUCTION_TURN_MS });
     game.fireTimer();
-    expect(game.state.auction?.passed).toEqual([0]);
-    expect(game.state.auction?.bidder).toBe(1);
-    // The computer bids at once: no countdown on its turn.
+    expect(game.state.auction?.passed).toEqual([0, 1]);
+    expect(game.state.auction?.bidder).toBe(2);
     expect(game.timer).toBeNull();
   });
 
@@ -292,13 +291,12 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.error('a', 'build', { square: 1 })).toBe(
       'Chỉ xây một lần khi quay lại ô đất của mình',
     );
-    expect(game.error('a', 'mortgage', { square: 1 })).toBe(
-      'Phải bán hết nhà trên ô đất này trước',
-    );
-    game.send('a', 'sell-house', { square: 1 });
     game.send('a', 'mortgage', { square: 1 });
+    expect(game.state.properties[1]!.houses).toBe(1);
     expect(rent(game.state, 1, 7)).toBe(0);
     game.send('a', 'redeem', { square: 1 });
+    expect(rent(game.state, 1, 7)).toBe(80);
+    game.send('a', 'sell-house', { square: 1 });
     expect(rent(game.state, 1, 7)).toBe(20);
     expect(game.error('a', 'build', { square: 1 })).toBe(
       'Chỉ xây một lần khi quay lại ô đất của mình',
@@ -448,16 +446,16 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('keeps the current bidder when a different bidder leaves', () => {
-    const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
-    const [a, b] = firstRoll();
-    game.state.players[0]!.position = (3 - a - b + 40) % 40;
-    game.send('a', 'roll').send('a', 'auction').send('a', 'pass');
+    const game = testGame(plugin, ['a', 'b', 'c']);
+    game.state.properties[3]!.owner = 0;
+    game.send('a', 'auction', { square: 3 });
     game.send('b', 'bid', { amount: 50 });
     expect(game.state.auction?.bidder).toBe(2);
     game.leave('b');
     expect(game.state.auction?.bidder).toBe(2);
-    game.send('c', 'bid', { amount: 1 });
+    game.send('c', 'bid', { amount: 36 });
     expect(game.state.properties[3]?.owner).toBe(2);
+    expect(game.state.players[0]!.cash).toBe(1036);
   });
 
   it('transfers a held jail card to the creditor after bankruptcy', () => {
