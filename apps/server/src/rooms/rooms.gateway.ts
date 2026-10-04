@@ -18,6 +18,7 @@ import {
 import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';
+import { followRoomLog } from '../dev/room-log.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 interface SocketData {
@@ -27,6 +28,8 @@ interface SocketData {
   roomCode?: string;
   /** Game whose room list this socket is watching. */
   lobby?: string;
+  /** Removed whenever this socket disconnects or leaves its room. */
+  devLogOff?: () => void;
 }
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
@@ -93,6 +96,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** Offline only when none of the account's sockets still shows the room. */
   handleDisconnect(socket: AppSocket) {
+    this.stopDevLogs(socket);
     const { roomCode, user } = socket.data;
     if (!roomCode || !user) return;
     const stillHere = this.socketsOf(user.id).some(
@@ -209,6 +213,24 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('dev:logs')
+  devLogs(socket: AppSocket, req: { on: boolean }) {
+    return this.handle(() => {
+      this.requireDev();
+      const { roomCode, playerId } = this.requireSeat(socket);
+      const room = this.rooms.devRoom(roomCode, playerId);
+      this.stopDevLogs(socket);
+      if (req?.on === true)
+        socket.data.devLogOff = followRoomLog(room, (entry) => socket.emit('dev:log', entry));
+      return { entries: req?.on === true ? (room.dev?.log ?? []) : [] };
+    });
+  }
+
+  private stopDevLogs(socket: AppSocket) {
+    socket.data.devLogOff?.();
+    socket.data.devLogOff = undefined;
+  }
+
   @SubscribeMessage('dev:command')
   devCommand(socket: AppSocket, req: { line: string }) {
     return this.handle(() => {
@@ -234,6 +256,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   private enter(socket: AppSocket, room: Room): JoinedRoom {
     const userId = socket.data.user.id;
     this.unwatchLobby(socket);
+    this.stopDevLogs(socket);
     socket.data.roomCode = room.code;
     void socket.join(room.code);
     this.rooms.setConnected(room.code, userId, true);
@@ -259,6 +282,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       if (s !== socket) {
         s.emit('room:closed', { gameId: room.game.id, reason: 'Bạn đã rời phòng' });
       }
+      this.stopDevLogs(s);
       void s.leave(roomCode);
       s.data.roomCode = undefined;
     }
@@ -281,6 +305,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     for (const socket of this.server.sockets.sockets.values()) {
       if (socket.data.roomCode !== room.code) continue;
       socket.emit('room:closed', { gameId: room.game.id, reason: 'Phòng đã giải tán' });
+      this.stopDevLogs(socket);
       void socket.leave(room.code);
       socket.data.roomCode = undefined;
     }

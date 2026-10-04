@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { type Room, RoomError, RoomsService } from '../rooms/rooms.service.js';
 import { DevSnapshots } from './dev-snapshots.js';
 import { remember, restoreFrame } from './room-dev.js';
+import { logRoom } from './room-log.js';
 
 const descriptions: Record<string, [string, string]> = {
   help: ['Liệt kê lệnh hoặc xem cách dùng', 'help [lệnh]'],
@@ -60,7 +61,22 @@ export class DevConsoleService {
       throw new RoomError('Dòng lệnh quá dài hoặc không hợp lệ');
     const outputs: string[] = [];
     for (const command of parseConsoleLine(line)) {
-      outputs.push(this.run(room, command));
+      const text = line.slice(
+        command.at,
+        command.tokens.at(-1)?.end ?? command.at + command.name.length,
+      );
+      try {
+        outputs.push(this.run(room, command));
+        logRoom(room, { kind: 'command', level: 'info', text: `${text} → xong` });
+      } catch (err) {
+        logRoom(room, {
+          kind: 'command',
+          level: 'error',
+          text: `${text} → ${err instanceof Error ? err.message : String(err)}`,
+          data: err,
+        });
+        throw err;
+      }
       // Each command settles and schedules independently, even when the following command fails.
       afterChange(room);
     }

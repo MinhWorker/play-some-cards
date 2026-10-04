@@ -1,5 +1,7 @@
 /** Room-local random state and bounded undo frames; allocated only in dev mode. */
+
 import { seededRng } from '@psc/sdk';
+import type { DevLogEntry } from '@psc/shared';
 import type { Room } from '../rooms/rooms.service.js';
 
 export interface DevFrame {
@@ -21,6 +23,9 @@ export interface DevFrame {
 }
 export interface RoomDev {
   history: DevFrame[];
+  log: DevLogEntry[];
+  nextLogId: number;
+  followers: Set<(entry: DevLogEntry) => void>;
   random: number | null;
   queue: number[];
   timerPaused: boolean;
@@ -29,6 +34,9 @@ export interface RoomDev {
 }
 export const newRoomDev = (): RoomDev => ({
   history: [],
+  log: [],
+  nextLogId: 0,
+  followers: new Set(),
   random: null,
   queue: [],
   timerPaused: false,

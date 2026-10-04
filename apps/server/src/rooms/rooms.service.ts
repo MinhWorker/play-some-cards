@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { hookName } from '@psc/sdk';
 import {
   type AnyGameDefinition,
   defaultOptions,
@@ -12,9 +13,9 @@ import {
   type RoomStatus,
   type RoomSummary,
 } from '@psc/shared';
-
 import { DEV_MODE } from '../dev/dev-mode.js';
 import { newRoomDev, type RoomDev, remember, rngOf } from '../dev/room-dev.js';
+import { logRoom, runRoomHook } from '../dev/room-log.js';
 
 export class RoomError extends Error {}
 
@@ -118,6 +119,7 @@ export class RoomsService {
       ...(this.devEnabled && { dev: newRoomDev() }),
     };
     this.rooms.set(room.code, room);
+    logRoom(room, { kind: 'room', level: 'info', text: `${player.name} tạo phòng` });
     return { room, player };
   }
 
@@ -145,6 +147,11 @@ export class RoomsService {
     } else {
       room.spectators.push(member);
     }
+    logRoom(room, {
+      kind: 'room',
+      level: 'info',
+      text: `${member.name} vào phòng (${role === 'player' ? 'người chơi' : 'khán giả'})`,
+    });
     return { room, player: member };
   }
 
@@ -193,6 +200,11 @@ export class RoomsService {
    */
   leave(code: string, memberId: PlayerId) {
     const room = this.get(code);
+    logRoom(room, {
+      kind: 'room',
+      level: 'info',
+      text: `${this.members(room).find((p) => p.id === memberId)?.name ?? memberId} rời phòng`,
+    });
     remember(room);
     const seat = room.players.findIndex((p) => p.id === memberId);
     room.players = room.players.filter((p) => p.id !== memberId);
@@ -202,7 +214,9 @@ export class RoomsService {
       if (room.game.leave) {
         // The others play on (a finished board stays up).
         if (room.status === 'playing') {
-          room.state = room.game.leave(room.state, memberId, rngOf(room), this.context(room));
+          room.state = runRoomHook(room, 'onLeave', () =>
+            room.game.leave!(room.state, memberId, rngOf(room), this.context(room)),
+          );
           this.settle(room);
         }
       } else {
@@ -260,11 +274,13 @@ export class RoomsService {
     }
     remember(room);
     room.lastResult = room.result;
-    room.state = room.game.setup(
-      room.players.map((p) => p.id),
-      rngOf(room),
-      room.options,
-      this.context(room),
+    room.state = runRoomHook(room, 'onStart', () =>
+      room.game.setup(
+        room.players.map((p) => p.id),
+        rngOf(room),
+        room.options,
+        this.context(room),
+      ),
     );
     room.status = 'playing';
     room.result = null;
@@ -274,25 +290,61 @@ export class RoomsService {
     room.last = null;
     room.timer = null;
     this.settle(room);
+    logRoom(room, { kind: 'room', level: 'info', text: `Ván ${room.round} bắt đầu` });
     return room;
   }
 
   move(code: string, playerId: PlayerId, rawMove: unknown) {
     const room = this.get(code);
-    if (!room.players.some((p) => p.id === playerId)) {
-      throw new RoomError('Bạn đang xem, không đi được');
+    const began = Date.now();
+    const player = room.players.find((p) => p.id === playerId);
+    const seat = room.state
+      ? room.game.seats(room.state).findIndex((p) => p.id === playerId)
+      : room.players.indexOf(player!);
+    const event = String((rawMove as { event?: string } | null)?.event ?? '?');
+    try {
+      if (!room.players.some((p) => p.id === playerId)) {
+        throw new RoomError('Bạn đang xem, không đi được');
+      }
+      if (room.status !== 'playing') throw new RoomError('Ván chưa bắt đầu');
+      const parsed = room.game.moveSchema.safeParse(rawMove);
+      if (!parsed.success) throw new RoomError('Nước đi không hợp lệ');
+      const context = this.context(room);
+      const error = room.game.validateMove(room.state, parsed.data, playerId, context);
+      if (error) throw new RoomError(error);
+      remember(room);
+      room.state = runRoomHook(room, hookName(event), () =>
+        room.game.applyMove(room.state, parsed.data, playerId, rngOf(room), context),
+      );
+      room.last = { seq: (room.last?.seq ?? 0) + 1, player: playerId, move: parsed.data };
+      this.settle(room);
+      logRoom(room, {
+        kind: 'move',
+        level: 'info',
+        seat,
+        text: `${player?.name ?? playerId} (ghế ${seat}) gửi ${event} · ${Date.now() - began} ms`,
+        data: parsed.data,
+      });
+      return room;
+    } catch (err) {
+      if (err instanceof RoomError)
+        logRoom(room, {
+          kind: 'reject',
+          level: 'warn',
+          seat,
+          text: `${player?.name ?? playerId} gửi ${event} → bị từ chối: ${err.message}`,
+          data: rawMove,
+        });
+      else
+        logRoom(room, {
+          kind: 'error',
+          level: 'error',
+          seat,
+          text: `Lỗi khi gửi ${event}`,
+          data: err,
+        });
+      throw err;
     }
-    if (room.status !== 'playing') throw new RoomError('Ván chưa bắt đầu');
-    const parsed = room.game.moveSchema.safeParse(rawMove);
-    if (!parsed.success) throw new RoomError('Nước đi không hợp lệ');
-    const context = this.context(room);
-    const error = room.game.validateMove(room.state, parsed.data, playerId, context);
-    if (error) throw new RoomError(error);
-    remember(room);
-    room.state = room.game.applyMove(room.state, parsed.data, playerId, rngOf(room), context);
-    room.last = { seq: (room.last?.seq ?? 0) + 1, player: playerId, move: parsed.data };
-    this.settle(room);
-    return room;
   }
 
   /**
@@ -310,6 +362,11 @@ export class RoomsService {
     const ms = room.dev?.remaining ?? timer.ms;
     if (room.dev) room.dev.remaining = room.dev.timerPaused ? ms : null;
     room.timer = { key, event: timer.event, ms: timer.ms, endsAt: Date.now() + ms };
+    logRoom(room, {
+      kind: 'timer',
+      level: 'info',
+      text: `Timer ${timer.event}: ${ms / 1000} giây`,
+    });
     return room.dev?.timerPaused ? null : { key, ms };
   }
 
@@ -317,10 +374,13 @@ export class RoomsService {
   fireTimer(code: string, key: string) {
     const room = this.rooms.get(code);
     if (!room || room.status !== 'playing' || room.timer?.key !== key) return null;
+    logRoom(room, { kind: 'timer', level: 'info', text: `Timer ${room.timer.event} đã chạy` });
     remember(room);
     room.timer = null;
     if (room.dev) room.dev.remaining = null;
-    room.state = room.game.fireTimer(room.state, rngOf(room), this.context(room));
+    room.state = runRoomHook(room, 'timer', () =>
+      room.game.fireTimer(room.state, rngOf(room), this.context(room)),
+    );
     this.settle(room);
     return room;
   }
@@ -333,6 +393,12 @@ export class RoomsService {
       room.timer = null;
       room.endedAt = Date.now();
       this.addToScore(room, room.result);
+      logRoom(room, {
+        kind: 'room',
+        level: 'info',
+        text: `Ván ${room.round} kết thúc`,
+        data: room.result,
+      });
     }
   }
 
@@ -347,14 +413,19 @@ export class RoomsService {
       return null;
     for (const seat of room.players) {
       if (!seat.bot) continue;
-      const move = room.game.bot(
-        room.state,
-        seat.id,
-        rngOf(room),
-        room.options,
-        this.context(room),
+      const move = runRoomHook(room, 'bot', () =>
+        room.game.bot!(room.state, seat.id, rngOf(room), room.options, this.context(room)),
       );
-      if (move !== null) return this.move(code, seat.id, move);
+      if (move !== null) {
+        logRoom(room, {
+          kind: 'bot',
+          level: 'info',
+          seat: room.game.seats(room.state).findIndex((p) => p.id === seat.id),
+          text: `Máy chọn ${(move as { event?: string }).event ?? '?'}`,
+          data: move,
+        });
+        return this.move(code, seat.id, move);
+      }
     }
     return null;
   }
