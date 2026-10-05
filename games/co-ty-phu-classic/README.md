@@ -77,7 +77,9 @@ blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py
 blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
 ```
 
-Viền bộ màu được khử răng cưa trong shader GPU. Hai ô cùng chủ có quầng sáng nhẹ;
+Viền bộ màu được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
+phần mặt ô bên trong gờ in sẵn. Quầng sáng/lửa hướng vào trong, không tràn khỏi mặt ô.
+Badge men nằm phẳng và được cắt theo cùng giới hạn bề mặt. Hai ô cùng chủ có quầng sáng nhẹ;
 đủ bộ thì nhiễu liên tục tạo lửa chạy quanh viền. Chỉ các ô chạm nhau được gộp khung;
 các thành viên cách nhau vẫn cùng hưởng hiệu ứng và hệ số thuê.
 `sources/render_pawns.py`, `render_plane.py` và `render_hud_icons.py` kết xuất các đối tượng.

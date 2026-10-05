@@ -134,7 +134,12 @@ export default async function run(t) {
       ys = frame.points.map((p) => p.y);
     const a = window.__toScreen('co-ty-phu-classic', Math.min(...xs) - 9, Math.min(...ys) - 9);
     const b = window.__toScreen('co-ty-phu-classic', Math.max(...xs) + 9, Math.max(...ys) + 9);
-    return { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y };
+    return {
+      x: Math.floor(a.x),
+      y: Math.floor(a.y),
+      width: Math.ceil(b.x) - Math.floor(a.x),
+      height: Math.ceil(b.y) - Math.floor(a.y),
+    };
   });
   const first = await page.screenshot({ clip, path: t.shot('scattered-monopoly-fire-a.png') });
   await page.waitForTimeout(350);
@@ -145,6 +150,55 @@ export default async function run(t) {
   let changed = 0;
   for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > 5) changed++;
   if (changed < 60) throw new Error('The complete scattered set has no visible flowing fire');
+  const face = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.monopolyBorders.frames
+      .find((f) => f.squares.includes(6))
+      .points.map((p) => window.__toScreen('co-ty-phu-classic', p.x, p.y));
+  });
+  const contained = async (before, after, label) => {
+    const { data: lhs, info } = await sharp(before).raw().toBuffer({ resolveWithObject: true });
+    const rhs = await sharp(after).raw().toBuffer();
+    let inside = 0,
+      outside = 0;
+    for (let y = 0; y < info.height; y++)
+      for (let x = 0; x < info.width; x++) {
+        const index = (y * info.width + x) * info.channels;
+        if (![0, 1, 2].some((c) => Math.abs(lhs[index + c] - rhs[index + c]) > 6)) continue;
+        const px = clip.x + x + 0.5,
+          py = clip.y + y + 0.5;
+        const distances = face.map((a, i) => {
+          const b = face[(i + 1) % 4],
+            dx = b.x - a.x,
+            dy = b.y - a.y;
+          return (dx * (py - a.y) - dy * (px - a.x)) / Math.hypot(dx, dy);
+        });
+        if (distances.every((d) => d > 1)) inside++;
+        if (distances.some((d) => d < -1)) outside++;
+      }
+    if (inside < 15 || outside > 2)
+      throw new Error(
+        `${label} must stay in the visible face: ${inside} inside, ${outside} outside`,
+      );
+  };
+  await page.evaluate(() =>
+    window.__phaser.scene
+      .getScene('co-ty-phu-classic')
+      .monopolyBorders.shaders.get('6')
+      .setVisible(false),
+  );
+  const noBorder = await page.screenshot({ clip, path: t.shot('surface-without-border.png') });
+  await contained(second, noBorder, 'Monopoly rim/fire');
+  await page.evaluate(() =>
+    window.__phaser.scene.getScene('co-ty-phu-classic').deedLayers.badges.get(6).setVisible(false),
+  );
+  const noBadge = await page.screenshot({ clip, path: t.shot('surface-without-badge.png') });
+  await contained(noBorder, noBadge, 'Owner enamel strip');
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.monopolyBorders.shaders.get('6').setVisible(true);
+    s.deedLayers.badges.get(6).setVisible(true);
+  });
   await page.setViewportSize(PHONE);
   await page.waitForTimeout(300);
   await page.screenshot({ path: t.shot('monopoly-buildings-phone.png') });

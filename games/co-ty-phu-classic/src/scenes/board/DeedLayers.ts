@@ -24,7 +24,7 @@ export class DeedLayers {
           scene.add
             .image(0, 0, texture, `houses-1-${square}`)
             .setOrigin(0)
-            .setDepth(0.51)
+            .setDepth(0.6)
             .setVisible(false),
         );
     });

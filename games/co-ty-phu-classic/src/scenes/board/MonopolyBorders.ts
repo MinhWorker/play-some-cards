@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { BOARD, GROUP_COLORS, type Property } from '../../game/model.js';
-import { BOARD_CELLS } from './boardGeometry.js';
+import { BOARD_FACES } from './boardGeometry.js';
 import { monopolyFrames } from './monopolyFrames.js';
 import { MONOPOLY_FRAGMENT } from './monopolyShader.js';
 
@@ -27,8 +27,8 @@ export class MonopolyBorders {
     height: number,
   ) {
     this.frames = monopolyFrames(properties).map(({ squares, group, count, ownedCount }) => {
-      const first = BOARD_CELLS[squares[0]!]!;
-      const last = BOARD_CELLS[squares.at(-1)!]!;
+      const first = BOARD_FACES[squares[0]!]!;
+      const last = BOARD_FACES[squares.at(-1)!]!;
       const square = squares[0]!;
       const corners =
         square < 10
@@ -55,10 +55,10 @@ export class MonopolyBorders {
             setupUniforms: (setUniform: (name: string, value: number) => void) =>
               setUniform('uTime', this.elapsed),
           })
-          .setDepth(0.3);
+          .setDepth(0.55);
         this.shaders.set(key, shader);
       }
-      const padding = 13;
+      const padding = 0;
       const x = Math.min(...points.map((p) => p.x)) - padding;
       const y = Math.min(...points.map((p) => p.y)) - padding;
       const w = Math.max(...points.map((p) => p.x)) - x + padding;

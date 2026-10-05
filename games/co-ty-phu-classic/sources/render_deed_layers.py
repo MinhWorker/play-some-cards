@@ -2,8 +2,9 @@
 
   blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
 
-The atlas contains per-square sprites, not flat colored polygons. All lighting, bevels,
-occlusion and transparent shadows are rendered once. Game state only selects atlas frames.
+The atlas contains per-square sprites with baked lighting and porcelain forms.
+Strips sit flush in the face, inside its printed bevel.
+Game state only selects atlas frames.
 """
 
 from __future__ import annotations
@@ -81,22 +82,22 @@ def dimensions(square):
 
 badges = []
 for square in DEEDS:
-    corners = [xy(square, a, d) for a, d in ((0, .9), (1, .9), (1, 1), (0, 1))]
+    corners = [xy(square, a, d) for a, d in ((.035, .855), (.965, .855), (.965, .955), (.035, .955))]
     xs, ys = zip(*corners)
-    bpy.ops.mesh.primitive_cube_add(size=1, location=((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, 0.042))
+    bpy.ops.mesh.primitive_cube_add(size=1, location=((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, 0.0355))
     obj = bpy.context.object
     obj.name = f"Flush enamel strip {square}"
-    obj.dimensions = (max(xs) - min(xs), max(ys) - min(ys), 0.007)
+    obj.dimensions = (max(xs) - min(xs), max(ys) - min(ys), 0.001)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bevel = obj.modifiers.new("Fine enamel highlight", "BEVEL")
-    bevel.width, bevel.segments = 0.0009, 3
+    bevel.width, bevel.segments = 0.00015, 2
     obj.modifiers.new("Face normals", "WEIGHTED_NORMAL")
     obj.data.materials.append(enamel)
     badges.append(obj)
 
 rects = [None] * 40
 for square in DEEDS:
-    points = [board["project"](*uv(square, a, d)) for a, d in ((0, .89), (1, .89), (1, 1.01), (0, 1.01))]
+    points = [board["project"](*uv(square, a, d)) for a, d in ((.035, .84), (.965, .84), (.965, .955), (.035, .955))]
     xs, ys = zip(*points)
     x0, y0 = math.floor(min(xs) * CW) - 5, math.floor(min(ys) * CH) - 5
     x1, y1 = math.ceil(max(xs) * CW) + 5, math.ceil(max(ys) * CH) + 5
@@ -126,9 +127,9 @@ def render_frames(prefix, squares):
         shade.putalpha(displaced)
         shade.alpha_composite(sprite)
         sprite = shade
-        # The head spans the whole tile. Clip adjacent rendered strips out of its padded box.
+        # Cover the face's head, while keeping the printed bevel and adjacent tiles intact.
         mask = Image.new("L", (w * 4, h * 4), 0)
-        points = [((u * CW - x) * 4, (v * CH - y) * 4) for u, v in board["cells"][square]]
+        points = [((u * CW - x) * 4, (v * CH - y) * 4) for u, v in board["faces"][square]]
         ImageDraw.Draw(mask).polygon(points, fill=255)
         sprite.putalpha(ImageChops.multiply(sprite.getchannel("A"), mask.resize((w, h), Image.Resampling.LANCZOS)))
         sprites.append((f"{prefix}-{square}", sprite))
@@ -153,10 +154,10 @@ def hotel(square):
         for step in range(17):
             angle = end - math.pi / 2 + math.pi * step / 16
             outline.append((offset + math.cos(angle) * radius, math.sin(angle) * radius))
-    center_x, center_y = xy(square, .5, .95)
+    center_x, center_y = xy(square, .5, .905)
     horizontal = board["tile_side"](square) in ("bottom", "top")
     vertices = []
-    for z, shrink in ((.047, 1), (.053, .96)):
+    for z, shrink in ((.039, 1), (.044, .96)):
         for x, y in outline:
             px, py = (x, y) if horizontal else (y, x)
             vertices.append((center_x + px * shrink, center_y + py * shrink, z))
@@ -183,8 +184,8 @@ for level in range(1, 6):
         else:
             along, depth = dimensions(square)
             for house in range(level):
-                x, y = xy(square, .5 + (house - (level - 1) / 2) * .16, .95)
-                bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=along * .052, location=(x, y, .047))
+                x, y = xy(square, .5 + (house - (level - 1) / 2) * .16, .905)
+                bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=16, radius=along * .052, location=(x, y, .040))
                 obj = bpy.context.object
                 obj.name = f"Porcelain house {square}-{house}"
                 obj.scale.z = .36

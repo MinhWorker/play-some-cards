@@ -129,9 +129,10 @@ Một người sở hữu đủ ba ô nhận monopoly:
 
 Các ô liền nhau trong cùng bộ và cùng chủ gộp viền thành một khung chữ nhật theo mặt bàn.
 Sở hữu hai ô trong bộ thì các khung sáng nhẹ; đủ ba ô thì mọi khung của bộ sáng mạnh
-và có lửa chuyển động, kể cả khi các ô nằm cách nhau. Khung không nối qua ô khác bộ.
+và có lửa chuyển động, kể cả khi các ô nằm cách nhau. Khung không nối qua ô khác bộ. Viền, quầng sáng và lửa nằm trong bề mặt ô, không tràn ra ngoài.
 Ô pawn đang đứng không tô màu.
-Mỗi tài sản đã mua có badge màu chủ sở hữu dạng dải mảnh, phủ hết chiều ngang và sát mép đầu ô, không chừa khoảng trống hay bo góc;
+Mỗi tài sản đã mua có badge màu chủ sở hữu dạng dải mảnh, phủ hết chiều ngang phần mặt ô và sát mép đầu, không chừa khoảng trống hay bo góc;
+badge nằm phẳng trong mép mặt ô, không che phần gờ hoặc làm tăng diện tích ô;
 1–4 nhà là chấm trắng đè lên badge,
 khách sạn là capsule trắng. Các ô không mua được có nền ánh kim, Khí vận màu vàng kim.
 

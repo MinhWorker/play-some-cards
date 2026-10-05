@@ -593,7 +593,19 @@ def project(u, v):
     ]
 
 
+def face_bounds(square):
+    """Ivory face inside the printed bevel; these are surface limits, not tile hit bounds."""
+    u0, v0, u1, v1 = square_bounds(square)
+    side = tile_side(square)
+    iu, iv = (.035, .045) if side in ("bottom", "top") else (.045, .035)
+    if side == "corner":
+        iu, iv = .04, .04
+    du, dv = (u1 - u0) * iu, (v1 - v0) * iv
+    return u0 + du, v0 + dv, u1 - du, v1 - dv
+
+
 cells = []
+faces = []
 for i in range(40):
     if i <= 10:
         col, row = 10 - i, 10
@@ -606,6 +618,8 @@ for i in range(40):
     u, w = axis(col, True)
     v, h = axis(row, False)
     cells.append([project(u, v), project(u + w, v), project(u + w, v + h), project(u, v + h)])
+    u0, v0, u1, v1 = face_bounds(i)
+    faces.append([project(u0, v0), project(u1, v0), project(u1, v1), project(u0, v1)])
 
 # The board's plane seen by the camera: a projective map from board units to the image.
 import numpy as np  # bundled with Blender
@@ -626,6 +640,8 @@ GEOMETRY.write_text(
         for cell in cells
     )
     + "] as const;\n"
+    + "/** Visible tile faces inside their printed bevels; overlays must stay within these. */\n"
+    + "export const BOARD_FACES = " + json.dumps(faces, indent=2) + " as const;\n"
     + f"export const BOARD_IMAGE_RATIO = {CROP_WIDTH / CROP_HEIGHT} as const;\n"
     + "/** Board units (0–1 across the printed board) to the image: x = (h0 u + h1 v + h2) / w, … */\n"
     + f"export const BOARD_HOMOGRAPHY = {json.dumps(homography)} as const;\n"
