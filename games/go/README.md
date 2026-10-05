@@ -3,6 +3,8 @@
 Cờ Vây cho hai người theo luật Trung Quốc, trên bàn chuẩn **19 × 19**, chơi với bạn bè hoặc
 với máy ở ba mức. Trắng được 7,5 điểm bù; đếm theo diện tích.
 
+Game đã mở trên bản chính thức; chọn đảo Cờ Vây để tạo phòng và chơi.
+
 [Luật chơi](RULES.md)
 
 ## Tạo phòng
