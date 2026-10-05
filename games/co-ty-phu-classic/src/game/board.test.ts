@@ -47,10 +47,12 @@ describe('clockwise Vietnamese board', () => {
       );
       expect(streets.map((cell) => [cell.name, cell.price])).toEqual(expected);
     });
-    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chest' ? [i] : []))).toEqual([17, 33]);
-    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chance' ? [i] : []))).toEqual([7, 22]);
+    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chest' ? [i] : []))).toEqual([19, 34]);
+    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chance' ? [i] : []))).toEqual([9, 24]);
     for (const group of Object.keys(GROUP_COLORS) as (keyof typeof GROUP_COLORS)[]) {
-      expect(groupSquares(group)).toHaveLength(3);
+      const squares = groupSquares(group);
+      expect(squares).toHaveLength(3);
+      expect(squares).toEqual([squares[0], squares[0]! + 1, squares[0]! + 2]);
     }
     for (const card of CHANCE) {
       if (card.kind === 'move' && card.target !== 0)

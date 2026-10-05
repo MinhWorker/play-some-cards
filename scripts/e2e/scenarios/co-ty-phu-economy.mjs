@@ -155,7 +155,7 @@ export default async function run(t) {
   const held = await page.evaluate(
     () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players[1].cash,
   );
-  if (held !== 900) throw new Error('Withdrawal refunded the deposit before settlement');
+  if (held !== 1000) throw new Error('Withdrawal did not immediately refund the deposit');
   await arrive(2);
   await pass();
   const result = await page.evaluate(() => {

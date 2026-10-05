@@ -123,42 +123,42 @@ it('uses the same 20% bid steps for resale of streets and owned stations', () =>
 
 it('keeps the Hanoi construction price visible when short of cash and unlocks it at the exact price', () => {
   const game = testGame(plugin, ['a', 'b']);
-  game.state.properties[9]!.owner = 0;
+  game.state.properties[8]!.owner = 0;
   game.state.players[0]!.cash = 158;
-  move(game.state, 0, 9, false, 9);
-  const build = () => tileActions(game.state, 0, 9).find((action) => action.event === 'build');
+  move(game.state, 0, 8, false, 9);
+  const build = () => tileActions(game.state, 0, 8).find((action) => action.event === 'build');
   expect(build()).toMatchObject({ label: 'Xây nhà 175 ₫', enabled: false });
-  expect(() => game.send('a', 'build', { square: 9 })).toThrow('Không đủ tiền xây');
+  expect(() => game.send('a', 'build', { square: 8 })).toThrow('Không đủ tiền xây');
   game.state.players[0]!.cash = 175;
   expect(build()?.enabled).toBe(true);
-  game.send('a', 'build', { square: 9 });
-  expect(game.state.properties[9]!.houses).toBe(1);
+  game.send('a', 'build', { square: 8 });
+  expect(game.state.properties[8]!.houses).toBe(1);
   expect(build()).toMatchObject({ label: 'Xây nhà 175 ₫', enabled: false });
 });
 
 it('keeps construction visible but disabled for off-turn, remote, mortgaged and exhausted-bank deeds', () => {
   const game = testGame(plugin, ['a', 'b']);
-  game.state.properties[9]!.owner = 0;
-  const build = () => tileActions(game.state, 0, 9).find((action) => action.event === 'build');
+  game.state.properties[8]!.owner = 0;
+  const build = () => tileActions(game.state, 0, 8).find((action) => action.event === 'build');
   expect(build()?.enabled).toBe(false);
-  move(game.state, 0, 9, false, 9);
+  move(game.state, 0, 8, false, 9);
   expect(build()?.enabled).toBe(true);
   game.state.turn = 1;
   expect(build()?.enabled).toBe(false);
   game.state.turn = 0;
-  game.state.properties[9]!.mortgaged = true;
+  game.state.properties[8]!.mortgaged = true;
   expect(build()?.enabled).toBe(false);
-  game.state.properties[9]!.mortgaged = false;
-  for (const square of [1, 2, 3, 6, 8, 11, 13, 14]) game.state.properties[square]!.houses = 4;
+  game.state.properties[8]!.mortgaged = false;
+  for (const square of [1, 2, 3, 6, 7, 11, 12, 13]) game.state.properties[square]!.houses = 4;
   expect(build()?.enabled).toBe(false);
-  game.state.properties[9]!.houses = 4;
+  game.state.properties[8]!.houses = 4;
   expect(build()).toMatchObject({ label: 'Xây khách sạn 175 ₫', enabled: true });
-  for (const square of [1, 2, 3, 6, 8, 11, 13, 14, 16, 18, 19, 21]) {
+  for (const square of [1, 2, 3, 6, 7, 11, 12, 13, 16, 17, 18, 21]) {
     game.state.properties[square]!.houses = 5;
   }
   expect(build()?.enabled).toBe(false);
-  game.state.properties[9]!.houses = 5;
+  game.state.properties[8]!.houses = 5;
   expect(build()).toMatchObject({ label: 'Xây khách sạn 175 ₫', enabled: false });
-  expect(tileActions(game.state, 1, 9)).toEqual([]);
-  expect(tileActions(game.state, null, 9)).toEqual([]);
+  expect(tileActions(game.state, 1, 8)).toEqual([]);
+  expect(tileActions(game.state, null, 8)).toEqual([]);
 });

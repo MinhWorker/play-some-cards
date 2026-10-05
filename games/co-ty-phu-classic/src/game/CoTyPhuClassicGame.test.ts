@@ -30,7 +30,7 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('reveals tax before charging, rejects other seats and applies it once', () => {
-    const game = at(38);
+    const game = at(39);
     game.send('a', 'roll');
     expect(game.state.phase).toBe('event');
     expect(game.state.players[0]!.cash).toBe(1000);
@@ -56,7 +56,7 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('starts the countdown when the event is displayed and does not restart it', () => {
-    const game = at(38);
+    const game = at(39);
     game.send('a', 'roll');
     const id = game.state.specialEvent!.id;
     expect(game.state.specialEvent?.ready).toBe(false);
@@ -73,7 +73,7 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('confirms repair charges and three consecutive doubles before applying them', () => {
-    const game = at(22);
+    const game = at(24);
     game.state.chance = [8];
     game.state.properties[1] = { owner: 0, houses: 2, mortgaged: false };
     game.send('a', 'roll');
@@ -98,7 +98,7 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('enters debt only after confirming an unaffordable special event', () => {
-    const game = at(38);
+    const game = at(39);
     game.state.players[0]!.cash = 1;
     game.send('a', 'roll');
     expect(game.state.phase).toBe('event');
@@ -113,7 +113,7 @@ describe('Cờ tỷ phú Classic', () => {
     [5, 50],
     [7, -15],
   ])('waits before applying chance card %s', (card, amount) => {
-    const game = at(22);
+    const game = at(24);
     game.state.chance = [card];
     game.send('a', 'roll');
     expect(game.state.phase).toBe('event');
@@ -125,20 +125,20 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('waits before card movement, then collects Start and continues the landing', () => {
-    const game = at(22);
+    const game = at(24);
     game.state.chance = [4];
     game.send('a', 'roll');
-    expect(game.state.players[0]!.position).toBe(22);
+    expect(game.state.players[0]!.position).toBe(24);
     game.send('a', 'confirm-event');
-    expect(game.state.players[0]!.position).toBe(18);
+    expect(game.state.players[0]!.position).toBe(17);
     expect(game.state.players[0]!.cash).toBe(1200);
     expect(game.state.phase).toBe('buy');
-    expect(game.state.pending).toBe(18);
+    expect(game.state.pending).toBe(17);
     expect(game.state.specialEvent).toBeNull();
   });
 
   it('waits before granting a free jail card or moving to jail', () => {
-    const game = at(22);
+    const game = at(24);
     game.state.chance = [10];
     game.send('a', 'roll');
     expect(game.state.players[0]!.freeCards).toEqual([]);
@@ -155,7 +155,7 @@ describe('Cờ tỷ phú Classic', () => {
   });
 
   it('auto-confirms multiplayer events, but has no countdown for a single seat', () => {
-    const game = at(38);
+    const game = at(39);
     game.send('a', 'roll');
     game.fireTimer();
     expect(game.state.phase).toBe('event');
@@ -165,7 +165,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 30000 });
     const solo = testGame(plugin, ['a'], { seed: 1 });
     const [a, b] = firstRoll();
-    solo.state.players[0]!.position = 38 - a - b;
+    solo.state.players[0]!.position = 39 - a - b;
     solo.send('a', 'roll');
     expect(solo.state.phase).toBe('event');
     expect(solo.timer).toBeNull();
@@ -174,7 +174,7 @@ describe('Cờ tỷ phú Classic', () => {
   it('keeps the countdown when another seat leaves and cancels it when the owner leaves', () => {
     const game = testGame(plugin, ['a', 'b', 'c'], { seed: 1 });
     const [a, b] = firstRoll();
-    game.state.players[0]!.position = 38 - a - b;
+    game.state.players[0]!.position = 39 - a - b;
     game.send('a', 'roll');
     game.leave('c');
     expect(game.state.phase).toBe('event');
@@ -183,7 +183,7 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.state.phase).toBe('event');
     game.fireTimer();
     expect(game.state.players[0]!.cash).toBe(800);
-    const leaving = at(22);
+    const leaving = at(24);
     leaving.state.chance = [10];
     leaving.send('a', 'roll');
     leaving.leave('a');
@@ -485,7 +485,7 @@ describe('Cờ tỷ phú Classic', () => {
   it('lets a computer confirm special events without starting a countdown', () => {
     const game = testGame(plugin, ['a', 'b'], { bots: ['a'], seed: 1 });
     const [a, b] = firstRoll();
-    game.state.players[0]!.position = (38 - a - b + 40) % 40;
+    game.state.players[0]!.position = (39 - a - b + 40) % 40;
     game.send('a', 'roll');
     expect(game.state.phase).toBe('event');
     expect(game.timer).toBeNull();

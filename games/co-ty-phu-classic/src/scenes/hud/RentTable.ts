@@ -41,7 +41,7 @@ export class RentTable {
       cell.kind === 'street'
         ? (cell.rent ?? []).map((amount, i) => [
             i === 0 ? 'Đất trống' : i === 5 ? 'Khách sạn' : `${i} nhà`,
-            `${(i === 0 && doubleRent ? amount * 2 : amount).toLocaleString('vi-VN')} ₫`,
+            `${(doubleRent ? amount * 3 : amount).toLocaleString('vi-VN')} ₫`,
             i === 0 ? '—' : `${cell.houseCost} ₫`,
           ])
         : cell.kind === 'station'

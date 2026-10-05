@@ -11,4 +11,5 @@ export default defineClient({
   background: CityBackground,
   setup: Setup,
   showsPlayers: true,
+  showsResult: true,
 });

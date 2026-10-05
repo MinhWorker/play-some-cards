@@ -37,14 +37,15 @@ describe('board rent prices', () => {
 
   it('shows shared ownership rent, utility multipliers and tax amounts', () => {
     const game = testGame(plugin, ['a', 'b']);
-    for (const square of [1, 2, 18, 5, 15]) game.state.properties[square]!.owner = 0;
-    expect(boardAmounts(game.state)[1]).toBe('40');
+    for (const square of [1, 2, 3, 5, 15]) game.state.properties[square]!.owner = 0;
+    expect(boardAmounts(game.state)[1]).toBe('20x3');
     expect(boardAmounts(game.state)[5]).toBe('100');
-    expect(boardAmounts(game.state)[12]).toBe('100');
-    game.state.properties[28]!.owner = 0;
-    expect(boardAmounts(game.state)[12]).toBe('100');
+    expect(boardAmounts(game.state)[14]).toBe('150');
+    game.state.properties[29]!.owner = 0;
+    game.state.properties[14]!.owner = 0;
+    expect(boardAmounts(game.state)[14]).toBe('🎲x10');
     expect(boardAmounts(game.state)[4]).toBe('10%');
-    expect(boardAmounts(game.state)[38]).toBe('10%');
+    expect(boardAmounts(game.state)[39]).toBe('10%');
   });
 
   it('keeps the payable tax amount on the board through confirmation and collection', () => {
@@ -57,5 +58,19 @@ describe('board rent prices', () => {
       { from: 0, to: null, amount: 100, reason: 'Thuế thu nhập' },
     ]);
     expect(boardAmounts(game.state)[4]).toBe('10%');
+  });
+  it('shows a shortage x2 suffix and charges the same dice fee into debt', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.state.properties[14]!.owner = 0;
+    game.state.properties[29]!.owner = 0;
+    game.state.round = 1;
+    game.state.shortages = [{ square: 14, round: 1 }];
+    game.state.players[1]!.cash = 150;
+    expect(boardAmounts(game.state)[14]).toBe('🎲x10x2');
+    move(game.state, 1, 14, false, 8);
+    expect(game.state.debt).toMatchObject({ amount: 160, creditor: 0 });
+    expect(game.state.players[1]!.cash).toBe(150);
+    game.state.properties[14]!.mortgaged = true;
+    expect(boardAmounts(game.state)[14]).toBe('0');
   });
 });

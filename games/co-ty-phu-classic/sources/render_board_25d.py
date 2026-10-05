@@ -53,46 +53,46 @@ INLAY = {"ring": (215, 164, 67, 255), "edge": (107, 58, 16, 255), "shine": (246,
 
 # Keep this order and the group colors in sync with BOARD and GROUP_COLORS in game/model.ts.
 SQUARES = [
-    ("start", None),
-    ("street", "nau"),
-    ("street", "nau"),
-    ("street", "xanh-la"),
-    ("tax", None),
-    ("station", None),
-    ("street", "hong"),
-    ("chance", None),
-    ("street", "vang"),
-    ("street", "do"),
-    ("jail", None),
-    ("street", "xanh-nhat"),
-    ("power", None),
-    ("street", "xanh-dam"),
-    ("street", "hong"),
-    ("station", None),
-    ("street", "vang"),
-    ("chest", None),
-    ("street", "nau"),
-    ("street", "xanh-nhat"),
-    ("airport", None),
-    ("street", "do"),
-    ("chance", None),
-    ("street", "xanh-la"),
-    ("street", "cam"),
-    ("station", None),
-    ("street", "xanh-dam"),
-    ("street", "xanh-nhat"),
-    ("water", None),
-    ("street", "vang"),
-    ("go-jail", None),
-    ("street", "xanh-la"),
-    ("street", "hong"),
-    ("chest", None),
-    ("street", "cam"),
-    ("station", None),
-    ("street", "xanh-dam"),
-    ("street", "do"),
-    ("tax", None),
-    ("street", "cam"),
+    ('start', None),
+    ('street', 'nau'),
+    ('street', 'nau'),
+    ('street', 'nau'),
+    ('tax', None),
+    ('station', None),
+    ('street', 'xanh-nhat'),
+    ('street', 'xanh-nhat'),
+    ('street', 'xanh-nhat'),
+    ('chance', None),
+    ('jail', None),
+    ('street', 'hong'),
+    ('street', 'hong'),
+    ('street', 'hong'),
+    ('power', None),
+    ('station', None),
+    ('street', 'cam'),
+    ('street', 'cam'),
+    ('street', 'cam'),
+    ('chest', None),
+    ('airport', None),
+    ('street', 'do'),
+    ('street', 'do'),
+    ('street', 'do'),
+    ('chance', None),
+    ('station', None),
+    ('street', 'vang'),
+    ('street', 'vang'),
+    ('street', 'vang'),
+    ('water', None),
+    ('go-jail', None),
+    ('street', 'xanh-la'),
+    ('street', 'xanh-la'),
+    ('street', 'xanh-la'),
+    ('chest', None),
+    ('station', None),
+    ('street', 'xanh-dam'),
+    ('street', 'xanh-dam'),
+    ('street', 'xanh-dam'),
+    ('tax', None),
 ]
 
 
@@ -285,6 +285,17 @@ def make_print_texture():
         pad_y = max(2, round(height * 0.055))
         center_x = (x0 + x1) / 2
         center_y = (y0 + y1) / 2
+        metallic = {"start": (127, 168, 143), "chance": (170, 155, 196),
+                    "chest": (211, 170, 67), "tax": (187, 137, 113),
+                    "jail": (137, 155, 168), "go-jail": (133, 143, 162),
+                    "airport": (135, 175, 191)}.get(kind)
+        if metallic:
+            # Brushed metal with a soft highlight; keep the engraved bevel intact.
+            for row in range(y0 + pad_y, y1 - pad_y):
+                t = (row - y0) / height
+                shine = 0.80 + 0.25 * (1 - abs(2 * t - 0.65))
+                color = tuple(min(255, round(c * shine)) for c in metallic) + (255,)
+                draw.line((x0 + pad_x, row, x1 - pad_x, row), fill=color)
         band_color = None
         if band_color:
             if side == "bottom":
@@ -523,8 +534,8 @@ fill.data.size = 5
 
 scene = bpy.context.scene
 scene.render.engine = "CYCLES"
-scene.cycles.samples = 24
-scene.cycles.use_denoising = True
+scene.cycles.samples = 96
+scene.cycles.use_denoising = False
 scene.render.resolution_x = WIDTH
 scene.render.resolution_y = HEIGHT
 scene.render.resolution_percentage = 100

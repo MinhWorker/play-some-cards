@@ -5,14 +5,14 @@ export type Card =
   | { text: string; kind: 'nearest'; target: 'station' | 'utility' }
   | { text: string; kind: 'jail' | 'free' }
   | { text: string; kind: 'repairs'; house: number; hotel: number }
-  | { text: string; kind: 'shortage'; square: 12 | 28 };
+  | { text: string; kind: 'shortage'; square: 14 | 29 };
 
 export const CHANCE: readonly Card[] = [
   { text: 'Tiến về Xuất phát. Nhận 200.', kind: 'move', target: 0 },
   { text: 'Tới Bến xe gần nhất.', kind: 'nearest', target: 'station' },
   { text: 'Tới Điện lực hoặc Cấp nước gần nhất.', kind: 'nearest', target: 'utility' },
-  { text: 'Tới Cà Mau.', kind: 'move', target: 39 },
-  { text: 'Tới Vinh.', kind: 'move', target: 18 },
+  { text: 'Tới Cà Mau.', kind: 'move', target: 38 },
+  { text: 'Tới Vinh.', kind: 'move', target: 17 },
   { text: 'Ngân hàng trả lãi 50.', kind: 'cash', amount: 50 },
   { text: 'Nhận cổ tức 100.', kind: 'cash', amount: 100 },
   { text: 'Nộp phạt chạy quá tốc độ 15.', kind: 'cash', amount: -15 },
@@ -23,12 +23,12 @@ export const CHANCE: readonly Card[] = [
   {
     text: 'Thiếu điện: thuế Điện lực gấp đôi trong vòng bàn kế tiếp.',
     kind: 'shortage',
-    square: 12,
+    square: 14,
   },
   {
     text: 'Thiếu nước: thuế Cấp nước gấp đôi trong vòng bàn kế tiếp.',
     kind: 'shortage',
-    square: 28,
+    square: 29,
   },
 ];
 

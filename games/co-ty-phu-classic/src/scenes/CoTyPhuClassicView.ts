@@ -17,12 +17,19 @@ import {
   STATION_BASE_FEE,
   type View,
 } from '../game/model.js';
-import { mortgageSquares, mortgageStatus, ownsGroup, rent, utilityTax } from '../game/rules.js';
+import {
+  mortgageSquares,
+  mortgageStatus,
+  ownsGroup,
+  rent,
+  utilityMultiplier,
+} from '../game/rules.js';
 import { decisionSeat } from '../game/turnClock.js';
 import { BoardPrices, ownerInk } from './board/BoardPrices.js';
 import { BoardTileEffect } from './board/BoardTileEffect.js';
 import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './board/boardGeometry.js';
 import { planePoint } from './board/boardPlane.js';
+import { MonopolyBorders } from './board/MonopolyBorders.js';
 import { SpecialSymbols } from './board/SpecialSymbols.js';
 import { TileOwnerSymbols } from './board/TileOwnerSymbols.js';
 import { Backdrop } from './effects/Backdrop.js';
@@ -31,6 +38,7 @@ import { JailGateEffect } from './effects/JailGateEffect.js';
 import { MoneyTransferEffect } from './effects/MoneyTransferEffect.js';
 import { moneySound } from './effects/moneySound.js';
 import { PawnCashEffect } from './effects/PawnCashEffect.js';
+import { VictoryEffect } from './effects/VictoryEffect.js';
 import { AuctionConfirmPanel } from './hud/AuctionConfirmPanel.js';
 import { MortgagePanel } from './hud/MortgagePanel.js';
 import { PlayerPanel } from './hud/PlayerPanel.js';
@@ -78,6 +86,7 @@ type RollBeat = {
   to: number;
   jailed: boolean;
   jailing: boolean;
+  releasing: boolean;
   dice: [number, number];
   notice: string;
   card: string | null;
@@ -235,6 +244,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   private mortgagePanel!: MortgagePanel;
   private auctionConfirm!: AuctionConfirmPanel;
   private jailGate!: JailGateEffect;
+  private monopolyBorders!: MonopolyBorders;
+  private victory!: VictoryEffect;
   private selected: number | null = null;
   private tileActionCount = 0;
   private tradeOpen = false;
@@ -301,6 +312,11 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
     this.jailGate = new JailGateEffect(this);
+    this.monopolyBorders = new MonopolyBorders(this);
+    this.victory = new VictoryEffect(
+      this,
+      PLAYER_PAWNS.map((pawn) => this.texture(pawn.replace('pawn-', 'pawn-front-'))),
+    );
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
     this.tileTooltip = new TileTooltip(this);
     this.rentTable = new RentTable(this);
@@ -944,14 +960,6 @@ export class CoTyPhuClassicView extends GameView<View> {
             (action) => action.enabled !== false,
           ),
       );
-      effect?.setOccupants(
-        ctx.state.players.flatMap((player, seat) => {
-          const position = this.shownPositions[seat] ?? player.position;
-          return !player.bankrupt && !this.moving[seat] && position === i
-            ? [PLAYER_COLORS[seat]!]
-            : [];
-        }),
-      );
       const deed = this.shownProperties[i] ?? ctx.state.properties[i]!;
       if (isDeed(cell)) this.drawDeedState(i, deed);
       if (ctx.state.stationAuctions[i] && cell.kind === 'station') {
@@ -962,6 +970,13 @@ export class CoTyPhuClassicView extends GameView<View> {
         });
       }
     });
+    this.monopolyBorders.layout(
+      this.shownProperties,
+      this.geometry.left,
+      this.geometry.top,
+      this.geometry.size,
+      this.geometry.imageH,
+    );
     ctx.state.players.forEach((p, i) => {
       const visiblePosition = this.shownPositions[i] ?? p.position;
       const { x, y } = this.pawnSpot(visiblePosition, i);
@@ -1031,32 +1046,33 @@ export class CoTyPhuClassicView extends GameView<View> {
     layers.mortgage.clear();
     const color = PLAYER_COLORS[deed.owner ?? 0]!;
 
-    if (BOARD[square]!.kind === 'street' && deed.houses === 5) {
-      // A hotel is a capsule across the tile's foot: a cream rim round the owner's color.
-      for (const [inset, fill] of [
-        [0, 0xfff4db],
-        [0.016, color],
-      ] as const) {
+    if (deed.owner !== null) {
+      this.fillSurfacePolygon(
+        square,
+        [
+          [0, 0.83],
+          [1, 0.83],
+          [1, 0.93],
+          [0, 0.93],
+        ],
+        color,
+        layers.buildings,
+      );
+      if (BOARD[square]!.kind === 'street' && deed.houses === 5) {
         this.fillSurfacePolygon(
           square,
-          capsule(0.2 + inset, 0.8 - inset, 0.875, 0.052 - inset),
-          fill,
+          capsule(0.23, 0.77, 0.88, 0.035),
+          0xffffff,
           layers.buildings,
         );
-      }
-    } else if (BOARD[square]!.kind === 'street') {
-      for (let house = 0; house < deed.houses; house++) {
-        const center = 0.5 + (house - (deed.houses - 1) / 2) * 0.185;
-        // Project circles onto the board plane, with a light rim separating owner/group hues.
-        for (const [radius, fill] of [
-          [0.081, 0xfff4db],
-          [0.06, color],
-        ]) {
+      } else if (BOARD[square]!.kind === 'street') {
+        for (let house = 0; house < deed.houses; house++) {
+          const center = 0.5 + (house - (deed.houses - 1) / 2) * 0.16;
           const coords: [number, number][] = Array.from({ length: 24 }, (_, step) => {
             const angle = (step * Math.PI * 2) / 24;
-            return [center + Math.cos(angle) * radius!, 0.886 + Math.sin(angle) * radius! * 0.55];
+            return [center + Math.cos(angle) * 0.057, 0.88 + Math.sin(angle) * 0.035];
           });
-          this.fillSurfacePolygon(square, coords, fill!, layers.buildings);
+          this.fillSurfacePolygon(square, coords, 0xffffff, layers.buildings);
         }
       }
     }
@@ -1251,40 +1267,70 @@ export class CoTyPhuClassicView extends GameView<View> {
     const me = ctx.me!.seat;
     const seats = ctx.state.players.flatMap((p, i) => (i === me || p.bankrupt ? [] : [i]));
     if (!seats.includes(this.tradeTo)) this.tradeTo = seats[0] ?? me;
-    const own = [-1, ...ctx.state.properties.flatMap((p, i) => (p.owner === me ? [i] : []))];
+    const own = [
+      -1,
+      ...(ctx.state.players[me]!.freeCards.length ? [-2] : []),
+      ...ctx.state.properties.flatMap((p, i) => (p.owner === me ? [i] : [])),
+    ];
     const theirs = [
       -1,
+      ...(ctx.state.players[this.tradeTo]!.freeCards.length ? [-2] : []),
       ...ctx.state.properties.flatMap((p, i) => (p.owner === this.tradeTo ? [i] : [])),
     ];
-    const name = (square: number) => (square < 0 ? 'Không' : BOARD[square]!.name);
+    const name = (square: number) =>
+      square === -2 ? 'Vé ra tù · 200 ₫' : square < 0 ? 'Không' : BOARD[square]!.name;
     const refresh = () => this.onState(this.ctx);
     return [
       [
         `Người nhận: ${ctx.players[this.tradeTo]?.name ?? ''} ›`,
         () => {
           this.tradeTo = this.cycle(seats, this.tradeTo);
+          if (this.tradeGive === -2) this.tradeGive = -1;
           this.tradeTake = -1;
           this.takeCash = 0;
           refresh();
         },
       ],
       [
-        `Đất: ${name(this.tradeGive)} ›`,
+        `Tài sản: ${name(this.tradeGive)} ›`,
         () => {
+          const wasTicket = this.tradeGive === -2 || this.tradeTake === -2;
           this.tradeGive = this.cycle(own, this.tradeGive);
+          if (wasTicket) {
+            this.tradeTake = -1;
+            this.giveCash = 0;
+            this.takeCash = 0;
+          }
+          if (this.tradeGive === -2) {
+            this.tradeTake = -1;
+            this.giveCash = 0;
+            this.takeCash = 200;
+          }
           refresh();
         },
       ],
       [
-        `Đất: ${name(this.tradeTake)} ›`,
+        `Tài sản: ${name(this.tradeTake)} ›`,
         () => {
+          const wasTicket = this.tradeGive === -2 || this.tradeTake === -2;
           this.tradeTake = this.cycle(theirs, this.tradeTake);
+          if (wasTicket) {
+            this.tradeGive = -1;
+            this.giveCash = 0;
+            this.takeCash = 0;
+          }
+          if (this.tradeTake === -2) {
+            this.tradeGive = -1;
+            this.giveCash = 200;
+            this.takeCash = 0;
+          }
           refresh();
         },
       ],
       [
         '−50',
         () => {
+          if (this.tradeGive === -2 || this.tradeTake === -2) return;
           this.giveCash = Math.max(0, this.giveCash - 50);
           refresh();
         },
@@ -1292,6 +1338,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       [
         '+50',
         () => {
+          if (this.tradeGive === -2 || this.tradeTake === -2) return;
           this.giveCash = Math.min(ctx.state.players[me]!.cash, this.giveCash + 50);
           refresh();
         },
@@ -1299,6 +1346,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       [
         '−50',
         () => {
+          if (this.tradeGive === -2 || this.tradeTake === -2) return;
           this.takeCash = Math.max(0, this.takeCash - 50);
           refresh();
         },
@@ -1306,6 +1354,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       [
         '+50',
         () => {
+          if (this.tradeGive === -2 || this.tradeTake === -2) return;
           this.takeCash = Math.min(ctx.state.players[this.tradeTo]!.cash, this.takeCash + 50);
           refresh();
         },
@@ -1438,7 +1487,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       const descriptions: Partial<Record<typeof cell.kind, string>> = {
         start: 'Qua hoặc dừng: +200 ₫',
         tax: `Thuế: 10% tiền mặt · tối thiểu ${cell.tax} ₫`,
-        utility: `Thuế: ${utilityTax(state, square)} ₫`,
+        utility: 'Mua 150 ₫ · Phí: xúc xắc ×4; sở hữu cả hai ×10.',
         chance: 'Rút thẻ Cơ hội',
         chest: 'Rút thẻ Khí vận',
         jail: 'Dừng ở đây: ghé thăm.\nBị đưa vào đây: ở tù.',
@@ -1736,6 +1785,12 @@ export class CoTyPhuClassicView extends GameView<View> {
         fx.checkpoint();
         this.visualPhase = 'moving';
         this.onState(this.ctx);
+        if (beat.releasing && beat.seat === this.ctx.me?.seat) {
+          await fx.parallel(
+            (sound) => sound.sound('tycoon-release'),
+            (gate) => this.jailGate.open(gate),
+          );
+        }
         if (!dice && BOARD[beat.from]!.kind === 'airport' && beat.from !== beat.to)
           await this.airlift(fx, beat.seat, beat.to);
         else
@@ -1929,6 +1984,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   protected onStart(ctx: Ctx) {
+    this.victory.reset();
     this.resetTurn(ctx);
     this.jailGate.hide();
     this.auctionConfirm.hide();
@@ -1989,6 +2045,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   }
 
   protected onResync(ctx: Ctx) {
+    this.victory.reset();
+    if (ctx.state.winner !== null) this.victory.play(ctx, this.view, false);
     this.resetTurn(ctx);
     this.jailGate.hide();
     this.auctionConfirm.hide();
@@ -2021,6 +2079,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (!ctx.state.dice) return;
     const seat = event.player?.seat ?? ctx.state.turn;
     const from = this.projectedPositions[seat] ?? this.shownPositions[seat] ?? 0;
+    const releasing = !ctx.state.players[seat]!.jailed && Boolean(this.projectedJailed[seat]);
     const jailing = ctx.state.players[seat]!.jailed && !this.projectedJailed[seat];
     this.projectedPositions[seat] = ctx.state.players[seat]!.position;
     this.projectedJailed[seat] = ctx.state.players[seat]!.jailed;
@@ -2033,6 +2092,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       to: ctx.state.players[seat]!.position,
       jailed: ctx.state.players[seat]!.jailed,
       jailing,
+      releasing,
       dice: [...ctx.state.dice],
       notice: ctx.state.notice,
       card: ctx.state.lastCard,
@@ -2056,8 +2116,9 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.shownPositions[seat] ??
       ctx.state.players[seat]!.position;
     const to = ctx.state.players[seat]!.position;
+    const releasing = !ctx.state.players[seat]!.jailed && Boolean(this.projectedJailed[seat]);
     const jailing = ctx.state.players[seat]!.jailed && !this.projectedJailed[seat];
-    if (from === to && !jailing) return;
+    if (from === to && !jailing && !releasing) return;
     // Queue confirmations even while this viewer still presents the preceding roll.
     this.projectedPositions[seat] = to;
     this.projectedJailed[seat] = ctx.state.players[seat]!.jailed;
@@ -2071,6 +2132,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         to,
         jailed: ctx.state.players[seat]!.jailed,
         jailing,
+        releasing,
         dice: ctx.state.dice ?? [1, 1],
         notice: ctx.state.notice,
         card: ctx.state.lastCard,
@@ -2244,6 +2306,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
     this.drawAuctionAttention(delta);
     this.specialSymbols.update(this.time.now);
+    this.monopolyBorders.update(this.time.now);
     this.playerPanel.update(this.geometry);
     const event = this.ctx.state.specialEvent;
     if (
@@ -2341,8 +2404,12 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.sfx('tycoon-bankrupt');
   }
 
-  protected onEnd() {
+  protected onEnd(ctx: Ctx) {
+    this.tradeOpen = false;
+    this.auctionConfirm.hide();
+    this.mortgagePanel.hide();
     this.jingle('tycoon-win');
+    this.victory.play(ctx, this.view);
   }
 
   protected onState(ctx: Ctx) {
@@ -2527,7 +2594,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         .filter(Boolean)
         .join(' + ') || 'không gì';
     const cardText = trade
-      ? `${players[trade.from]?.name} đưa ${gives(trade.give, trade.giveCash)}\n${players[trade.to]?.name} đưa ${gives(trade.take, trade.takeCash)}`
+      ? `${players[trade.from]?.name} đưa ${trade.giveCard ? 'vé ra tù' : gives(trade.give, trade.giveCash)}\n${players[trade.to]?.name} đưa ${trade.takeCard ? 'vé ra tù' : gives(trade.take, trade.takeCash)}`
       : '';
     this.notice.setVisible(
       !this.tradeOpen && this.visualPhase !== 'ready' && Boolean(this.notice.text),
@@ -2631,7 +2698,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         deed.mortgaged || ownerJailed
           ? '0 ₫'
           : cell.kind === 'utility'
-            ? `${deed.owner !== null && this.shownProperties[12]?.owner === deed.owner && this.shownProperties[28]?.owner === deed.owner ? 10 : 4}× xúc xắc`
+            ? `${deed.owner === null ? 4 : utilityMultiplier({ ...state, properties: this.shownProperties }, selected)}× xúc xắc`
             : `${(deed.owner === null ? (cell.kind === 'station' ? STATION_BASE_FEE : (cell.rent?.[0] ?? 0)) : rent({ properties: this.shownProperties, players: state.players }, selected, 0)).toLocaleString('vi-VN')} ₫`;
       deedRows[0] = ['Giá', `${cell.price} ₫`];
       deedRows[1] = [cell.kind === 'station' ? 'Phí' : 'Thuê', currentRent];
@@ -2652,7 +2719,7 @@ export class CoTyPhuClassicView extends GameView<View> {
       deedRows[0] = ['Thuế', '10% tiền mặt'];
       deedRows[1] = ['Tối thiểu', `${cell.tax} ₫`];
     }
-    if (cell.kind === 'utility') deedRows[0] = ['Thuế', `${utilityTax(state, selected)} ₫`];
+
     [this.deedPrice, this.deedRent, this.nextBuilding].forEach((label, i) => {
       const row = deedRows[i];
       const value = this.deedValues[i]!;

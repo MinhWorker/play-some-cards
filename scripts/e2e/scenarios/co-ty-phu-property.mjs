@@ -36,8 +36,8 @@ export default async function run(t) {
       [3, 0, 0],
       [13, 1, 2],
       [23, 2, 3],
-      [34, 3, 5],
-      [9, 3, 4],
+      [33, 3, 5],
+      [8, 3, 4],
     ])
       game.state.properties[square] = { owner, houses, mortgaged: false };
     const props = {
@@ -113,21 +113,31 @@ export default async function run(t) {
       [3, 0, 1],
       [13, 1, 2],
       [23, 2, 3],
-      [34, 3, 5],
-      [9, 3, 4],
+      [33, 3, 5],
+      [8, 3, 4],
     ]) {
       const decals = s.decals
         .filter((d) => d.square === square)
-        .slice(-(houses === 5 ? 2 : houses * 2));
-      const fills = decals.filter((d) => d.color !== 0xfff4db);
+        .slice(-(houses === 5 ? 2 : houses + 1));
+      const badge = decals[0];
+      const buildings = decals.slice(1);
       if (
-        !decals.length ||
-        decals.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945)) ||
-        fills.length !== (houses === 5 ? 1 : houses) ||
-        fills.some((d) => d.color !== colors[owner]) ||
-        fills.some((d) => d.coords.length !== (houses === 5 ? 26 : 24))
+        !badge ||
+        badge.color !== colors[owner] ||
+        JSON.stringify(badge.coords) !==
+          JSON.stringify([
+            [0, 0.83],
+            [1, 0.83],
+            [1, 0.93],
+            [0, 0.93],
+          ]) ||
+        buildings.length !== (houses === 5 ? 1 : houses) ||
+        buildings.some(
+          (d) => d.color !== 0xffffff || d.coords.length !== (houses === 5 ? 26 : 24),
+        ) ||
+        buildings.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945))
       )
-        throw new Error(`House dots or hotel capsules do not fit their color band on ${square}`);
+        throw new Error(`White buildings do not overlay the owner badge on ${square}`);
     }
   });
   await page.screenshot({ path: t.shot('houses-rent-desktop.png') });

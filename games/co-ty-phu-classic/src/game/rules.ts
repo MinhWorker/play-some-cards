@@ -8,6 +8,7 @@ import {
   type SpecialEventEffect,
   STATION_BASE_FEE,
   type State,
+  UTILITY_SQUARES,
 } from './model.js';
 
 export type Context = GameContext<State, Options>;
@@ -111,7 +112,7 @@ export const bankHotels = (s: Pick<State, 'properties'>) =>
   12 - s.properties.filter((p) => p.houses === 5).length;
 
 export function rent(
-  s: Pick<State, 'properties' | 'players'>,
+  s: Pick<State, 'properties' | 'players'> & Partial<Pick<State, 'round' | 'shortages'>>,
   square: number,
   roll: number,
   multiplier = 1,
@@ -123,10 +124,8 @@ export function rent(
     const count = [5, 15, 25, 35].filter((i) => s.properties[i]?.owner === deed.owner).length;
     return STATION_BASE_FEE * count;
   }
-  return (
-    (cell.rent?.[deed.houses] ?? 0) *
-    (deed.houses === 0 && ownsGroup(s, deed.owner, square) ? 2 : 1)
-  );
+  if (cell.kind === 'utility') return roll * utilityMultiplier(s, square);
+  return (cell.rent?.[deed.houses] ?? 0) * (ownsGroup(s, deed.owner, square) ? 3 : 1);
 }
 
 /** Record the same public transfer that changes the authoritative balances. */
@@ -248,7 +247,7 @@ export function resolveSpecialEvent(s: State, rng: () => number) {
       move(s, seat, card.target, true, roll);
       break;
     case 'nearest': {
-      const targets = card.target === 'station' ? [5, 15, 25, 35] : [12, 28];
+      const targets = card.target === 'station' ? [5, 15, 25, 35] : UTILITY_SQUARES;
       const target = targets.find((i) => i > s.players[seat]!.position) ?? targets[0]!;
       move(s, seat, target, true, roll, 2);
       break;
@@ -270,10 +269,32 @@ export function resolveSpecialEvent(s: State, rng: () => number) {
   }
 }
 
-export function utilityTax(s: Pick<State, 'round' | 'shortages'>, square: number) {
+export function utilityMultiplier(
+  s: Pick<State, 'properties'> & Partial<Pick<State, 'round' | 'shortages'>>,
+  square: number,
+) {
+  const owner = s.properties[square]?.owner;
+  if (owner === null || owner === undefined) return 0;
+  const both = UTILITY_SQUARES.every((i) => s.properties[i]?.owner === owner);
+  const shortage = s.shortages?.some((event) => event.square === square && event.round === s.round);
+  return (both ? 10 : 4) * (shortage ? 2 : 1);
+}
+
+/** Gross assets at original deed/building prices, less outstanding mortgage redemption. */
+export function assetValue(s: Pick<State, 'players' | 'properties'>, seat: number) {
   return (
-    (BOARD[square]?.tax ?? 100) *
-    (s.shortages.some((event) => event.square === square && event.round === s.round) ? 2 : 1)
+    s.players[seat]!.cash +
+    s.players[seat]!.freeCards.length * 200 +
+    s.properties.reduce(
+      (sum, deed, square) =>
+        deed.owner !== seat
+          ? sum
+          : sum +
+            BOARD[square]!.price! +
+            deed.houses * (BOARD[square]!.houseCost ?? 0) -
+            (deed.mortgaged ? redeemAmount(s, square) : 0),
+      0,
+    )
   );
 }
 
@@ -306,13 +327,10 @@ export function land(s: State, seat: number, roll: number, multiplier = 1) {
     } else if (owner !== seat) {
       charge(s, seat, rent(s, square, roll, multiplier), owner, `Tiền thuê ${cell.name}`);
     }
-  } else if (cell.kind === 'tax' || cell.kind === 'utility') {
+  } else if (cell.kind === 'tax') {
     awaitSpecialEvent(s, {
       kind: 'tax',
-      amount:
-        cell.kind === 'tax'
-          ? Math.max(cell.tax!, Math.floor(s.players[seat]!.cash * 0.1))
-          : utilityTax(s, square),
+      amount: Math.max(cell.tax!, Math.floor(s.players[seat]!.cash * 0.1)),
       reason: cell.name,
     });
   } else if (cell.kind === 'chance' || cell.kind === 'chest') {

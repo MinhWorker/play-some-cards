@@ -95,7 +95,7 @@ export class BoardPrices {
           center.y,
         );
         ink.font = 'bold 44px "Baloo 2", sans-serif';
-        ink.fillStyle = '#514432';
+        ink.fillStyle = isDeed(square) ? '#514432' : '#26343b';
         ink.textAlign = 'center';
         ink.textBaseline = 'middle';
         ink.fillText(amount, 0, 0, 142);
@@ -128,7 +128,8 @@ export class BoardPrices {
       );
       const owner = isDeed(square) ? state.properties[index]?.owner : null;
       const color = owner === null || owner === undefined ? undefined : this.playerColors[owner];
-      ink.fillStyle = color === undefined ? '#514432' : ownerInk(color);
+      ink.fillStyle =
+        color === undefined ? (isDeed(square) ? '#514432' : '#26343b') : ownerInk(color);
       ink.textAlign = 'center';
       ink.textBaseline = 'middle';
       ink.font = 'bold 30px "Baloo 2", sans-serif';

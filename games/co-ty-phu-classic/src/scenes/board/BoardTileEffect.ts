@@ -110,27 +110,15 @@ export class BoardTileEffect {
   private drawAction() {
     const g = this.action;
     g.clear();
-    if (!this.actionable || this.corners.length !== 4) return;
+    if (!this.actionable || !this.selected || this.corners.length !== 4) return;
     const points = this.inset();
-    // The persistent badge marks availability; the preview outline expires with its tooltip.
-    if (this.selected) {
-      g.lineStyle(5, 0x9c661f, 0.9);
-      this.path(g, points);
-      g.strokePath();
-      g.lineStyle(3, 0xffdf74);
-      this.path(g, points);
-      g.strokePath();
-    }
-    const first = points[0];
-    const second = points[1];
-    if (!first || !second) return;
-    const x = (first.x + second.x) / 2;
-    const y = (first.y + second.y) / 2;
-    g.fillStyle(0xffd35b).fillCircle(x, y, 8);
-    g.lineStyle(2, 0x9c661f).strokeCircle(x, y, 8);
-    g.lineStyle(2, 0x71471e)
-      .lineBetween(x - 3, y, x + 3, y)
-      .lineBetween(x, y - 3, x, y + 3);
+    // Availability only accents the temporary preview outline; owner badges identify deeds.
+    g.lineStyle(5, 0x9c661f, 0.9);
+    this.path(g, points);
+    g.strokePath();
+    g.lineStyle(3, 0xffdf74);
+    this.path(g, points);
+    g.strokePath();
   }
 
   setSelected(selected: boolean) {

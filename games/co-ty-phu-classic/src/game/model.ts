@@ -10,10 +10,9 @@ export type Options = z.infer<typeof optionsSchema>;
 export const STARTING_CASH = 1000;
 
 export type Group = 'nau' | 'xanh-nhat' | 'hong' | 'cam' | 'do' | 'vang' | 'xanh-la' | 'xanh-dam';
-export type DeedKind = 'street' | 'station';
+export type DeedKind = 'street' | 'station' | 'utility';
 export type SquareKind =
   | DeedKind
-  | 'utility'
   | 'start'
   | 'chance'
   | 'chest'
@@ -94,6 +93,8 @@ export interface Trade {
   take: number | null;
   giveCash: number;
   takeCash: number;
+  giveCard?: boolean;
+  takeCard?: boolean;
   resume: Phase;
 }
 
@@ -162,50 +163,50 @@ const street = (name: string, group: Group, price: number): Square => ({
   rent: [0.1, 0.4, 1.1, 3, 4, 5].map((rate) => Math.round(price * rate)),
 });
 const station = (name: string): Square => ({ name, kind: 'station', price: 200 });
-const utility = (name: string): Square => ({ name, kind: 'utility', tax: 100 });
+const utility = (name: string): Square => ({ name, kind: 'utility', price: 150 });
 
 /** Clockwise from Start: six streets per side, with two Chance and two Chest squares. */
 export const BOARD: readonly Square[] = [
   { name: 'Xuất phát', kind: 'start' },
   street('Phú Quốc', 'nau', 200),
   street('Lào Cai', 'nau', 150),
-  street('Việt Trì', 'xanh-la', 180),
+  street('Việt Trì', 'nau', 180),
   { name: 'Thuế thu nhập', kind: 'tax', tax: 100 },
   station('Bến Bắc'),
-  street('Hạ Long', 'hong', 280),
+  street('Hạ Long', 'xanh-nhat', 280),
+  street('Hải Phòng', 'xanh-nhat', 320),
+  street('Hà Nội', 'xanh-nhat', 350),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Hải Phòng', 'vang', 320),
-  street('Hà Nội', 'do', 350),
   { name: 'Nhà tù', kind: 'jail' },
-  street('Hải Dương', 'xanh-nhat', 220),
-  utility('Điện lực'),
-  street('Thái Bình', 'xanh-dam', 260),
+  street('Hải Dương', 'hong', 220),
+  street('Thái Bình', 'hong', 260),
   street('Nam Định', 'hong', 240),
+  utility('Điện lực'),
   station('Bến Tây'),
-  street('Thanh Hóa', 'vang', 270),
+  street('Thanh Hóa', 'cam', 270),
+  street('Vinh', 'cam', 260),
+  street('Hà Tĩnh', 'cam', 170),
   { name: 'Khí vận', kind: 'chest' },
-  street('Vinh', 'nau', 260),
-  street('Hà Tĩnh', 'xanh-nhat', 170),
   { name: 'Sân bay', kind: 'airport' },
   street('Huế', 'do', 270),
+  street('Đà Nẵng', 'do', 300),
+  street('Hội An', 'do', 250),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Đà Nẵng', 'xanh-la', 300),
-  street('Hội An', 'cam', 250),
   station('Bến Nam'),
-  street('Kon Tum', 'xanh-dam', 140),
-  street('Pleiku', 'xanh-nhat', 160),
-  utility('Cấp nước'),
+  street('Kon Tum', 'vang', 140),
+  street('Pleiku', 'vang', 160),
   street('Đà Lạt', 'vang', 270),
+  utility('Cấp nước'),
   { name: 'Vào tù', kind: 'go-jail' },
   street('Nha Trang', 'xanh-la', 280),
-  street('Vũng Tàu', 'hong', 260),
+  street('Vũng Tàu', 'xanh-la', 260),
+  street('Biên Hòa', 'xanh-la', 220),
   { name: 'Khí vận', kind: 'chest' },
-  street('Biên Hòa', 'cam', 220),
   station('Bến Đông'),
   street('Tp. HCM', 'xanh-dam', 350),
-  street('Cần Thơ', 'do', 300),
+  street('Cần Thơ', 'xanh-dam', 300),
+  street('Cà Mau', 'xanh-dam', 180),
   { name: 'Thuế xa xỉ', kind: 'tax', tax: 200 },
-  street('Cà Mau', 'cam', 180),
 ];
 
 export const GROUP_COLORS: Record<Group, number> = {
@@ -220,7 +221,12 @@ export const GROUP_COLORS: Record<Group, number> = {
 };
 
 export const isDeed = (square: Square): square is Square & { price: number } =>
-  square.kind === 'street' || square.kind === 'station';
+  square.kind === 'street' || square.kind === 'station' || square.kind === 'utility';
 
 export const groupSquares = (group: Group): number[] =>
   BOARD.flatMap((square, i) => (square.group === group ? [i] : []));
+
+export const UTILITY_SQUARES = BOARD.flatMap((cell, square) =>
+  cell.kind === 'utility' ? [square] : [],
+);
+export const JAIL_CARD_PRICE = 200;

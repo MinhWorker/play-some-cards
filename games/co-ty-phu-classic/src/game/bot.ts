@@ -14,8 +14,8 @@ export function botMove(state: State, seat: number): GameEvent | null {
   if (state.phase === 'trade') {
     const trade = state.trade;
     if (trade?.to !== seat) return null;
-    const offered = deedValue(trade.give) + trade.giveCash;
-    const requested = deedValue(trade.take) + trade.takeCash;
+    const offered = deedValue(trade.give) + trade.giveCash + (trade.giveCard ? 200 : 0);
+    const requested = deedValue(trade.take) + trade.takeCash + (trade.takeCard ? 200 : 0);
     return event(offered >= requested ? 'accept-trade' : 'decline-trade');
   }
 
