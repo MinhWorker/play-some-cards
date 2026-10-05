@@ -6,6 +6,8 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
 - **Phaser** draws the world: the sky, the island strip and the boards.
   - React passes a `Stage` to `PhaserStage`; its SDK `SceneDirector` serializes foreground changes.
     Board/setup stages carry a local opening `instance`, distinct from room round and game ID.
+    Optional client `background` sleeps the default sky and starts `<id>:background` behind
+    boards/sandboxes; setup/hub/sky restore the default. SceneDirector owns both lifecycles.
   - Phaser emits events on `bridge`.
   - Anything game-like (pieces, cards, animation, drag and drop) is Phaser.
 - **File placement**:

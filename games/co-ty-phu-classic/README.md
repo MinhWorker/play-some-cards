@@ -14,6 +14,7 @@ src/
   scenes/
     CoTyPhuClassicView.ts       Điều phối scene, bố cục và luồng thao tác
     Setup.ts                   Tạo phòng và tuỳ chỉnh
+    CityBackground.ts          Scene nền thành phố, mây trôi và đèn cửa sổ
     board/                     Ô bàn, giá trên ô, ký hiệu chủ đất, điện/nước
     effects/                   Nền trời, phát sáng, chuyển tiền, âm thanh và cửa nhà tù
     hud/                       Thẻ đất nổi, bảng thuê và thao tác quản lý đất
@@ -35,6 +36,7 @@ sources/                       Script kết xuất và nguồn ảnh
 | Giá hiện trên bàn | `src/scenes/board/BoardPrices.ts`, `boardAmounts.ts` |
 | Viền ô, dấu chủ đất và biểu tượng đặc biệt | `src/scenes/board/` |
 | Song sắt khi bị đưa vào tù | `src/scenes/effects/JailGateEffect.ts` |
+| Nền thành phố có hoạt ảnh sau bàn | `src/scenes/CityBackground.ts` |
 | Quầng sáng | `src/scenes/effects/glow.ts` |
 | Tiền bay và âm thanh tiền | `src/scenes/effects/` |
 | Thẻ thông tin đất và bảng thuê | `src/scenes/hud/` |
@@ -49,6 +51,10 @@ chỉnh script kết xuất rồi tạo lại ảnh và tọa độ cùng nhau.
 
 Chạy `npm run dev` ở gốc repo, chơi thử ở
 `http://localhost:5033/?play=co-ty-phu-classic&players=4`. Kiểm tra bằng `npm run check`.
+Bàn chơi/sandbox dùng scene thành phố riêng thay bầu trời chung: mây trôi chậm và
+đèn cửa sổ đổi độ sáng. Nền phủ hết lề màn hình, tiếp tục qua ván mới và dừng khi rời bàn;
+màn tạo phòng/tuỳ chỉnh vẫn dùng bầu trời chung.
+
 Hướng dẫn SDK và Dev Console: [tạo game](../../docs/making-a-game.md).
 
 Lệnh riêng của game trong `src/game/dev.ts`: `dice`, `tp`, `cash`, `card`;

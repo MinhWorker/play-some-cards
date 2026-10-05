@@ -16,7 +16,7 @@ games/<id>/          Only index.ts + client.ts are required
   RULES.md             Current Vietnamese gameplay rules (non-starter games)
   README.md            Component map, development commands and asset credits
   src/index.ts         export default definePlugin({ meta, game: new MyGame(), room? }); server
-  src/client.ts        export default defineClient({ scene, setup?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
+  src/client.ts        export default defineClient({ scene, setup?, background?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
   src/game/            Pure logic, no Phaser or DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
   src/scenes/          Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (a RoomSetupScene for "Tạo phòng")
   assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'));
@@ -92,6 +92,9 @@ games/<id>/          Only index.ts + client.ts are required
   build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
+- **Backgrounds**: optional `defineClient({ background: false | MyBackground })` hides/replaces
+  the app sky for boards/sandboxes. `GameBackgroundScene` has scene lifetime, no room state/input,
+  and `onCreate`, `onLayout`, `onUpdate(dt)` hooks. Setups retain the app sky.
 - **Presentation**: `this.runtime.run` owns scoped async flows; `fx.tween`, `wait`, `sound`,
   `animate`, `frame` and `parallel` use its clock and cancellation. Use `fx.defer` for temporary
   objects and `fx.checkpoint` before direct side effects after await. Reset display fields in

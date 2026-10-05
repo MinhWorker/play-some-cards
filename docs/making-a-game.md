@@ -238,6 +238,33 @@ và lệnh `dice`, `tp`, `cash`, `card`.
 `GameView` quản lý màn chơi qua các hook và runtime của SDK. Logic và timer server quyết định
 trạng thái ván; runtime quản lý thứ tự trình diễn, âm thanh, tốc độ và việc huỷ hiệu ứng trên client.
 
+### Scene nền riêng (tuỳ chọn)
+
+`defineClient({ scene: MyView })` giữ bầu trời chung. Đặt `background: false` để tắt
+bầu trời khi mở bàn chơi/sandbox và tự vẽ nền ngay trong `GameView`, hoặc
+`background: MyBackground` để thay bằng một scene độc lập phía sau bàn. Màn tạo phòng
+và tuỳ chỉnh vẫn dùng bầu trời chung; rời bàn sẽ khôi phục nền mặc định.
+
+```ts
+import { defineClient, GameBackgroundScene } from '@psc/sdk/client';
+
+class MyBackground extends GameBackgroundScene {
+  protected onCreate() { /* tạo đối tượng và đặt lại các field */ }
+  protected onLayout() { /* đặt vị trí theo this.view, phủ kín this.bleed */ }
+  protected override onUpdate(dt: number) { /* chuyển động trang trí, dt tính bằng ms */ }
+}
+
+export default defineClient({ scene: MyView, background: MyBackground });
+```
+
+Scene nền đăng ký dưới key `<id>:background`, dùng `this.image`, `this.texture` và
+`assets/` của game như bàn chơi; không nhận state phòng và không bắt input. Các tài nguyên
+nền được tải trước khi mở bàn và tắt bầu trời chung. `this.runtime` có lifetime `scene`:
+hoạt ảnh tiếp tục qua ván mới/resync, được huỷ khi đóng bàn. `onCreate` chạy lại khi mở
+bàn khác, nên đặt lại field chứa đối tượng ở đây. `onLayout` chạy sau tạo scene và mỗi
+lần khung đổi; vẽ nền ra hết `this.bleed` để phủ cả lề và tai thỏ. Ví dụ đang dùng:
+`games/co-ty-phu-classic/src/scenes/CityBackground.ts` (mây trôi, đèn thành phố).
+
 ### Luồng trình diễn và vòng đời
 
 `this.runtime` có trước `onCreate`/`build`. Dùng `run` cho một hành động gồm nhiều bước:

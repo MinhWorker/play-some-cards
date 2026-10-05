@@ -4,6 +4,7 @@ Read `../AGENTS.md` for the shared game/SDK rules. The Vietnamese component map 
 
 - `src/game/`: authoritative pure rules, board/pricing data (`model.ts`), cards, bot and turn clock.
 - `src/scenes/CoTyPhuClassicView.ts`: scene orchestration, layout and control wiring.
+- `src/scenes/CityBackground.ts`: independent animated city background, with scene lifetime.
 - `src/scenes/Setup.ts`: room setup/options.
 - `src/scenes/board/`: projected tile geometry, prices, ownership and special-square symbols;
   `SymbolAtlas.ts` packs their baked animation frames for upload once at scene creation.

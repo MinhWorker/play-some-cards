@@ -8,9 +8,17 @@ export interface SceneRequest<Data> {
   data: Data;
 }
 export type SceneShowResult = { status: 'shown' | 'superseded' | 'failed' };
+export interface SceneDefinition {
+  scene: new () => Phaser.Scene;
+  /** Omitted keeps the default background; false hides it; a scene replaces it. */
+  background?: false | { key: string; scene: new () => Phaser.Scene };
+}
 export interface SceneDirectorOptions<Data> {
-  load(key: string, data: Data): Promise<new () => Phaser.Scene>;
+  load(key: string, data: Data): Promise<(new () => Phaser.Scene) | SceneDefinition>;
+  /** Persistent app scenes excluded from foreground cleanup. */
   background: ReadonlySet<string>;
+  /** Persistent scene to sleep/hide while a board opts out or supplies its own background. */
+  defaultBackground?: string;
   write(data: Data): void;
   push(data: Data): void;
   onError(error: unknown): void;
@@ -22,9 +30,10 @@ export class SceneDirector<Data> {
   private disposed = false;
   private desired?: SceneRequest<Data>;
   private foreground?: { key: string; instance: string };
+  private activeBackground?: { key: string; instance: string };
   private ready = false;
-  private loaded = new Map<string, new () => Phaser.Scene>();
-  private loading = new Map<string, Promise<new () => Phaser.Scene>>();
+  private loaded = new Map<string, SceneDefinition>();
+  private loading = new Map<string, Promise<(new () => Phaser.Scene) | SceneDefinition>>();
   private settle?: (result: SceneShowResult) => void;
   private offCreate?: () => void;
 
@@ -63,7 +72,7 @@ export class SceneDirector<Data> {
         (scene) => {
           if (this.disposed) return;
           this.loading.delete(key);
-          this.loaded.set(key, scene);
+          this.loaded.set(key, typeof scene === 'function' ? { scene } : scene);
           if (this.disposed || revision !== this.revision) return;
           this.ready = true;
         },
@@ -83,6 +92,7 @@ export class SceneDirector<Data> {
   }
 
   private fail(error: unknown) {
+    this.clearBackground();
     this.finish('failed');
     try {
       this.options.onError(error);
@@ -101,9 +111,51 @@ export class SceneDirector<Data> {
     this.game.scene.stop(key);
   }
 
+  private showDefault(show: boolean) {
+    const key = this.options.defaultBackground;
+    if (!key) return;
+    if (show && this.game.scene.isSleeping(key)) this.game.scene.wake(key);
+    if (!show && this.game.scene.isActive(key)) this.game.scene.sleep(key);
+  }
+
+  private clearBackground() {
+    if (this.activeBackground) this.stop(this.activeBackground.key);
+    this.activeBackground = undefined;
+    this.showDefault(true);
+  }
+
+  /** Preload the replacement before opening the board or hiding the default sky. */
+  private prepareBackground(request: SceneRequest<Data>) {
+    const background = request.key ? this.loaded.get(request.key)?.background : undefined;
+    if (!background) {
+      this.showDefault(background !== false);
+      return true;
+    }
+    const { key, scene } = background;
+    if (key === request.key || this.options.background.has(key))
+      throw new Error(`Invalid background scene key: ${key}`);
+    if (!this.activeBackground) {
+      if (!this.game.scene.keys[key]) this.game.scene.add(key, scene);
+      this.activeBackground = { key, instance: request.instance };
+      this.game.scene.start(key);
+    }
+    if (!this.game.scene.isActive(key)) return false;
+    this.game.scene.sendToBack(key);
+    this.showDefault(false);
+    return true;
+  }
+
   private apply() {
     const request = this.desired;
     if (this.disposed || !request || !this.settle) return;
+    const background = request.key ? this.loaded.get(request.key)?.background : undefined;
+    if (
+      this.activeBackground &&
+      (!background ||
+        this.activeBackground.key !== background.key ||
+        this.activeBackground.instance !== request.instance)
+    )
+      this.clearBackground();
     if (
       this.foreground &&
       (this.foreground.key !== request.key || this.foreground.instance !== request.instance)
@@ -112,14 +164,21 @@ export class SceneDirector<Data> {
       this.offCreate = undefined;
       this.stop(this.foreground.key);
       this.foreground = undefined;
+      this.showDefault(true);
     }
     for (const [key, scene] of Object.entries(this.game.scene.keys)) {
-      if (this.options.background.has(key) || key === this.foreground?.key) continue;
+      if (
+        this.options.background.has(key) ||
+        key === this.foreground?.key ||
+        key === this.activeBackground?.key
+      )
+        continue;
       if (scene.sys.settings.status >= 2 && scene.sys.settings.status <= 7) this.stop(key);
     }
     if (!this.ready) return;
     try {
       this.options.write(request.data);
+      if (!this.prepareBackground(request)) return;
       if (!request.key) {
         this.finish('shown');
         return;
@@ -135,7 +194,7 @@ export class SceneDirector<Data> {
       if (!this.game.scene.keys[key]) {
         const scene = this.loaded.get(key);
         if (!scene) throw new Error(`Scene unavailable: ${key}`);
-        this.game.scene.add(key, scene);
+        this.game.scene.add(key, scene.scene);
       }
       this.foreground = { key, instance: request.instance };
       const scene = this.game.scene.getScene(key);
@@ -157,6 +216,7 @@ export class SceneDirector<Data> {
       scene.events.once('create', created);
       this.offCreate = () => scene.events.off('create', created);
       this.game.scene.start(key);
+      this.game.scene.bringToTop(key);
     } catch (error) {
       this.fail(error);
     }
@@ -170,6 +230,7 @@ export class SceneDirector<Data> {
     this.game.events.off('prestep', this.apply, this);
     this.offCreate?.();
     if (this.foreground) this.stop(this.foreground.key);
+    this.clearBackground();
     this.foreground = undefined;
     this.desired = undefined;
     this.loaded.clear();
