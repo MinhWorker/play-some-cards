@@ -76,7 +76,7 @@ describe('station contributions on landing', () => {
     expect(previous.stationAuctions[5]!.bids).toEqual([50, 0, 0]);
   });
 
-  it('keeps withdrawn deposits until three of four players pass, then refunds before payment', () => {
+  it('refunds each withdrawing player immediately and the winner before payment', () => {
     const game = testGame(plugin, ['a', 'b', 'c', 'd']);
     for (const [seat, amount] of [
       [0, 50],
@@ -231,7 +231,7 @@ describe('station contributions on landing', () => {
     const game = auction();
     game.state.players[0]!.cash = 50;
     game.send('a', 'bid', { amount: 50 });
-    game.state.properties[8]!.owner = 0;
+    game.state.properties[9]!.owner = 0;
     visit(game, 1);
     game.send('b', 'pass');
     visit(game, 2);
@@ -241,8 +241,8 @@ describe('station contributions on landing', () => {
     expect(game.state.turn).toBe(2);
     expect(game.error('c', 'pay-debt')).toBeTruthy();
     expect(botMove(game.state, 0)?.event).toBe('mortgage');
-    game.send('a', 'mortgage', { square: 8 }).send('a', 'pay-debt');
-    expect(game.state.players[0]!.cash).toBe(50 + BOARD[8]!.price! / 2 - 200);
+    game.send('a', 'mortgage', { square: 9 }).send('a', 'pay-debt');
+    expect(game.state.players[0]!.cash).toBe(50 + BOARD[9]!.price! / 2 - 200);
     expect(game.state.phase).toBe('end');
     expect(game.state.turn).toBe(2);
     expect(game.state.properties[5]!.owner).toBe(0);
@@ -267,7 +267,7 @@ describe('station contributions on landing', () => {
 describe('taxes and table rounds', () => {
   it.each([
     [4, 100],
-    [39, 200],
+    [38, 200],
   ])('charges 10%% of cash on square %s with minimum %s', (square, minimum) => {
     const game = testGame(plugin, ['a', 'b']);
     game.state.players[0]!.cash = 3456;
@@ -281,7 +281,7 @@ describe('taxes and table rounds', () => {
     expect(game.state.debt?.amount).toBe(minimum);
   });
 
-  it.each([14, 29])('sells utility %s and doubles rent only in its next table round', (square) => {
+  it.each([12, 28])('sells utility %s and doubles rent only in its next table round', (square) => {
     const game = testGame(plugin, ['a', 'b']);
     expect(isDeed(BOARD[square]!)).toBe(true);
     move(game.state, 0, square, false, 7);
@@ -290,7 +290,7 @@ describe('taxes and table rounds', () => {
     expect(game.state.properties[square]!.owner).toBe(0);
     const id = CHANCE.findIndex((card) => card.kind === 'shortage' && card.square === square);
     game.state.chance = [id];
-    move(game.state, 0, 9, false, 7);
+    move(game.state, 0, 7, false, 7);
     resolveSpecialEvent(game.state, () => 0);
     expect(utilityMultiplier(game.state, square)).toBe(4);
     game.state.phase = 'end';
@@ -347,7 +347,7 @@ describe('station fee payments', () => {
     game.state.chance = [
       CHANCE.findIndex((card) => card.kind === 'nearest' && card.target === 'station'),
     ];
-    move(game.state, 0, 24, false, 7);
+    move(game.state, 0, 22, false, 7);
     resolveSpecialEvent(game.state, () => 0);
     expect(game.state.transfers.at(-1)).toMatchObject({ from: 0, to: 1, amount: 50 });
     game.state.players[0]!.cash = 49;

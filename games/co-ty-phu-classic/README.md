@@ -6,7 +6,6 @@ Hai đến bốn người mua đất, thu tiền thuê và quản lý tài sản
 
 ## Tìm thành phần để sửa
 
-
 ```text
 src/
   index.ts, client.ts           Đăng ký luật và giao diện
@@ -34,7 +33,9 @@ sources/                       Script kết xuất và nguồn ảnh
 | Nội dung thẻ | `src/game/cards.ts` |
 | Vị trí ô và biểu tượng in trên bàn | `sources/render_board_25d.py` → `src/scenes/board/boardGeometry.ts` |
 | Giá hiện trên bàn | `src/scenes/board/BoardPrices.ts`, `boardAmounts.ts` |
-| Viền bộ màu, gộp khung monopoly, dấu chủ đất và biểu tượng đặc biệt | `src/scenes/board/`, `MonopolyBorders.ts` |
+| Viền bộ màu, gộp khung và lửa monopoly | `src/scenes/board/MonopolyBorders.ts`, `monopolyFrames.ts`, `monopolyShader.ts` |
+| Badge men màu và nhà/khách sạn sứ trắng | `sources/render_deed_layers.py` → `src/scenes/board/DeedLayers.ts`, `deedLayerGeometry.ts` |
+| Biểu tượng điện/nước và các ô đặc biệt | `src/scenes/board/SpecialSymbols.ts` |
 | Ăn mừng, pháo hoa và đếm tổng tài sản | `src/scenes/effects/VictoryEffect.ts`, `src/game/rules.ts` |
 | Song sắt khi vào/ra tù | `src/scenes/effects/JailGateEffect.ts` |
 | Nền thành phố có hoạt ảnh sau bàn | `src/scenes/CityBackground.ts` |
@@ -65,7 +66,22 @@ danh mục `square` và `card` dùng cho gợi ý bằng Tab.
 
 `assets/` chứa ảnh và âm thanh dùng trực tiếp; `sources/` chứa prompt và script nguồn.
 `sources/render_board_25d.py` tạo `assets/board-25d.webp` cùng
-`src/scenes/board/boardGeometry.ts`; sửa bàn thì kết xuất hai phần cùng nhau.
+`src/scenes/board/boardGeometry.ts`; các ô không mua được dùng vật liệu kim loại xước
+và ánh sáng Blender, Khí vận dùng vàng kim. `sources/render_deed_layers.py` dùng cùng
+camera và ánh sáng để tạo atlas `deed-layers.webp`/`.json` gồm 240 frame badge men màu,
+nhà và khách sạn sứ trắng, cùng `deedLayerGeometry.ts`. Khi sửa camera, kích thước ô
+hoặc ánh sáng, chạy lần lượt hai script để ảnh và tọa độ khớp nhau:
+
+```sh
+blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py
+blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
+```
+
+Viền bộ màu được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
+phần mặt ô bên trong gờ in sẵn. Quầng sáng/lửa hướng vào trong, không tràn khỏi mặt ô.
+Badge men nằm phẳng và được cắt theo cùng giới hạn bề mặt. Hai ô cùng chủ có quầng sáng nhẹ;
+đủ bộ thì nhiễu liên tục tạo lửa chạy quanh viền. Chỉ các ô chạm nhau được gộp khung;
+các thành viên cách nhau vẫn cùng hưởng hiệu ứng và hệ số thuê.
 `sources/render_pawns.py`, `render_plane.py` và `render_hud_icons.py` kết xuất các đối tượng.
 Thêm `-- --front` khi chạy `render_pawns.py` bằng Blender để kết xuất bốn pawn chính diện,
 nền trong suốt, dùng riêng cho màn nhảy chiến thắng (`pawn-front-*.webp`).

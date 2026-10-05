@@ -12,10 +12,10 @@ Bàn có 40 ô, gồm 24 đất phố, 4 bến xe, 2 Cơ hội, 2 Khí vận, 2 
 
 | Đoạn | Thứ tự ô |
 | --- | --- |
-| 0–9 | Xuất phát → Phú Quốc → Lào Cai → Việt Trì → Thuế thu nhập → Bến Bắc → Hạ Long → Hải Phòng → Hà Nội → Cơ hội |
-| 10–19 | Nhà tù → Hải Dương → Thái Bình → Nam Định → Điện lực → Bến Tây → Thanh Hóa → Vinh → Hà Tĩnh → Khí vận |
-| 20–29 | Sân bay → Huế → Đà Nẵng → Hội An → Cơ hội → Bến Nam → Kon Tum → Pleiku → Đà Lạt → Cấp nước |
-| 30–39 | Vào tù → Nha Trang → Vũng Tàu → Biên Hòa → Khí vận → Bến Đông → Tp. HCM → Cần Thơ → Cà Mau → Thuế xa xỉ |
+| 0–9 | Xuất phát → Phú Quốc → Lào Cai → Việt Trì → Thuế thu nhập → Bến Bắc → Hạ Long → Cơ hội → Hải Phòng → Hà Nội |
+| 10–19 | Nhà tù → Hải Dương → Điện lực → Thái Bình → Nam Định → Bến Tây → Thanh Hóa → Khí vận → Vinh → Hà Tĩnh |
+| 20–29 | Sân bay → Huế → Cơ hội → Đà Nẵng → Hội An → Bến Nam → Kon Tum → Pleiku → Cấp nước → Đà Lạt |
+| 30–39 | Vào tù → Nha Trang → Vũng Tàu → Khí vận → Biên Hòa → Bến Đông → Tp. HCM → Cần Thơ → Thuế xa xỉ → Cà Mau |
 
 ## Lượt chơi và di chuyển
 
@@ -120,14 +120,19 @@ Giá mỗi cấp bằng 50% giá đất. Ngân hàng có 32 nhà và 12 khách s
 Nâng lên khách sạn trả bốn nhà về ngân hàng; không thể xây nếu loại công trình cần dùng đã hết.
 Bán từng cấp nhận 50% giá xây cấp đó. Bán khách sạn xuống 4 nhà cần ngân hàng còn đủ 4 nhà.
 
-Tám bộ màu, mỗi bộ gồm ba ô đất liên tiếp: 1–3, 6–8, 11–13, 16–18, 21–23, 26–28,
-31–33 và 36–38. Cùng bộ có cùng màu viền. Một người sở hữu đủ ba ô nhận monopoly:
+Tám bộ màu, mỗi bộ gồm ba đất phố kế tiếp trên đường đi, bỏ qua các ô khác:
+(1, 2, 3), (6, 8, 9), (11, 13, 14), (16, 18, 19), (21, 23, 24), (26, 27, 29),
+(31, 32, 34) và (36, 37, 39). Các ô cùng bộ không cần nằm liền nhau và có cùng màu viền.
+Một người sở hữu đủ ba ô nhận monopoly:
 **cả ba ô thu tiền thuê gấp 3 ở mọi cấp**, kể cả nhà và khách sạn. Mất một ô thì mất hệ số.
 Ô đang thế chấp không thu thuê; quyền sở hữu của nó vẫn tính vào bộ.
 
 Các ô liền nhau trong cùng bộ và cùng chủ gộp viền thành một khung chữ nhật theo mặt bàn.
-Khung hai ô sáng nhẹ; đủ ba ô sáng mạnh và có lửa chuyển động. Ô pawn đang đứng không tô màu.
-Mỗi tài sản đã mua có badge màu chủ sở hữu dạng dải mảnh, phủ hết chiều ngang ô và không bo góc;
+Sở hữu hai ô trong bộ thì các khung sáng nhẹ; đủ ba ô thì mọi khung của bộ sáng mạnh
+và có lửa chuyển động, kể cả khi các ô nằm cách nhau. Khung không nối qua ô khác bộ. Viền, quầng sáng và lửa nằm trong bề mặt ô, không tràn ra ngoài.
+Ô pawn đang đứng không tô màu.
+Mỗi tài sản đã mua có badge màu chủ sở hữu dạng dải mảnh, phủ hết chiều ngang phần mặt ô và sát mép đầu, không chừa khoảng trống hay bo góc;
+badge nằm phẳng trong mép mặt ô, không che phần gờ hoặc làm tăng diện tích ô;
 1–4 nhà là chấm trắng đè lên badge,
 khách sạn là capsule trắng. Các ô không mua được có nền ánh kim, Khí vận màu vàng kim.
 
@@ -137,26 +142,26 @@ khách sạn là capsule trắng. Các ô không mua được có nền ánh kim
 | 2 | Lào Cai | Nâu | 150 | 75 | 15 | 60 | 165 | 450 | 600 | 750 |
 | 3 | Việt Trì | Nâu | 180 | 90 | 18 | 72 | 198 | 540 | 720 | 900 |
 | 6 | Hạ Long | Xanh nhạt | 280 | 140 | 28 | 112 | 308 | 840 | 1120 | 1400 |
-| 7 | Hải Phòng | Xanh nhạt | 320 | 160 | 32 | 128 | 352 | 960 | 1280 | 1600 |
-| 8 | Hà Nội | Xanh nhạt | 350 | 175 | 35 | 140 | 385 | 1050 | 1400 | 1750 |
+| 8 | Hải Phòng | Xanh nhạt | 320 | 160 | 32 | 128 | 352 | 960 | 1280 | 1600 |
+| 9 | Hà Nội | Xanh nhạt | 350 | 175 | 35 | 140 | 385 | 1050 | 1400 | 1750 |
 | 11 | Hải Dương | Hồng | 220 | 110 | 22 | 88 | 242 | 660 | 880 | 1100 |
-| 12 | Thái Bình | Hồng | 260 | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
-| 13 | Nam Định | Hồng | 240 | 120 | 24 | 96 | 264 | 720 | 960 | 1200 |
+| 13 | Thái Bình | Hồng | 260 | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
+| 14 | Nam Định | Hồng | 240 | 120 | 24 | 96 | 264 | 720 | 960 | 1200 |
 | 16 | Thanh Hóa | Cam | 270 | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
-| 17 | Vinh | Cam | 260 | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
-| 18 | Hà Tĩnh | Cam | 170 | 85 | 17 | 68 | 187 | 510 | 680 | 850 |
+| 18 | Vinh | Cam | 260 | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
+| 19 | Hà Tĩnh | Cam | 170 | 85 | 17 | 68 | 187 | 510 | 680 | 850 |
 | 21 | Huế | Đỏ | 270 | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
-| 22 | Đà Nẵng | Đỏ | 300 | 150 | 30 | 120 | 330 | 900 | 1200 | 1500 |
-| 23 | Hội An | Đỏ | 250 | 125 | 25 | 100 | 275 | 750 | 1000 | 1250 |
+| 23 | Đà Nẵng | Đỏ | 300 | 150 | 30 | 120 | 330 | 900 | 1200 | 1500 |
+| 24 | Hội An | Đỏ | 250 | 125 | 25 | 100 | 275 | 750 | 1000 | 1250 |
 | 26 | Kon Tum | Vàng | 140 | 70 | 14 | 56 | 154 | 420 | 560 | 700 |
 | 27 | Pleiku | Vàng | 160 | 80 | 16 | 64 | 176 | 480 | 640 | 800 |
-| 28 | Đà Lạt | Vàng | 270 | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
+| 29 | Đà Lạt | Vàng | 270 | 135 | 27 | 108 | 297 | 810 | 1080 | 1350 |
 | 31 | Nha Trang | Xanh lá | 280 | 140 | 28 | 112 | 308 | 840 | 1120 | 1400 |
 | 32 | Vũng Tàu | Xanh lá | 260 | 130 | 26 | 104 | 286 | 780 | 1040 | 1300 |
-| 33 | Biên Hòa | Xanh lá | 220 | 110 | 22 | 88 | 242 | 660 | 880 | 1100 |
+| 34 | Biên Hòa | Xanh lá | 220 | 110 | 22 | 88 | 242 | 660 | 880 | 1100 |
 | 36 | Tp. HCM | Xanh đậm | 350 | 175 | 35 | 140 | 385 | 1050 | 1400 | 1750 |
 | 37 | Cần Thơ | Xanh đậm | 300 | 150 | 30 | 120 | 330 | 900 | 1200 | 1500 |
-| 38 | Cà Mau | Xanh đậm | 180 | 90 | 18 | 72 | 198 | 540 | 720 | 900 |
+| 39 | Cà Mau | Xanh đậm | 180 | 90 | 18 | 72 | 198 | 540 | 720 | 900 |
 
 ## Thế chấp và chuộc
 

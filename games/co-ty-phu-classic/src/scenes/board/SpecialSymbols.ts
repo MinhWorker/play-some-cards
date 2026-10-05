@@ -26,9 +26,9 @@ interface Layer {
 }
 
 const START = 0;
-const POWER = 14;
+const POWER = 12;
 const AIRPORT = 20;
-const WATER = 29;
+const WATER = 28;
 
 let nextId = 0;
 

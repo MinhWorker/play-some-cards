@@ -77,7 +77,7 @@ export default async function run(t) {
     });
     if (!hidden) throw new Error(`${deck} announced or applied its card before the draw`);
   };
-  // Reach the remaining Chest at 19 through a double and a second roll.
+  // Reach the remaining Chest at 17 through a double and a second roll.
   await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const original = Math.random;
@@ -96,7 +96,7 @@ export default async function run(t) {
       s.ctx.state.phase === 'roll'
     );
   });
-  await draw('chest', [4, 5]);
+  await draw('chest', [3, 4]);
   await page.waitForTimeout(600);
   await page.screenshot({ path: t.shot('chest-draw.png') });
   await page.waitForFunction(() => {
@@ -117,7 +117,7 @@ export default async function run(t) {
     () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players[0].cash === 1200,
   );
   await restart();
-  await draw('chance', [3, 6]);
+  await draw('chance', [1, 6]);
   await page.waitForTimeout(600);
   await page.screenshot({ path: t.shot('chance-draw.png') });
   // Restart during the scoped draw: discard its card, tween, sound and old event timer.
@@ -136,7 +136,7 @@ export default async function run(t) {
   }, baseline);
   if (!clean) throw new Error('A cancelled card draw survived the new round');
   await page.screenshot({ path: t.shot('cancelled-draw.png') });
-  await draw('chance', [3, 6]);
+  await draw('chance', [1, 6]);
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return (

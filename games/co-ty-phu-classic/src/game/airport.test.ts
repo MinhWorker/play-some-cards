@@ -43,11 +43,11 @@ describe('airport', () => {
     expect(game.state).toMatchObject({ phase: 'roll', buildable: 3, after: 'roll' });
   });
 
-  it('charges dice-based utility rent on arrival and can enter debt', () => {
+  it('charges the owned utility using the flight dice and can enter debt', () => {
     const game = atAirport();
-    game.state.properties[14]!.owner = 1;
+    game.state.properties[12]!.owner = 1;
     game.state.players[0]!.cash = 1;
-    resolveSpecialEvent(game.state, () => 14.5 / 39);
+    resolveSpecialEvent(game.state, () => 12.5 / 39);
     expect(game.state.specialEvent).toBeNull();
     expect(game.state).toMatchObject({ phase: 'debt', debt: { amount: 28, creditor: 1 } });
     expect(game.state.players[0]?.cash).toBe(1);
@@ -55,9 +55,9 @@ describe('airport', () => {
 
   it('continues destination taxes, cards and jail as separate confirmed events', () => {
     expect(fly(4).state.specialEvent).toMatchObject({ kind: 'tax', amount: 100 });
-    const card = fly(19);
+    const card = fly(17);
     expect(card.state.specialEvent).toMatchObject({ kind: 'card', deck: 'chest' });
-    expect(BOARD[19]?.name).toBe('Khí vận');
+    expect(BOARD[17]?.name).toBe('Khí vận');
     expect(fly(10).state.players[0]?.jailed).toBe(false);
     const jailed = fly(30);
     expect(jailed.state.specialEvent?.kind).toBe('jail');

@@ -57,6 +57,20 @@ describe('utilities and monopoly', () => {
     g.send('a', 'mortgage', { square: 1 });
     expect(assetValue(g.state, 0)).toBe(1580);
   });
+
+  it('triples scattered streets without requiring or charging the intervening chance square', () => {
+    const g = game();
+    for (const square of [6, 8, 9]) g.state.properties[square]!.owner = 0;
+    expect([6, 8, 9].map((square) => rent(g.state, square, 7))).toEqual([84, 96, 105]);
+    move(g.state, 1, 6, false, 7);
+    expect(g.state.players[1]!.cash).toBe(916);
+    expect(g.state.transfers.at(-1)).toMatchObject({ to: 0, amount: 84 });
+    move(g.state, 1, 7, false, 7);
+    expect(g.state.specialEvent?.kind).toBe('card');
+    expect(g.state.players[1]!.cash).toBe(916);
+    g.state.properties[9]!.owner = 2;
+    expect([6, 8, 9].map((square) => rent(g.state, square, 7))).toEqual([28, 32, 35]);
+  });
 });
 
 describe('jail ticket exchange', () => {

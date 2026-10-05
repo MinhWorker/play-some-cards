@@ -79,15 +79,28 @@ export default async function run(t) {
   });
   if (!double)
     throw new Error('Two owned streets did not merge, or pawn occupancy was still colored');
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    for (const square of [6, 8]) s.monopolyGame.state.properties[square].owner = 0;
+    s.monopolyDeliver();
+    s.onResync(s.ctx);
+    s.onState(s.ctx);
+    const frames = s.monopolyBorders.frames.filter(
+      (f) => f.squares.includes(6) || f.squares.includes(8),
+    );
+    if (frames.length !== 2 || frames.some((f) => f.count !== 1 || f.ownedCount !== 2))
+      throw new Error('Two scattered owned streets must glow separately without bridging Chance');
+  });
   await page.screenshot({ path: t.shot('two-street-frame-desktop.png') });
   await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const g = s.monopolyGame;
     g.state.properties[3].owner = 0;
+    g.state.properties[9].owner = 0;
     g.state.properties[1].houses = 2;
     g.state.properties[2].houses = 5;
-    g.state.properties[14].owner = 0;
-    g.state.properties[29].owner = 0;
+    g.state.properties[12].owner = 0;
+    g.state.properties[28].owner = 0;
     s.monopolyDeliver();
     s.onResync(s.ctx);
     s.onState(s.ctx);
@@ -97,16 +110,95 @@ export default async function run(t) {
     return {
       count: s.monopolyBorders.frames[0].count,
       amounts: s.boardPrices.amounts.slice(1, 4),
-      utility: s.boardPrices.amounts[14],
+      utility: s.boardPrices.amounts[12],
+      scattered: s.monopolyBorders.frames.filter(
+        (f) => f.squares.includes(6) || f.squares.includes(8),
+      ),
+      scatteredAmounts: [6, 8, 9].map((i) => s.boardPrices.amounts[i]),
     };
   });
   if (
     triple.count !== 3 ||
     triple.amounts.join() !== '220x3,750x3,18x3' ||
-    triple.utility !== '🎲x10'
+    triple.utility !== '🎲x10' ||
+    triple.scatteredAmounts.join() !== '28x3,32x3,35x3' ||
+    triple.scattered.map((f) => f.squares.join('-')).join() !== '6,8-9' ||
+    triple.scattered.some((f) => f.ownedCount !== 3)
   )
     throw new Error(`Monopoly or utility prices are wrong: ${JSON.stringify(triple)}`);
   await page.screenshot({ path: t.shot('monopoly-buildings-desktop.png') });
+  const clip = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const frame = s.monopolyBorders.frames.find((f) => f.squares.includes(6));
+    const xs = frame.points.map((p) => p.x),
+      ys = frame.points.map((p) => p.y);
+    const a = window.__toScreen('co-ty-phu-classic', Math.min(...xs) - 9, Math.min(...ys) - 9);
+    const b = window.__toScreen('co-ty-phu-classic', Math.max(...xs) + 9, Math.max(...ys) + 9);
+    return {
+      x: Math.floor(a.x),
+      y: Math.floor(a.y),
+      width: Math.ceil(b.x) - Math.floor(a.x),
+      height: Math.ceil(b.y) - Math.floor(a.y),
+    };
+  });
+  const first = await page.screenshot({ clip, path: t.shot('scattered-monopoly-fire-a.png') });
+  await page.waitForTimeout(350);
+  const second = await page.screenshot({ clip, path: t.shot('scattered-monopoly-fire-b.png') });
+  const { default: sharp } = await import('sharp');
+  const a = await sharp(first).raw().toBuffer(),
+    b = await sharp(second).raw().toBuffer();
+  let changed = 0;
+  for (let i = 0; i < a.length; i++) if (Math.abs(a[i] - b[i]) > 5) changed++;
+  if (changed < 60) throw new Error('The complete scattered set has no visible flowing fire');
+  const face = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return s.monopolyBorders.frames
+      .find((f) => f.squares.includes(6))
+      .points.map((p) => window.__toScreen('co-ty-phu-classic', p.x, p.y));
+  });
+  const contained = async (before, after, label) => {
+    const { data: lhs, info } = await sharp(before).raw().toBuffer({ resolveWithObject: true });
+    const rhs = await sharp(after).raw().toBuffer();
+    let inside = 0,
+      outside = 0;
+    for (let y = 0; y < info.height; y++)
+      for (let x = 0; x < info.width; x++) {
+        const index = (y * info.width + x) * info.channels;
+        if (![0, 1, 2].some((c) => Math.abs(lhs[index + c] - rhs[index + c]) > 6)) continue;
+        const px = clip.x + x + 0.5,
+          py = clip.y + y + 0.5;
+        const distances = face.map((a, i) => {
+          const b = face[(i + 1) % 4],
+            dx = b.x - a.x,
+            dy = b.y - a.y;
+          return (dx * (py - a.y) - dy * (px - a.x)) / Math.hypot(dx, dy);
+        });
+        if (distances.every((d) => d > 1)) inside++;
+        if (distances.some((d) => d < -1)) outside++;
+      }
+    if (inside < 15 || outside > 2)
+      throw new Error(
+        `${label} must stay in the visible face: ${inside} inside, ${outside} outside`,
+      );
+  };
+  await page.evaluate(() =>
+    window.__phaser.scene
+      .getScene('co-ty-phu-classic')
+      .monopolyBorders.shaders.get('6')
+      .setVisible(false),
+  );
+  const noBorder = await page.screenshot({ clip, path: t.shot('surface-without-border.png') });
+  await contained(second, noBorder, 'Monopoly rim/fire');
+  await page.evaluate(() =>
+    window.__phaser.scene.getScene('co-ty-phu-classic').deedLayers.badges.get(6).setVisible(false),
+  );
+  const noBadge = await page.screenshot({ clip, path: t.shot('surface-without-badge.png') });
+  await contained(noBorder, noBadge, 'Owner enamel strip');
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    s.monopolyBorders.shaders.get('6').setVisible(true);
+    s.deedLayers.badges.get(6).setVisible(true);
+  });
   await page.setViewportSize(PHONE);
   await page.waitForTimeout(300);
   await page.screenshot({ path: t.shot('monopoly-buildings-phone.png') });
@@ -212,7 +304,13 @@ export default async function run(t) {
   await page.evaluate(() => window.__phaser.scene.getScene('co-ty-phu-classic').monopolyRestart());
   const cleared = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return !s.victory.shown && !s.victory.objects.length && !s.runtime.busy('victory');
+    return (
+      !s.victory.shown &&
+      !s.victory.objects.length &&
+      !s.runtime.busy('victory') &&
+      s.monopolyBorders.frames.every((f) => f.ownedCount === 0) &&
+      [...s.deedLayers.badges.values()].every((badge) => !badge.visible)
+    );
   });
   if (!cleared) throw new Error('Victory objects remained over the next game');
 }
