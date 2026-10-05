@@ -7,6 +7,7 @@ Run from the repository root:
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -27,14 +28,14 @@ WIDTH, HEIGHT = 1400, 1200
 CROP_X, CROP_Y, CROP_WIDTH, CROP_HEIGHT = 35, 145, 1330, 1045
 INK = (63, 49, 38, 255)
 GROUP_COLORS = {
-    "nau": (137, 81, 53, 255),
-    "xanh-nhat": (115, 196, 223, 255),
-    "hong": (224, 123, 186, 255),
-    "cam": (232, 155, 67, 255),
-    "do": (205, 82, 73, 255),
-    "vang": (233, 206, 99, 255),
-    "xanh-la": (93, 169, 104, 255),
-    "xanh-dam": (65, 111, 189, 255),
+    "nau": (112, 70, 39, 255),
+    "xanh-nhat": (52, 159, 169, 255),
+    "hong": (176, 78, 153, 255),
+    "cam": (187, 114, 31, 255),
+    "do": (163, 46, 70, 255),
+    "vang": (182, 154, 34, 255),
+    "xanh-la": (45, 128, 92, 255),
+    "xanh-dam": (81, 70, 148, 255),
 }
 # The players' panel: the tile ring widened into the field's upper part, with sockets the game
 # fills in (the turn player's picture, name, cash and clock; each seat's ball and cash). In board
@@ -135,6 +136,17 @@ def tile_side(i):
     if 31 <= i <= 39:
         return "right"
     return "corner"
+
+
+def face_bounds(square):
+    """Ivory face inside the printed bevel; these are surface limits, not tile hit bounds."""
+    u0, v0, u1, v1 = square_bounds(square)
+    side = tile_side(square)
+    iu, iv = (.035, .045) if side in ("bottom", "top") else (.045, .035)
+    if side == "corner":
+        iu, iv = .04, .04
+    du, dv = (u1 - u0) * iu, (v1 - v0) * iv
+    return u0 + du, v0 + dv, u1 - du, v1 - dv
 
 
 def draw_icon(draw, kind, size):
@@ -433,7 +445,7 @@ METAL_COLORS = {
     "start": (0.32, 0.52, 0.38), "chance": (0.51, 0.40, 0.65),
     "chest": (0.72, 0.43, 0.10), "tax": (0.61, 0.36, 0.25),
     "jail": (0.37, 0.47, 0.60), "go-jail": (0.35, 0.42, 0.55),
-    "airport": (0.36, 0.54, 0.65),
+    "airport": (0.06, 0.62, 0.68),
 }
 
 
@@ -521,24 +533,42 @@ surface.data.materials.append(print_mat)
 
 # Real shallow metal plates: bevels and highlights come from the shared studio lights,
 # rather than gradients painted onto the board's emissive illustration.
-for square, (kind, _) in enumerate(SQUARES):
-    if kind not in METAL_COLORS:
-        continue
-    u0, v0, u1, v1 = square_bounds(square)
-    inset_u, inset_v = (u1 - u0) * 0.028, (v1 - v0) * 0.028
-    bpy.ops.mesh.primitive_cube_add(size=1, location=(((u0 + u1) / 2 - 0.5) * 4, (0.5 - (v0 + v1) / 2) * 4, 0.044))
-    plate = bpy.context.object
-    plate.name = f"Brushed {kind} plate {square}"
-    plate.dimensions = ((u1 - u0 - 2 * inset_u) * 4, (v1 - v0 - 2 * inset_v) * 4, 0.018)
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    bevel = plate.modifiers.new("Machined perimeter", "BEVEL")
-    bevel.width, bevel.segments = 0.005, 4
+def metal_plate(square, kind):
+    u0, v0, u1, v1 = face_bounds(square)
+    x0, x1 = (u0 - .5) * 4, (u1 - .5) * 4
+    y0, y1 = (.5 - v1) * 4, (.5 - v0) * 4
+    # Build the rounded XY silhouette explicitly. A cube bevel alone clamps the corner
+    # radius to half the plate thickness, leaving nearly square corners on a thin sheet.
+    radius = min(x1 - x0, y1 - y0) * .055
+    outline = []
+    for cx, cy, start in [(x1-radius, y1-radius, 0), (x0+radius, y1-radius, 90),
+                          (x0+radius, y0+radius, 180), (x1-radius, y0+radius, 270)]:
+        for step in range(9):
+            angle = math.radians(start + step * 90 / 8)
+            outline.append((cx + radius * math.cos(angle), cy + radius * math.sin(angle)))
+    n = len(outline)
+    vertices = [(x, y, z) for z in (.035, .041) for x, y in outline]
+    faces = [tuple(reversed(range(n))), tuple(range(n, n * 2))]
+    faces += [(i, (i+1) % n, (i+1) % n+n, i+n) for i in range(n)]
+    mesh = bpy.data.meshes.new(f"Rounded metal face {square}")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    plate = bpy.data.objects.new(f"Brushed {kind} plate {square}", mesh)
+    bpy.context.collection.objects.link(plate)
+    bevel = plate.modifiers.new("Fine machined lip", "BEVEL")
+    bevel.width, bevel.segments = .001, 3
     plate.modifiers.new("Planar highlights", "WEIGHTED_NORMAL")
     plate.data.materials.append(brushed_metal(f"{kind} satin metal", METAL_COLORS[kind]))
 
+
+for square, (kind, _) in enumerate(SQUARES):
+    if kind not in METAL_COLORS:
+        continue
+    metal_plate(square, kind)
+
 # Transparent printed ink rests on top of the metal, at the identical board UV positions.
 ink_mesh = bpy.data.meshes.new("metal ink plane")
-ink_mesh.from_pydata([(-2, -2, 0.054), (2, -2, 0.054), (2, 2, 0.054), (-2, 2, 0.054)], [], [(0, 1, 2, 3)])
+ink_mesh.from_pydata([(-2, -2, 0.0415), (2, -2, 0.0415), (2, 2, 0.0415), (-2, 2, 0.0415)], [], [(0, 1, 2, 3)])
 ink_uv = ink_mesh.uv_layers.new(name="ink UV")
 for loop, coord in zip(ink_mesh.polygons[0].loop_indices, [(0, 0), (1, 0), (1, 1), (0, 1)]):
     ink_uv.data[loop].uv = coord
@@ -591,17 +621,6 @@ def project(u, v):
         round((image_point.x * WIDTH - CROP_X) / CROP_WIDTH, 6),
         round(((1 - image_point.y) * HEIGHT - CROP_Y) / CROP_HEIGHT, 6),
     ]
-
-
-def face_bounds(square):
-    """Ivory face inside the printed bevel; these are surface limits, not tile hit bounds."""
-    u0, v0, u1, v1 = square_bounds(square)
-    side = tile_side(square)
-    iu, iv = (.035, .045) if side in ("bottom", "top") else (.045, .035)
-    if side == "corner":
-        iu, iv = .04, .04
-    du, dv = (u1 - u0) * iu, (v1 - v0) * iv
-    return u0 + du, v0 + dv, u1 - du, v1 - dv
 
 
 cells = []

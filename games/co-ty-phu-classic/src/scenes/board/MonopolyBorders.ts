@@ -55,7 +55,7 @@ export class MonopolyBorders {
             setupUniforms: (setUniform: (name: string, value: number) => void) =>
               setUniform('uTime', this.elapsed),
           })
-          .setDepth(0.55);
+          .setDepth(0.45);
         this.shaders.set(key, shader);
       }
       const padding = 0;

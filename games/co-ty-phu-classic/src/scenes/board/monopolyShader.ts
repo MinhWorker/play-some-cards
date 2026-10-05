@@ -52,7 +52,13 @@ void main() {
              && cross2(uD-uC,p-uC) >= 0. && cross2(uA-uD,p-uD) >= 0.;
   if (!inside) { gl_FragColor = vec4(0.); return; }
   float coverage = smoothstep(0., .7, d);
-  float alpha = 1. - smoothstep(.9, 1.9, d);
+  // Two fine inlaid rails and diamond stitches distinguish a color set from the
+  // owner's solid enamel strip, even when their hues are similar.
+  float outer = 1. - smoothstep(.45, 1.05, abs(d - 1.));
+  float inner = 1. - smoothstep(.25, .8, abs(d - 3.));
+  float stitch = abs(mod(nearest.y + uPhase * 5., 12.) - 6.);
+  float diamond = 1. - smoothstep(.7, 1.3, stitch + abs(d - 2.));
+  float alpha = max(outer * .92, max(inner * .4, diamond * .85));
   vec3 color = uColor;
   float hot = 0.;
   if (uStrength >= 2.) {
@@ -69,7 +75,7 @@ void main() {
                   * smoothstep(.6, 2., d) * smoothstep(.25, .72, flow * .75 + detail * .25);
       alpha = max(alpha, flame * .7);
       hot = exp(-d * d * 1.4) * (.55 + flow * .20);
-      color = mix(uColor * 1.35, vec3(1., .96, .85), hot);
+      color = mix(uColor * 1.25, vec3(1., .96, .85), hot);
     }
   }
   alpha *= coverage;

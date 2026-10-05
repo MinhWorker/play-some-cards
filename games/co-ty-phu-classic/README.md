@@ -67,7 +67,8 @@ danh mục `square` và `card` dùng cho gợi ý bằng Tab.
 `assets/` chứa ảnh và âm thanh dùng trực tiếp; `sources/` chứa prompt và script nguồn.
 `sources/render_board_25d.py` tạo `assets/board-25d.webp` cùng
 `src/scenes/board/boardGeometry.ts`; các ô không mua được dùng vật liệu kim loại xước
-và ánh sáng Blender, Khí vận dùng vàng kim. `sources/render_deed_layers.py` dùng cùng
+và ánh sáng Blender, Khí vận dùng vàng kim, Sân bay dùng cyan. Tấm kim loại mỏng có
+đường bao bo góc theo mặt ô và gờ bắt sáng nhỏ. `sources/render_deed_layers.py` dùng cùng
 camera và ánh sáng để tạo atlas `deed-layers.webp`/`.json` gồm 240 frame badge men màu,
 nhà và khách sạn sứ trắng, cùng `deedLayerGeometry.ts`. Khi sửa camera, kích thước ô
 hoặc ánh sáng, chạy lần lượt hai script để ảnh và tọa độ khớp nhau:
@@ -77,7 +78,9 @@ blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py
 blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
 ```
 
-Viền bộ màu được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
+Màu bộ dùng tông đậm riêng và hai nét khảm mảnh có hoa văn hình thoi,
+khác với dải men đặc màu chủ đất.
+Viền bộ nằm dưới badge, được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
 phần mặt ô bên trong gờ in sẵn. Quầng sáng/lửa hướng vào trong, không tràn khỏi mặt ô.
 Badge men nằm phẳng và được cắt theo cùng giới hạn bề mặt. Hai ô cùng chủ có quầng sáng nhẹ;
 đủ bộ thì nhiễu liên tục tạo lửa chạy quanh viền. Chỉ các ô chạm nhau được gộp khung;
@@ -87,7 +90,16 @@ Thêm `-- --front` khi chạy `render_pawns.py` bằng Blender để kết xuấ
 nền trong suốt, dùng riêng cho màn nhảy chiến thắng (`pawn-front-*.webp`).
 Xúc xắc được render 3D trực tiếp trong `Dice3D.ts`: mỗi lần gieo chọn ngẫu nhiên một trong
 bốn chuyển động lăn, tung vòng cung, nảy nhiều nhịp và xoáy. Tất cả cùng dừng ở mặt trên
-theo kết quả server; quỹ đạo nằm trong `diceMotion.ts`.
+theo kết quả server; quỹ đạo nằm trong `diceMotion.ts`. `diceAudio.ts` giữ tiếng lăn gốc
+cho chuyển động lăn, dùng tiếng tung nhẹ cho vòng cung, tiếng chạm bàn ở từng nhịp nảy,
+và tiếng lách cách thưa dần cho chuyển động xoáy. Ba kiểu mới có tiếng đáp bàn chung.
+Các điểm phát âm bám đồng hồ hoạt ảnh, kể cả ở 2×, và dừng khi luồng bị hủy.
+Tạo lại bốn tiếng tự tổng hợp bằng:
+
+```sh
+python3 games/co-ty-phu-classic/sources/make_dice_audio.py
+```
+
 `sources/make_audio.py` tạo bộ âm thanh; `sources/make_audio_preview.py` tạo
 [trang nghe thử](sources/audio-preview/index.html).
 Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng lại `mau-binh-standings.mp3` của Mậu Binh.

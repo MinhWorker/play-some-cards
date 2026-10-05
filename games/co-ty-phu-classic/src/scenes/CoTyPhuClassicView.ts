@@ -48,6 +48,7 @@ import { RentTable } from './hud/RentTable.js';
 import { TileTooltip } from './hud/TileTooltip.js';
 import { tileActions } from './hud/tileActions.js';
 import { Dice3D } from './presentation/Dice3D.js';
+import { playDiceSound } from './presentation/diceAudio.js';
 import { EventDeck } from './presentation/EventDeck.js';
 import { eventNotice, landingHeading } from './presentation/eventNotice.js';
 import { PropertyPresentation } from './presentation/PropertyPresentation.js';
@@ -1728,12 +1729,15 @@ export class CoTyPhuClassicView extends GameView<View> {
         if (dice) {
           this.visualPhase = 'rolling';
           this.dice.roll(...beat.dice);
-          this.sfx('tycoon-dice');
           this.onState(this.ctx);
-          await fx.frame((delta) => {
-            this.dice.update(delta);
-            return this.dice.settled;
-          });
+          await fx.parallel(
+            (sound) => playDiceSound(sound, this.dice.motion),
+            (animation) =>
+              animation.frame((delta) => {
+                this.dice.update(delta);
+                return this.dice.settled;
+              }),
+          );
           fx.checkpoint();
           this.visualPhase = 'result';
           this.onState(this.ctx);

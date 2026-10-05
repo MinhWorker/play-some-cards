@@ -9,11 +9,14 @@ Read `../AGENTS.md` for the shared game/SDK rules. The Vietnamese component map 
 - `src/scenes/board/`: projected tile geometry, prices, ownership and special-square symbols;
   `SymbolAtlas.ts` packs their baked animation frames for upload once at scene creation.
   `MonopolyBorders.ts` merges only touching same-owner group tiles; `monopolyShader.ts`
-  draws antialiased outlines and flowing fire inward on the GPU, clipped to `BOARD_FACES`. `DeedLayers.ts` selects baked
+  draws antialiased double inlaid rails, diamond stitches and flowing fire inward on the GPU,
+  below owner badges and clipped to `BOARD_FACES`. `DeedLayers.ts` selects baked
   enamel owner strips and porcelain building frames; no runtime flat badge polygons.
 - `src/scenes/effects/`: backdrop, small-object glow, money animations, money audio the scoped private jail-door effect (`JailGateEffect.ts`), and the victory celebration (`VictoryEffect.ts`).
 - `src/scenes/hud/`: player-panel projection (`PlayerPanel.ts`) and pattern (`PlayerPanelPattern.ts`), tooltips, rent tables, bulk mortgage selection/confirmation (`MortgagePanel.ts`), auction confirmation (`AuctionConfirmPanel.ts`), cached action icons (`PropertyActionIcons.ts`) and property action availability.
-- `src/scenes/presentation/`: dice, event-card presentation, notices and property snapshot queue.
+- `src/scenes/presentation/`: dice, motion-specific audio cues (`diceAudio.ts`), event-card
+  presentation, notices and property snapshot queue. Dice cue onsets use the scoped animation
+  clock; short native-audio tails can overlap without shifting the next contact.
 - Tests stay next to the implementation they exercise.
 
 `sources/render_board_25d.py` generates `assets/board-25d.webp` and

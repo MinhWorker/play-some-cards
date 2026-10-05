@@ -210,14 +210,14 @@ export const BOARD: readonly Square[] = [
 ];
 
 export const GROUP_COLORS: Record<Group, number> = {
-  nau: 0x895135,
-  'xanh-nhat': 0x73c4df,
-  hong: 0xe07bba,
-  cam: 0xe89b43,
-  do: 0xcd5249,
-  vang: 0xe9ce63,
-  'xanh-la': 0x5da968,
-  'xanh-dam': 0x416fbd,
+  nau: 0x704627,
+  'xanh-nhat': 0x349fa9,
+  hong: 0xb04e99,
+  cam: 0xbb721f,
+  do: 0xa32e46,
+  vang: 0xb69a22,
+  'xanh-la': 0x2d805c,
+  'xanh-dam': 0x514694,
 };
 
 export const isDeed = (square: Square): square is Square & { price: number } =>
