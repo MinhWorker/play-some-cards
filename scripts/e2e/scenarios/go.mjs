@@ -1,4 +1,4 @@
-// Cờ Vây against the computer on a phone: the one-form setup (9 × 9), a few stones as Black by
+// Cờ Vây against the computer on a phone: standard 19 × 19, a few stones as Black by
 // tapping points, "Bỏ lượt", then "Đầu hàng" (tapped twice) ends the game.
 import { clickCanvas, openRooms, PHONE, signUp } from '../lib.mjs';
 
@@ -15,24 +15,68 @@ const state = (page) => page.evaluate(() => window.__phaser.scene.getScene('go')
 
 export default async function run(t) {
   const page = await t.page(PHONE);
+  const touch = await page.context().newCDPSession(page);
+  await touch.send('Emulation.setTouchEmulationEnabled', { enabled: true });
   await signUp(t, page, 'Khoa');
   await openRooms(page, 'go');
   await page.getByRole('button', { name: '+ Tạo phòng' }).click();
   await clickCanvas(page, 'go:setup', (s) => s.rows[0].chips[1].container);
   await clickCanvas(page, 'go:setup', (s) => s.rows[1].chips[0].container);
   await page.waitForTimeout(300);
+  const rows = await page.evaluate(() => window.__phaser.scene.getScene('go:setup').rows.length);
+  if (rows !== 3) throw new Error('Setup must only offer opponent, level and color');
   await page.screenshot({ path: t.shot('10-go-setup.png') });
   await clickCanvas(page, 'go:setup', (s) => s.submitButton.container);
   await page.getByRole('button', { name: 'Bắt đầu' }).click();
-  await page.waitForFunction(() => window.__phaser.scene.getScene('go')?.ctx?.state?.size === 9);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go')?.ctx?.state?.size === 19);
   await page.waitForTimeout(400);
+  const fillsHeight = await page.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('go');
+    return scene.wood.displayHeight >= scene.view.height * 0.9;
+  });
+  if (!fillsHeight) throw new Error('The mobile board must fill at least 90% of the frame height');
   await page.screenshot({ path: t.shot('11-go-start.png') });
 
-  // Black plays near the middle; the computer answers each stone.
+  // A real touch gesture previews the neighboring intersections before release commits.
+  const start = await pointOf(page, 3 * 19 + 2);
+  const target = await pointOf(page, 3 * 19 + 3);
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: start.x, y: start.y }],
+  });
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go').touchLoupe.visible);
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: start.x, y: 1 }],
+  });
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  if ((await state(page)).plies !== 0) throw new Error('Dragging outside the board did not cancel');
+  if (await page.evaluate(() => window.__phaser.scene.getScene('go').touchLoupe.visible))
+    throw new Error('The cancelled touch preview stayed visible');
+
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchStart',
+    touchPoints: [{ x: start.x, y: start.y }],
+  });
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go').touchLoupe.visible);
+  if ((await state(page)).plies !== 0) throw new Error('Touch preview committed before release');
+  await touch.send('Input.dispatchTouchEvent', {
+    type: 'touchMove',
+    touchPoints: [{ x: target.x, y: target.y }],
+  });
+  await page.screenshot({ path: t.shot('11-go-touch-preview.png') });
+  await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go').ctx.state.plies >= 2);
+  const placed = await state(page);
+  if (placed.board[3 * 19 + 3] !== 'b' || placed.board[3 * 19 + 2] === 'b')
+    throw new Error('Touch release did not commit the selected intersection');
+  if (await page.evaluate(() => window.__phaser.scene.getScene('go').touchLoupe.visible))
+    throw new Error('The touch preview survived release');
+
+  // Black plays near the corners; the computer answers each stone.
   for (const [row, col] of [
-    [2, 2],
-    [6, 6],
-    [2, 6],
+    [15, 15],
+    [3, 15],
   ]) {
     await page.waitForFunction(() => {
       const { ctx } = window.__phaser.scene.getScene('go');
@@ -40,7 +84,7 @@ export default async function run(t) {
     });
     const before = await state(page);
     // The planned point, or the first free one if the computer took it.
-    let p = row * 9 + col;
+    let p = row * 19 + col;
     if (before.board[p] !== '.') p = before.board.indexOf('.');
     const at = await pointOf(page, p);
     await page.mouse.click(at.x, at.y);

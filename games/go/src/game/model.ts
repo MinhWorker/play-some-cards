@@ -11,9 +11,8 @@ import { z } from 'zod';
 export type Side = 'b' | 'w';
 export type Cell = Side | '.';
 
-/** Board sizes a room can pick. */
-export const SIZES = [9, 13, 19] as const;
-export type Size = (typeof SIZES)[number];
+/** Standard Go board: every room uses 19 × 19 intersections. */
+export const BOARD_SIZE = 19;
 
 /** Points White gets for playing second (area scoring, so no game ends in a tie). */
 export const KOMI = 7.5;
@@ -29,7 +28,7 @@ export interface Score {
 
 /** Everything about one game in progress. Kept on the server, never mutated. */
 export interface State {
-  size: Size;
+  size: typeof BOARD_SIZE;
   /** size × size points (see the top of this file). */
   board: string;
   /** players[0] plays Black (moves first), players[1] White. */
@@ -72,7 +71,6 @@ export type View = Omit<State, 'history'>;
 export const optionsSchema = z.object({
   opponent: z.enum(['human', 'bot']).default('human'),
   level: z.enum(['easy', 'normal', 'hard']).default('normal'),
-  size: z.union([z.literal(9), z.literal(13), z.literal(19)]).default(9),
   /** The second seat plays Black (moves first) instead of the first. */
   swap: z.boolean().default(false),
 });

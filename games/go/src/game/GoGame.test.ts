@@ -2,7 +2,7 @@ import { type StartContext, testGame } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { GoGame } from './GoGame.js';
-import { KOMI, type Options, type State, type View } from './model.js';
+import { KOMI, type Options, optionsSchema, type State, type View } from './model.js';
 import { boardOf, hashOf, place, point } from './rules.js';
 
 /** The game from a made-up board instead of an empty one. */
@@ -46,7 +46,7 @@ const from = (
   seen: number[] = [],
 ) =>
   testGame(new FromBoard(rows, seen), ['a', 'b'], {
-    options: { opponent: 'human', level: 'normal', size: 9, swap: false, ...options },
+    options: { opponent: 'human', level: 'normal', swap: false, ...options },
     bots,
   });
 
@@ -64,10 +64,15 @@ const HALVES = [
 ];
 
 describe('go', () => {
-  it('starts on an empty board of the room’s size, a as Black to move', () => {
-    expect(fresh().state).toMatchObject({ size: 9, players: ['a', 'b'], turn: 'b', end: null });
-    expect(fresh().state.board).toBe('.'.repeat(81));
-    expect(fresh({ size: 19, swap: true }).state).toMatchObject({ size: 19, players: ['b', 'a'] });
+  it('always starts on the standard 19 × 19 board, including old room options', () => {
+    expect(fresh().state).toMatchObject({ size: 19, players: ['a', 'b'], turn: 'b', end: null });
+    expect(fresh().state.board).toBe('.'.repeat(361));
+    expect(fresh({ swap: true }).state).toMatchObject({ size: 19, players: ['b', 'a'] });
+    for (const size of [9, 13, 19]) {
+      const options = optionsSchema.parse({ size });
+      expect(options).not.toHaveProperty('size');
+      expect(fresh(options).state.board).toHaveLength(361);
+    }
   });
 
   it('refuses moves out of turn, on stones, off the board and suicide', () => {
@@ -85,7 +90,7 @@ describe('go', () => {
     const game = moves(fresh(), [0, 1], [0, 0], [1, 0]);
     expect(game.state.board[0]).toBe('.');
     expect(game.state.prisoners).toEqual({ b: 1, w: 0 });
-    expect(game.state.last).toEqual({ side: 'b', point: 9, captured: [0] });
+    expect(game.state.last).toEqual({ side: 'b', point: 19, captured: [0] });
   });
 
   it('forbids taking a ko straight back, and allows it after a move elsewhere', () => {
@@ -163,7 +168,7 @@ describe('go', () => {
   it('shows everything but the position history', () => {
     const view = fresh().view(null) as View;
     expect(view).not.toHaveProperty('history');
-    expect(view.board).toHaveLength(81);
+    expect(view.board).toHaveLength(361);
   });
 
   it('asks the computer only in rooms against it, and it plays legal points', () => {
@@ -215,7 +220,7 @@ describe('go', () => {
 
   it('thinks quickly enough on a big board, and counts quickly too', () => {
     const game = testGame(plugin, ['a', 'b'], {
-      options: { opponent: 'bot', level: 'hard', size: 19 },
+      options: { opponent: 'bot', level: 'hard' },
       bots: ['b'],
     });
     let slowest = 0;

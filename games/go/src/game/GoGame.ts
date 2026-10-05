@@ -22,6 +22,7 @@ import {
 import { z } from 'zod';
 import { botMove } from './bot.js';
 import {
+  BOARD_SIZE,
   type EndReason,
   KOMI,
   type Options,
@@ -49,9 +50,9 @@ export class GoGame extends Game<State, Options, View> {
   /** A new game: Black is the first seat, or the second when the room swapped colors. */
   onStart({ players, options }: StartContext<Options>): State {
     const [first, second] = players.map((p) => p.id) as [string, string];
-    const board = emptyBoard(options.size);
+    const board = emptyBoard(BOARD_SIZE);
     return {
-      size: options.size,
+      size: BOARD_SIZE,
       board,
       players: options.swap ? [second, first] : [first, second],
       turn: 'b',

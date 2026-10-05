@@ -1,67 +1,65 @@
 # Cờ Vây
 
-Cờ Vây cho hai người theo luật Trung Quốc (đếm theo diện tích, Trắng được 7,5 điểm bù), trên bàn
-9 × 9, 13 × 13 hoặc 19 × 19, chơi với bạn bè hoặc với máy. Game đang ở trạng thái `wip`: luật,
-máy chơi, đếm điểm và bàn cờ đã chơi được; hình và âm thanh làm sau, xem
-[kế hoạch Cờ Vây](PLAN.md).
+Cờ Vây cho hai người theo luật Trung Quốc, trên bàn chuẩn **19 × 19**, chơi với bạn bè hoặc
+với máy ở ba mức. Trắng được 7,5 điểm bù; đếm theo diện tích.
 
-## Luật chơi
-
-- Đen đi trước; hai bên lần lượt đặt một quân lên một giao điểm trống, hoặc **bỏ lượt**.
-- Các quân cùng màu nằm cạnh nhau (ngang, dọc) thành một **nhóm**. Giao điểm trống sát nhóm là
-  **khí**. Nhóm hết khí thì bị bắt, nhấc khỏi bàn.
-- Không được đặt quân vào chỗ mà nhóm của mình hết khí, trừ khi nước đó bắt được quân đối phương.
-- **Cướp (ko)** và lặp thế: không được đi một nước làm bàn cờ trở lại đúng một thế đã có trước đó
-  trong ván. Nên sau khi một quân vừa bắt một quân trong thế cướp, bên kia phải đánh chỗ khác
-  trước rồi mới bắt lại được.
-- Hai bên **bỏ lượt liên tiếp** thì dừng đánh và **đếm điểm**:
-  - máy đoán sẵn các nhóm đã chết (mờ đi); người chơi chạm một nhóm để đánh dấu chết hoặc sống lại;
-  - mỗi lần đổi đánh dấu, cả hai phải bấm "Đồng ý" lại; hai bên cùng đồng ý thì đếm;
-  - không thống nhất được thì bấm "Đánh tiếp" để chơi tiếp cho rõ.
-- **Điểm** của mỗi bên = số quân còn sống trên bàn + số giao điểm trống chỉ quân mình bao quanh
-  (quân chết bị nhấc ra trước khi đếm). Trắng cộng thêm 7,5 điểm. Bên nhiều điểm hơn thắng; không
-  bao giờ hoà.
-- Cũng thua khi đầu hàng hoặc rời bàn giữa ván. Chưa có đồng hồ và chấp quân.
+[Luật chơi](RULES.md)
 
 ## Tạo phòng
 
-Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó),
-**Bàn cờ** (9 × 9, 13 × 13, 19 × 19) và **Bạn cầm quân** (Đen đi trước, hoặc Trắng). Chủ phòng
-đổi các tuỳ chọn này giữa hai ván bằng "Tuỳ chỉnh".
+Form gồm **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó) và **Bạn cầm quân**
+(Đen đi trước, hoặc Trắng). Mọi ván đều dùng bàn 19 × 19; không có tuỳ chọn cỡ bàn.
+Chủ phòng đổi các tuỳ chọn giữa hai ván bằng "Tuỳ chỉnh".
 
-Chạm giao điểm trống để đặt quân. Quân vừa đặt có vòng đỏ, điểm cướp có ô vuông. Khi đếm điểm,
-ô vuông nhỏ đen/trắng cho biết giao điểm đó tính cho ai.
+Trên điện thoại, giữ và rê ngón tay để xem trước giao điểm trong kính phóng đại, thả tay để
+đặt quân; rê ra khỏi bàn để huỷ. Bàn tận dụng khoảng trống giữa hai cụm HUD và chiếm gần hết
+chiều cao màn hình ngang; người chơi và nút điều khiển nằm hai bên.
+Quân vừa đặt có vòng đỏ, điểm cướp có ô vuông. Khi đếm điểm,
+quân chết mờ đi và ô vuông nhỏ đen/trắng cho biết giao điểm đó tính cho ai. Hai bên sửa đánh dấu,
+cùng "Đồng ý" để kết thúc, hoặc "Đánh tiếp" để trở lại ván.
 
-Máy chơi theo kinh nghiệm (bắt quân, cứu nhóm bị dồn còn một khí, không tự chui vào chỗ còn một
-khí, chiếm đường 3–4 lúc đầu, không lấp mắt mình) và ước lượng vùng đã chắc bằng các ván ngẫu
-nhiên. Nó bỏ lượt khi không còn nước đáng đi. Lúc đếm, máy giữ đúng phần đoán quân chết ban đầu
-rồi đồng ý.
+Máy chơi theo kinh nghiệm: bắt quân, cứu nhóm còn một khí, chiếm đường 3–4 lúc đầu, tránh lấp
+mắt mình và ước lượng vùng chắc bằng các ván ngẫu nhiên. Chưa có đồng hồ và chấp quân.
 
-## Các thứ nằm ở đâu
+## Thành phần
 
-```
-src/
-  index.ts                  đầu vào phía server: meta, phần logic và tuỳ chọn phòng
-  client.ts                 đầu vào phía trình duyệt: form tạo phòng và bàn cờ
-  game/model.ts             dữ liệu: State, View, tuỳ chọn phòng, điểm bù
-  game/rules.ts             đặt quân, bắt quân, cướp, đếm điểm, đoán quân chết bằng ván ngẫu nhiên
-                            (dùng chung cho server, máy và màn hình)
-  game/bot.ts               máy chơi
-  game/GoGame.ts            các sự kiện: place, pass, mark, accept, resume, resign
-  scenes/GoView.ts          bàn cờ: đặt quân, đếm điểm, nút bỏ lượt/đồng ý/đánh tiếp/đầu hàng
-  scenes/Setup.ts           form tạo phòng
-assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo tên file
-```
+| Thành phần | File |
+| --- | --- |
+| Bàn chuẩn, màu quân và tuỳ chọn | `src/game/model.ts` |
+| Đặt quân, bắt quân, cướp, đếm điểm và đoán quân chết | `src/game/rules.ts` |
+| Lượt, bỏ lượt, đồng ý, đánh tiếp và đầu hàng | `src/game/GoGame.ts` |
+| Máy chơi | `src/game/bot.ts` |
+| Bàn, quân, hiệu ứng và âm thanh | `src/scenes/GoView.ts` |
+| Nền vải xanh trầm | `src/scenes/GoBackground.ts` |
+| Form tạo phòng | `src/scenes/Setup.ts` |
 
-Bàn, đường kẻ, sao và quân tạm đều vẽ bằng code; khi có `assets/stone-black.webp` và
-`assets/stone-white.webp` thì bàn tự dùng hình đó. `island.webp` là đảo mẫu của `npm run new:game`;
-`button.webp` lấy từ Tiến Lên.
+`src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
+`assets/` chứa hình và âm thanh dùng trực tiếp; `sources/` chứa script và prompt tạo tài nguyên.
+Test nằm cạnh phần logic với đuôi `.test.ts`; e2e ở `scripts/e2e/scenarios/go.mjs`.
 
-Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=go&players=2 (khi đang chạy
-`npm run dev`).
+## Phát triển
 
-## Vòng đời bàn chơi
+Chạy `npm run dev` ở gốc repo rồi mở http://localhost:5033/?play=go&players=2.
+Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
+`npm run shots -- --path '/?play=go&players=2' --audit`.
+Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
 
-Hoạt ảnh và thời gian xác nhận đầu hàng dùng runtime của SDK. Khi mở ván mới, kết nối lại
-hoặc rời bàn, các hiệu ứng cũ được huỷ; kết nối lại dựng bàn từ trạng thái hiện tại,
-không phát lại nước đi trước đó.
+## Hình và âm thanh
+
+- Bàn gỗ kaya viền mỏng, quân đá phiến đen/đá trắng ngà mài bóng, nền vải và nút gỗ kết xuất bằng
+  Blender: `blender -b -t 8 --python games/go/sources/render_assets.py`. Góc nhìn thẳng từ trên
+  xuống, ánh sáng mềm từ trên trái. Đường kẻ và chín sao do Phaser vẽ để khớp giao điểm.
+- Đảo Cờ Vây trên bản đồ tạo bằng Image Gen; prompt ở `sources/prompts.json`. Sinh lại bằng `npm run gen:asset -- go/island`.
+- Ba tiếng đặt quân là các đoạn va chạm trong bản ghi của dự án
+  `assets/audio/sfx/psc-wood-marker-place-veo.mp3`, được cắt, lọc phần ù thấp và làm đuôi ngắn.
+  Tiếng bắt quân ghép vài va chạm nhỏ; tiếng bỏ lượt/đánh dấu nhẹ hơn. Không thêm tiếng trống
+  hay cộng hưởng ống vào tiếng đặt quân.
+- Tiếng mở ván, vào đếm điểm và kết thúc dùng lại `caro-start`, `caro-line-complete`, `caro-win`
+  từ Cờ Caro; nhạc nền dùng lại `music-xiangqi-a.mp3` từ Cờ Tướng.
+- Tạo lại âm thanh: `python games/go/sources/prepare_audio.py` (cần ffmpeg, numpy, scipy;
+  tải bản ghi nguồn bằng Git LFS). Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.
+  Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
+
+Hiệu ứng đặt quân hạ nhẹ xuống bàn; quân bị bắt mờ rồi được nhấc khỏi bàn. Vòng vàng cạnh màu
+quân chỉ lượt hiện tại. Nước đi và âm thanh dùng runtime SDK: ván mới, đổi ghế, kết nối lại và
+rời bàn huỷ hiệu ứng cũ; dựng lại bàn không phát lại nước đi hoặc nhạc kết thúc.

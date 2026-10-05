@@ -10,21 +10,18 @@
  * small squares); tap a chain to mark it dead or alive, "Đồng ý" to agree, "Đánh tiếp" to play
  * on instead.
  *
- * The board, lines and star points are drawn here. Stones are drawn here too until their
- * images exist in assets/ (stone-black, stone-white); sounds come with the art.
+ * Blender renders the wood and polished stones; grid, shadows and marks remain code-native.
  */
 import { type Button, type FlowHandle, GameView, type ViewContext } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import { KOMI, type Options, type Side, type View } from '../game/model.js';
+import { BOARD_SIZE, KOMI, type Options, type Side, type View } from '../game/model.js';
 import { colOf, place, rowOf, score, starPoints } from '../game/rules.js';
 
 type Ctx = ViewContext<View, Options>;
 
-const DEPTH = { board: 0, stone: 2, marks: 3, ghost: 4 } as const;
+const DEPTH = { board: 0, lines: 1, shadow: 1.5, stone: 2, marks: 3, ghost: 4 } as const;
 
 const COLORS = {
-  wood: 0xdcb46a,
-  woodEdge: 0x8a5a2b,
   line: 0x3b2a14,
   last: 0xe0463a,
   black: 0x1b1b1b,
@@ -46,10 +43,16 @@ interface StoneObj {
 
 export class GoView extends GameView<View, Options> {
   private board!: Phaser.GameObjects.Graphics;
+  private boardShadow!: Phaser.GameObjects.Graphics;
+  private wood!: Phaser.GameObjects.Image;
+  private shadows!: Phaser.GameObjects.Graphics;
+  private playerMarks!: Phaser.GameObjects.Graphics;
   /** Over the stones: the last move, the ko point, and while counting, who owns what. */
   private marks!: Phaser.GameObjects.Graphics;
   /** The stone you would play, under the mouse. */
   private ghost!: Phaser.GameObjects.Image;
+  private touchLoupe!: Phaser.GameObjects.Container;
+  private loupeStones!: Phaser.GameObjects.Image[];
   private zone!: Phaser.GameObjects.Zone;
   private status!: Phaser.GameObjects.Text;
   private score!: {
@@ -58,11 +61,12 @@ export class GoView extends GameView<View, Options> {
     lines: Phaser.GameObjects.Text[];
   };
   private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
+  private statusArea = { top: 0, side: 0 };
   private buttons!: { pass: Button; accept: Button; resume: Button; resign: Button };
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   private stones = new Map<number, StoneObj>();
   /** Where point (0, 0) is on screen and the gap between lines. */
-  private grid = { x0: 0, y0: 0, cell: 40, size: 9 };
+  private grid = { x0: 0, y0: 0, cell: 40, size: BOARD_SIZE };
   private hovered: number | null = null;
   /** "Đầu hàng" was tapped once: a second tap within a few seconds confirms. */
   private resignArmed = false;
@@ -75,33 +79,68 @@ export class GoView extends GameView<View, Options> {
     this.resignArmed = false;
     this.stones = new Map();
     this.hovered = null;
-    this.makeStoneTextures();
-    this.board = this.add.graphics().setDepth(DEPTH.board);
+    this.boardShadow = this.add.graphics().setDepth(-1);
+    this.wood = this.image(0, 0, 'board').setDepth(DEPTH.board);
+    this.board = this.add.graphics().setDepth(DEPTH.lines);
+    this.shadows = this.add.graphics().setDepth(DEPTH.shadow);
+    this.playerMarks = this.add.graphics().setDepth(DEPTH.marks);
     this.marks = this.add.graphics().setDepth(DEPTH.marks);
     this.ghost = this.add.image(0, 0, this.stoneKey('b')).setAlpha(0.45).setVisible(false);
     this.ghost.setDepth(DEPTH.ghost);
+    const lens = this.add.graphics();
+    lens.fillStyle(0x102d29, 0.98).fillCircle(0, 0, 72);
+    lens.lineStyle(2, 0xe5bd72).strokeCircle(0, 0, 72);
+    lens.lineStyle(1, 0xf2ce8b, 0.5);
+    for (const at of [-36, 0, 36]) {
+      lens.lineBetween(-52, at, 52, at);
+      lens.lineBetween(at, -52, at, 52);
+    }
+    this.loupeStones = Array.from({ length: 9 }, (_, i) =>
+      this.add
+        .image(((i % 3) - 1) * 36, (Math.floor(i / 3) - 1) * 36, this.stoneKey('b'))
+        .setDisplaySize(37, 37),
+    );
+    this.touchLoupe = this.add
+      .container(0, 0, [lens, ...this.loupeStones])
+      .setDepth(DEPTH.ghost + 1)
+      .setVisible(false);
     this.zone = this.add
       .zone(0, 0, 10, 10)
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
-      .on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p.worldX, p.worldY))
+      .on('pointerdown', (p: Phaser.Input.Pointer) => {
+        if (p.wasTouch) this.hover(this.pointAt(p.worldX, p.worldY), true);
+      })
+      .on('pointerup', (p: Phaser.Input.Pointer) => {
+        this.hover(null);
+        this.tap(p.worldX, p.worldY);
+      })
       .on('pointermove', (p: Phaser.Input.Pointer) => {
-        if (!p.wasTouch) this.hover(this.pointAt(p.worldX, p.worldY));
+        if (!p.wasTouch || p.isDown) this.hover(this.pointAt(p.worldX, p.worldY), p.wasTouch);
       })
       .on('pointerout', () => this.hover(null));
-    this.status = this.label('', { size: 34 });
+    this.status = this.railLabel('', 30).setAlign('center');
     this.score = {
       icons: [0, 1].map(() => this.add.image(0, 0, this.stoneKey('b'))),
-      names: [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0.5)),
-      lines: [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0.5)),
+      names: [0, 1].map(() => this.railLabel('', 30).setOrigin(0, 0.5)),
+      lines: [0, 1].map(() => this.railLabel('', 24).setOrigin(0, 0.5)),
     };
-    const opts = { image: 'button', size: 24 };
+    const opts = { image: 'button', slice: 36, size: 30, hoverSound: false };
     this.buttons = {
       pass: this.button('Bỏ lượt', () => this.send('pass'), opts),
       accept: this.button('Đồng ý', () => this.send('accept'), opts),
       resume: this.button('Đánh tiếp', () => this.send('resume'), opts),
       resign: this.button('Đầu hàng', () => this.resign(), opts),
     };
+    for (const button of Object.values(this.buttons)) {
+      button.label.setColor('#fff1d2').setStroke('#352417', 2);
+    }
+  }
+
+  private railLabel(text: string, size: number) {
+    return this.label(text, { size, color: '#f7e8ca' })
+      .setStroke('#142d2a', 2)
+      .setShadow(0, 2, '#102421', 3);
   }
 
   /**
@@ -110,43 +149,51 @@ export class GoView extends GameView<View, Options> {
    * and the buttons in the column on its right.
    */
   protected onLayout(ctx: Ctx) {
-    const { width, height, top, hud } = ctx.screen;
-    const margin = 16;
-    const availH = height - top - margin;
-    const side = Math.max(160, Math.min(width - 2 * 150 * hud, availH));
+    const { width, height, top, hud, gap } = ctx.screen;
+    const margin = 12;
+    const fullSide = Math.min(width - 2 * 140 * hud, height - 2 * margin);
+    const fullLeft = (width - fullSide) / 2;
+    // The real room has corner HUDs. Let the board rise between them; a wrapped bar or
+    // the sandbox's seat controls keep the board below the bar instead.
+    const fitsGap = gap && fullLeft >= gap.left + 8 && fullLeft + fullSide <= gap.right - 8;
+    const safeTop = fitsGap ? Math.max(margin, gap.top) : top;
+    const availH = height - safeTop - margin;
+    const side = Math.max(160, Math.min(width - 2 * 140 * hud, availH));
     const size = ctx.state.size;
     // Half a gap and a bit around the outer lines, so edge stones sit on the wood.
-    const cell = side / (size - 1 + 1.3);
+    const cell = side / (size - 1 + 1.6);
     const left = (width - side) / 2;
-    const boardTop = top + Math.max(0, (availH - side) / 2);
+    const boardTop = safeTop + Math.max(0, (availH - side) / 2);
     const columnW = left - 2 * margin;
-    this.grid = { x0: left + cell * 0.65, y0: boardTop + cell * 0.65, cell, size };
+    this.grid = { x0: left + cell * 0.8, y0: boardTop + cell * 0.8, cell, size };
     this.drawBoard(left, boardTop, side);
     const zoneSide = cell * size;
     this.zone
       .setPosition(this.grid.x0 - cell / 2, this.grid.y0 - cell / 2)
       .setSize(zoneSide, zoneSide);
     this.zone.input?.hitArea.setTo(0, 0, zoneSide, zoneSide);
-    this.ghost.setDisplaySize(cell * 0.96, cell * 0.96);
+    this.ghost.setDisplaySize(cell * 1.04, cell * 1.04);
+    this.hover(null);
 
     const rightX = left + side + margin + columnW / 2;
+    this.statusArea = { top: boardTop, side };
     this.status
       .setFontSize(30 * hud)
       .setOrigin(0.5, 0)
       .setWordWrapWidth(columnW)
-      .setPosition(rightX, boardTop + 8);
+      .setPosition(rightX, boardTop + side * 0.27);
     this.leftColumn = {
       x: margin + columnW / 2,
       width: columnW,
-      top: boardTop + 40 * hud,
-      bottom: boardTop + side - 40 * hud,
+      top: boardTop + side * 0.26,
+      bottom: boardTop + side * 0.67,
     };
     this.layoutScore(ctx);
     this.buttonStack = {
       x: rightX,
-      bottom: boardTop + side,
-      width: Math.min(columnW, 190 * hud),
-      height: 56 * hud,
+      bottom: boardTop + side - 16,
+      width: Math.min(columnW, 210 * hud),
+      height: 80 * hud,
     };
     this.placeButtons();
     for (const [p, stone] of this.stones) this.placeStone(stone, p);
@@ -155,6 +202,11 @@ export class GoView extends GameView<View, Options> {
 
   /** A new game: an empty board (onState sets the stones out). */
   protected onStart() {
+    this.resetBoard();
+    void this.sfx('go-start');
+  }
+
+  private resetBoard() {
     this.resignTimer?.cancel();
     this.resignTimer = undefined;
     this.resignArmed = false;
@@ -165,7 +217,7 @@ export class GoView extends GameView<View, Options> {
   }
 
   protected onResync(ctx: Ctx) {
-    this.onStart();
+    this.resetBoard();
     this.onLayout(ctx);
     this.syncStones(ctx, false);
     this.onState(ctx);
@@ -210,54 +262,64 @@ export class GoView extends GameView<View, Options> {
   private drawBoard(left: number, top: number, side: number) {
     const { x0, y0, cell, size } = this.grid;
     const g = this.board.clear();
-    g.fillStyle(COLORS.woodEdge, 1).fillRoundedRect(left, top, side, side, side * 0.012);
-    const rim = side * 0.012;
-    g.fillStyle(COLORS.wood, 1).fillRect(left + rim, top + rim, side - 2 * rim, side - 2 * rim);
+    const shadow = this.boardShadow.clear();
+    // A restrained contact shadow; the image has only a 0.9% milled wood edge.
+    for (let i = 12; i > 0; i--) {
+      shadow
+        .fillStyle(0x071b19, 0.035)
+        .fillRoundedRect(left - i, top + 5 - i / 2, side + i * 2, side + i, 6 + i);
+    }
+    this.wood.setPosition(left + side / 2, top + side / 2).setDisplaySize(side, side);
     const end = (size - 1) * cell;
-    g.lineStyle(Math.max(1, cell * 0.035), COLORS.line, 1);
+    g.lineStyle(1.15, COLORS.line, 0.88);
     for (let i = 0; i < size; i++) {
       g.lineBetween(x0, y0 + i * cell, x0 + end, y0 + i * cell);
       g.lineBetween(x0 + i * cell, y0, x0 + i * cell, y0 + end);
     }
-    g.lineStyle(Math.max(2, cell * 0.07), COLORS.line, 1).strokeRect(x0, y0, end, end);
+    g.lineStyle(1.8, COLORS.line, 0.95).strokeRect(x0, y0, end, end);
     g.fillStyle(COLORS.line, 1);
     for (const p of starPoints(size)) {
       const { x, y } = this.pointXY(p);
-      g.fillCircle(x, y, Math.max(2.5, cell * 0.11));
+      g.fillCircle(x, y, Math.max(2.6, cell * 0.09));
     }
   }
 
-  /** Texture key of a side's stone: its image once the art exists, the drawn one until then. */
   private stoneKey(side: Side) {
-    const art = `${this.gameId}/stone-${SIDES[side].art}`;
-    return this.textures.exists(art) ? art : `go-stone-${side}`;
+    return this.texture(`stone-${SIDES[side].art}`);
   }
 
-  /** Round stones with a soft highlight, drawn once. */
-  private makeStoneTextures() {
-    const r = 64;
-    for (const side of ['b', 'w'] as const) {
-      const key = `go-stone-${side}`;
-      if (this.textures.exists(key)) continue;
-      const g = this.make.graphics({}, false);
-      g.fillStyle(0x000000, 0.25).fillCircle(r + 3, r + 5, r - 4);
-      if (side === 'b') {
-        g.fillStyle(COLORS.black, 1).fillCircle(r, r, r - 4);
-        g.fillStyle(0xffffff, 0.12).fillCircle(r - 18, r - 20, r * 0.36);
-        g.fillStyle(0xffffff, 0.1).fillCircle(r - 20, r - 22, r * 0.2);
-      } else {
-        g.fillStyle(0xc9c2b2, 1).fillCircle(r, r, r - 4);
-        g.fillStyle(COLORS.white, 1).fillCircle(r - 2, r - 3, r - 8);
-        g.fillStyle(0xffffff, 0.8).fillCircle(r - 18, r - 20, r * 0.3);
+  /** Sounds only follow live events; reconnecting or switching seats stays silent. */
+  protected onPlace({ state }: Ctx) {
+    const variant = (state.plies % 3) + 1;
+    this.runtime.run(async (fx) => {
+      await fx.wait(85);
+      await fx.sound(`go-place-${variant}`);
+      if (state.last?.captured.length) {
+        await fx.wait(90);
+        await fx.sound('go-capture');
       }
-      g.generateTexture(key, r * 2 + 6, r * 2 + 8);
-      g.destroy();
-    }
+    });
+  }
+
+  protected onPass({ state }: Ctx) {
+    void this.sfx(state.phase === 'scoring' ? 'go-count' : 'go-pass');
+  }
+
+  protected onMark() {
+    void this.sfx('go-pass');
+  }
+
+  protected onResume() {
+    void this.sfx('go-start');
+  }
+
+  protected onEnd() {
+    this.jingle('go-end');
   }
 
   private placeStone(stone: StoneObj, p: number) {
     const { x, y } = this.pointXY(p);
-    const size = this.grid.cell * 0.96;
+    const size = this.grid.cell * 1.04;
     this.runtime.cancelTweens(stone.image);
     stone.image.setPosition(x, y).setDisplaySize(size, size).setAlpha(1);
   }
@@ -289,13 +351,13 @@ export class GoView extends GameView<View, Options> {
       this.placeStone(stone, p);
       if (animate && p === last?.point) {
         const { scaleX, scaleY } = stone.image;
-        stone.image.setScale(scaleX * 1.2, scaleY * 1.2).setAlpha(0.6);
+        stone.image.setScale(scaleX * 1.12, scaleY * 1.12).setAlpha(0.85);
         this.runtime.tween({
           targets: stone.image,
           scaleX,
           scaleY,
           alpha: 1,
-          duration: 130,
+          duration: 100,
           ease: 'Quad.easeIn',
         });
       }
@@ -310,9 +372,17 @@ export class GoView extends GameView<View, Options> {
     const { state } = ctx;
     const { cell } = this.grid;
     const g = this.marks.clear();
+    const shadows = this.shadows.clear();
     const counting = state.phase === 'scoring' || state.end?.reason === 'score';
     for (const [p, stone] of this.stones) {
-      stone.image.setAlpha(counting && state.dead.includes(p) ? 0.45 : 1);
+      const dead = counting && state.dead.includes(p);
+      stone.image.setAlpha(dead ? 0.4 : 1);
+      const { x, y } = this.pointXY(p);
+      for (let i = 4; i > 0; i--) {
+        shadows
+          .fillStyle(0x20180f, dead ? 0.035 : 0.1)
+          .fillCircle(x + cell * 0.025, y + cell * 0.07, cell * (0.4 + i * 0.024));
+      }
     }
     if (counting) {
       const { owner } = score(state.board, state.size, state.dead, KOMI);
@@ -366,17 +436,35 @@ export class GoView extends GameView<View, Options> {
   }
 
   /** The stone you would play, under the mouse. */
-  private hover(p: number | null) {
+  private hover(p: number | null, touch = false) {
     const shown = p !== null && this.canPlay(this.ctx, p);
     this.hovered = shown ? p : null;
     this.ghost.setVisible(shown);
+    this.touchLoupe.setVisible(shown && touch);
     if (!shown || p === null) return;
     const side = this.mySide(this.ctx) ?? 'b';
     const { x, y } = this.pointXY(p);
     this.ghost
       .setTexture(this.stoneKey(side))
-      .setDisplaySize(this.grid.cell * 0.96, this.grid.cell * 0.96)
+      .setDisplaySize(this.grid.cell * 1.04, this.grid.cell * 1.04)
       .setPosition(x, y);
+    if (!touch) return;
+    const { cell, size } = this.grid;
+    const row = rowOf(size, p);
+    const col = colOf(size, p);
+    this.loupeStones.forEach((stone, i) => {
+      const r = row + Math.floor(i / 3) - 1;
+      const c = col + (i % 3) - 1;
+      const inBoard = r >= 0 && r < size && c >= 0 && c < size;
+      const at = r * size + c;
+      const color = i === 4 ? side : this.ctx.state.board[at];
+      stone.setVisible(inBoard && (color === 'b' || color === 'w'));
+      if (color === 'b' || color === 'w') stone.setTexture(this.stoneKey(color));
+      stone.setAlpha(i === 4 ? 0.7 : 1);
+    });
+    const above = y - 118;
+    const lensY = above - 72 > this.grid.y0 - cell / 2 ? above : y + 118;
+    this.touchLoupe.setPosition(x, Math.min(this.view.height - 80, lensY));
   }
 
   // ── Status, score and buttons ───────────────────────────────────────────────────────────
@@ -415,6 +503,15 @@ export class GoView extends GameView<View, Options> {
       text = passed + turn;
     }
     this.status.setText(text);
+    const { top, side } = this.statusArea;
+    const { hud } = ctx.screen;
+    this.status.setFontSize(30 * hud);
+    if (state.phase === 'scoring' && !state.end) {
+      const available = side - 3 * (80 * hud + 8) - 48;
+      for (let font = Math.round(30 * hud); this.status.height > available && font > 24 * hud; )
+        this.status.setFontSize(--font);
+    }
+    this.status.setY(top + (state.phase === 'scoring' || state.end ? 16 : side * 0.27));
   }
 
   /** "Bỏ lượt" while playing (on your turn), "Đồng ý" and "Đánh tiếp" while counting. */
@@ -461,13 +558,13 @@ export class GoView extends GameView<View, Options> {
     });
   }
 
-  /** The two players in the left column beside their stones: White above, Black below. */
-  private layoutScore({ players, score: wins, state }: Ctx) {
+  /** Open player rail: color, name, wins and prisoners, with a ring on the active side. */
+  private layoutScore({ players, score: wins, state, hostId }: Ctx) {
     const { hud } = this.ctx.screen;
     const col = this.leftColumn;
-    const icon = 52 * hud;
-    const textX = col.x - col.width / 2 + icon + 12 * hud;
-    const textW = col.width - icon - 12 * hud;
+    const icon = 62 * hud;
+    const left = col.x - col.width / 2 + 8;
+    this.playerMarks.clear();
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
       const line = this.score.lines[seat];
@@ -479,14 +576,22 @@ export class GoView extends GameView<View, Options> {
       img
         .setTexture(this.stoneKey(side))
         .setDisplaySize(icon, icon)
-        .setPosition(col.x - col.width / 2 + icon / 2, y);
-      name.setFontSize(26 * hud).setPosition(textX, y - 14 * hud);
-      this.fitText(name, player ? player.name : '…', textW, 18 * hud);
+        .setPosition(left + icon / 2, y);
+      const active = !state.end && state.phase === 'play' && state.turn === side;
+      if (active) {
+        this.playerMarks.lineStyle(2, 0xe5bd72, 0.9).strokeCircle(left + icon / 2, y, icon * 0.52);
+      }
+      name.setFontSize(30 * hud).setPosition(left, y + icon / 2 + 24 * hud);
+      const playerName = player ? `${player.id === hostId ? '♛ ' : ''}${player.name}` : '…';
+      this.fitText(name, playerName, col.width - 16, 24 * hud);
+      name.setAlpha(active || state.phase === 'scoring' ? 1 : 0.7);
       line
-        .setFontSize(20 * hud)
-        .setText(`Thắng ${wins.wins[seat] ?? 0} · Bắt ${state.prisoners[side]}`)
-        .setPosition(textX, y + 16 * hud);
-      this.fitText(line, line.text, textW, 14 * hud);
+        .setFontSize(24 * hud)
+        .setText(`Thắng ${wins.wins[seat] ?? 0} · Bắt ${state.prisoners[side]}`);
+      const wrapped = line.width > col.width - 16;
+      if (wrapped) line.setText(`Thắng ${wins.wins[seat] ?? 0}\nBắt ${state.prisoners[side]}`);
+      line.setPosition(left, y + icon / 2 + (wrapped ? 75 : 58) * hud);
+      this.fitText(line, line.text, col.width - 16, 24 * hud);
     });
   }
 }

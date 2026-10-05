@@ -7,7 +7,7 @@ import { type Button, RoomSetupScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
 
-type Key = 'opponent' | 'level' | 'size' | 'swap';
+type Key = 'opponent' | 'level' | 'swap';
 
 interface Row {
   key: Key;
@@ -31,15 +31,6 @@ const ROWS: Row[] = [
       { value: 'easy', label: 'Dễ' },
       { value: 'normal', label: 'Vừa' },
       { value: 'hard', label: 'Khó' },
-    ],
-  },
-  {
-    key: 'size',
-    title: 'Bàn cờ',
-    choices: [
-      { value: 9, label: '9 × 9' },
-      { value: 13, label: '13 × 13' },
-      { value: 19, label: '19 × 19' },
     ],
   },
   {

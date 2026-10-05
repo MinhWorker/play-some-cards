@@ -1,5 +1,5 @@
 /**
- * Cờ Vây (Go) for two, by Chinese rules (area scoring, komi 7.5) on a 9 × 9, 13 × 13 or
+ * Cờ Vây (Go) for two, by Chinese rules (area scoring, komi 7.5) on the standard
  * 19 × 19 board: against a friend or the computer.
  *
  * Server entry: the game's meta, its logic (a `Game`) and its room options. It loads on the
