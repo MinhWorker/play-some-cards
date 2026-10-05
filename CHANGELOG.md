@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.14.0](https://github.com/MinhWorker/play-some-cards/compare/v0.13.0...v0.14.0) (2026-10-05)
+
+
+### Features
+
+* **go:** add standard 19x19 Go with polished board and touch controls ([#53](https://github.com/MinhWorker/play-some-cards/issues/53)) ([04152a8](https://github.com/MinhWorker/play-some-cards/commit/04152a869204788a3d8f3ac276bbfb33c33da348))
+* **sdk:** support custom game background scenes ([#74](https://github.com/MinhWorker/play-some-cards/issues/74)) ([155936c](https://github.com/MinhWorker/play-some-cards/commit/155936c4c64869a289bf3fe7f4af88632f1330ea))
+
+
+### Bug fixes
+
+* **co-ty-phu-classic:** clarify property actions and confirm asset management ([#72](https://github.com/MinhWorker/play-some-cards/issues/72)) ([6447da7](https://github.com/MinhWorker/play-some-cards/commit/6447da7e7eace8083dcb193d09e9a51bac834f32))
+
 ## [0.13.0](https://github.com/MinhWorker/play-some-cards/compare/v0.12.0...v0.13.0) (2026-10-04)
 
 
