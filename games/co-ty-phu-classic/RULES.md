@@ -127,7 +127,8 @@ Tám bộ màu, mỗi bộ gồm ba ô đất liên tiếp: 1–3, 6–8, 11–1
 
 Các ô liền nhau trong cùng bộ và cùng chủ gộp viền thành một khung chữ nhật theo mặt bàn.
 Khung hai ô sáng nhẹ; đủ ba ô sáng mạnh và có lửa chuyển động. Ô pawn đang đứng không tô màu.
-Mỗi tài sản đã mua có badge màu chủ sở hữu; 1–4 nhà là chấm trắng đè lên badge,
+Mỗi tài sản đã mua có badge màu chủ sở hữu dạng dải mảnh, phủ hết chiều ngang ô và không bo góc;
+1–4 nhà là chấm trắng đè lên badge,
 khách sạn là capsule trắng. Các ô không mua được có nền ánh kim, Khí vận màu vàng kim.
 
 | Ô | Địa danh | Màu | Giá đất | Xây mỗi cấp | Trống | 1 nhà | 2 nhà | 3 nhà | 4 nhà | Khách sạn |

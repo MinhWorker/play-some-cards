@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
+import { DICE_MOTIONS, type DiceMotion, dicePose, type Vec3 } from './diceMotion.js';
 
-type Vec3 = readonly [number, number, number];
 type Point = { x: number; y: number };
 type Face = { value: number; center: Vec3; normal: Vec3; u: Vec3; v: Vec3 };
 
@@ -50,10 +50,6 @@ const PIPS: Record<number, readonly (readonly [number, number])[]> = {
 const VIEW: Vec3 = [0.21, -0.56, 0.8];
 const RIGHT: Vec3 = [0.936, 0.351, 0];
 const UP: Vec3 = [-0.281, 0.749, 0.6];
-const SPIN_AXES: readonly Vec3[] = [
-  [0.83, 0.48, 0.28],
-  [-0.4, 0.85, 0.34],
-];
 const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const add = (a: Vec3, b: Vec3): Vec3 => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 const scale = (a: Vec3, n: number): Vec3 => [a[0] * n, a[1] * n, a[2] * n];
@@ -98,6 +94,7 @@ export class Dice3D {
   static readonly rollDuration = 1080;
   readonly graphics: Phaser.GameObjects.Graphics;
   values: [number, number] = [1, 1];
+  motion: DiceMotion = 'tumble';
   settled = false;
   private elapsed = Infinity;
   private cx = 0;
@@ -125,6 +122,7 @@ export class Dice3D {
 
   roll(a: number, b: number) {
     this.values = [a, b];
+    this.motion = DICE_MOTIONS[Math.floor(Math.random() * DICE_MOTIONS.length)] ?? 'tumble';
     this.elapsed = 0;
     this.settled = false;
     this.graphics.setVisible(true).setAlpha(1);
@@ -166,22 +164,18 @@ export class Dice3D {
     }
   }
 
-  private drawCube(index: number, value: number, progress: number) {
+  private drawCube(index: 0 | 1, value: number, pose: ReturnType<typeof dicePose>) {
     const size = this.size;
-    const landing = Math.min(1, progress);
-    const spin = Math.PI * 2 * (index === 0 ? 3.35 : 3.7) * (1 - landing) ** 2;
-    const axis = SPIN_AXES[index]!;
+    const { spin, axis } = pose;
     const yaw = index === 0 ? -0.18 : 0.2;
     const orient = (point: Vec3) =>
       rotate(rotate(targetRotation(point, value), [0, 0, 1], yaw), axis, spin);
-    const centerX = this.cx + (index === 0 ? -1.3 : 1.3) * size;
-    const travel = (1 - landing) * (index === 0 ? -1.5 : 1.5) * size;
-    const bounce = Math.abs(Math.sin(landing * Math.PI * 3.3)) * (1 - landing) * size * 1.5;
-    const centerY = this.cy - bounce - (1 - landing) * size * 1.2;
+    const centerX = this.cx + ((index === 0 ? -1.3 : 1.3) + pose.x) * size;
+    const centerY = this.cy - pose.lift * size;
     const project = (point: Vec3): Point => {
       const rotated = orient(point);
       return {
-        x: centerX + travel + dot(rotated, RIGHT) * size,
+        x: centerX + dot(rotated, RIGHT) * size,
         y: centerY - dot(rotated, UP) * size,
       };
     };
@@ -219,11 +213,18 @@ export class Dice3D {
     const graphics = this.graphics;
     graphics.clear();
     const progress = Math.min(1, this.elapsed / Dice3D.rollDuration);
-    for (let index = 0; index < 2; index++) {
-      const x = this.cx + (index === 0 ? -1.3 : 1.3) * this.size;
-      graphics.fillStyle(0x644424, 0.2 * progress);
-      graphics.fillEllipse(x, this.cy + this.size * 0.68, this.size * 2.3, this.size * 0.65);
-      this.drawCube(index, this.values[index]!, progress);
+    for (const index of [0, 1] as const) {
+      const pose = dicePose(this.motion, index, progress);
+      const x = this.cx + ((index === 0 ? -1.3 : 1.3) + pose.x) * this.size;
+      const shadow = 1 / (1 + pose.lift * 0.3);
+      graphics.fillStyle(0x644424, 0.2 * shadow);
+      graphics.fillEllipse(
+        x,
+        this.cy + this.size * 0.68,
+        this.size * 2.3 * shadow,
+        this.size * 0.65 * shadow,
+      );
+      this.drawCube(index, this.values[index]!, pose);
     }
   }
 }

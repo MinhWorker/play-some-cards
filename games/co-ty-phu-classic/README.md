@@ -67,6 +67,11 @@ danh mục `square` và `card` dùng cho gợi ý bằng Tab.
 `sources/render_board_25d.py` tạo `assets/board-25d.webp` cùng
 `src/scenes/board/boardGeometry.ts`; sửa bàn thì kết xuất hai phần cùng nhau.
 `sources/render_pawns.py`, `render_plane.py` và `render_hud_icons.py` kết xuất các đối tượng.
+Thêm `-- --front` khi chạy `render_pawns.py` bằng Blender để kết xuất bốn pawn chính diện,
+nền trong suốt, dùng riêng cho màn nhảy chiến thắng (`pawn-front-*.webp`).
+Xúc xắc được render 3D trực tiếp trong `Dice3D.ts`: mỗi lần gieo chọn ngẫu nhiên một trong
+bốn chuyển động lăn, tung vòng cung, nảy nhiều nhịp và xoáy. Tất cả cùng dừng ở mặt trên
+theo kết quả server; quỹ đạo nằm trong `diceMotion.ts`.
 `sources/make_audio.py` tạo bộ âm thanh; `sources/make_audio_preview.py` tạo
 [trang nghe thử](sources/audio-preview/index.html).
 Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng lại `mau-binh-standings.mp3` của Mậu Binh.

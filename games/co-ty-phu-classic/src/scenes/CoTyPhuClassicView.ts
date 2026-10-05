@@ -315,7 +315,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.monopolyBorders = new MonopolyBorders(this);
     this.victory = new VictoryEffect(
       this,
-      PLAYER_PAWNS.map((pawn) => this.texture(pawn)),
+      PLAYER_PAWNS.map((pawn) => this.texture(pawn.replace('pawn-', 'pawn-front-'))),
     );
     this.tileEffects = BOARD.map(() => new BoardTileEffect(this));
     this.tileTooltip = new TileTooltip(this);
@@ -1047,11 +1047,21 @@ export class CoTyPhuClassicView extends GameView<View> {
     const color = PLAYER_COLORS[deed.owner ?? 0]!;
 
     if (deed.owner !== null) {
-      this.fillSurfacePolygon(square, capsule(0.14, 0.86, 0.88, 0.09), color, layers.buildings);
+      this.fillSurfacePolygon(
+        square,
+        [
+          [0, 0.83],
+          [1, 0.83],
+          [1, 0.93],
+          [0, 0.93],
+        ],
+        color,
+        layers.buildings,
+      );
       if (BOARD[square]!.kind === 'street' && deed.houses === 5) {
         this.fillSurfacePolygon(
           square,
-          capsule(0.23, 0.77, 0.88, 0.048),
+          capsule(0.23, 0.77, 0.88, 0.035),
           0xffffff,
           layers.buildings,
         );

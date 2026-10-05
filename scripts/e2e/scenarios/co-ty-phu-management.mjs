@@ -500,9 +500,9 @@ export default async function run(t) {
       s.ctx.state.properties[1].houses === 2 &&
       !s.ctx.state.properties[1].mortgaged &&
       s.ctx.state.players[0].cash === 1295 &&
-      s.boardPrices.amounts[1] === '220'
+      s.boardPrices.amounts[1] === '220x3'
     );
-  }, 'Redemption did not restore the original houses and rent for the quoted price');
+  }, 'Redemption did not restore the original houses and monopoly rent for the quoted price');
   for (let i = 0; i < 3; i++) {
     await page.evaluate(() =>
       window.__phaser.scene.getScene('co-ty-phu-classic').borrowerNextTurn(),

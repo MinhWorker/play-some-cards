@@ -124,7 +124,13 @@ export default async function run(t) {
       if (
         !badge ||
         badge.color !== colors[owner] ||
-        badge.coords.length !== 26 ||
+        JSON.stringify(badge.coords) !==
+          JSON.stringify([
+            [0, 0.83],
+            [1, 0.83],
+            [1, 0.93],
+            [0, 0.93],
+          ]) ||
         buildings.length !== (houses === 5 ? 1 : houses) ||
         buildings.some(
           (d) => d.color !== 0xffffff || d.coords.length !== (houses === 5 ? 26 : 24),

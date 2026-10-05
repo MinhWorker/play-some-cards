@@ -200,6 +200,9 @@ export default async function run(t) {
       .map((object) => object.text);
     return (
       s.ctx.state.winner === 0 &&
+      s.victory.objects.some(
+        (object) => object.type === 'Image' && object.texture.key.endsWith('pawn-front-red'),
+      ) &&
       texts.some((text) => text.includes('chiến thắng')) &&
       texts.some((text) => text.includes(Math.round(total).toLocaleString('vi-VN')))
     );
