@@ -28,14 +28,14 @@ WIDTH, HEIGHT = 1400, 1200
 CROP_X, CROP_Y, CROP_WIDTH, CROP_HEIGHT = 35, 145, 1330, 1045
 INK = (63, 49, 38, 255)
 GROUP_COLORS = {
-    "nau": (112, 70, 39, 255),
-    "xanh-nhat": (52, 159, 169, 255),
-    "hong": (176, 78, 153, 255),
-    "cam": (187, 114, 31, 255),
-    "do": (163, 46, 70, 255),
-    "vang": (182, 154, 34, 255),
-    "xanh-la": (45, 128, 92, 255),
-    "xanh-dam": (81, 70, 148, 255),
+    "nau": (67, 73, 89, 255),
+    "xanh-nhat": (115, 221, 231, 255),
+    "hong": (185, 77, 214, 255),
+    "cam": (116, 81, 199, 255),
+    "do": (195, 40, 142, 255),
+    "vang": (119, 113, 125, 255),
+    "xanh-la": (103, 60, 145, 255),
+    "xanh-dam": (23, 101, 120, 255),
 }
 # The players' panel: the tile ring widened into the field's upper part, with sockets the game
 # fills in (the turn player's picture, name, cash and clock; each seat's ball and cash). In board

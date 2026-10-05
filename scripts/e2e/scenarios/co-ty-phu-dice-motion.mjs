@@ -87,18 +87,11 @@ export default async function run(t) {
     });
   }
 
-  // Exercise the real roll presentation, including native sound playback. Contacts must
-  // follow the animation clock rather than drifting when the user switches to 2x.
+  // Every motion uses the original recording once, through the cancellable roll flow.
   await page.mouse.click(4, 4);
   await page.evaluate(async () => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    const prepared = await s.runtime.audio.prepare([
-      'tycoon-dice',
-      'tycoon-dice-arc',
-      'tycoon-dice-skipping',
-      'tycoon-dice-spiral',
-      'tycoon-dice-land',
-    ]);
+    const prepared = await s.runtime.audio.prepare(['tycoon-dice']);
     if (prepared.some((sound) => sound.status !== 'ready'))
       throw new Error(`Dice sounds failed to decode: ${JSON.stringify(prepared)}`);
     const play = s.runtime.audio.playIn;
@@ -128,28 +121,6 @@ export default async function run(t) {
       s.dice.motion = s.forcedDiceMotion;
     };
   });
-  const expected = {
-    tumble: [['tycoon-dice', 0]],
-    arc: [
-      ['tycoon-dice-arc', 0],
-      ['tycoon-dice-land', 1080],
-    ],
-    skipping: [
-      ['tycoon-dice-skipping', 216],
-      ['tycoon-dice-skipping', 432],
-      ['tycoon-dice-skipping', 648],
-      ['tycoon-dice-skipping', 864],
-      ['tycoon-dice-land', 1080],
-    ],
-    spiral: [
-      ['tycoon-dice-spiral', 0],
-      ['tycoon-dice-spiral', 129.6],
-      ['tycoon-dice-spiral', 313.2],
-      ['tycoon-dice-spiral', 550.8],
-      ['tycoon-dice-spiral', 864],
-      ['tycoon-dice-land', 1080],
-    ],
-  };
   for (const speed of [1, 2]) {
     for (const name of names) {
       await page.evaluate(
@@ -177,28 +148,33 @@ export default async function run(t) {
         },
         { name, speed },
       );
-      await page.waitForFunction(
-        () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'result',
-      );
-      const cues = await page.evaluate(() => {
+      const result = await page.waitForFunction(() => {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-        if (!s.dice.settled || s.dice.values.join() !== '2,5')
-          throw new Error('Audio changed the authoritative roll result');
-        return s.diceSounds;
+        if (s.visualPhase !== 'result') return false;
+        return { settled: s.dice.settled, values: s.dice.values };
       });
-      if (cues.length !== expected[name].length)
-        throw new Error(`${name} at ${speed}x played unexpected cues: ${JSON.stringify(cues)}`);
-      for (const [index, [sound, time]] of expected[name].entries()) {
-        const cue = cues[index];
-        // Each onset can occur just before the dice update in the same bounded frame.
-        if (
-          cue.name !== sound ||
-          Math.abs(cue.elapsed - time) > 100 * speed + 1 ||
-          cue.started !== 'started' ||
-          cue.finished !== 'ended'
-        )
-          throw new Error(`${name} at ${speed}x missed a contact: ${JSON.stringify(cue)}`);
-      }
+      const landed = await result.jsonValue();
+      await result.dispose();
+      if (!landed.settled || landed.values.join() !== '2,5')
+        throw new Error('Audio changed the authoritative roll result');
+      await page.waitForFunction(
+        () =>
+          window.__phaser.scene.getScene('co-ty-phu-classic').diceSounds[0]?.finished === 'ended',
+      );
+      const cues = await page.evaluate(
+        () => window.__phaser.scene.getScene('co-ty-phu-classic').diceSounds,
+      );
+      const cue = cues[0];
+      if (
+        cues.length !== 1 ||
+        cue.name !== 'tycoon-dice' ||
+        cue.elapsed !== 0 ||
+        cue.started !== 'started' ||
+        cue.finished !== 'ended'
+      )
+        throw new Error(
+          `${name} at ${speed}x must play the original once: ${JSON.stringify(cues)}`,
+        );
     }
   }
   await page.evaluate(() => {

@@ -14,9 +14,8 @@ Read `../AGENTS.md` for the shared game/SDK rules. The Vietnamese component map 
   enamel owner strips and porcelain building frames; no runtime flat badge polygons.
 - `src/scenes/effects/`: backdrop, small-object glow, money animations, money audio the scoped private jail-door effect (`JailGateEffect.ts`), and the victory celebration (`VictoryEffect.ts`).
 - `src/scenes/hud/`: player-panel projection (`PlayerPanel.ts`) and pattern (`PlayerPanelPattern.ts`), tooltips, rent tables, bulk mortgage selection/confirmation (`MortgagePanel.ts`), auction confirmation (`AuctionConfirmPanel.ts`), cached action icons (`PropertyActionIcons.ts`) and property action availability.
-- `src/scenes/presentation/`: dice, motion-specific audio cues (`diceAudio.ts`), event-card
-  presentation, notices and property snapshot queue. Dice cue onsets use the scoped animation
-  clock; short native-audio tails can overlap without shifting the next contact.
+- `src/scenes/presentation/`: dice, event-card presentation, notices and property snapshot queue.
+  All four dice motions use the original `tycoon-dice` sound, owned by the roll flow.
 - Tests stay next to the implementation they exercise.
 
 `sources/render_board_25d.py` generates `assets/board-25d.webp` and

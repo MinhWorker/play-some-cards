@@ -209,15 +209,16 @@ export const BOARD: readonly Square[] = [
   street('Cà Mau', 'xanh-dam', 180),
 ];
 
+// Group IDs remain stable; their display palette is independent of player colors.
 export const GROUP_COLORS: Record<Group, number> = {
-  nau: 0x704627,
-  'xanh-nhat': 0x349fa9,
-  hong: 0xb04e99,
-  cam: 0xbb721f,
-  do: 0xa32e46,
-  vang: 0xb69a22,
-  'xanh-la': 0x2d805c,
-  'xanh-dam': 0x514694,
+  nau: 0x434959,
+  'xanh-nhat': 0x73dde7,
+  hong: 0xb94dd6,
+  cam: 0x7451c7,
+  do: 0xc3288e,
+  vang: 0x77717d,
+  'xanh-la': 0x673c91,
+  'xanh-dam': 0x176578,
 };
 
 export const isDeed = (square: Square): square is Square & { price: number } =>

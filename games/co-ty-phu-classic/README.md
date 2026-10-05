@@ -78,7 +78,9 @@ blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py
 blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
 ```
 
-Màu bộ dùng tông đậm riêng và hai nét khảm mảnh có hoa văn hình thoi,
+Màu bộ dùng than chì, cyan, tím lan, tím violet, magenta, bạc, tím mận và xanh dầu,
+xa các tông đỏ san hô, xanh dương, xanh lá và vàng của người chơi.
+Viền có hai nét khảm mảnh và hoa văn hình thoi,
 khác với dải men đặc màu chủ đất.
 Viền bộ nằm dưới badge, được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
 phần mặt ô bên trong gờ in sẵn. Quầng sáng/lửa hướng vào trong, không tràn khỏi mặt ô.
@@ -90,16 +92,8 @@ Thêm `-- --front` khi chạy `render_pawns.py` bằng Blender để kết xuấ
 nền trong suốt, dùng riêng cho màn nhảy chiến thắng (`pawn-front-*.webp`).
 Xúc xắc được render 3D trực tiếp trong `Dice3D.ts`: mỗi lần gieo chọn ngẫu nhiên một trong
 bốn chuyển động lăn, tung vòng cung, nảy nhiều nhịp và xoáy. Tất cả cùng dừng ở mặt trên
-theo kết quả server; quỹ đạo nằm trong `diceMotion.ts`. `diceAudio.ts` giữ tiếng lăn gốc
-cho chuyển động lăn, dùng tiếng tung nhẹ cho vòng cung, tiếng chạm bàn ở từng nhịp nảy,
-và tiếng lách cách thưa dần cho chuyển động xoáy. Ba kiểu mới có tiếng đáp bàn chung.
-Các điểm phát âm bám đồng hồ hoạt ảnh, kể cả ở 2×, và dừng khi luồng bị hủy.
-Tạo lại bốn tiếng tự tổng hợp bằng:
-
-```sh
-python3 games/co-ty-phu-classic/sources/make_dice_audio.py
-```
-
+theo kết quả server; quỹ đạo nằm trong `diceMotion.ts`.
+Cả bốn kiểu tung dùng một lần tiếng lăn gốc `tycoon-dice.wav`; âm thanh dừng khi hủy lượt.
 `sources/make_audio.py` tạo bộ âm thanh; `sources/make_audio_preview.py` tạo
 [trang nghe thử](sources/audio-preview/index.html).
 Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng lại `mau-binh-standings.mp3` của Mậu Binh.
