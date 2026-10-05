@@ -6,6 +6,7 @@
  */
 import { type Button, FONT, type GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
+import { PIECE_TINT } from './theme.js';
 
 const PAPER = 0xfbf1dc;
 const LACQUER = 0x8b1d17;
@@ -98,6 +99,7 @@ export class ResultPanel {
       return scene.add
         .image(side * (w / 2 - icon * 0.3), top + bannerH * 0.3, key)
         .setDisplaySize(icon, icon)
+        .setTint(PIECE_TINT)
         .setAngle(side * -12);
     });
     this.container.add(this.generals);

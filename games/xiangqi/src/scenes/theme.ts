@@ -8,21 +8,25 @@ import type { EndReason, Kind, Side } from '../game/model.js';
 export const DISC = 0.625;
 
 /**
- * assets/board.webp (generated, sources/prompts.json): its size in px, where point (row 0,
- * col 0) goes and the gaps between columns (dx) and rows (dy), fitted inside its wooden field
- * (x 76–1016, y 86–1098). The game draws the lines. `lift` is how far above its point a
+ * assets/board.webp (generated, sources/prompts.json): a 900 × 1000 design rectangle with
+ * a narrow raised walnut rim. Half a disc plus the rim is left outside the outer points.
+ * The game draws the lines. `lift` is how far above its point a
  * piece's center is drawn and `disc` a piece's width, both in column gaps (from the renders).
  */
 export const BOARD = {
-  width: 1090,
-  height: 1200,
-  x0: 167.68,
-  y0: 166.39,
-  dx: 94.58,
-  dy: 94.58,
+  width: 900,
+  height: 1000,
+  x0: 74,
+  y0: 77,
+  dx: 94,
+  dy: 94,
   lift: 0.048,
-  disc: 0.9091,
+  disc: 0.96,
 };
+
+/** Warm ivory instead of bright white; restored after hover and capture flashes. */
+export const PIECE_TINT = 0xe4d5bb;
+export const PIECE_HOVER = 0xf2e2c5;
 
 /** The image of a piece: assets/piece-<side>-<kind>.webp. */
 const ART: Record<Kind, string> = {
@@ -36,8 +40,8 @@ const ART: Record<Kind, string> = {
 };
 
 export const SIDES: Record<Side, { name: string; art: string; text: string }> = {
-  r: { name: 'Đỏ', art: 'red', text: '#ff8a80' },
-  b: { name: 'Đen', art: 'black', text: '#e3e6ea' },
+  r: { name: 'Đỏ', art: 'red', text: '#edb0a0' },
+  b: { name: 'Đen', art: 'black', text: '#e5dccb' },
 };
 
 export const pieceImage = (side: Side, kind: Kind) => `piece-${SIDES[side].art}-${ART[kind]}`;
