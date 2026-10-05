@@ -224,7 +224,7 @@ export default async function run(t) {
         window.__phaser.scene.getScene('co-ty-phu-classic').runtime.inspect().epoch > epoch,
       epoch,
     );
-    // Roll a double to visit Jail first; the next roll reaches the remaining Chest at 19.
+    // Roll a double to visit Jail first; the next roll reaches the remaining Chest at 17.
     await eventsPage.waitForFunction(
       () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
     );
@@ -250,7 +250,7 @@ export default async function run(t) {
     eventsPage.evaluate(() => {
       const original = Math.random;
       try {
-        const dice = [3 / 6, 4 / 6];
+        const dice = [2 / 6, 3 / 6];
         Math.random = () => dice.shift() ?? 0;
         window.__phaser.scene.getScene('co-ty-phu-classic').send('roll');
       } finally {
@@ -482,7 +482,7 @@ export default async function run(t) {
       );
       await idle();
     }
-    // A tax (or a card) asks to confirm its event first.
+    // A utility (or a card) asks to confirm its event first.
     while (
       await rulesPage.evaluate(
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase === 'event',

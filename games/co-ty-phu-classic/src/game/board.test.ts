@@ -47,17 +47,73 @@ describe('clockwise Vietnamese board', () => {
       );
       expect(streets.map((cell) => [cell.name, cell.price])).toEqual(expected);
     });
-    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chest' ? [i] : []))).toEqual([19, 34]);
-    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chance' ? [i] : []))).toEqual([9, 24]);
+    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chest' ? [i] : []))).toEqual([17, 33]);
+    expect(BOARD.flatMap((cell, i) => (cell.kind === 'chance' ? [i] : []))).toEqual([7, 22]);
     for (const group of Object.keys(GROUP_COLORS) as (keyof typeof GROUP_COLORS)[]) {
       const squares = groupSquares(group);
       expect(squares).toHaveLength(3);
-      expect(squares).toEqual([squares[0], squares[0]! + 1, squares[0]! + 2]);
     }
     for (const card of CHANCE) {
       if (card.kind === 'move' && card.target !== 0)
         expect(card.text).toBe(`Tới ${BOARD[card.target]!.name}.`);
     }
+  });
+
+  it('preserves the original position of every named square', () => {
+    expect(BOARD.map((cell) => cell.name)).toEqual([
+      'Xuất phát',
+      'Phú Quốc',
+      'Lào Cai',
+      'Việt Trì',
+      'Thuế thu nhập',
+      'Bến Bắc',
+      'Hạ Long',
+      'Cơ hội',
+      'Hải Phòng',
+      'Hà Nội',
+      'Nhà tù',
+      'Hải Dương',
+      'Điện lực',
+      'Thái Bình',
+      'Nam Định',
+      'Bến Tây',
+      'Thanh Hóa',
+      'Khí vận',
+      'Vinh',
+      'Hà Tĩnh',
+      'Sân bay',
+      'Huế',
+      'Cơ hội',
+      'Đà Nẵng',
+      'Hội An',
+      'Bến Nam',
+      'Kon Tum',
+      'Pleiku',
+      'Cấp nước',
+      'Đà Lạt',
+      'Vào tù',
+      'Nha Trang',
+      'Vũng Tàu',
+      'Khí vận',
+      'Biên Hòa',
+      'Bến Đông',
+      'Tp. HCM',
+      'Cần Thơ',
+      'Thuế xa xỉ',
+      'Cà Mau',
+    ]);
+    expect(
+      Object.keys(GROUP_COLORS).map((group) => groupSquares(group as keyof typeof GROUP_COLORS)),
+    ).toEqual([
+      [1, 2, 3],
+      [6, 8, 9],
+      [11, 13, 14],
+      [16, 18, 19],
+      [21, 23, 24],
+      [26, 27, 29],
+      [31, 32, 34],
+      [36, 37, 39],
+    ]);
   });
 
   it('charges more for building and rent at every level when the purchase price is higher', () => {

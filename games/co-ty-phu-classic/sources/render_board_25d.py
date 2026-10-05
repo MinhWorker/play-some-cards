@@ -7,6 +7,7 @@ Run from the repository root:
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import bpy
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "assets" / "board.webp"
 PNG = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-board.png"
 PRINT = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-board-print.png"
+METAL_INK = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-metal-ink.png"
 WEBP = ROOT / "assets" / "board-25d.webp"
 GEOMETRY = ROOT / "src" / "scenes" / "board" / "boardGeometry.ts"
 BLEND = ROOT.parents[1] / ".blender" / "co-ty-phu-classic-board.blend"
@@ -60,39 +62,39 @@ SQUARES = [
     ('tax', None),
     ('station', None),
     ('street', 'xanh-nhat'),
-    ('street', 'xanh-nhat'),
-    ('street', 'xanh-nhat'),
     ('chance', None),
+    ('street', 'xanh-nhat'),
+    ('street', 'xanh-nhat'),
     ('jail', None),
     ('street', 'hong'),
-    ('street', 'hong'),
-    ('street', 'hong'),
     ('power', None),
+    ('street', 'hong'),
+    ('street', 'hong'),
     ('station', None),
-    ('street', 'cam'),
-    ('street', 'cam'),
     ('street', 'cam'),
     ('chest', None),
+    ('street', 'cam'),
+    ('street', 'cam'),
     ('airport', None),
     ('street', 'do'),
-    ('street', 'do'),
-    ('street', 'do'),
     ('chance', None),
+    ('street', 'do'),
+    ('street', 'do'),
     ('station', None),
-    ('street', 'vang'),
     ('street', 'vang'),
     ('street', 'vang'),
     ('water', None),
+    ('street', 'vang'),
     ('go-jail', None),
     ('street', 'xanh-la'),
     ('street', 'xanh-la'),
-    ('street', 'xanh-la'),
     ('chest', None),
+    ('street', 'xanh-la'),
     ('station', None),
     ('street', 'xanh-dam'),
     ('street', 'xanh-dam'),
-    ('street', 'xanh-dam'),
     ('tax', None),
+    ('street', 'xanh-dam'),
 ]
 
 
@@ -275,45 +277,15 @@ def make_print_texture():
             patch = patch.transpose(Image.Transpose.ROTATE_90)
         image.paste(patch.resize((x1 - x0, y1 - y0), Image.Resampling.LANCZOS), (x0, y0))
     draw = ImageDraw.Draw(image)
+    metal_ink = Image.new("RGBA", image.size, (0, 0, 0, 0))
     for i, (kind, group) in enumerate(SQUARES):
         u0, v0, u1, v1 = square_bounds(i)
         x0, y0 = round(u0 * image.width), round(v0 * image.height)
         x1, y1 = round(u1 * image.width), round(v1 * image.height)
         width, height = x1 - x0, y1 - y0
         side = tile_side(i)
-        pad_x = max(2, round(width * 0.055))
-        pad_y = max(2, round(height * 0.055))
         center_x = (x0 + x1) / 2
         center_y = (y0 + y1) / 2
-        metallic = {"start": (127, 168, 143), "chance": (170, 155, 196),
-                    "chest": (211, 170, 67), "tax": (187, 137, 113),
-                    "jail": (137, 155, 168), "go-jail": (133, 143, 162),
-                    "airport": (135, 175, 191)}.get(kind)
-        if metallic:
-            # Brushed metal with a soft highlight; keep the engraved bevel intact.
-            for row in range(y0 + pad_y, y1 - pad_y):
-                t = (row - y0) / height
-                shine = 0.80 + 0.25 * (1 - abs(2 * t - 0.65))
-                color = tuple(min(255, round(c * shine)) for c in metallic) + (255,)
-                draw.line((x0 + pad_x, row, x1 - pad_x, row), fill=color)
-        band_color = None
-        if band_color:
-            if side == "bottom":
-                band = (x0 + pad_x, y0 + pad_y, x1 - pad_x, y0 + round(height * 0.18))
-            elif side == "top":
-                band = (x0 + pad_x, y1 - round(height * 0.18), x1 - pad_x, y1 - pad_y)
-            elif side == "left":
-                band = (x1 - round(width * 0.18), y0 + pad_y, x1 - pad_x, y1 - pad_y)
-            elif side == "right":
-                band = (x0 + pad_x, y0 + pad_y, x0 + round(width * 0.18), y1 - pad_y)
-            else:
-                band = (x0, y0, x0, y0)
-            if side != "corner":
-                draw.rounded_rectangle(
-                    tuple(round(value) for value in band),
-                    radius=max(2, round(min(width, height) * 0.035)),
-                    fill=band_color,
-                )
         icon_canvas = Image.new("RGBA", (512, 512), (0, 0, 0, 0))
         draw_icon(ImageDraw.Draw(icon_canvas, "RGBA"), kind, 512)
         icon_size = round(min(width, height) * (0.42 if side == "corner" else 0.54))
@@ -329,13 +301,15 @@ def make_print_texture():
         else:
             center_y = y0 + height * 0.38
         icon_canvas = icon_canvas.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
-        image.alpha_composite(
+        target = metal_ink if kind in METAL_COLORS else image
+        target.alpha_composite(
             icon_canvas,
             (round(center_x - icon_size / 2), round(center_y - icon_size / 2)),
         )
     image = widen_into_field(image)
     PRINT.parent.mkdir(parents=True, exist_ok=True)
     image.save(PRINT)
+    metal_ink.save(METAL_INK)
 
 
 def widen_into_field(image):
@@ -455,6 +429,38 @@ def material(name, color, metallic=0.0, roughness=0.55):
     return mat
 
 
+METAL_COLORS = {
+    "start": (0.32, 0.52, 0.38), "chance": (0.51, 0.40, 0.65),
+    "chest": (0.72, 0.43, 0.10), "tax": (0.61, 0.36, 0.25),
+    "jail": (0.37, 0.47, 0.60), "go-jail": (0.35, 0.42, 0.55),
+    "airport": (0.36, 0.54, 0.65),
+}
+
+
+def brushed_metal(name, color):
+    mat = material(name, color, 0.72, 0.45)
+    nodes, links = mat.node_tree.nodes, mat.node_tree.links
+    shader = nodes.get("Principled BSDF")
+    anisotropy = shader.inputs.get("Anisotropic") or shader.inputs.get("Anisotropic IOR Level")
+    if anisotropy:
+        anisotropy.default_value = 0.35
+    coordinate = nodes.new("ShaderNodeTexCoord")
+    stretch = nodes.new("ShaderNodeVectorMath")
+    stretch.operation = "MULTIPLY"
+    stretch.inputs[1].default_value = (8, 550, 8)
+    links.new(coordinate.outputs["Generated"], stretch.inputs[0])
+    grain = nodes.new("ShaderNodeTexNoise")
+    grain.inputs["Scale"].default_value = 1
+    grain.inputs["Detail"].default_value = 2
+    links.new(stretch.outputs[0], grain.inputs["Vector"])
+    bump = nodes.new("ShaderNodeBump")
+    bump.inputs["Strength"].default_value = 0.03
+    bump.inputs["Distance"].default_value = 0.00015
+    links.new(grain.outputs["Fac"], bump.inputs["Height"])
+    links.new(bump.outputs["Normal"], shader.inputs["Normal"])
+    return mat
+
+
 wood = material("Honey lacquered wood", (0.30, 0.105, 0.038), 0.05, 0.28)
 dark_wood = material("Carved lower edge", (0.11, 0.038, 0.018), 0.02, 0.4)
 gold = material("Warm brass reveal", (0.72, 0.38, 0.065), 0.68, 0.23)
@@ -512,6 +518,38 @@ links.new(transparent.outputs[0], mix.inputs[1])
 links.new(emission.outputs[0], mix.inputs[2])
 links.new(mix.outputs[0], output.inputs["Surface"])
 surface.data.materials.append(print_mat)
+
+# Real shallow metal plates: bevels and highlights come from the shared studio lights,
+# rather than gradients painted onto the board's emissive illustration.
+for square, (kind, _) in enumerate(SQUARES):
+    if kind not in METAL_COLORS:
+        continue
+    u0, v0, u1, v1 = square_bounds(square)
+    inset_u, inset_v = (u1 - u0) * 0.028, (v1 - v0) * 0.028
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(((u0 + u1) / 2 - 0.5) * 4, (0.5 - (v0 + v1) / 2) * 4, 0.044))
+    plate = bpy.context.object
+    plate.name = f"Brushed {kind} plate {square}"
+    plate.dimensions = ((u1 - u0 - 2 * inset_u) * 4, (v1 - v0 - 2 * inset_v) * 4, 0.018)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bevel = plate.modifiers.new("Machined perimeter", "BEVEL")
+    bevel.width, bevel.segments = 0.005, 4
+    plate.modifiers.new("Planar highlights", "WEIGHTED_NORMAL")
+    plate.data.materials.append(brushed_metal(f"{kind} satin metal", METAL_COLORS[kind]))
+
+# Transparent printed ink rests on top of the metal, at the identical board UV positions.
+ink_mesh = bpy.data.meshes.new("metal ink plane")
+ink_mesh.from_pydata([(-2, -2, 0.054), (2, -2, 0.054), (2, 2, 0.054), (-2, 2, 0.054)], [], [(0, 1, 2, 3)])
+ink_uv = ink_mesh.uv_layers.new(name="ink UV")
+for loop, coord in zip(ink_mesh.polygons[0].loop_indices, [(0, 0), (1, 0), (1, 1), (0, 1)]):
+    ink_uv.data[loop].uv = coord
+ink_obj = bpy.data.objects.new("symbols on metal", ink_mesh)
+bpy.context.collection.objects.link(ink_obj)
+ink_mat = print_mat.copy()
+ink_mat.name = "Metal symbol ink"
+ink_image = bpy.data.images.load(str(METAL_INK))
+ink_image.pack()
+ink_mat.node_tree.nodes.get("Image Texture").image = ink_image
+ink_obj.data.materials.append(ink_mat)
 
 # A mild pitch makes the board feel like an object on a table without compressing the far row.
 bpy.ops.object.camera_add(location=(0, -5.7, 8.7))
@@ -597,7 +635,7 @@ GEOMETRY.write_text(
 
 BLEND.parent.mkdir(parents=True, exist_ok=True)
 bpy.ops.wm.save_as_mainfile(filepath=str(BLEND))
-bpy.ops.render.render(write_still=True)
-# Crop to the board and save as WebP (Pillow, so no ffmpeg is needed).
-Image.open(PNG).crop((CROP_X, CROP_Y, CROP_X + CROP_WIDTH, CROP_Y + CROP_HEIGHT)).save(WEBP, "WEBP", quality=92)
-print(f"Wrote {WEBP} and {GEOMETRY}")
+if "--geometry-only" not in sys.argv:
+    bpy.ops.render.render(write_still=True)
+    Image.open(PNG).crop((CROP_X, CROP_Y, CROP_X + CROP_WIDTH, CROP_Y + CROP_HEIGHT)).save(WEBP, "WEBP", quality=95)
+    print(f"Wrote {WEBP} and {GEOMETRY}")

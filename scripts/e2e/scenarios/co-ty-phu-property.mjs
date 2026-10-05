@@ -3,7 +3,6 @@ import { DESKTOP, PHONE } from '../lib.mjs';
 export const games = ['co-ty-phu-classic'];
 
 export default async function run(t) {
-  const { default: sharp } = await import('sharp');
   const page = await t.page(DESKTOP);
   const boardShot = async (name) => {
     const clip = await page.evaluate(() => {
@@ -36,8 +35,8 @@ export default async function run(t) {
       [3, 0, 0],
       [13, 1, 2],
       [23, 2, 3],
-      [33, 3, 5],
-      [8, 3, 4],
+      [34, 3, 5],
+      [9, 3, 4],
     ])
       game.state.properties[square] = { owner, houses, mortgaged: false };
     const props = {
@@ -62,12 +61,6 @@ export default async function run(t) {
     s.runtime.audio.playIn = function (scope, name, ...args) {
       if (['tycoon-buy', 'tycoon-coin', 'tycoon-rent'].includes(name)) s.propertySounds.push(name);
       return play.call(this, scope, name, ...args);
-    };
-    const draw = s.fillSurfacePolygon;
-    s.decals = [];
-    s.fillSurfacePolygon = function (square, coords, color, ...args) {
-      s.decals.push({ square, coords, color });
-      return draw.call(this, square, coords, color, ...args);
     };
     game.send('a', 'build', { square: 3 });
     s.receive({
@@ -108,36 +101,23 @@ export default async function run(t) {
       throw new Error('Building did not update the board and deed rent');
     if (s.propertySounds.join() !== 'tycoon-buy')
       throw new Error('Building did not play purchase sound only');
-    const colors = [0xdf6554, 0x5793d3, 0x60af72, 0xe6be52];
     for (const [square, owner, houses] of [
       [3, 0, 1],
       [13, 1, 2],
       [23, 2, 3],
-      [33, 3, 5],
-      [8, 3, 4],
+      [34, 3, 5],
+      [9, 3, 4],
     ]) {
-      const decals = s.decals
-        .filter((d) => d.square === square)
-        .slice(-(houses === 5 ? 2 : houses + 1));
-      const badge = decals[0];
-      const buildings = decals.slice(1);
+      const badge = s.deedLayers.badges.get(square);
+      const building = s.deedLayers.buildings.get(square);
       if (
-        !badge ||
-        badge.color !== colors[owner] ||
-        JSON.stringify(badge.coords) !==
-          JSON.stringify([
-            [0, 0.83],
-            [1, 0.83],
-            [1, 0.93],
-            [0, 0.93],
-          ]) ||
-        buildings.length !== (houses === 5 ? 1 : houses) ||
-        buildings.some(
-          (d) => d.color !== 0xffffff || d.coords.length !== (houses === 5 ? 26 : 24),
-        ) ||
-        buildings.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945))
+        !badge.visible ||
+        badge.frame.name !== `owner-${owner}-${square}` ||
+        !building.visible ||
+        building.frame.name !== `houses-${houses}-${square}` ||
+        !badge.texture.key.endsWith('/deed-layers')
       )
-        throw new Error(`White buildings do not overlay the owner badge on ${square}`);
+        throw new Error(`Blender owner strip and porcelain buildings failed on ${square}`);
     }
   });
   await page.screenshot({ path: t.shot('houses-rent-desktop.png') });

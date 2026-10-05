@@ -23,13 +23,13 @@ export default async function run(t) {
     { name: 'go-jail-owner-phone', target: 30, own: true, phone: true },
     { name: 'go-jail-owner-resync', target: 30, own: true, cancel: true },
     { name: 'go-jail-timer', target: 30, timer: true },
-    { name: 'chance-jail', target: 9, deck: 'chance' },
-    { name: 'chest-jail', target: 19, deck: 'chest', timer: true, own: true },
+    { name: 'chance-jail', target: 7, deck: 'chance' },
+    { name: 'chest-jail', target: 17, deck: 'chest', timer: true, own: true },
     { name: 'three-doubles', target: 10, doubles: true, bot: true },
     { name: 'still-in-jail', target: 10, jailed: true },
     { name: 'still-in-jail-owner', target: 10, jailed: true, own: true },
     { name: 'visiting-jail-owner', target: 10, visit: true, own: true },
-    { name: 'receive-jail-ticket', target: 9, deck: 'chance', item: true },
+    { name: 'receive-jail-ticket', target: 7, deck: 'chance', item: true },
   ];
   for (const fixture of cases) {
     await page.setViewportSize(fixture.phone ? PHONE : DESKTOP);
@@ -238,7 +238,7 @@ export default async function run(t) {
       if (
         result.items.join() !== 'chance' ||
         result.itemSounds.length !== 1 ||
-        result.position !== 9
+        result.position !== 7
       )
         throw new Error(`Ticket receipt did not show its item/sound: ${JSON.stringify(result)}`);
       await page.evaluate(() => {

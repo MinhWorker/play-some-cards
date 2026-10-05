@@ -29,6 +29,7 @@ import { BoardPrices, ownerInk } from './board/BoardPrices.js';
 import { BoardTileEffect } from './board/BoardTileEffect.js';
 import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './board/boardGeometry.js';
 import { planePoint } from './board/boardPlane.js';
+import { DeedLayers } from './board/DeedLayers.js';
 import { MonopolyBorders } from './board/MonopolyBorders.js';
 import { SpecialSymbols } from './board/SpecialSymbols.js';
 import { TileOwnerSymbols } from './board/TileOwnerSymbols.js';
@@ -139,6 +140,7 @@ export class CoTyPhuClassicView extends GameView<View> {
   private hudPanels!: Phaser.GameObjects.Graphics;
   private boardImage!: Phaser.GameObjects.Image;
   private ownerSymbols!: TileOwnerSymbols;
+  private deedLayers!: DeedLayers;
   /** Power, water, airport and Start symbols, animated. */
   private specialSymbols!: SpecialSymbols;
   private boardPrices!: BoardPrices;
@@ -308,6 +310,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.eventCountdown = this.add.graphics().setDepth(6);
     this.hostCrown = this.add.graphics().setDepth(9);
     this.ownerSymbols = new TileOwnerSymbols(this, this.boardImage.texture.key);
+    this.deedLayers = new DeedLayers(this, this.texture('deed-layers'));
     this.specialSymbols = new SpecialSymbols(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
@@ -541,6 +544,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     const cx = left + size / 2;
     this.boardImage.setPosition(cx, boardTop + imageH / 2).setDisplaySize(size, imageH);
     this.ownerSymbols.layout(cx, boardTop + imageH / 2, size, imageH);
+    this.deedLayers.layout(left, boardTop, size, imageH);
     this.specialSymbols.layout(cx, boardTop + imageH / 2, size, imageH);
     this.boardPrices.layout(cx, boardTop + imageH / 2, size, imageH);
     this.eventDeck.layout(left, boardTop, size, imageH);
@@ -1025,58 +1029,11 @@ export class CoTyPhuClassicView extends GameView<View> {
     return cellPoint(left, top, size, square, u, v);
   }
 
-  private fillSurfacePolygon(
-    square: number,
-    coords: [number, number][],
-    color: number,
-    graphics = this.board,
-  ) {
-    const points = coords.map(([along, depth]) => this.surfacePoint(square, along, depth));
-    graphics.fillStyle(color, 1);
-    graphics.beginPath();
-    graphics.moveTo(points[0]!.x, points[0]!.y);
-    for (const point of points.slice(1)) graphics.lineTo(point.x, point.y);
-    graphics.closePath();
-    graphics.fillPath();
-  }
-
   private drawDeedState(square: number, deed: Property) {
     const layers = this.tileEffects[square]!;
     layers.buildings.clear();
     layers.mortgage.clear();
-    const color = PLAYER_COLORS[deed.owner ?? 0]!;
-
-    if (deed.owner !== null) {
-      this.fillSurfacePolygon(
-        square,
-        [
-          [0, 0.83],
-          [1, 0.83],
-          [1, 0.93],
-          [0, 0.93],
-        ],
-        color,
-        layers.buildings,
-      );
-      if (BOARD[square]!.kind === 'street' && deed.houses === 5) {
-        this.fillSurfacePolygon(
-          square,
-          capsule(0.23, 0.77, 0.88, 0.035),
-          0xffffff,
-          layers.buildings,
-        );
-      } else if (BOARD[square]!.kind === 'street') {
-        for (let house = 0; house < deed.houses; house++) {
-          const center = 0.5 + (house - (deed.houses - 1) / 2) * 0.16;
-          const coords: [number, number][] = Array.from({ length: 24 }, (_, step) => {
-            const angle = (step * Math.PI * 2) / 24;
-            return [center + Math.cos(angle) * 0.057, 0.88 + Math.sin(angle) * 0.035];
-          });
-          this.fillSurfacePolygon(square, coords, 0xffffff, layers.buildings);
-        }
-      }
-    }
-
+    this.deedLayers.setProperty(square, deed);
     if (deed.mortgaged) this.drawBankSeal(square, layers.mortgage);
   }
 
@@ -3054,25 +3011,6 @@ export class CoTyPhuClassicView extends GameView<View> {
       this.put(button, label, x, startY + row++ * 70, buttonW, action);
     });
   }
-}
-
-/**
- * A capsule on a tile's surface, as (along, depth) points: from `from` to `to` along the tile, its
- * middle at `depth`, `half` deep each way. Its ends are half-circles (a depth unit is about 0.62
- * of an along unit on screen).
- */
-function capsule(from: number, to: number, depth: number, half: number): [number, number][] {
-  const r = half / 0.62;
-  const points: [number, number][] = [];
-  for (let i = 0; i <= 12; i++) {
-    const angle = -Math.PI / 2 + (i / 12) * Math.PI;
-    points.push([to - r + Math.cos(angle) * r, depth + Math.sin(angle) * half]);
-  }
-  for (let i = 0; i <= 12; i++) {
-    const angle = Math.PI / 2 + (i / 12) * Math.PI;
-    points.push([from + r + Math.cos(angle) * r, depth + Math.sin(angle) * half]);
-  }
-  return points;
 }
 
 /** Room left for the tile card column right of the board (design units). */
