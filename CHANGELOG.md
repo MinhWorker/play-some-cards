@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.15.0](https://github.com/MinhWorker/play-some-cards/compare/v0.14.0...v0.15.0) (2026-10-05)
+
+
+### Features
+
+* **co-ty-phu-classic:** add utility deeds, monopoly sets and celebrations ([#76](https://github.com/MinhWorker/play-some-cards/issues/76)) ([3c38b6e](https://github.com/MinhWorker/play-some-cards/commit/3c38b6ef15365029c1566b9938ad7d6a800f81e6))
+
+
+### Bug fixes
+
+* **co-ty-phu-classic:** restore board order and polish ownership effects ([#78](https://github.com/MinhWorker/play-some-cards/issues/78)) ([b90aaff](https://github.com/MinhWorker/play-some-cards/commit/b90aaffb9f2907b13c49021c525afe70dcab973e))
+
 ## [0.14.0](https://github.com/MinhWorker/play-some-cards/compare/v0.13.0...v0.14.0) (2026-10-05)
 
 
