@@ -1728,8 +1728,8 @@ export class CoTyPhuClassicView extends GameView<View> {
         if (dice) {
           this.visualPhase = 'rolling';
           this.dice.roll(...beat.dice);
-          this.sfx('tycoon-dice');
           this.onState(this.ctx);
+          await fx.sound('tycoon-dice', { maxStartDelayMs: 80 });
           await fx.frame((delta) => {
             this.dice.update(delta);
             return this.dice.settled;

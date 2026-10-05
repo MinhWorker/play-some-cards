@@ -67,7 +67,8 @@ danh mục `square` và `card` dùng cho gợi ý bằng Tab.
 `assets/` chứa ảnh và âm thanh dùng trực tiếp; `sources/` chứa prompt và script nguồn.
 `sources/render_board_25d.py` tạo `assets/board-25d.webp` cùng
 `src/scenes/board/boardGeometry.ts`; các ô không mua được dùng vật liệu kim loại xước
-và ánh sáng Blender, Khí vận dùng vàng kim. `sources/render_deed_layers.py` dùng cùng
+và ánh sáng Blender, Khí vận dùng vàng kim, Sân bay dùng cyan. Tấm kim loại mỏng có
+đường bao bo góc theo mặt ô và gờ bắt sáng nhỏ. `sources/render_deed_layers.py` dùng cùng
 camera và ánh sáng để tạo atlas `deed-layers.webp`/`.json` gồm 240 frame badge men màu,
 nhà và khách sạn sứ trắng, cùng `deedLayerGeometry.ts`. Khi sửa camera, kích thước ô
 hoặc ánh sáng, chạy lần lượt hai script để ảnh và tọa độ khớp nhau:
@@ -77,7 +78,11 @@ blender -b -t 4 --python games/co-ty-phu-classic/sources/render_board_25d.py
 blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
 ```
 
-Viền bộ màu được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
+Màu bộ dùng than chì, cyan, tím lan, tím violet, magenta, bạc, tím mận và xanh dầu,
+xa các tông đỏ san hô, xanh dương, xanh lá và vàng của người chơi.
+Viền có hai nét khảm mảnh và hoa văn hình thoi,
+khác với dải men đặc màu chủ đất.
+Viền bộ nằm dưới badge, được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
 phần mặt ô bên trong gờ in sẵn. Quầng sáng/lửa hướng vào trong, không tràn khỏi mặt ô.
 Badge men nằm phẳng và được cắt theo cùng giới hạn bề mặt. Hai ô cùng chủ có quầng sáng nhẹ;
 đủ bộ thì nhiễu liên tục tạo lửa chạy quanh viền. Chỉ các ô chạm nhau được gộp khung;
@@ -88,6 +93,7 @@ nền trong suốt, dùng riêng cho màn nhảy chiến thắng (`pawn-front-*.
 Xúc xắc được render 3D trực tiếp trong `Dice3D.ts`: mỗi lần gieo chọn ngẫu nhiên một trong
 bốn chuyển động lăn, tung vòng cung, nảy nhiều nhịp và xoáy. Tất cả cùng dừng ở mặt trên
 theo kết quả server; quỹ đạo nằm trong `diceMotion.ts`.
+Cả bốn kiểu tung dùng một lần tiếng lăn gốc `tycoon-dice.wav`; âm thanh dừng khi hủy lượt.
 `sources/make_audio.py` tạo bộ âm thanh; `sources/make_audio_preview.py` tạo
 [trang nghe thử](sources/audio-preview/index.html).
 Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng lại `mau-binh-standings.mp3` của Mậu Binh.
