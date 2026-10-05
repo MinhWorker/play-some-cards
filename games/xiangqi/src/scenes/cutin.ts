@@ -7,6 +7,7 @@
 
 import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
+import { PIECE_TINT } from './theme.js';
 
 const RED = 0xd7141a;
 const BLACK = 0x0b0b0b;
@@ -89,6 +90,7 @@ export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promi
   const piece = scene.add
     .image(pieceX - width * 0.3, -band * 0.02, o.piece)
     .setDisplaySize(size, size)
+    .setTint(PIECE_TINT)
     .setAngle(-14);
   root.add([shadow, piece]);
 
