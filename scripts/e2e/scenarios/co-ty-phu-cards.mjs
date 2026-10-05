@@ -72,12 +72,31 @@ export default async function run(t) {
       return (
         !s.notice.text &&
         s.main.every((b) => !b.hit.visible) &&
-        s.ctx.state.players[0].cash === 1500
+        s.ctx.state.players[0].cash === 1000
       );
     });
     if (!hidden) throw new Error(`${deck} announced or applied its card before the draw`);
   };
-  await draw('chest', [1, 1]);
+  // Reach the remaining Chest at 17 through a double and a second roll.
+  await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    const original = Math.random;
+    try {
+      Math.random = () => 2 / 3;
+      s.diceHit.emit('pointerup');
+    } finally {
+      Math.random = original;
+    }
+  });
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.visualPhase === 'decision' &&
+      s.ctx.state.players[0].position === 10 &&
+      s.ctx.state.phase === 'roll'
+    );
+  });
+  await draw('chest', [3, 4]);
   await page.waitForTimeout(600);
   await page.screenshot({ path: t.shot('chest-draw.png') });
   await page.waitForFunction(() => {
@@ -95,7 +114,7 @@ export default async function run(t) {
     throw new Error(`Draw sounds: ${sounds}`);
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.main[0].hit);
   await page.waitForFunction(
-    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players[0].cash === 1700,
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players[0].cash === 1200,
   );
   await restart();
   await draw('chance', [1, 6]);

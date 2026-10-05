@@ -12,6 +12,7 @@ import {
   VersionTag,
   WarmupOverlay,
 } from '@/components/hud';
+import { DevConsoleLoader } from '@/components/hud/DevConsoleLoader';
 import { gameMusic } from '@/games';
 import { useAccount } from '@/hooks/useAccount';
 import { useBoardMoves } from '@/hooks/useBoardMoves';
@@ -152,6 +153,7 @@ export function App() {
 
   return (
     <>
+      <DevConsoleLoader room={session ? snapshot : null} />
       <PhaserStage stage={stage} onReady={revealCurtain} />
       <main className="ui">
         {version === 'newer' ? (

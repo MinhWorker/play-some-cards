@@ -95,3 +95,11 @@ export async function caroPlay(page, x, y) {
   await clickCanvas(page, 'tic-tac-toe', new Function(`return (s) => s.tiles.get('${x},${y}')`)());
   await page.waitForTimeout(400);
 }
+
+/** Run the same console path as the keyboard UI and pins, with a useful failure message. */
+export async function cmd(page, line) {
+  await page.waitForFunction(() => typeof window.__devCommand === 'function');
+  const result = await page.evaluate((line) => window.__devCommand(line), line);
+  if (!result.ok) throw new Error(`Dev Console ${JSON.stringify(line)}: ${result.error}`);
+  return result.output;
+}

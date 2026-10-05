@@ -20,7 +20,7 @@ import { HubScene } from './scenes/HubScene';
 import { SkyScene } from './scenes/SkyScene';
 import { textureAudit } from './textureAudit';
 
-/** Scenes that stay on behind everything; any other one (hub, a board, a setup screen) is the foreground. */
+/** Persistent app scenes; the director can sleep the sky for a game background. */
 const BACKGROUND = new Set(['boot', 'sky']);
 
 /** Scene key for a stage: 'hub', a board (`<gameId>`), a setup screen (`<gameId>:setup`). */
@@ -81,6 +81,8 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
   const parent = useRef<HTMLDivElement>(null);
   const game = useRef<Phaser.Game | null>(null);
   const ready = useRef(false);
+  const consoleTyping = useRef(false);
+  const keyboardBefore = useRef<boolean | null>(null);
   const director = useRef<SceneDirector<Stage> | null>(null);
   const [sceneError, setSceneError] = useState(false);
   const latest = useRef(stage);
@@ -100,12 +102,27 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       hud.current.gap = gap;
       game.current?.registry.set('hudGap', hudGapUnits(gap, currentAppFrame()));
     };
+    const onTyping = (typing: boolean) => {
+      consoleTyping.current = typing;
+      const keyboard = game.current?.input.keyboard;
+      if (!keyboard) return;
+      if (typing) {
+        keyboardBefore.current ??= keyboard.enabled;
+        keyboard.enabled = false;
+      } else if (keyboardBefore.current !== null) {
+        keyboard.enabled = keyboardBefore.current;
+        keyboardBefore.current = null;
+      }
+    };
+    bridge.on('dev:typing', onTyping);
     bridge.on('hud:top', onHudTop);
     bridge.on('hud:gap', onHudGap);
     const offFrame = onFrame((frame) => {
       if (game.current && ready.current) applyFrame(game.current, frame, hud.current);
     });
     return () => {
+      bridge.off('dev:typing', onTyping);
+      onTyping(false);
       bridge.off('hud:top', onHudTop);
       bridge.off('hud:gap', onHudGap);
       offFrame();
@@ -146,17 +163,28 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       // Before any scene starts: they read it in create().
       g.registry.set(FRAME, frame);
       g.events.once('booted', () => {
+        if (consoleTyping.current && g.input.keyboard) {
+          keyboardBefore.current = g.input.keyboard.enabled;
+          g.input.keyboard.enabled = false;
+        }
         ready.current = true;
         applyFrame(g, currentAppFrame(), hud.current);
         director.current = new SceneDirector(g, {
           background: BACKGROUND,
+          defaultBackground: 'sky',
           load: async (key, data) => {
             if (data.mode !== 'board' && data.mode !== 'setup')
               throw new Error(`Unknown scene: ${key}`);
             const client = await loadClient(data.gameId);
             const scene = data.mode === 'setup' ? client.setup : client.scene;
             if (!scene) throw new Error(`Scene unavailable: ${key}`);
-            return scene;
+            const background = data.mode === 'board' ? client.background : undefined;
+            return {
+              scene,
+              background: background
+                ? { key: `${data.gameId}:background`, scene: background }
+                : background,
+            };
           },
           write: (data) => {
             if (data.mode === 'board') g.registry.set('board', data);

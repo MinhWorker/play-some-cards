@@ -2,12 +2,14 @@
  * A game's screen as a class with lifecycle hooks, the browser half of `Game`
  * (from `@psc/sdk`). The app calls the hooks; you draw with the helpers from `GameScene` or with Phaser
  * directly (`this.add`, `this.tweens`, … still work).
+ * `defineClient({ scene, background })` optionally hides the app's sky (`false`) or replaces
+ * it with a GameBackgroundScene. The separate background has a scene lifetime, no room state.
  *
  *   onCreate(ctx)          once, when the screen opens: make your objects
  *   onLayout(ctx)          after onCreate and whenever the frame changes: place them
  *   onStart(ctx)           a new game began
  *   on<Event>(ctx, event)  someone's event was played (`press` → onPress): animate it
- *   onResync(ctx)          missed events: rebuild the current snapshot without replay
+ *   onResync(ctx)          missed/rewound events or loaded snapshots: rebuild without replay
  *   onState(ctx)           the state changed (after any of the above): show it
  *   onEnd(ctx)             the game is over (`ctx.result`)
  *   onUpdate(ctx, dt)      every frame (browser only; the server has no frames)
@@ -184,15 +186,19 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       this.pendingOptions = null;
     }
     this.ctx = this.makeContext();
-    if (props.round !== before.round) {
+    const roundChanged = props.round !== before.round;
+    const restoredRound = roundChanged && Boolean(props.last || props.result);
+    if (roundChanged) {
       this.runtime.newRound();
-      this.lastSeq = 0;
-      this.hook('onStart', this.ctx);
+      this.lastSeq = props.last?.seq ?? 0;
+      this.hook(restoredRound ? 'onResync' : 'onStart', this.ctx);
     }
     const last = props.last;
     const gap =
       props.round === before.round &&
-      ((last && last.seq > this.lastSeq + 1) || props.me !== before.me);
+      ((last && last.seq > this.lastSeq + 1) ||
+        (last?.seq ?? 0) < this.lastSeq ||
+        props.me !== before.me);
     if (gap) {
       this.runtime.newRound('resync');
       this.lastSeq = last?.seq ?? 0;
@@ -209,7 +215,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       } satisfies ViewEvent);
     }
     this.hook('onState', this.ctx);
-    if (!gap && props.result && !before.result) this.hook('onEnd', this.ctx);
+    if (!gap && !restoredRound && props.result && !before.result) this.hook('onEnd', this.ctx);
   }
 
   /** When the timer ends on this device's clock (the server sends how much is left). */

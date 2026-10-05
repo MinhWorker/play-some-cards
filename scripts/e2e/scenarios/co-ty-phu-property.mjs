@@ -104,7 +104,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     s.selected = 3;
     s.onState(s.ctx);
-    if (s.boardPrices.amounts[3] !== '150' || !s.deedRent.text.includes('150'))
+    if (s.boardPrices.amounts[3] !== '72' || !s.deedValues[1].text.includes('72'))
       throw new Error('Building did not update the board and deed rent');
     if (s.propertySounds.join() !== 'tycoon-buy')
       throw new Error('Building did not play purchase sound only');
@@ -124,12 +124,10 @@ export default async function run(t) {
         !decals.length ||
         decals.some((d) => d.coords.some((p) => p[1] <= 0.82 || p[1] >= 0.945)) ||
         fills.length !== (houses === 5 ? 1 : houses) ||
-        fills.some((d) => d.color !== (houses === 5 ? 0x64676b : colors[owner])) ||
+        fills.some((d) => d.color !== colors[owner]) ||
         fills.some((d) => d.coords.length !== (houses === 5 ? 26 : 24))
       )
-        throw new Error(
-          `House dots or gray hotel capsules do not fit their color band on ${square}`,
-        );
+        throw new Error(`House dots or hotel capsules do not fit their color band on ${square}`);
     }
   });
   await page.screenshot({ path: t.shot('houses-rent-desktop.png') });
@@ -231,9 +229,10 @@ export default async function run(t) {
     });
     s.bankruptFixture = { game, props };
   }, root);
-  await page.waitForFunction(
-    () => !window.__phaser.scene.getScene('co-ty-phu-classic').runtime.busy('money'),
-  );
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return !s.runtime.busy('money') && !s.runtime.busy('turn');
+  });
   const clip = await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     if (

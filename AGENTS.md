@@ -26,7 +26,7 @@ apps/server/       @psc/server     NestJS + Socket.IO
 apps/web/          @psc/web        React + Vite + Phaser 4
 assets/            Originals of the app's own art and audio (Git LFS), prompts.json
 scripts/           Build helpers (libs.mjs), generators (new.mjs), asset tools, smoke/e2e
-docs/              Guides for people: making-a-game, deploy, <game>-audio
+docs/              Shared guides for people: making-a-game, ui-guide, deploy
 ```
 
 ## Commands (run from repo root)
@@ -65,6 +65,8 @@ script. Judge sharpness on the `-crop.png` files: the full shots are scaled down
   - the `.github` templates.
 - **English**: code, comments, identifiers, commit messages, PR titles, and agent files
   (`AGENTS.md`, `CLAUDE.md`).
+- Current gameplay rules live in `games/<id>/RULES.md` for non-starter games; link them from
+  the game README. Describe the current rules without change history or implementation plans.
 - When you change behavior, update the Vietnamese docs in the same change.
 
 ## Git and PRs

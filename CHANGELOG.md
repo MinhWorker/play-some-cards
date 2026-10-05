@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.13.0](https://github.com/MinhWorker/play-some-cards/compare/v0.12.0...v0.13.0) (2026-10-04)
+
+
+### Features
+
+* **co-ty-phu-classic:** animate jail doors and sync client turns ([#69](https://github.com/MinhWorker/play-some-cards/issues/69)) ([9faffc8](https://github.com/MinhWorker/play-some-cards/commit/9faffc89f18498d17f5bc84e573d3e977ef26c20))
+
+## [0.12.0](https://github.com/MinhWorker/play-some-cards/compare/v0.11.0...v0.12.0) (2026-10-04)
+
+
+### Features
+
+* add dev console for game state commands ([#66](https://github.com/MinhWorker/play-some-cards/issues/66)) ([2d31a97](https://github.com/MinhWorker/play-some-cards/commit/2d31a97482395269dab33438bc4c446a28b4ba43))
+* **co-ty-phu-classic:** update property rules and optimize board rendering ([#65](https://github.com/MinhWorker/play-some-cards/issues/65)) ([cec1c8b](https://github.com/MinhWorker/play-some-cards/commit/cec1c8b7eb9ecd9dfa74d68d00f4d917ddb57907))
+
+## [0.11.0](https://github.com/MinhWorker/play-some-cards/compare/v0.10.0...v0.11.0) (2026-10-04)
+
+
+### Features
+
+* **co-ty-phu-classic:** rebalance board and polish perspective UI ([#63](https://github.com/MinhWorker/play-some-cards/issues/63)) ([78b453b](https://github.com/MinhWorker/play-some-cards/commit/78b453b05783870ad89a48ffba2398138a871f5b))
+
 ## [0.10.0](https://github.com/MinhWorker/play-some-cards/compare/v0.9.0...v0.10.0) (2026-10-02)
 
 
