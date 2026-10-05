@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.16.0](https://github.com/MinhWorker/play-some-cards/compare/v0.15.0...v0.16.0) (2026-10-05)
+
+
+### Features
+
+* **co-ty-phu-classic:** polish metallic tiles and distinguish monopoly colors ([#81](https://github.com/MinhWorker/play-some-cards/issues/81)) ([817465f](https://github.com/MinhWorker/play-some-cards/commit/817465f88411fc414f8ae3a71e005e02f4e830a2))
+* **go:** release Go for production ([#79](https://github.com/MinhWorker/play-some-cards/issues/79)) ([86f2685](https://github.com/MinhWorker/play-some-cards/commit/86f2685c5feb7db42b70c1c1503ae3686f5aa2eb))
+* **xiangqi:** refresh classic board and mobile HUD ([#75](https://github.com/MinhWorker/play-some-cards/issues/75)) ([537561b](https://github.com/MinhWorker/play-some-cards/commit/537561b6331eb484a032767d1564f9e594ec5590))
+
 ## [0.15.0](https://github.com/MinhWorker/play-some-cards/compare/v0.14.0...v0.15.0) (2026-10-05)
 
 
