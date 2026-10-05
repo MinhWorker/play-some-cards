@@ -1,5 +1,5 @@
 // Play several turns through the real Phaser controls in the sandbox, switching seats.
-import { clickCanvas, DESKTOP, openRooms, PHONE, signUp } from '../lib.mjs';
+import { clickCanvas, cmd, DESKTOP, openRooms, PHONE, signUp } from '../lib.mjs';
 
 export const games = ['co-ty-phu-classic'];
 
@@ -628,35 +628,54 @@ export default async function run(t) {
   await host.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx?.state,
   );
+  // Always exercise the station auction that a random opening roll used to miss.
+  await cmd(host, 'timer pause; dice 2 3');
 
   await host.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
     null,
     { timeout: 60000 },
   );
-  for (let i = 0; i < 12; i++) {
-    await host.waitForFunction(() => {
-      const scene = window.__phaser?.scene.getScene('co-ty-phu-classic');
-      return (
-        scene?.visualPhase === 'decision' &&
-        (scene.ctx.state.turn === 1 || scene.main[0].hit.visible || scene.diceHit.visible)
-      );
-    });
-    const state = await host.evaluate(
-      () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state,
+  await clickCanvas(host, 'co-ty-phu-classic', (s) => s.diceHit);
+  await host.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.visualPhase === 'decision' &&
+      !s.runtime.busy('turn') &&
+      !s.activeMoney &&
+      s.ctx.state.phase === 'auction' &&
+      s.ctx.state.auction.square === 5 &&
+      s.ctx.state.auction.bidder === 0 &&
+      s.main.some((b) => b.hit.visible && b.text.text === 'Từ bỏ')
     );
-    if (state.turn === 1) break;
-    if (!['roll', 'buy', 'end', 'event'].includes(state.phase))
-      throw new Error(`Unexpected phase: ${state.phase}`);
-    await clickCanvas(host, 'co-ty-phu-classic', (s) =>
-      s.ctx.state.phase === 'roll' ? s.diceHit : s.main[0].hit,
+  });
+  await host.screenshot({ path: t.shot('21-bot-station-auction.png') });
+  await clickCanvas(
+    host,
+    'co-ty-phu-classic',
+    (s) => s.main.find((b) => b.hit.visible && b.text.text === 'Từ bỏ').hit,
+  );
+  await host.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+    return (
+      s.visualPhase === 'decision' &&
+      s.ctx.state.phase === 'end' &&
+      s.ctx.state.auction === null &&
+      s.ctx.state.properties[5].owner === 1 &&
+      s.main[0].hit.visible
     );
-    await host.waitForTimeout(160);
-  }
+  });
+  await cmd(host, 'dice 1 2');
+  await clickCanvas(host, 'co-ty-phu-classic', (s) => s.main[0].hit);
   await host.waitForFunction(
     () => {
-      const s = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
-      return s.players[1].position !== 0;
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        s.ctx.state.players[1].position === 3 &&
+        s.shownPositions[1] === 3 &&
+        !s.runtime.busy('turn') &&
+        !s.activeMoney
+      );
     },
     null,
     { timeout: 30000 },
