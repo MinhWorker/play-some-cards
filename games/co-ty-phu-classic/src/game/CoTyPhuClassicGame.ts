@@ -17,6 +17,7 @@ import {
   auctionRaise,
   BOARD,
   isDeed,
+  JAIL_CARD_PRICE,
   type Options,
   SPECIAL_EVENT_TIMEOUT,
   STARTING_CASH,
@@ -84,7 +85,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     'sell-house': squareSchema,
     mortgage: z.union([
       squareSchema,
-      z.object({ squares: z.array(squareSchema.shape.square).min(1).max(28) }),
+      z.object({ squares: z.array(squareSchema.shape.square).min(1).max(30) }),
     ]),
     redeem: squareSchema,
     'pay-debt': z.object({}),
@@ -93,8 +94,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     'use-card': z.object({}),
     'offer-trade': z.object({
       to: z.number().int().min(0).max(3),
-      give: z.number().int().min(-1).max(39),
-      take: z.number().int().min(-1).max(39),
+      give: z.number().int().min(-2).max(39),
+      take: z.number().int().min(-2).max(39),
       giveCash: z.number().int().min(0).max(100000),
       takeCash: z.number().int().min(0).max(100000),
     }),
@@ -512,8 +513,17 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (s.auction!.leader === ctx.player.seat) s.auction!.leader = null;
     s.auction!.passed.push(ctx.player.seat);
     s.notice = `${ctx.player.name} bỏ đấu giá.`;
-    if (station) this.endStationVisit(s);
-    else this.auctionStep(s);
+    if (station) {
+      transferMoney(
+        s,
+        null,
+        ctx.player.seat,
+        s.auction!.bids[ctx.player.seat]!,
+        'Hoàn tiền đấu giá',
+      );
+      s.auction!.bids[ctx.player.seat] = 0;
+      this.endStationVisit(s);
+    } else this.auctionStep(s);
     return this.complete(s, ctx);
   }
 
@@ -682,15 +692,30 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const { to, give, take, giveCash, takeCash } = ctx.payload;
     if (to === ctx.player.seat || ctx.state.players[to]?.bankrupt || !ctx.state.players[to])
       ctx.reject('Người nhận trao đổi không hợp lệ');
+    const giveCard = give === -2;
+    const takeCard = take === -2;
+    if (giveCard || takeCard) {
+      if (
+        giveCard === takeCard ||
+        (giveCard ? take !== -1 : give !== -1) ||
+        giveCash !== (takeCard ? JAIL_CARD_PRICE : 0) ||
+        takeCash !== (giveCard ? JAIL_CARD_PRICE : 0)
+      )
+        ctx.reject('Vé ra tù được bán riêng với giá 200');
+      if (
+        !(giveCard ? ctx.state.players[ctx.player.seat] : ctx.state.players[to])!.freeCards.length
+      )
+        ctx.reject('Không có vé ra tù để bán');
+    }
     if (give === -1 && take === -1 && giveCash === 0 && takeCash === 0)
       ctx.reject('Đề nghị trao đổi đang trống');
-    if (give !== -1 && ctx.state.properties[give]?.owner !== ctx.player.seat)
+    if (give >= 0 && ctx.state.properties[give]?.owner !== ctx.player.seat)
       ctx.reject('Bạn không sở hữu đất đưa ra');
-    if (take !== -1 && ctx.state.properties[take]?.owner !== to)
+    if (take >= 0 && ctx.state.properties[take]?.owner !== to)
       ctx.reject('Người kia không sở hữu đất yêu cầu');
     if (
-      (give !== -1 && ctx.state.properties[give]!.houses > 0) ||
-      (take !== -1 && ctx.state.properties[take]!.houses > 0)
+      (give >= 0 && ctx.state.properties[give]!.houses > 0) ||
+      (take >= 0 && ctx.state.properties[take]!.houses > 0)
     )
       ctx.reject('Phải bán hết nhà trên ô đất trước khi đổi');
     if (
@@ -702,8 +727,10 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     s.trade = {
       from: ctx.player.seat,
       to,
-      give: give === -1 ? null : give,
-      take: take === -1 ? null : take,
+      give: give < 0 ? null : give,
+      giveCard,
+      takeCard,
+      take: take < 0 ? null : take,
       giveCash,
       takeCash,
       resume: s.phase,
@@ -722,10 +749,14 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (
       (t.give !== null && s.properties[t.give]!.owner !== t.from) ||
       (t.take !== null && s.properties[t.take]!.owner !== t.to) ||
+      (t.giveCard && !s.players[t.from]!.freeCards.length) ||
+      (t.takeCard && !s.players[t.to]!.freeCards.length) ||
       s.players[t.from]!.cash < t.giveCash ||
       s.players[t.to]!.cash < t.takeCash
     )
       ctx.reject('Tài sản trao đổi đã thay đổi');
+    if (t.giveCard) s.players[t.to]!.freeCards.push(s.players[t.from]!.freeCards.shift()!);
+    if (t.takeCard) s.players[t.from]!.freeCards.push(s.players[t.to]!.freeCards.shift()!);
     if (t.give !== null) s.properties[t.give]!.owner = t.to;
     if (t.take !== null) s.properties[t.take]!.owner = t.from;
     transferMoney(s, t.from, t.to, t.giveCash, 'Trao đổi tài sản');

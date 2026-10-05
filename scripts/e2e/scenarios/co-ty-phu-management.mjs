@@ -33,19 +33,19 @@ export default async function run(t) {
         if (kind === 'buy-rich') game.state.properties[1].owner = 0;
         move(game.state, 0, 3, false, 3);
       } else if (kind.startsWith('build') || kind.startsWith('hotel')) {
-        game.state.properties[9].owner = 0;
+        game.state.properties[8].owner = 0;
         game.state.properties[1].owner = 0;
-        game.state.properties[9].houses = kind.startsWith('hotel') ? 4 : 0;
+        game.state.properties[8].houses = kind.startsWith('hotel') ? 4 : 0;
         game.state.players[0].cash = kind.endsWith('poor') ? 158 : 175;
-        move(game.state, 0, 9, false, 9);
+        move(game.state, 0, 8, false, 9);
         if (kind === 'build-remote') game.state.players[0].position = 0;
-        if (kind === 'build-mortgaged') game.state.properties[9].mortgaged = true;
-        if (kind === 'hotel-full') game.state.properties[9].houses = 5;
+        if (kind === 'build-mortgaged') game.state.properties[8].mortgaged = true;
+        if (kind === 'hotel-full') game.state.properties[8].houses = 5;
       } else {
         game.state.phase = 'end';
         game.state.properties[1].owner = 0;
         if (kind === 'bulk') {
-          for (const square of [2, 3, 6, 8, 9, 11]) game.state.properties[square].owner = 0;
+          for (const square of [2, 3, 6, 7, 8, 11]) game.state.properties[square].owner = 0;
           game.state.properties[1].houses = 2;
           game.state.properties[3].houses = 5;
         }
@@ -203,7 +203,7 @@ export default async function run(t) {
   // Visible, priced construction must explain unavailable actions without sending a move.
   const construction = async (kind, label, enabled) => {
     await fixture(kind);
-    await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[9]);
+    await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[8]);
     await assertState(
       new Function(`return () => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -261,7 +261,7 @@ export default async function run(t) {
     for (let i = 0; i < pixels.length; i += 4) {
       if (pixels[i] !== pixels[i + 1] || pixels[i + 1] !== pixels[i + 2]) return false;
     }
-    return s.ctx.state.players[0].cash === 158 && s.ctx.state.properties[9].houses === 0;
+    return s.ctx.state.players[0].cash === 158 && s.ctx.state.properties[8].houses === 0;
   }, 'Disabled construction changed the game or the baked texture was not gray');
   await construction('build-remote', 'Xây nhà 175 ₫', false);
   await construction('build-mortgaged', 'Xây nhà 175 ₫', false);
@@ -286,7 +286,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Xây khách sạn 175 ₫');
     return (
-      s.ctx.state.properties[9].houses === 5 && s.ctx.state.players[0].cash === 0 && !build.enabled
+      s.ctx.state.properties[8].houses === 5 && s.ctx.state.players[0].cash === 0 && !build.enabled
     );
   }, 'The enabled hotel failed to build or allowed another upgrade');
   await construction('build-rich', 'Xây nhà 175 ₫', true);
@@ -297,7 +297,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Xây nhà 175 ₫');
     return (
-      s.ctx.state.properties[9].houses === 1 && s.ctx.state.players[0].cash === 0 && !build.enabled
+      s.ctx.state.properties[8].houses === 1 && s.ctx.state.players[0].cash === 0 && !build.enabled
     );
   }, 'The enabled house failed to build or allowed a second construction on the same visit');
   await page.setViewportSize(DESKTOP);

@@ -6,7 +6,7 @@ export class JailGateEffect {
   readonly doors: Phaser.GameObjects.Graphics[];
   visible = false;
   closure = 0;
-  stage: 'hidden' | 'closing' | 'recoil' | 'settling' | 'fading' = 'hidden';
+  stage: 'hidden' | 'closing' | 'recoil' | 'settling' | 'fading' | 'opening' = 'hidden';
   private left = 0;
   private top = 0;
   private halfWidth = 0;
@@ -96,6 +96,26 @@ export class JailGateEffect {
     fx.checkpoint();
     this.stage = 'fading';
     await fx.tween({ targets: this.doors, alpha: 0, duration: 260, ease: 'Sine.Out' });
+  }
+
+  async open(fx: FlowContext) {
+    fx.checkpoint();
+    fx.defer(() => this.hide());
+    this.closure = 1;
+    this.layout();
+    this.visible = true;
+    this.doors.forEach((door) => {
+      door.setAlpha(1).setVisible(true);
+    });
+    this.stage = 'opening';
+    await fx.wait(120);
+    await fx.tween({
+      targets: this,
+      closure: 0,
+      duration: 650,
+      ease: 'Cubic.Out',
+      onUpdate: () => this.place(),
+    });
   }
 
   hide() {

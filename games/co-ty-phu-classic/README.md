@@ -34,8 +34,9 @@ sources/                       Script kết xuất và nguồn ảnh
 | Nội dung thẻ | `src/game/cards.ts` |
 | Vị trí ô và biểu tượng in trên bàn | `sources/render_board_25d.py` → `src/scenes/board/boardGeometry.ts` |
 | Giá hiện trên bàn | `src/scenes/board/BoardPrices.ts`, `boardAmounts.ts` |
-| Viền ô, dấu chủ đất và biểu tượng đặc biệt | `src/scenes/board/` |
-| Song sắt khi bị đưa vào tù | `src/scenes/effects/JailGateEffect.ts` |
+| Viền bộ màu, gộp khung monopoly, dấu chủ đất và biểu tượng đặc biệt | `src/scenes/board/`, `MonopolyBorders.ts` |
+| Ăn mừng, pháo hoa và đếm tổng tài sản | `src/scenes/effects/VictoryEffect.ts`, `src/game/rules.ts` |
+| Song sắt khi vào/ra tù | `src/scenes/effects/JailGateEffect.ts` |
 | Nền thành phố có hoạt ảnh sau bàn | `src/scenes/CityBackground.ts` |
 | Quầng sáng | `src/scenes/effects/glow.ts` |
 | Tiền bay và âm thanh tiền | `src/scenes/effects/` |
@@ -68,8 +69,9 @@ danh mục `square` và `card` dùng cho gợi ý bằng Tab.
 `sources/render_pawns.py`, `render_plane.py` và `render_hud_icons.py` kết xuất các đối tượng.
 `sources/make_audio.py` tạo bộ âm thanh; `sources/make_audio_preview.py` tạo
 [trang nghe thử](sources/audio-preview/index.html).
-Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng `tien-len-standings.mp3`.
+Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng lại `mau-binh-standings.mp3` của Mậu Binh.
 Tiếng nhận tiền, mua và vào tù dùng các nguồn Pixabay trong `sources/audio-preview/`;
 tiếng máy bay cắt từ `assets/audio/sfx/pixabay-plane.mp3` ở gốc repo.
+`sources/make_release_audio.py` tự tổng hợp tiếng mở khóa/song sắt cho `tycoon-release.wav`.
 Hai tiếng thông báo trao đổi/nhận thẻ dùng các file Freesound trong `assets/audio/sfx/`.
 Nguồn bên thứ ba và giấy phép: [LICENSE-ASSETS.md](../../LICENSE-ASSETS.md).

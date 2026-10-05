@@ -51,7 +51,7 @@ describe('PvP turn clock', () => {
   });
 
   it('liquidates enough assets and pays debt in one expiration', () => {
-    const game = gameAt(38, 1);
+    const game = gameAt(39, 1);
     game.state.properties[1] = { owner: 0, houses: 2, mortgaged: false };
     game.state.properties[3]!.owner = 0;
     game.send('a', 'roll');
@@ -69,7 +69,7 @@ describe('PvP turn clock', () => {
   });
 
   it('declares insolvency when no assets can cover the debt and ends the game', () => {
-    const game = gameAt(38, 1);
+    const game = gameAt(39, 1);
     game.send('a', 'roll');
     game.send('a', 'confirm-event');
     game.fireTimer();
@@ -106,7 +106,7 @@ describe('PvP turn clock', () => {
   });
 
   it('keeps the separate 8-second event countdown then resumes the turn clock', () => {
-    const game = gameAt(38);
+    const game = gameAt(39);
     game.send('a', 'roll');
     expect(game.timer?.event).toBe('prepare-event');
     game.send('a', 'event-ready', { id: game.state.specialEvent!.id });
