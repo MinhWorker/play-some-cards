@@ -66,7 +66,7 @@ Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import 
 
 Xem `AGENTS.md` (gốc repo và `apps/web/AGENTS.md`) cho các quy ước và `docs/making-a-game.md` để làm game.
 
-`PhaserStage` dùng `SceneDirector` của SDK để chuyển bàn chơi, bỏ kết quả tải cũ và tạo runtime mới khi mở phòng khác. Nếu tải client lỗi, màn hình có nút **Thử lại**. Mục **Runtime** trong DEV hiển thị epoch, lane, tài nguyên và âm thanh đang hoạt động, không chứa bài hoặc snapshot.
+`PhaserStage` dùng `SceneDirector` của SDK để chuyển bàn chơi, bỏ kết quả tải cũ và tạo runtime mới khi mở phòng khác. Game có thể đặt `background: false` để tắt nền trời ở bàn/sandbox hoặc cung cấp `GameBackgroundScene` dưới key `<id>:background` để thay nền. Director tải scene nền trước bàn, dừng nền khi rời bàn và khôi phục trời chung ở setup/hub; ván mới/resync giữ nền đang chạy. Nếu tải client lỗi, màn hình có nút **Thử lại**. Mục **Runtime** trong DEV hiển thị epoch, lane, tài nguyên và âm thanh đang hoạt động, không chứa bài hoặc snapshot.
 
 Âm thanh ngắn có handle riêng để dừng khi rời scene/đổi ván; buffer vẫn dùng chung. Âm thanh chưa unlock, đang tắt, tab ẩn hoặc bắt đầu muộn hơn 250 ms được bỏ qua. Nhạc nền vẫn theo Stage và thiết lập âm lượng hiện tại.
 

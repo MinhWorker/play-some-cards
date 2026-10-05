@@ -69,6 +69,15 @@ phòng; kết thúc ván giữ hoạt ảnh nước cuối. Flow có `done` vớ
 sau `await`. `runtime.tween`/`after` dành cho phản hồi UI ngắn độc lập. Chi tiết lane, âm thanh
 trễ và timer server: [hướng dẫn tạo game](../../docs/making-a-game.md).
 
+## Scene nền tuỳ chọn
+
+Trong `defineClient`, bỏ `background` để giữ bầu trời chung; `background: false` tắt
+bầu trời ở bàn/sandbox; `background: MyBackground` thay bằng một `GameBackgroundScene`.
+Scene nền có `onCreate()`, `onLayout()` và `onUpdate(dt)` (ms), dùng `this.view`,
+`this.bleed`, tài nguyên của game và runtime lifetime `scene`. Nó không nhận state/input,
+không khởi động lại khi sang ván hoặc resync, và dừng khi rời bàn. Màn setup giữ nền chung.
+Xem [ví dụ và vòng đời](../../docs/making-a-game.md#scene-nền-riêng-tuỳ-chọn).
+
 ## Dev Console và lệnh riêng
 
 Trong phòng thật trên `npm run dev`, bật **Dev Console** ở nút **DEV**, gõ `Ctrl+/` rồi

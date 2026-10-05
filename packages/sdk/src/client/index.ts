@@ -1,12 +1,15 @@
 /**
  * @psc/sdk/client: what a game's screens (browser only) may use.
- * `games/<id>/src/client.ts` does `export default defineClient({ scene: MyView, setup? })`.
+ * `games/<id>/src/client.ts` does `export default defineClient({ scene: MyView, setup?, background? })`.
  */
+
+import type { GameBackgroundScene } from './GameBackgroundScene.js';
 import type { GameView } from './GameView.js';
 import type { RoomSetupScene } from './RoomSetupScene.js';
 
 export * from './followFrame.js';
 export * from './frame.js';
+export * from './GameBackgroundScene.js';
 export * from './GameScene.js';
 export * from './GameView.js';
 export * from './host.js';
@@ -19,6 +22,12 @@ export * from './text.js';
 export interface GameClient {
   // biome-ignore lint/suspicious/noExplicitAny: scenes of different games have different types
   scene: new () => GameView<any, any>;
+  /**
+   * Board/sandbox background: omitted keeps the app's sky; false sleeps/hides it; a scene
+   * replaces it behind the board. Setup screens keep the sky. The scene restarts for each
+   * board opening, survives round changes, and stops when leaving the board.
+   */
+  background?: false | (new () => GameBackgroundScene);
   /**
    * Optional room settings screen the game designs itself ("Tạo phòng", "Tuỳ chỉnh"). Without
    * it the room is created right away with the default options.
