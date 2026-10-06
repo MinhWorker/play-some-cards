@@ -34,12 +34,14 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
 
 - Bốn quân đam trắng ngà/đen gỗ có rãnh, Vua có dấu vương miện và vòng vàng, cùng canvas 384 px.
   Đảo riêng có bàn 8 × 8 và bốn quân. Kết xuất bằng Blender:
-  `blender -b -t 4 --python games/checkers/sources/render_assets.py`.
-  Thêm `-- island` hoặc `-- piece-black-king` để chỉ kết xuất một hình.
+  `npm run blender -- checkers`. Thêm `island` hoặc `piece-black-king` sau id để chỉ kết xuất
+  một hình. Helper vật liệu, hình học và đèn dùng chung ở `tools/blender/psc_bake/`; có thể
+  chạy Python với bpy như [hướng dẫn](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map).
   PNG trung gian ở `.blender/checkers/`; WebP trực tiếp ở `assets/`.
 - Bàn walnut/maple, nền vải xanh đêm và hai nút nine-slice dùng lại tài nguyên Blender của
   Cờ Vua (`games/chess/assets/{board,cloth,button,button-secondary}.webp`). Mặt chơi chiếm 94%
-  ảnh bàn, khớp lề 3% trong scene; nút dùng slice 32.
+  ảnh bàn, khớp lề 3% trong scene; nút dùng slice 32. Nền vải là tile 256×256 POT liền mép,
+  vẽ bằng `TileSprite`; tái tạo bằng `npm run blender -- checkers cloth`.
 - Âm thanh lấy từ dự án, không dùng nguồn ngoài. Tái tạo bằng
   `python3 games/checkers/sources/prepare_audio.py`. Hiệu ứng mono PCM 16-bit WAV 48 kHz,
   nhạc MP3 128 kbps.

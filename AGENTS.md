@@ -26,6 +26,7 @@ apps/server/       @psc/server     NestJS + Socket.IO
 apps/web/          @psc/web        React + Vite + Phaser 4
 assets/            Originals of the app's own art and audio (Git LFS), prompts.json
 scripts/           Build helpers (libs.mjs), generators (new.mjs), asset tools, smoke/e2e
+tools/blender/     Shared Python/bpy sprite baking helpers (psc_bake)
 docs/              Shared guides for people: making-a-game, ui-guide, deploy
 ```
 
@@ -37,6 +38,7 @@ docs/              Shared guides for people: making-a-game, ui-guide, deploy
 | `npm run dev` | Server on :8033, web on :5033 (Vite proxies `/api` and `/socket.io`). `PORT=8133 WEB_PORT=5133` moves them |
 | `npm run check` | Lint + typecheck + unit tests |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
+| `npm run blender -- <id> [names…]` | Bake game art with Blender or `PSC_BLENDER_PYTHON` (Python+bpy); see `assets/AGENTS.md` |
 | `npm run e2e [url]` | Headless Chromium plays every scenario in `scripts/e2e/scenarios/` through the real UI, side by side (needs a running dev server). `-- --only <names>`, `-- --changed origin/main`; flags at the top of `scripts/e2e.mjs`. Screenshots in `.e2e/<scenario>/` |
 | `npm run shots [url]` | Headless screenshots of one page (`-- --path '/?play=<id>'`, `-- --login`) on real phone/tablet/desktop sizes held sideways, at their pixel density and with notch insets. Prints the canvas density against the screen's; `-- --audit` also lists images drawn bigger than their pixels. `.shots/<device>.png` + a 1:1 `-crop.png`; flags at the top of `scripts/shots.mjs` |
 | `npm run smoke [url]` | Bots play Caro over sockets against a running server |

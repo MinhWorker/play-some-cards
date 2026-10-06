@@ -74,6 +74,7 @@ const CASTLE_ROOKS: Record<number, [number, number]> = {
 
 export class ChessView extends GameView<View, Options> {
   private board!: Phaser.GameObjects.Image;
+  private pieceLayer!: Phaser.GameObjects.Layer;
   private effects = true;
   private matchInfo!: Phaser.GameObjects.Text;
   private moveCount!: Phaser.GameObjects.Text;
@@ -128,6 +129,8 @@ export class ChessView extends GameView<View, Options> {
     this.selected = null;
     this.targets = [];
     this.promoting = null;
+    this.lighting({ pointer: true });
+    this.pieceLayer = this.litLayer().setDepth(DEPTH.piece);
     this.board = this.image(0, 0, 'board').setDepth(DEPTH.board);
     this.matchInfo = this.add
       .text(0, 0, 'Nước', { fontFamily: FONT, fontStyle: '600', color: '#a6bbc9' })
@@ -153,7 +156,8 @@ export class ChessView extends GameView<View, Options> {
       () =>
         new PlayerInfo(
           this,
-          { w: this.texture(pieceImage('w', 'k')), b: this.texture(pieceImage('b', 'k')) },
+          this.texture('pieces'),
+          { w: pieceImage('w', 'k'), b: pieceImage('b', 'k') },
           (label, value, width, minSize) => this.fitText(label, value, width, minSize),
         ),
     );
@@ -370,7 +374,8 @@ export class ChessView extends GameView<View, Options> {
     const { width, height, hud } = ctx.screen;
     await cutIn(this, fx, {
       text,
-      piece: this.texture(pieceImage(sideOf(piece), kindOf(piece))),
+      piece: this.texture('pieces'),
+      frame: pieceImage(sideOf(piece), kindOf(piece)),
       dark: sideOf(piece) === 'b',
       width,
       height,
@@ -429,7 +434,7 @@ export class ChessView extends GameView<View, Options> {
     rows.push(['Số lượt đi', String(state.plies)]);
     rows.push(['Quân đã ăn', `Trắng ${took('w')} · Đen ${took('b')}`]);
     const { x0, y0, cell } = this.grid;
-    const king = (side: Side) => this.texture(pieceImage(side, 'k'));
+    const king = (side: Side) => ({ key: this.texture('pieces'), frame: pieceImage(side, 'k') });
     this.panel.show(
       {
         title,
@@ -521,9 +526,12 @@ export class ChessView extends GameView<View, Options> {
 
   /** A sprite with a shared base anchor. */
   private makeLook(piece: Piece): PieceObj['look'] {
-    return this.image(0, 0, pieceImage(sideOf(piece), kindOf(piece)))
+    const look = this.image(0, 0, 'pieces', pieceImage(sideOf(piece), kindOf(piece)))
       .setOrigin(0.5, 0.62)
-      .setDepth(DEPTH.piece);
+      .setDepth(DEPTH.piece)
+      .setSelfShadow(true, 0.7);
+    this.pieceLayer.add(look);
+    return look;
   }
 
   /** Every piece shares the same canvas and base anchor; pawns remain shorter than kings. */

@@ -1,133 +1,23 @@
 """Render ridged draughts discs and a floating checkers island with Blender.
 
-Run: blender -b -t 4 --python games/checkers/sources/render_assets.py
+Run: npm run blender -- checkers [piece-white-king cloth]
 PNG intermediates stay in .blender/checkers. Transparent sprites share a 384px canvas and anchor.
 """
 from pathlib import Path
 import math
 import sys
 import bpy
-from mathutils import Vector
-from PIL import Image
+from functools import partial
+
+# Shared helpers resolve identically in Blender and Python with the bpy wheel.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "blender"))
+from psc_bake import material, wood, cube, sphere, lathe, setup, cloth_tile, render as bake
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / '.blender' / 'checkers'
 OUT.mkdir(parents=True, exist_ok=True)
 SELECTED = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
-
-
-def material(name, color, roughness=0.32):
-    mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
-    shader = mat.node_tree.nodes.get('Principled BSDF')
-    shader.inputs['Base Color'].default_value = (*color, 1)
-    shader.inputs['Roughness'].default_value = roughness
-    shader.inputs['Coat Weight'].default_value = 0.22
-    return mat
-
-
-def wood(name, dark, light):
-    mat = material(name, light, 0.68)
-    shader = mat.node_tree.nodes.get('Principled BSDF')
-    shader.inputs['Coat Weight'].default_value = 0
-    shader.inputs['Specular IOR Level'].default_value = 0.12
-    nodes, links = mat.node_tree.nodes, mat.node_tree.links
-    coords = nodes.new('ShaderNodeTexCoord')
-    scale = nodes.new('ShaderNodeVectorMath')
-    scale.operation = 'MULTIPLY'
-    scale.inputs[1].default_value = (3, 0.16, 1)
-    links.new(coords.outputs['Generated'], scale.inputs[0])
-    noise = nodes.new('ShaderNodeTexNoise')
-    noise.inputs['Scale'].default_value = 12
-    noise.inputs['Detail'].default_value = 2
-    links.new(scale.outputs[0], noise.inputs['Vector'])
-    ramp = nodes.new('ShaderNodeValToRGB')
-    ramp.color_ramp.elements[0].color = (*dark, 1)
-    ramp.color_ramp.elements[1].color = (*light, 1)
-    links.new(noise.outputs['Fac'], ramp.inputs['Fac'])
-    links.new(ramp.outputs['Color'], nodes.get('Principled BSDF').inputs['Base Color'])
-    return mat
-
-
-def setup(size, scale, target=(0, 0, 0), camera=(0, 0, 12), transparent=True):
-    bpy.ops.object.select_all(action='SELECT')
-    bpy.ops.object.delete(use_global=False)
-    scene = bpy.context.scene
-    scene.render.engine = 'CYCLES'
-    scene.cycles.samples = 96
-    scene.cycles.use_denoising = False
-    scene.render.resolution_x, scene.render.resolution_y = size
-    scene.render.resolution_percentage = 100
-    scene.render.film_transparent = transparent
-    scene.render.image_settings.file_format = 'PNG'
-    scene.render.image_settings.color_mode = 'RGBA'
-    scene.view_settings.view_transform = 'AgX'
-    scene.world.use_nodes = True
-    scene.world.node_tree.nodes['Background'].inputs[0].default_value = (0.65, 0.72, 0.8, 1)
-    scene.world.node_tree.nodes['Background'].inputs[1].default_value = 0.45
-    bpy.ops.object.camera_add(location=camera)
-    cam = bpy.context.object
-    cam.data.type = 'ORTHO'
-    cam.data.ortho_scale = scale
-    cam.rotation_euler = (Vector(target) - cam.location).to_track_quat('-Z', 'Y').to_euler()
-    scene.camera = cam
-    for pos, energy, light_size in [((-3, -4, 7), 520, 4), ((4, 2, 5), 280, 3)]:
-        bpy.ops.object.light_add(type='AREA', location=pos)
-        lamp = bpy.context.object
-        lamp.data.energy, lamp.data.size = energy, light_size
-        lamp.rotation_euler = (Vector(target) - lamp.location).to_track_quat('-Z', 'Y').to_euler()
-
-
-def cube(name, dimensions, position, mat, bevel=0.025):
-    bpy.ops.mesh.primitive_cube_add(size=1, location=position)
-    obj = bpy.context.object
-    obj.name = name
-    obj.dimensions = dimensions
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
-    obj.data.materials.append(mat)
-    mod = obj.modifiers.new('Soft bevel', 'BEVEL')
-    mod.width, mod.segments = bevel, 3
-    obj.modifiers.new('Corner normals', 'WEIGHTED_NORMAL')
-    return obj
-
-
-def lathe(name, profile, mat, segments=96):
-    vertices = [(r * math.cos(i * math.tau / segments), r * math.sin(i * math.tau / segments), z)
-                for z, r in profile for i in range(segments)]
-    faces = []
-    for ring in range(len(profile) - 1):
-        for i in range(segments):
-            a = ring * segments + i
-            b = ring * segments + (i + 1) % segments
-            faces.append((a, b, b + segments, a + segments))
-    faces += [tuple(reversed(range(segments))), tuple(range((len(profile) - 1) * segments, len(vertices)))]
-    mesh = bpy.data.meshes.new(name)
-    mesh.from_pydata(vertices, [], faces)
-    mesh.update()
-    obj = bpy.data.objects.new(name, mesh)
-    bpy.context.collection.objects.link(obj)
-    obj.data.materials.append(mat)
-    for polygon in mesh.polygons:
-        polygon.use_smooth = len(polygon.vertices) == 4
-    return obj
-
-
-def sphere(name, pos, size, mat):
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=1, location=pos)
-    obj = bpy.context.object
-    obj.name = name
-    obj.scale = size
-    obj.data.materials.append(mat)
-    for poly in obj.data.polygons:
-        poly.use_smooth = True
-    return obj
-
-
-def render(name):
-    bpy.context.scene.render.filepath = str(OUT / f'{name}.png')
-    bpy.ops.render.render(write_still=True)
-    Image.open(OUT / f'{name}.png').save(ROOT / 'assets' / f'{name}.webp', quality=94, method=6)
-
+render = partial(bake, assets=ROOT / "assets", out=OUT, selected=SELECTED)
 
 
 def disc(mat, gold, king=False):
@@ -195,3 +85,7 @@ if not SELECTED or 'island' in SELECTED:
     for x,y in [(-3.5,2.1),(3.4,-2.2),(-3.2,-2.8)]:
         sphere('Rounded bush',(x,y,.5),(.55,.55,.65),grass)
     render('island')
+
+# Match chess's small seamless midnight cloth, without loading its full-screen image.
+if not SELECTED or "cloth" in SELECTED:
+    cloth_tile("cloth", ROOT / "assets", OUT, (0.026, 0.042, 0.056))

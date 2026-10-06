@@ -1,7 +1,8 @@
 # Cờ Vua
 
 Cờ Vua cho hai người theo [luật hiện tại](RULES.md), chơi với bạn bè hoặc máy ở ba mức.
-Bàn gỗ và quân Staunton trắng ngà/đen đá được kết xuất bằng Blender, đặt trên nền vải xanh đêm.
+Bàn gỗ và quân Staunton trắng ngà/đen đá được kết xuất bằng Blender, chiếu sáng bằng normal map trong Phaser, đặt trên nền vải xanh đêm dạng tile 256×256.
+Đèn mềm đi theo hover hoặc kéo; các quân cùng một layer và atlas để giữ draw call thấp.
 Đảo trên bản đồ tạo bằng Image Gen.
 
 ## Chơi
@@ -49,16 +50,20 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 - Bàn 8 × 8 ô có mặt phẳng chơi chiếm đúng 94% ảnh, viền walnut mỏng có đường khảm đồng;
   12 quân Staunton có cùng canvas và điểm neo, góc chụp cao gần nhìn thẳng từ trên xuống,
   ánh sáng mềm từ trên trái. Tái tạo bằng
-  `blender -b -t 4 --python games/chess/sources/render_assets.py`. Thêm `-- board` hoặc
-  `-- piece-white-knight` để chỉ kết xuất một hình. PNG trung gian nằm ở `.blender/chess/`;
-  WebP dùng trực tiếp nằm trong `assets/`. Toạ độ, chấm nước đi và màu đánh dấu do Phaser vẽ.
+  `npm run blender -- chess pieces`. `npm run blender -- chess board` kết xuất bàn;
+  `npm run blender -- chess piece-white-knight` sửa riêng Mã rồi ghép lại atlas. PNG trung gian
+  nằm ở `.blender/chess/`; cặp `assets/pieces.webp`/`pieces.normal.webp` và `pieces.json`
+  chứa 12 khung cùng điểm neo. Normal map raw, lossless, giữ alpha và hướng đèn trên trái.
+  Có thể dùng Python 3.13 với `bpy==5.1.2` qua `PSC_BLENDER_PYTHON`; xem
+  [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Toạ độ, chấm nước đi và màu đánh dấu do Phaser vẽ.
 - Đảo Cờ Vua: Image Gen, prompt trong `sources/prompts.json`. PNG gốc khoảng 2 MB được lưu
   bằng Git thường theo ngoại lệ trong `.gitattributes`, vì kết nối hiện tại không xác thực
   được dịch vụ upload Git LFS.
   Sinh lại bằng `npm run gen:asset -- chess/island`. Đảo dùng bàn đúng 8 hàng × 8 cột và chỉ
   sáu quân để thấy rõ lưới.
 - Nút riêng kết xuất bằng Blender: `button.webp` xanh đêm và `button-secondary.webp` ngà,
-  viền đồng mảnh, co giãn nine-slice. Tái tạo bằng script trên với `-- button button-secondary`.
+  viền đồng mảnh, co giãn nine-slice. Tái tạo bằng `npm run blender -- chess button button-secondary`.
+- Nền vải liền mép 256×256 POT dùng `TileSprite`; tái tạo bằng `npm run blender -- chess cloth`.
 - Âm thanh dùng lại của dự án theo bảng dưới; không dùng nguồn
   ngoài. Tái tạo bằng `python3 games/chess/sources/prepare_audio.py` (cần ffmpeg).
   Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.

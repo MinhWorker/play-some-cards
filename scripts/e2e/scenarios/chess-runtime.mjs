@@ -8,6 +8,19 @@ export default async function run(t) {
   const page = await t.page(DESKTOP);
   await page.goto(`${t.url}/?play=${id}&players=2`);
   await page.waitForFunction((key) => window.__phaser?.scene.isActive(key), id);
+  const lit = await page.evaluate((key) => {
+    const s = window.__phaser.scene.getScene(key);
+    const atlas = s.textures.get(`${key}/pieces`);
+    return (
+      atlas.key === `${key}/pieces` &&
+      atlas.getFrameNames().length === 12 &&
+      atlas.dataSource[0]?.width === atlas.source[0]?.width &&
+      !s.board.lighting &&
+      s.pieceLayer.list.length === 32 &&
+      s.pieceLayer.list.every((image) => image.lighting && image.frame.name !== '__BASE')
+    );
+  }, id);
+  if (!lit) throw new Error('chess: paired piece atlas or lit layer is missing');
   await page.evaluate((key) => window.__phaser.scene.getScene(key).runtime.setSpeed(0.25), id);
   const path = [52, 36];
   for (const sq of path) {

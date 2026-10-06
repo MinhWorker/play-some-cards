@@ -1,17 +1,16 @@
 import { GameBackgroundScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 
-/** Quiet midnight cloth; the whole screen, including its safe-area bleed, is covered. */
+/** Quiet midnight cloth; a small POT tile covers the screen and its safe-area bleed. */
 export class ChessBackground extends GameBackgroundScene {
-  private cloth!: Phaser.GameObjects.Image;
+  private cloth!: Phaser.GameObjects.TileSprite;
 
   protected onCreate() {
-    this.cloth = this.image(0, 0, 'cloth');
+    this.cloth = this.add.tileSprite(0, 0, 1, 1, this.texture('cloth')).setOrigin(0);
   }
 
   protected onLayout() {
     const { left, right, top, bottom } = this.bleed;
-    const scale = Math.max((right - left) / this.cloth.width, (bottom - top) / this.cloth.height);
-    this.cloth.setPosition((left + right) / 2, (top + bottom) / 2).setScale(scale);
+    this.cloth.setPosition(left, top).setSize(right - left, bottom - top);
   }
 }

@@ -19,8 +19,9 @@ const SERIF = 'Georgia, "Times New Roman", "Noto Serif", "DejaVu Serif", serif';
 
 export interface CutInOptions {
   text: string;
-  /** Image key of the piece giving check. */
+  /** Atlas key and frame of the piece giving check. */
   piece: string;
+  frame: string;
   /** The piece is Black's: it stands on an ivory field instead of a navy one. */
   dark: boolean;
   /** The screen, and the HUD scale for the crest. */
@@ -104,7 +105,7 @@ export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promi
   if (o.dark) medal.fillStyle(IVORY, 1).fillCircle(0, 0, radius - 12 * k);
   medal.lineStyle(Math.max(1, 2 * k), PALE_GOLD, 0.8).strokeCircle(0, 0, radius - 12 * k);
   const piece = scene.add
-    .image(0, 6 * k, o.piece)
+    .image(0, 6 * k, o.piece, o.frame)
     .setDisplaySize((radius * 1.5) / DISC, (radius * 1.5) / DISC);
   const crest = scene.add.container(0, -height * 0.6, [medal, piece]).setAngle(-12);
 

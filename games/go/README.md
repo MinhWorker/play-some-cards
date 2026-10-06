@@ -68,10 +68,12 @@ Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
 ## Hình và âm thanh
 
 - Bàn gỗ kaya viền mỏng, quân đá phiến đen/đá trắng ngà mài bóng, nền vải và nút gỗ kết xuất bằng
-  Blender: `blender -b -t 8 --python games/go/sources/render_assets.py`. Góc nhìn thẳng từ trên
-  xuống, ánh sáng mềm từ trên trái. Đường kẻ và chín sao do Phaser vẽ để khớp giao điểm.
+  Blender: `npm run blender -- go`. Helper chung ở `tools/blender/psc_bake/`;
+  cũng dùng được Python với bpy như [hướng dẫn](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Góc nhìn thẳng từ trên
+  xuống, ánh sáng mềm từ trên trái. Nền vải liền mép là tile 256×256 POT vẽ bằng `TileSprite`;
+  tái tạo bằng `npm run blender -- go cloth`. Đường kẻ và chín sao do Phaser vẽ để khớp giao điểm.
 - Hộp và nắp mây đan được dựng riêng theo ảnh tham khảo, kết xuất trong suốt bằng
-  `blender -b -t 4 --python games/go/sources/render_bowls.py`; chồng quân và bóng tròn do Phaser vẽ.
+  `npm run blender -- go bowl bowl-lid`; chồng quân và bóng tròn do Phaser vẽ.
 - Đảo Cờ Vây trên bản đồ tạo bằng Image Gen; prompt ở `sources/prompts.json`. Sinh lại bằng `npm run gen:asset -- go/island`.
 - Ba tiếng đặt quân là các đoạn va chạm trong bản ghi của dự án
   `assets/audio/sfx/psc-wood-marker-place-veo.mp3`, được cắt, lọc phần ù thấp và làm đuôi ngắn.

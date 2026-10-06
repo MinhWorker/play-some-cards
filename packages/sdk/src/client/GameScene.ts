@@ -28,6 +28,14 @@ export interface Button {
  * What every scene a game ships shares: its own `assets/` by file name, text helpers and a few
  * ready-made objects (`label`, `button`, `sprite`). Games extend `GameView` (the screen),
  * `RoomSetupScene` (its "Tạo phòng" screen), or `GameBackgroundScene` (its optional backdrop).
+ *
+ * `assets/<name>.normal.webp` loads alongside image/atlas `<name>` as raw camera-space normals
+ * (+X right, +Y up, +Z toward the viewer; flat = 128,128,255). Call `lighting()` in onCreate for
+ * ambient + an upper-left key matching tools/blender/psc_bake; `lighting({ pointer: true })`
+ * also adds a soft hover/drag light. It follows the frame and cleans up on scene shutdown.
+ * `litLayer()` groups lit images/sprites into one Layer to keep draw calls low. Add children
+ * with layer.add(...); their positions stay in scene units and depth sorts within the layer.
+ * Images without normals use Phaser's flat normal. UI and board marks stay outside the layer.
  */
 export abstract class GameScene extends Phaser.Scene {
   private warned = new Set<string>();
@@ -69,13 +77,14 @@ export abstract class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    const { images, sounds, atlases } = clientHost().assets(this.gameId);
+    const { images, normals, sounds, atlases } = clientHost().assets(this.gameId);
     for (const [name, url] of Object.entries(images)) {
       const key = `${this.gameId}/${name}`;
       if (this.textures.exists(key)) continue;
       const atlas = atlases[name];
-      if (atlas) this.load.atlas(key, url, atlas);
-      else this.load.image(key, url);
+      const normalMap = normals[name];
+      if (atlas) this.load.atlas({ key, textureURL: url, atlasURL: atlas, normalMap });
+      else this.load.image({ key, url, normalMap });
     }
     for (const [name, url] of Object.entries(clientHost().avatars())) {
       if (!this.textures.exists(`avatar/${name}`)) this.load.image(`avatar/${name}`, url);
@@ -104,9 +113,9 @@ export abstract class GameScene extends Phaser.Scene {
     return this.textures.exists(key) ? key : 'avatar/boy';
   }
 
-  /** Adds `assets/<name>.webp|png` as an image. */
-  protected image(x: number, y: number, name: string) {
-    return this.add.image(x, y, this.texture(name));
+  /** Adds `assets/<name>.webp|png` as an image; optional frame for an atlas. */
+  protected image(x: number, y: number, name: string, frame?: string | number) {
+    return this.add.image(x, y, this.texture(name), frame);
   }
 
   /**
@@ -156,6 +165,59 @@ export abstract class GameScene extends Phaser.Scene {
   /** An image from the game's `assets/` by file name, centered on its position. */
   protected sprite(name: string) {
     return this.image(0, 0, name);
+  }
+
+  /** Ambient + upper-left key; optional soft pointer light. Call once in onCreate. */
+  protected lighting({
+    ambient = 0xb8b8b8,
+    color = 0xfff3df,
+    intensity = 0.55,
+    pointer = false,
+  } = {}) {
+    this.lights.enable().setAmbientColor(ambient);
+    const key = this.lights.addLight(0, 0, 1, color, intensity);
+    const hover = pointer ? this.lights.addLight(0, 0, 240, 0xddeeff, 0, 120) : undefined;
+    const layout = () => {
+      const { width, height } = this.view;
+      key.setPosition(width / 2 - height * 0.3, height * 0.1);
+      key.setRadius(height * 3).setZ(height * 0.7);
+    };
+    layout();
+    this.registry.events.on(`changedata-${FRAME}`, layout);
+    const follow = (p: Phaser.Input.Pointer) => {
+      const pos = p.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+      hover?.setPosition(pos.x, pos.y).setIntensity(0.22);
+    };
+    const hide = () => hover?.setIntensity(0);
+    const release = (p: Phaser.Input.Pointer) => {
+      if (p.wasTouch) hide();
+    };
+    if (hover) {
+      this.input.on(Phaser.Input.Events.POINTER_MOVE, follow);
+      this.input.on(Phaser.Input.Events.POINTER_DOWN, follow);
+      this.input.on(Phaser.Input.Events.POINTER_UP, release);
+      this.input.on(Phaser.Input.Events.GAME_OUT, hide);
+    }
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.registry.events.off(`changedata-${FRAME}`, layout);
+      this.input.off(Phaser.Input.Events.POINTER_MOVE, follow);
+      this.input.off(Phaser.Input.Events.POINTER_DOWN, follow);
+      this.input.off(Phaser.Input.Events.POINTER_UP, release);
+      this.input.off(Phaser.Input.Events.GAME_OUT, hide);
+    });
+    return { key, pointer: hover };
+  }
+
+  /** A batch of lit images/sprites, including children added later. Requires lighting(). */
+  protected litLayer() {
+    const layer = this.add.layer();
+    const added = layer.addCallback;
+    layer.addCallback = (child: Phaser.GameObjects.GameObject) => {
+      added.call(layer, child);
+      if ('setLighting' in child && typeof child.setLighting === 'function')
+        child.setLighting(true);
+    };
+    return layer;
   }
 
   /**
