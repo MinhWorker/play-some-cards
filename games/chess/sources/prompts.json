@@ -1,0 +1,10 @@
+{
+  "$comment": "Đảo tạo bằng Image Gen; bàn, 12 quân và nền vải kết xuất bằng Blender qua render_assets.py.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A polished whimsical 3D mobile-game floating chess island, entire silhouette visible, isolated on a genuinely transparent background. A warm rocky underside tapering to a point with sparse roots and lush mossy grass rim. On top a walnut and maple 8 by 8 chessboard with a very thin wooden border, EXACTLY eight rows and eight columns, 64 equal alternating squares, with seven internal division lines in each direction; only six Staunton pieces (ivory king, queen, knight in the foreground and charcoal king, rook, pawn at the far edge), leaving the middle ranks empty so the grid can be counted. One sculptural tree, a few small rocks and warm golden leaves at the perimeter. Isometric three-quarter view, soft upper-left lighting, tactile premium stylized 3D game art, simple strong silhouette. No text, logos, people, UI, extra boards, buildings or ground plane. True alpha transparency, no checkerboard."
+    }
+  }
+}
