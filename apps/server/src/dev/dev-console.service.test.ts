@@ -37,7 +37,7 @@ describe('DevConsoleService', () => {
     expect(() => dev.service.execute(dev.room.code, 'stranger', 'help')).toThrow(
       'Bạn chưa ở trong phòng',
     );
-    expect(rooms.create('counter', { id: 'a', name: 'A' }).room.dev).toBeUndefined();
+    expect(rooms.create('tic-tac-toe', { id: 'a', name: 'A' }).room.dev).toBeUndefined();
   });
   it('lists help, events and schemas', () => {
     const { cmd, service, room } = setup();

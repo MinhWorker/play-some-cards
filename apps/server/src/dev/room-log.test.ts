@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { RoomsService } from '../rooms/rooms.service.js';
 import { captureConsole, followRoomLog, logRoom, runRoomHook } from './room-log.js';
 
-const room = (dev = true) => new RoomsService(dev).create('counter', { id: 'a', name: 'A' }).room;
+const room = (dev = true) =>
+  new RoomsService(dev).create('tic-tac-toe', { id: 'a', name: 'A' }).room;
 describe('room logs', () => {
   it('bounds the buffer, increases ids and unsubscribes cleanly', () => {
     const r = room(),

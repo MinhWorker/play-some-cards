@@ -96,7 +96,7 @@ function findGame() {
   const cwd = relative(join(root, 'games'), process.env.INIT_CWD ?? process.cwd());
   const here = cwd && !cwd.startsWith('..') ? cwd.split(sep)[0] : undefined;
   const named = args[0] && existsSync(join(root, 'games', args[0])) ? args[0] : undefined;
-  // `new view counter Score`, `new view counter`, or from games/counter: `new view Score`.
+  // `new view co-ca-ngua Score`, `new view co-ca-ngua`, or from games/co-ca-ngua: `new view Score`.
   if (named && (args.length > 1 || !here)) return { id: named, name: args[1] };
   if (here) return { id: here, name: args[0] };
   fail(args[0] ? `There is no games/${args[0]}` : 'Which game?');

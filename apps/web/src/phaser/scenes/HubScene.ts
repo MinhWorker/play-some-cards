@@ -105,7 +105,9 @@ export class HubScene extends Phaser.Scene {
   private makePortal(portal: Portal, i: number): PortalView {
     const open = !portal.locked;
     const img = this.add.image(0, 0, portal.texture);
-    const sign = this.add.image(0, img.height * 0.42, 'sign').setScale(0.9);
+    // Keep island size independent of the source image's resolution.
+    img.setScale(PORTAL_W / Math.max(img.width, img.height));
+    const sign = this.add.image(0, img.displayHeight * 0.42, 'sign').setScale(0.9);
     const label = this.add
       .text(sign.x, sign.y + sign.displayHeight * 0.12, portal.name, titleStyle(46))
       .setOrigin(0.5);
@@ -127,7 +129,7 @@ export class HubScene extends Phaser.Scene {
       for (const part of [img, sign, ...orbs]) {
         part.enableFilters().filters?.internal.addColorMatrix().colorMatrix.grayscale();
       }
-      parts.push(this.add.image(0, -img.height * 0.05, 'lock').setScale(0.8));
+      parts.push(this.add.image(0, -img.displayHeight * 0.05, 'lock').setScale(0.8));
     }
     const float = this.add.container(0, 0, parts);
     const container = this.add.container(0, 0, [float]);

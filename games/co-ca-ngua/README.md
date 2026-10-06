@@ -17,8 +17,9 @@ sources/                    file gốc tuỳ chọn; `npm run assets -- co-ca-ng
 
 Một game là hai lớp có các hook vòng đời, giống script trong Unity. Một lần bấm gọi
 `this.send('add', { amount })` trong view; server chạy `onAdd(ctx)` trong game và trả về state kế
-tiếp; rồi mọi màn hình nhận `onAdd(ctx, event)` và `onState(ctx)`. games/counter liệt kê mọi hook;
-games/tic-tac-toe thêm tuỳ chọn phòng, màn "Tạo phòng" và người chơi máy.
+tiếp; rồi mọi màn hình nhận `onAdd(ctx, event)` và `onState(ctx)`.
+[Hướng dẫn tạo game](../../docs/making-a-game.md#các-hook) liệt kê mọi hook;
+`games/tic-tac-toe` thêm tuỳ chọn phòng, màn "Tạo phòng" và người chơi máy.
 
 Thêm file từ mẫu: `npm run new -- logic|view|setup co-ca-ngua [Tên]`.
 

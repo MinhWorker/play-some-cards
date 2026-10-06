@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { DESKTOP } from '../lib.mjs';
 
 export const games = [
-  'counter',
   'co-ca-ngua',
   'tic-tac-toe',
   'xiangqi',
@@ -33,12 +32,12 @@ function wav(seconds = 0.5) {
 
 export default async function run(t) {
   const page = await t.page(DESKTOP);
-  await page.goto(`${t.url}/?play=counter&players=2`);
-  await page.waitForFunction(() => window.__phaser?.scene.isActive('counter'));
+  await page.goto(`${t.url}/?play=co-ca-ngua&players=2`);
+  await page.waitForFunction(() => window.__phaser?.scene.isActive('co-ca-ngua'));
   await page.evaluate(
     async (sdkUrl) => {
       const { SceneRuntime, clientHost } = await import(sdkUrl);
-      const scene = window.__phaser.scene.getScene('counter');
+      const scene = window.__phaser.scene.getScene('co-ca-ngua');
       const failures = [];
       const runtime = new SceneRuntime(scene, clientHost(), 'round', (error) =>
         failures.push(String(error)),
@@ -46,7 +45,7 @@ export default async function run(t) {
       const assert = (value, message) => {
         if (!value) throw new Error(message);
       };
-      const at = scene.add.image(20, 20, 'counter/button');
+      const at = scene.add.image(20, 20, 'co-ca-ngua/island');
       let callbacks = 0;
       const move = runtime.run(async (fx) => {
         await fx.tween({
@@ -153,10 +152,10 @@ export default async function run(t) {
       const key = 'runtime-test-atlas';
       scene.anims.create({
         key,
-        frames: [{ key: 'counter/button' }, { key: 'counter/button' }],
+        frames: [{ key: 'co-ca-ngua/island' }, { key: 'co-ca-ngua/island' }],
         frameRate: 10,
       });
-      const sprite = scene.add.sprite(0, 0, 'counter/button');
+      const sprite = scene.add.sprite(0, 0, 'co-ca-ngua/island');
       const atlas = runtime.run(async (fx) => {
         await fx.animate(sprite, key);
       });
@@ -202,7 +201,7 @@ export default async function run(t) {
         for (let i = 0; i < 10; i++) tick(100);
         assert((await speedTween.done).status === 'completed', 'Manual-clock tween did not finish');
         runtime.setSpeed(1);
-        const speedSprite = scene.add.sprite(0, 0, 'counter/button');
+        const speedSprite = scene.add.sprite(0, 0, 'co-ca-ngua/island');
         const speedAtlas = runtime.run(async (fx) => {
           await fx.animate(speedSprite, key);
         });
@@ -314,7 +313,7 @@ export default async function run(t) {
           sounds: { event: '/runtime-audio-slow-epoch.wav' },
         }),
       };
-      const runtime = new SceneRuntime(window.__phaser.scene.getScene('counter'), host);
+      const runtime = new SceneRuntime(window.__phaser.scene.getScene('co-ca-ngua'), host);
       let eventReady = false;
       const flow = runtime.run(async (fx) => {
         await fx.sound('event', { maxStartDelayMs: 1000 });
@@ -407,7 +406,10 @@ export default async function run(t) {
       await director.show({
         key: 'runtime-probe',
         instance: 'room-b',
-        data: { ...nextRound, last: { seq: 3, player: 'none', move: { event: 'press' } } },
+        data: {
+          ...nextRound,
+          last: { seq: 3, player: 'none', move: { event: 'add', payload: { amount: 1 } } },
+        },
       });
       assert(resyncs === 1, 'Sequence gap did not resync');
       await director.show({

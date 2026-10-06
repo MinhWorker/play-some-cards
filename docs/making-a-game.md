@@ -41,8 +41,35 @@ ghế, chủ phòng, tỉ số, tuỳ chọn.
                                                                     onState(ctx)         hiện state
 ```
 
-Ví dụ để xem: `games/counter` ("Bấm Nút", nhỏ nhất; README của nó liệt kê mọi hook) và
-`games/tic-tac-toe` (Caro: thêm tuỳ chọn phòng, người chơi máy, màn cài đặt).
+Mẫu tối thiểu nằm trong `scripts/templates/game/`. Ví dụ hoàn chỉnh: `games/tic-tac-toe`
+(Caro: tuỳ chọn phòng, người chơi máy, màn cài đặt).
+
+## Các hook
+
+| `Game` (server) | khi nào |
+| --- | --- |
+| `onStart(ctx)` | "Bắt đầu" / "Chơi ván mới": trả về state đầu tiên |
+| `on<Event>(ctx)` | một người chơi gửi sự kiện đó (`press` → `onPress`): trả về state kế tiếp, hoặc `ctx.reject('…')` |
+| `onEnd(ctx)` | sau `ctx.finish(winners)` (tuỳ chọn) |
+| `onLeave(ctx)` | một người rời bàn giữa ván và ván chơi tiếp không có họ (tuỳ chọn; không có thì ván dừng) |
+| `on<Timer>(ctx)` | hẹn giờ `ctx.setTimer(ms, '<timer>')` đã tới (tuỳ chọn) |
+| `cmd<Name>(ctx)` | lệnh dev tuỳ chọn trong `commands`: context thường cộng `args` và `reject()` |
+| `view(ctx, viewer)` | mỗi người chơi được thấy gì (tuỳ chọn; giấu bài ở đây) |
+
+| `GameView` (trình duyệt) | khi nào |
+| --- | --- |
+| `onCreate(ctx)` | màn hình mở ra: tạo đối tượng (`this.label`, `this.button`, `this.sprite`, hoặc Phaser). Nền của `this.button` là 9-slice (góc giữ nguyên hình), `slice` chỉnh độ rộng góc |
+| `onLayout(ctx)` | sau onCreate và khi khung đổi: đặt vị trí (`ctx.screen`, đơn vị thiết kế trên khung cao 720; `ctx.screen.gap` = chỗ trống giữa hàng thanh phòng, có thể `null`) |
+| `onStart(ctx)` | một ván mới bắt đầu |
+| `on<Event>(ctx, event)` | sự kiện của ai đó vừa được chơi: làm hiệu ứng (`event.player`, `event.isMe`) |
+| `onResync(ctx)` | mất/quay lùi sự kiện, nạp snapshot hoặc đổi người xem: dựng snapshot, không phát tiếng cũ |
+| `onState(ctx)` | sau mọi thay đổi: hiện state |
+| `onEnd(ctx)` | ván kết thúc (`ctx.result`) |
+| `onUpdate(ctx, dt)` | mỗi khung hình (chỉ trên trình duyệt) |
+
+`ctx` luôn chứa cả phòng: `state`, `players` (ghế, tên, có phải máy không), `hostId`, `score`,
+`options`; trên server có thêm `rng`, `finish()`, `lastResult` (kết quả ván trước) và, trong hook sự kiện, `player`, `payload`,
+`reject()`; trên trình duyệt có `me`, `isHost`, `result` và `screen`.
 
 ## Thư mục
 
@@ -379,7 +406,7 @@ export class MyView extends GameView<State, Options> {
   phòng theo kiểu của mình (`ctx.hostId`, `ctx.isHost`). Bấm ← hoặc 🏠 giữa ván sẽ được hỏi lại "Bỏ dở ván này?" (rời đi là dừng ván cho cả
   bàn). Đổi chữ trong `client.ts`:
   `defineClient({ scene, leaveConfirm: { title, message, stay, leave } })` (chỗ nào không ghi thì
-  giữ chữ mặc định), hoặc `leaveConfirm: false` để tắt, như Bấm Nút.
+  giữ chữ mặc định), hoặc `leaveConfirm: false` để tắt.
 
 ## Tuỳ chọn phòng và chơi với máy (tuỳ chọn)
 
@@ -430,7 +457,9 @@ vào (nếu còn ghế) hoặc rời đi, và tỉ số tính lại từ đầu.
 Đặt file hoàn chỉnh vào `assets/` là được dùng nguyên như vậy. Làm bằng cách nào cũng được: tự vẽ,
 tạo bằng AI, render bằng Blender, vẽ bằng code (Phaser graphics), tài nguyên miễn phí trên mạng; chọn
 cái trông và nghe hợp với game nhất, ghi nguồn khi tiện. `assets/island.webp` là hòn đảo của game
-trên bản đồ trang chủ (`meta.portal.image`).
+trên bản đồ trang chủ (`meta.portal.image`). Bản đồ giữ nguyên tỉ lệ ảnh và hiển thị cạnh dài của
+mỗi đảo ở 640 đơn vị trước khi co cả cụm đảo và bảng tên theo khung hình, nên ảnh có độ phân giải
+cao hơn không làm đảo hiển thị lớn hơn.
 
 Hình gốc lớn có thể để trong `sources/` (lưu bằng Git LFS), rồi `npm run assets -- <id>` tạo file
 sẵn dùng: mỗi hình trong `sources/` thành một `assets/<cùng tên>.webp` đã cắt viền và thu nhỏ (tuỳ
