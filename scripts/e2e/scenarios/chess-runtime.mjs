@@ -16,8 +16,8 @@ export default async function run(t) {
       atlas.getFrameNames().length === 12 &&
       atlas.dataSource[0]?.width === atlas.source[0]?.width &&
       !s.board.lighting &&
-      s.pieceLayer.list.length === 32 &&
-      s.pieceLayer.list.every((image) => image.lighting && image.frame.name !== '__BASE')
+      s.pieceLayer.layer.list.length === 32 &&
+      s.pieceLayer.layer.list.every((image) => image.lighting && image.frame.name !== '__BASE')
     );
   }, id);
   if (!lit) throw new Error('chess: paired piece atlas or lit layer is missing');
