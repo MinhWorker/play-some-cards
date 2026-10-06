@@ -15,7 +15,8 @@ vừa đi tô vàng, Vua bị chiếu tô đỏ. Khi Tốt tới hàng cuối, b
 Tượng hoặc Mã. Hai nút **Xin hoà** và **Đầu hàng** ở bên phải; đầu hàng cần chạm xác nhận lần hai
 trong ba giây. Chơi với máy không có nút xin hoà.
 
-Cột trái hiển thị người chơi, màu quân, lượt hiện tại, số ván thắng và số quân đã ăn. Kết thúc
+Cột trái có hai thẻ người chơi: tên, màu quân, số ván thắng và số quân đã ăn;
+vạch đồng đánh dấu người đang đi. Số nước nằm giữa hai thẻ. Kết thúc
 ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi bên ăn được. **Xem bàn cờ** đóng bảng;
 **Kết quả** mở lại. **Hiệu ứng: Bật/Tắt** lưu trên máy, tắt chuyển động nhưng giữ âm thanh;
 âm thanh và nhạc điều khiển bằng nút loa chung của ứng dụng.
@@ -30,6 +31,8 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 | Lượt, xin hoà, đầu hàng | `src/game/ChessGame.ts` |
 | Bàn, quân, chọn nước, hiệu ứng và âm thanh | `src/scenes/ChessView.ts` |
 | Bảng kết quả | `src/scenes/ResultPanel.ts` |
+| Thẻ người chơi và thống kê bên trái | `src/scenes/PlayerInfo.ts` |
+| Kiểu nút xanh đêm và ngà | `src/scenes/buttons.ts` |
 | Nền vải | `src/scenes/ChessBackground.ts` |
 | Form tạo phòng | `src/scenes/Setup.ts` |
 | Tên quân, màu và câu kết quả | `src/scenes/theme.ts` |
@@ -50,7 +53,9 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
   được dịch vụ upload Git LFS.
   Sinh lại bằng `npm run gen:asset -- chess/island`. Đảo dùng bàn đúng 8 hàng × 8 cột và chỉ
   sáu quân để thấy rõ lưới.
-- Nút gỗ dùng lại từ Tiến Lên. Âm thanh dùng lại của dự án theo bảng dưới; không dùng nguồn
+- Nút riêng kết xuất bằng Blender: `button.webp` xanh đêm và `button-secondary.webp` ngà,
+  viền đồng mảnh, co giãn nine-slice. Tái tạo bằng script trên với `-- button button-secondary`.
+- Âm thanh dùng lại của dự án theo bảng dưới; không dùng nguồn
   ngoài. Tái tạo bằng `python3 games/chess/sources/prepare_audio.py` (cần ffmpeg).
   Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.
 

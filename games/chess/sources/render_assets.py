@@ -234,3 +234,16 @@ if not SELECTED or 'cloth' in SELECTED:
     links.new(bump.outputs['Normal'], nodes.get('Principled BSDF').inputs['Normal'])
     cube('Quiet cloth', (3, 3, 0.01), (0, 0, 0), cloth, 0)
     render('cloth')
+
+# Shallow lacquer/ivory faces with a fine brass inset, sized for nine-slice UI.
+for name, color in [('button', (0.014, 0.045, 0.075)),
+                    ('button-secondary', (0.77, 0.65, 0.45))]:
+    if SELECTED and name not in SELECTED:
+        continue
+    setup((640, 200), 4.16)
+    brass = material('Satin brass button edge', (0.52, 0.30, 0.085), 0.58)
+    face = material('Lacquer' if name == 'button' else 'Ivory', color, 0.68)
+    face.node_tree.nodes.get('Principled BSDF').inputs['Coat Weight'].default_value = 0.06
+    cube('Button body', (3.96, 1.13, 0.10), (0, 0, 0), brass, 0.09)
+    cube('Inset button face', (3.88, 1.05, 0.035), (0, 0, 0.065), face, 0.075)
+    render(name)

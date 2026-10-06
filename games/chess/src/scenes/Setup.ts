@@ -6,6 +6,7 @@
 import { type Button, RoomSetupScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
+import { PRIMARY_BUTTON, SECONDARY_BUTTON, styleButton } from './buttons.js';
 
 type Key = 'opponent' | 'level' | 'swap';
 
@@ -57,21 +58,27 @@ export class Setup extends RoomSetupScene<Options> {
     this.picks = optionsSchema.parse(this.current ?? {});
     this.panel = this.add.graphics();
     this.title = this.label(this.current ? 'Tuỳ chỉnh ván cờ' : 'Tạo ván Cờ Vua', { size: 40 });
+    this.title.setColor('#fff4df').setStroke('#102331', 1);
     this.rows = ROWS.map((row) => ({
       row,
-      title: this.label(row.title, { size: 24, color: '#ffe8a3' }),
+      title: this.label(row.title, { size: 24, color: '#c6d5df' }).setStroke('#102331', 0),
       chips: row.choices.map(({ value, label }) =>
-        this.button(label, () => this.pick(row.key, value), {
-          image: 'button',
-          size: 24,
-          hoverSound: false,
-        }),
+        styleButton(
+          this.button(label, () => this.pick(row.key, value), {
+            ...SECONDARY_BUTTON,
+            size: 24,
+            hoverSound: false,
+          }),
+        ),
       ),
     }));
-    this.submitButton = this.button(this.current ? 'Lưu' : 'Tạo phòng', () => this.send(), {
-      image: 'button',
-      size: 32,
-    });
+    this.submitButton = styleButton(
+      this.button(this.current ? 'Lưu' : 'Tạo phòng', () => this.send(), {
+        ...PRIMARY_BUTTON,
+        size: 32,
+      }),
+      true,
+    );
     this.refresh();
   }
 
@@ -116,8 +123,8 @@ export class Setup extends RoomSetupScene<Options> {
     const y = top + Math.max(0, (height - top - h) / 2);
 
     this.panel.clear();
-    this.panel.fillStyle(0x4a1f12, 0.92).fillRoundedRect(x, y, panelW, h, 22);
-    this.panel.lineStyle(4, 0xf2c14e, 1).strokeRoundedRect(x, y, panelW, h, 22);
+    this.panel.fillStyle(0x122c40, 0.96).fillRoundedRect(x, y, panelW, h, 22);
+    this.panel.lineStyle(2, 0xd9a441, 0.8).strokeRoundedRect(x, y, panelW, h, 22);
 
     let cursor = y + pad * scale;
     this.title.setPosition(width / 2, cursor + (titleH * scale) / 2);
