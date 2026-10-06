@@ -46,6 +46,23 @@ describe('checkers moves', () => {
     ]);
   });
 
+  it('lets a player pick any capture, not only the one taking the most', () => {
+    const board = boardOf(
+      '........',
+      '........',
+      '.....w..',
+      '........',
+      '.w.w....',
+      '..b.....',
+      '........',
+      '........',
+    );
+    expect(legalMoves(board, 'b', EN)).toEqual([
+      { path: [sq(5, 2), sq(3, 0)], captures: [sq(4, 1)] },
+      { path: [sq(5, 2), sq(3, 4), sq(1, 6)], captures: [sq(4, 3), sq(2, 5)] },
+    ]);
+  });
+
   it('lets 8 × 8 men take forward only, and stops a man crowned mid-capture', () => {
     const back = boardOf(
       '........',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Position } from './model.js';
 import {
+  checkersOf,
   fromFen,
   inCheck,
   insufficientMaterial,
@@ -115,6 +116,14 @@ describe('chess moves', () => {
     expect(insufficientMaterial(fromFen('8/8/3bk3/8/8/3K1B2/8/8 w - -').board)).toBe(false);
     expect(insufficientMaterial(fromFen('8/8/4k3/8/8/3KNN2/8/8 w - -').board)).toBe(false);
     expect(insufficientMaterial(fromFen('8/8/4k3/8/8/3KP3/8/8 w - -').board)).toBe(false);
+  });
+
+  it('names the pieces giving check, both of them in a double check', () => {
+    expect(checkersOf(START)).toEqual([]);
+    const double = after(fromFen('4k3/8/8/8/4N3/8/8/4R1K1 w - -'), 'e4d6');
+    expect(checkersOf(double).map(nameOf).sort()).toEqual(['d6', 'e1']);
+    const pawn = fromFen('4k3/3P4/8/8/8/8/8/6K1 b - -');
+    expect(checkersOf(pawn).map(nameOf)).toEqual(['d7']);
   });
 
   it('counts en passant in a position only when it can be played', () => {

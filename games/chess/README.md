@@ -11,7 +11,10 @@ Form tạo phòng có **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (
 thấy bàn xoay ngược, quân mình ở dưới.
 
 Chạm quân của mình để chọn, rồi chạm ô có chấm để đi; vòng tròn đánh dấu quân ăn được. Ô nước
-vừa đi tô vàng, Vua bị chiếu tô đỏ. Khi Tốt tới hàng cuối, bảng **Phong cấp** cho chọn Hậu, Xe,
+vừa đi tô vàng, Vua bị chiếu tô đỏ. Khi chiếu tướng (hoặc chiếu hết), một cut-in kiểu huy hiệu Anh
+hiện giữa màn hình: huy chương xanh viền vàng có vòng nguyệt quế mang quân đang chiếu, dải
+ruy-băng đỏ thẫm mở ra với chữ “CHIẾU TƯỚNG!” (hoặc “CHIẾU HẾT!” trước bảng kết quả); tắt
+hiệu ứng thì chỉ còn âm thanh và dòng trạng thái “Chiếu!”. Khi Tốt tới hàng cuối, bảng **Phong cấp** cho chọn Hậu, Xe,
 Tượng hoặc Mã. Hai nút **Xin hoà** và **Đầu hàng** ở bên phải; đầu hàng cần chạm xác nhận lần hai
 trong ba giây. Chơi với máy không có nút xin hoà.
 
@@ -31,6 +34,7 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 | Lượt, xin hoà, đầu hàng | `src/game/ChessGame.ts` |
 | Bàn, quân, chọn nước, hiệu ứng và âm thanh | `src/scenes/ChessView.ts` |
 | Bảng kết quả | `src/scenes/ResultPanel.ts` |
+| Cut-in chiếu tướng, chiếu hết | `src/scenes/cutin.ts` |
 | Thẻ người chơi và thống kê bên trái | `src/scenes/PlayerInfo.ts` |
 | Kiểu nút xanh đêm và ngà | `src/scenes/buttons.ts` |
 | Nền vải | `src/scenes/ChessBackground.ts` |

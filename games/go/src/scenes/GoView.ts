@@ -12,10 +12,11 @@
  *
  * Blender renders the wood and polished stones; grid, shadows and marks remain code-native.
  */
-import { type Button, type FlowHandle, GameView, type ViewContext } from '@psc/sdk/client';
+import { type Button, GameView, type ViewContext } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { BOARD_SIZE, KOMI, type Options, type Side, type View } from '../game/model.js';
 import { colOf, place, rowOf, score, starPoints } from '../game/rules.js';
+import { drawFlag, fitButton, ResignDialog } from './ResignDialog.js';
 import { ResultPanel } from './ResultPanel.js';
 import { StoneBowl } from './StoneBowl.js';
 
@@ -71,24 +72,22 @@ export class GoView extends GameView<View, Options> {
     pass: Button;
     accept: Button;
     resume: Button;
+    /** A white flag on its own, away from the other buttons: it opens `resignDialog`. */
     resign: Button;
     result: Button;
   };
+  private resignFlag!: Phaser.GameObjects.Graphics;
+  private resignDialog!: ResignDialog;
   private panel!: ResultPanel;
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   private stones = new Map<number, StoneObj>();
   /** Where point (0, 0) is on screen and the gap between lines. */
   private grid = { x0: 0, y0: 0, cell: 40, size: BOARD_SIZE };
   private hovered: number | null = null;
-  /** "Đầu hàng" was tapped once: a second tap within a few seconds confirms. */
-  private resignArmed = false;
-  private resignTimer?: FlowHandle;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
-    this.resignTimer = undefined;
-    this.resignArmed = false;
     this.stones = new Map();
     this.hovered = null;
     this.boardShadow = this.add.graphics().setDepth(-1);
@@ -145,9 +144,24 @@ export class GoView extends GameView<View, Options> {
       pass: this.button('Bỏ lượt', () => this.send('pass'), opts),
       accept: this.button('Đồng ý', () => this.send('accept'), opts),
       resume: this.button('Đánh tiếp', () => this.send('resume'), opts),
-      resign: this.button('Đầu hàng', () => this.resign(), opts),
+      resign: this.button('', () => this.resignDialog.show(), opts),
       result: this.button('Tổng kết', () => this.togglePanel(), opts),
     };
+    this.resignFlag = this.add.graphics();
+    this.buttons.resign.container.add(this.resignFlag);
+    this.resignDialog = new ResignDialog(
+      this,
+      this.button(
+        'Đầu hàng',
+        () => {
+          this.resignDialog.hide();
+          this.send('resign');
+        },
+        opts,
+      ),
+      this.button('Chơi tiếp', () => this.resignDialog.hide(), opts),
+      () => this.resignDialog.hide(),
+    );
     this.panel = new ResultPanel(this);
     this.bowls = Object.fromEntries(
       (['b', 'w'] as const).map((side) => [
@@ -160,7 +174,8 @@ export class GoView extends GameView<View, Options> {
         }),
       ]),
     ) as Record<Side, StoneBowl>;
-    for (const button of Object.values(this.buttons)) {
+    const { confirm, cancel } = this.resignDialog;
+    for (const button of [...Object.values(this.buttons), confirm, cancel]) {
       button.label.setColor('#fff1d2').setStroke('#352417', 2);
     }
   }
@@ -256,6 +271,11 @@ export class GoView extends GameView<View, Options> {
     this.placeButtons();
     for (const [p, stone] of this.stones) this.placeStone(stone, p);
     this.drawMarks(ctx);
+    this.resignDialog.layout(
+      { x: left + side / 2, y: boardTop + side / 2, width: side },
+      { width, height, hud },
+      this.bleed,
+    );
     if (this.panel.shown) this.showPanel(false);
   }
 
@@ -268,11 +288,8 @@ export class GoView extends GameView<View, Options> {
   }
 
   private resetBoard() {
-    this.resignTimer?.cancel();
-    this.resignTimer = undefined;
-    this.resignArmed = false;
+    this.resignDialog.hide();
     this.panel.hide();
-    this.buttons.resign.setText('Đầu hàng');
     for (const stone of this.stones.values()) stone.image.destroy();
     this.stones.clear();
     this.hover(null);
@@ -356,7 +373,6 @@ export class GoView extends GameView<View, Options> {
   protected onPlace({ state }: Ctx) {
     const variant = (state.plies % 3) + 1;
     this.runtime.run(async (fx) => {
-      await fx.wait(85);
       await fx.sound(`go-place-${variant}`);
       if (state.last?.captured.length) {
         await fx.wait(90);
@@ -455,8 +471,8 @@ export class GoView extends GameView<View, Options> {
   }
 
   /**
-   * Makes the screen match the state: the stone just played pops in, taken stones fade out,
-   * anything else (joining late, a new game) appears at once.
+   * Makes the screen match the state: stones are set down at once (the bowl empties a little),
+   * taken stones fly to the taker's lid, anything else (joining late, a new game) appears at once.
    */
   private syncStones({ state }: Ctx, animate = true) {
     const last = state.last;
@@ -493,26 +509,6 @@ export class GoView extends GameView<View, Options> {
       stone.image.setDepth(DEPTH.stone);
       this.stones.set(p, stone);
       this.placeStone(stone, p);
-      if (animate && p === last?.point) {
-        const source = this.bowls[side].takeXY();
-        const destination = this.pointXY(p);
-        const { scaleX, scaleY } = stone.image;
-        stone.image
-          .setPosition(source.x, source.y)
-          .setDisplaySize(source.size, source.size)
-          .setDepth(10);
-        this.runtime.tween({
-          targets: stone.image,
-          x: destination.x,
-          y: destination.y,
-          scaleX,
-          scaleY,
-          alpha: 1,
-          duration: 260,
-          ease: 'Cubic.easeInOut',
-          onComplete: () => stone.image.setDepth(DEPTH.stone),
-        });
-      }
     }
   }
 
@@ -675,39 +671,35 @@ export class GoView extends GameView<View, Options> {
     accept.setText(agreed ? 'Đã đồng ý' : 'Đồng ý').setEnabled(!agreed);
     resume.container.setVisible(counting);
     resign.container.setVisible(on);
-    resign.setText(this.resignArmed ? 'Chắc chưa?' : 'Đầu hàng');
+    if (!on) this.resignDialog.hide();
     this.placeButtons();
   }
 
-  /** Keep play actions at the lower left, above DEV and away from seat one's HUD. */
+  /**
+   * Keep play actions at the lower left, above DEV and away from seat one's HUD. The white flag
+   * sits alone in the right column under the status, far from "Bỏ lượt"; "Đánh tiếp" under it.
+   */
   private placeButtons() {
     const { x, bottom, width, height } = this.buttonStack;
     const shown = Object.entries(this.buttons)
-      .filter(([key, button]) => key !== 'resume' && button.container.visible)
+      .filter(([key, button]) => key !== 'resume' && key !== 'resign' && button.container.visible)
       .map(([, button]) => button);
     const gap = 8;
     const span = shown.length * height + (shown.length - 1) * gap;
     shown.forEach((button, i) => {
-      button.setSize(width, height).setPosition(x, bottom - span + height / 2 + i * (height + gap));
+      fitButton(button, width, height).setPosition(
+        x,
+        bottom - span + height / 2 + i * (height + gap),
+      );
     });
-    this.buttons.resume
-      .setSize(width, height)
-      .setPosition(this.rails.right, this.details.y + this.details.height + 8 + height / 2);
-  }
-
-  private resign() {
-    if (this.resignArmed) {
-      this.resignTimer?.cancel();
-      this.resignArmed = false;
-      this.send('resign');
-      return;
-    }
-    this.resignArmed = true;
-    this.buttons.resign.setText('Chắc chưa?');
-    this.resignTimer = this.runtime.after(3000, () => {
-      this.resignArmed = false;
-      this.buttons.resign.setText('Đầu hàng');
-    });
+    const flag = Math.round(height * 0.8);
+    const flagY = this.details.y + this.details.height + 16 + flag / 2;
+    fitButton(this.buttons.resign, flag, flag).setPosition(this.rails.right, flagY);
+    drawFlag(this.resignFlag, flag * 0.62);
+    fitButton(this.buttons.resume, width, height).setPosition(
+      this.rails.right,
+      flagY + flag / 2 + 12 + height / 2,
+    );
   }
 
   /** Seat positions stay fixed even when room options swap the stone colors. */
