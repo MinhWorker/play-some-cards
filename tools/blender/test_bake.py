@@ -18,10 +18,11 @@ class NormalBakeTest(unittest.TestCase):
             cube('Facing the camera', (1.8, 1.8, 0.1), (0, 0, 0), material('Ivory', (1, 1, 1)), 0)
             render('flat', directory, directory, normal=True)
             with Image.open(Path(directory) / 'flat.normal.webp') as normal:
-                self.assertEqual(normal.getpixel((32, 32)), (128, 128, 255, 255))
+                # Opaque: Phaser premultiplies image alpha, which would shrink edge normals.
+                self.assertEqual(normal.mode, 'RGB')
+                self.assertEqual(normal.getpixel((32, 32)), (128, 128, 255))
                 with Image.open(Path(directory) / 'flat.webp') as diffuse:
                     self.assertEqual(diffuse.size, normal.size)
-                    self.assertEqual(diffuse.getchannel('A').tobytes(), normal.getchannel('A').tobytes())
             self.assertEqual(bpy.context.scene.view_settings.view_transform, 'AgX')
             self.assertIsNone(bpy.context.view_layer.material_override)
 
@@ -35,6 +36,8 @@ class NormalBakeTest(unittest.TestCase):
                 self.assertGreater(normal.getpixel((48, 32))[0], 128)
                 self.assertGreater(normal.getpixel((32, 16))[1], 128)
                 self.assertGreater(normal.getpixel((32, 32))[2], 250)
+                # Empty canvas reads as the flat normal, not black.
+                self.assertEqual(normal.getpixel((0, 0)), (128, 128, 255))
 
 
 if __name__ == '__main__':

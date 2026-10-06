@@ -93,7 +93,8 @@ games/<id>/          Only index.ts + client.ts are required
   - `hudScale()`, `fitText` and `boardArea()`.
 - **Backgrounds**: optional `defineClient({ background: false | MyBackground })` hides/replaces
   the app sky for boards/sandboxes. `GameBackgroundScene` has scene lifetime, no room state/input,
-  and `onCreate`, `onLayout`, `onUpdate(dt)` hooks. Setups retain the app sky.
+  and `onCreate`, `onLayout`, `onUpdate(dt)` hooks; `this.tiled(name)` covers the bleed with a
+  seamless tile at one texel per canvas pixel. Setups retain the app sky.
 - **Presentation**: `this.runtime.run` owns scoped async flows; `fx.tween`, `wait`, `sound`,
   `animate`, `frame` and `parallel` use its clock and cancellation. Use `fx.defer` for temporary
   objects and `fx.checkpoint` before direct side effects after await. Reset display fields in

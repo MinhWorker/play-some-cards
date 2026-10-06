@@ -53,7 +53,8 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
   `npm run blender -- chess pieces`. `npm run blender -- chess board` kết xuất bàn;
   `npm run blender -- chess piece-white-knight` sửa riêng Mã rồi ghép lại atlas. PNG trung gian
   nằm ở `.blender/chess/`; cặp `assets/pieces.webp`/`pieces.normal.webp` và `pieces.json`
-  chứa 12 khung cùng điểm neo. Normal map raw, lossless, giữ alpha và hướng đèn trên trái.
+  chứa 12 khung cùng điểm neo. Normal map raw, lossless, đục (không alpha) và hướng đèn trên trái. Bàn và nút vẫn
+  dùng bộ đèn cũ (`LEGACY_RIG`) để kết xuất lại khớp hình đã có.
   Có thể dùng Python 3.13 với `bpy==5.1.2` qua `PSC_BLENDER_PYTHON`; xem
   [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Toạ độ, chấm nước đi và màu đánh dấu do Phaser vẽ.
 - Đảo Cờ Vua: Image Gen, prompt trong `sources/prompts.json`. PNG gốc khoảng 2 MB được lưu
@@ -63,7 +64,7 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
   sáu quân để thấy rõ lưới.
 - Nút riêng kết xuất bằng Blender: `button.webp` xanh đêm và `button-secondary.webp` ngà,
   viền đồng mảnh, co giãn nine-slice. Tái tạo bằng `npm run blender -- chess button button-secondary`.
-- Nền vải liền mép 256×256 POT dùng `TileSprite`; tái tạo bằng `npm run blender -- chess cloth`.
+- Nền vải liền mép 256×256 POT phủ màn hình bằng `this.tiled('cloth')`, nét ở mọi mật độ; tái tạo bằng `npm run blender -- chess cloth`.
 - Âm thanh dùng lại của dự án theo bảng dưới; không dùng nguồn
   ngoài. Tái tạo bằng `python3 games/chess/sources/prepare_audio.py` (cần ffmpeg).
   Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.

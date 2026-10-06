@@ -11,7 +11,7 @@ from functools import partial
 
 # Shared helpers resolve identically in Blender and Python with the bpy wheel.
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "blender"))
-from psc_bake import material, wood, cube, sphere, lathe, setup, cloth_tile, atlas, render as bake
+from psc_bake import LEGACY_RIG, material, wood, cube, sphere, lathe, setup, cloth_tile, atlas, render as bake
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / '.blender' / 'chess'
@@ -82,7 +82,7 @@ def piece(kind, mat, trim, eye):
 
 
 if not SELECTED or 'board' in SELECTED:
-    setup((1800, 1800), 10)
+    setup((1800, 1800), 10, lights=LEGACY_RIG)
     rim = wood('Walnut rim', (0.07, 0.024, 0.009), (0.20, 0.075, 0.023))
     gold = material('Thin brass inlay', (0.55, 0.31, 0.07), 0.36)
     light = wood('Maple squares', (0.56, 0.38, 0.18), (0.73, 0.55, 0.29))
@@ -114,7 +114,7 @@ for side, color in [('white', (0.82, 0.76, 0.61)), ('black', (0.018, 0.025, 0.03
         trim = material('Subtle warm base inlay', (0.35, 0.20, 0.06), 0.36)
         eye = material('Horse eye', (0.035, 0.025, 0.012) if side == 'white' else (0.65, 0.40, 0.12))
         piece(kind, mat, trim, eye)
-        bake(name, OUT, OUT, normal=True)
+        bake(name, OUT, OUT, normal=True, webp=False)
 
 if render_pieces:
     atlas('pieces', FRAMES, ROOT / 'assets', OUT)
@@ -127,7 +127,7 @@ for name, color in [('button', (0.014, 0.045, 0.075)),
                     ('button-secondary', (0.77, 0.65, 0.45))]:
     if SELECTED and name not in SELECTED:
         continue
-    setup((640, 200), 4.16)
+    setup((640, 200), 4.16, lights=LEGACY_RIG)
     brass = material('Satin brass button edge', (0.52, 0.30, 0.085), 0.58)
     face = material('Lacquer' if name == 'button' else 'Ivory', color, 0.68)
     face.node_tree.nodes.get('Principled BSDF').inputs['Coat Weight'].default_value = 0.06

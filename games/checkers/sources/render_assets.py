@@ -11,13 +11,16 @@ from functools import partial
 
 # Shared helpers resolve identically in Blender and Python with the bpy wheel.
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "blender"))
-from psc_bake import material, wood, cube, sphere, lathe, setup, cloth_tile, render as bake
+from psc_bake import LEGACY_RIG, material, wood, cube, sphere, lathe, cloth_tile, render as bake
+from psc_bake import setup as base_setup
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / '.blender' / 'checkers'
 OUT.mkdir(parents=True, exist_ok=True)
 SELECTED = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 render = partial(bake, assets=ROOT / "assets", out=OUT, selected=SELECTED)
+# The committed discs and island were baked at 96 samples with the pre-toolkit rig.
+setup = partial(base_setup, samples=96, lights=LEGACY_RIG)
 
 
 def disc(mat, gold, king=False):

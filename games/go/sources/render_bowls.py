@@ -22,8 +22,7 @@ render = partial(bake, assets=ROOT / "assets", out=OUT, selected=SELECTED)
 
 
 def wicker(name, color):
-    mat = material(name, color, 0.66)
-    mat.node_tree.nodes.get("Principled BSDF").inputs["Coat Weight"].default_value = 0
+    mat = material(name, color, 0.66, coat=0)
     nodes, links = mat.node_tree.nodes, mat.node_tree.links
     shader = nodes.get("Principled BSDF")
     noise = nodes.new("ShaderNodeTexNoise")
@@ -61,7 +60,9 @@ def ring(name, radius, z, thickness, mat, wave=0):
 for name, depth in [("bowl", 0.72), ("bowl-lid", 0.20)]:
     if SELECTED and name not in SELECTED:
         continue
-    setup((768, 768), 2.65, samples=40)
+    # The bowls' own rig: go's disks with a softer fill and a dimmer world.
+    setup((768, 768), 2.65, samples=40, lights=(((-3, 4, 7), 650, 4), ((4, -2, 6), 80, 5)),
+          light_shape="DISK", world=((0.72, 0.78, 0.83), 0.25))
     fibers = [wicker(f"Natural rattan {i}", color) for i, color in enumerate([
         (0.43, 0.25, 0.105), (0.58, 0.36, 0.17), (0.68, 0.46, 0.25), (0.76, 0.55, 0.32)])]
     base = wicker("Warm woven backing", (0.40, 0.22, 0.09))

@@ -10,6 +10,18 @@ function frameOf(scene: Phaser.Scene) {
   return (scene.registry.get(FRAME) as Frame | undefined) ?? currentFrame();
 }
 
+/** A game object Phaser can light (images, sprites, text, graphics…). */
+type Lightable = Phaser.GameObjects.GameObject & Phaser.GameObjects.Components.Lighting;
+
+/** Made by `this.litLayer()`: lit objects kept in one Layer. */
+export interface LitLayer {
+  layer: Phaser.GameObjects.Layer;
+  /** Adds `child` to the layer with lighting on; returns it. */
+  add<T extends Lightable>(child: T): T;
+  /** Takes `child` out of the layer and turns its lighting off (add it to the scene yourself). */
+  remove(child: Lightable): void;
+}
+
 /** A button made by `this.button()`: an optional image with a label, reacting to taps. */
 export interface Button {
   container: Phaser.GameObjects.Container;
@@ -33,8 +45,9 @@ export interface Button {
  * (+X right, +Y up, +Z toward the viewer; flat = 128,128,255). Call `lighting()` in onCreate for
  * ambient + an upper-left key matching tools/blender/psc_bake; `lighting({ pointer: true })`
  * also adds a soft hover/drag light. It follows the frame and cleans up on scene shutdown.
- * `litLayer()` groups lit images/sprites into one Layer to keep draw calls low. Add children
- * with layer.add(...); their positions stay in scene units and depth sorts within the layer.
+ * `litLayer()` groups lit images/sprites into one Layer to keep draw calls low: `pieces.add(obj)`
+ * lights it, `pieces.remove(obj)` unlights it, `pieces.layer.setDepth(d)` orders the layer with
+ * the rest of the scene. Positions stay in scene units and depth sorts within the layer.
  * Images without normals use Phaser's flat normal. UI and board marks stay outside the layer.
  */
 export abstract class GameScene extends Phaser.Scene {
@@ -208,16 +221,22 @@ export abstract class GameScene extends Phaser.Scene {
     return { key, pointer: hover };
   }
 
-  /** A batch of lit images/sprites, including children added later. Requires lighting(). */
-  protected litLayer() {
+  /**
+   * One Layer of lit images/sprites, kept together so lighting batches. `add` turns lighting on
+   * and `remove` turns it off again; set the depth on `layer`. Requires lighting().
+   */
+  protected litLayer(): LitLayer {
     const layer = this.add.layer();
-    const added = layer.addCallback;
-    layer.addCallback = (child: Phaser.GameObjects.GameObject) => {
-      added.call(layer, child);
-      if ('setLighting' in child && typeof child.setLighting === 'function')
-        child.setLighting(true);
+    return {
+      layer,
+      add: (child) => {
+        layer.add(child.setLighting(true));
+        return child;
+      },
+      remove: (child) => {
+        layer.remove(child.setLighting(false));
+      },
     };
-    return layer;
   }
 
   /**

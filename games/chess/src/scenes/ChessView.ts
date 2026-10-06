@@ -20,6 +20,7 @@ import {
   type FlowHandle,
   FONT,
   GameView,
+  type LitLayer,
   type ViewContext,
   type ViewEvent,
 } from '@psc/sdk/client';
@@ -74,7 +75,7 @@ const CASTLE_ROOKS: Record<number, [number, number]> = {
 
 export class ChessView extends GameView<View, Options> {
   private board!: Phaser.GameObjects.Image;
-  private pieceLayer!: Phaser.GameObjects.Layer;
+  private pieceLayer!: LitLayer;
   private effects = true;
   private matchInfo!: Phaser.GameObjects.Text;
   private moveCount!: Phaser.GameObjects.Text;
@@ -130,7 +131,6 @@ export class ChessView extends GameView<View, Options> {
     this.targets = [];
     this.promoting = null;
     this.lighting({ pointer: true });
-    this.pieceLayer = this.litLayer().setDepth(DEPTH.piece);
     this.board = this.image(0, 0, 'board').setDepth(DEPTH.board);
     this.matchInfo = this.add
       .text(0, 0, 'Nước', { fontFamily: FONT, fontStyle: '600', color: '#a6bbc9' })
@@ -140,6 +140,9 @@ export class ChessView extends GameView<View, Options> {
       .text(0, 0, '', { fontFamily: FONT, fontStyle: '700', color: '#fff4df' })
       .setOrigin(0.5)
       .setDepth(DEPTH.piece);
+    // After the texts sharing its depth: pieces, resting or moving, draw over them.
+    this.pieceLayer = this.litLayer();
+    this.pieceLayer.layer.setDepth(DEPTH.piece);
     this.marks = this.add.graphics().setDepth(DEPTH.marks);
     const coord = () => this.add.text(0, 0, '', { fontStyle: '700' }).setDepth(DEPTH.marks);
     this.coords = {
@@ -530,8 +533,7 @@ export class ChessView extends GameView<View, Options> {
       .setOrigin(0.5, 0.62)
       .setDepth(DEPTH.piece)
       .setSelfShadow(true, 0.7);
-    this.pieceLayer.add(look);
-    return look;
+    return this.pieceLayer.add(look);
   }
 
   /** Every piece shares the same canvas and base anchor; pawns remain shorter than kings. */

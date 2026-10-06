@@ -1,6 +1,8 @@
 // Bake a game's Python sources with Blender or the bpy module, without LFS intermediates.
+// Runs every games/<id>/sources/render*.py in name order; each script bakes only the names it
+// owns from the list after `--` (all of them when the list is empty).
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const [id, ...names] = process.argv.slice(2);
@@ -9,27 +11,23 @@ if (!id || !/^[a-z0-9-]+$/.test(id)) {
   console.error('Usage: npm run blender -- <id> [names…]');
   process.exit(1);
 }
-const script = join(root, 'games', id, 'sources', 'render_assets.py');
-if (!existsSync(script)) {
-  console.error(`No Blender script: games/${id}/sources/render_assets.py`);
+const sources = join(root, 'games', id, 'sources');
+const scripts = existsSync(sources)
+  ? readdirSync(sources)
+      .filter((file) => /^render.*\.py$/.test(file))
+      .sort()
+  : [];
+if (!scripts.length) {
+  console.error(`No Blender script: games/${id}/sources/render*.py`);
   process.exit(1);
 }
 const python = process.env.PSC_BLENDER_PYTHON;
 const executable = python ?? process.env.PSC_BLENDER_BIN ?? 'blender';
-const bowls = join(root, 'games', id, 'sources', 'render_bowls.py');
-const bowlNames = names.filter((name) => name === 'bowl' || name === 'bowl-lid');
-const assetNames = names.filter((name) => !bowlNames.includes(name));
-const scripts = [];
-if (!names.length || assetNames.length) scripts.push([script, assetNames]);
-if (existsSync(bowls) && (!names.length || bowlNames.length)) scripts.push([bowls, bowlNames]);
-if (!scripts.length) {
-  console.error(`No renderer for: ${names.join(', ')}`);
-  process.exit(1);
-}
-for (const [source, selected] of scripts) {
+for (const script of scripts) {
+  const source = join(sources, script);
   const args = python
-    ? [source, '--', ...selected]
-    : ['-b', '-t', '4', '--python', source, '--', ...selected];
+    ? [source, '--', ...names]
+    : ['-b', '-t', '4', '--python', source, '--', ...names];
   const result = spawnSync(executable, args, { cwd: root, stdio: 'inherit' });
   if (result.error)
     console.error(

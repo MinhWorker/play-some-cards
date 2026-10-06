@@ -43,18 +43,25 @@ Notes on the options and on Codex:
 
 - Shared materials, geometry, camera setup and upper-left light rig live in `tools/blender/psc_bake/`.
   Chess, checkers and go use them; Cờ tỷ phú keeps its existing scripts.
-- Run `npm run blender -- <id> [names…]` with Blender (and Pillow), or install
+- `npm run blender -- <id> [names…]` runs every `games/<id>/sources/render*.py` in name order;
+  each script bakes only its own names from the list (all when empty). Run it with Blender (and Pillow), or install
   `bpy==5.1.2` + `Pillow` in a Python 3.13 environment and set `PSC_BLENDER_PYTHON` to its Python.
   `PSC_BLENDER_BIN` selects another Blender executable. Direct `python x.py -- <names>` and
   `blender -b --python x.py -- <names>` work too. PNG intermediates stay in ignored `.blender/`;
   commit Python sources and app-ready files, without adding LFS originals or `.blend` files.
-- `assets/<name>.normal.webp` pairs with image/atlas `<name>`. Same dimensions, alpha, frame
-  placement and unrotated/untrimmed canvases. Camera-space +X right, +Y up, +Z toward the viewer;
+- `assets/<name>.normal.webp` pairs with image/atlas `<name>`. Same dimensions, frame placement
+  and unrotated/untrimmed canvases, and **opaque** (RGB, no alpha): Phaser uploads images
+  premultiplied, so alpha below 255 shrinks the vectors and mis-shades edges. Empty canvas is
+  the flat normal; edges blend toward it (`opaque_normals` in psc_bake). Camera-space +X right, +Y up, +Z toward the viewer;
   flat normals are (128,128,255). Bake with Raw (Standard applies sRGB), disable dithering and
   save normals losslessly. Never run them through image cropping, grading or lossy compression.
 - Group lit sprites in `GameScene.litLayer()`. Different diffuse/normal pairs still flush Phaser's
   lit batch; pack many pieces into one aligned atlas pair (chess's `pieces`) to keep draws low.
-- Cloth is a seamless 256×256 POT tile, drawn with `TileSprite` out to the scene's bleed.
+- Cloth is a seamless 256×256 POT tile: `GameBackgroundScene.tiled('cloth')` covers the bleed at
+  one texel per canvas pixel.
+- Art baked before the shared rig keeps its own settings so a re-bake matches what is committed:
+  `setup(…, lights=LEGACY_RIG)` (chess board/buttons, checkers at 96 samples) and go's disk rig.
+  Only change a game's rig when you re-bake all of its art.
 - Verify the bake with `python tools/blender/test_bake.py` or
   `blender -b --python tools/blender/test_bake.py`.
 
