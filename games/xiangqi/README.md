@@ -34,6 +34,9 @@ trong `sources/prompts.json`; đường bàn vẽ theo `src/scenes/theme.ts`.
 Quân cờ, bóng và chữ trên sông kết xuất bằng Blender. Quân dùng màu ngà dịu, kể cả khi di chuyển,
 vỡ quân và xuất hiện trên bảng kết quả. Nút dùng lại từ Tiến Lên.
 Tiếng di chuyển, vỡ quân và nhạc thắng tổng hợp bằng code.
+Thông báo chiếu tướng/chiếu bí theo lối tranh thủy mặc: cuộn giấy mở ra giữa hai trục gỗ, vệt
+mực nhạt quét ngang, quân đang chiếu hiện bên trái, chữ mực đen hiện dần và triện đỏ chữ 將 đóng
+xuống, rồi cuộn giấy cuộn lại. Toàn bộ vẽ bằng code (`src/scenes/cutin.ts`).
 Âm thanh dùng trực tiếp từ `assets/`.
 
 ## Bố cục bàn chơi

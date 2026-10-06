@@ -154,6 +154,17 @@ export function inCheck(board: Cell[], side: Side): boolean {
   return king < 0 || attacked(board, king, other(side));
 }
 
+/** The squares of the pieces giving check to the side to move (none when not in check). */
+export function checkersOf(pos: Position): number[] {
+  const king = kingOf(pos.board, pos.turn);
+  const out: number[] = [];
+  pos.board.forEach((piece, sq) => {
+    if (!piece || sideOf(piece) === pos.turn) return;
+    if (pseudoMoves(pos, sq).some((m) => m.to === king)) out.push(sq);
+  });
+  return out;
+}
+
 /** Where the piece on `from` may go by its own rule, without looking at checks. */
 export function pseudoMoves(pos: Position, from: number): Move[] {
   const { board } = pos;

@@ -8,13 +8,15 @@
  *
  * Tap one of your pieces on your turn to see where it may go (dots; rings on pieces it can
  * take), then tap a square to move. A pawn reaching the last rank asks what it becomes. Black's
- * player sees the board turned round.
+ * player sees the board turned round. A check or mate plays a heraldic cut-in (cutin.ts) while
+ * effects are on.
  *
  * The exact 8x8 board and twelve Staunton sprites are Blender renders. Coordinates and move
  * marks stay code-native and aligned with the board. Audio reuses existing game assets.
  */
 import {
   type Button,
+  type FlowContext,
   type FlowHandle,
   FONT,
   GameView,
@@ -25,6 +27,7 @@ import type Phaser from 'phaser';
 import type { Move, Options, Piece, Promotion, Side, View } from '../game/model.js';
 import { SIZE } from '../game/model.js';
 import {
+  checkersOf,
   colOf,
   isPromotion,
   kindOf,
@@ -36,6 +39,7 @@ import {
   square,
 } from '../game/rules.js';
 import { PRIMARY_BUTTON, SECONDARY_BUTTON, styleButton } from './buttons.js';
+import { cutIn } from './cutin.js';
 import { PLAYER_HEIGHT, PlayerInfo } from './PlayerInfo.js';
 import { formatPlayed, ResultPanel } from './ResultPanel.js';
 import { COLORS, DISC, endText, PROMOTION_NAMES, pieceImage, reasonText, SIDES } from './theme.js';
@@ -58,7 +62,7 @@ function loadEffects() {
   }
 }
 
-const DEPTH = { board: 0, marks: 1, piece: 5, moving: 7, picker: 10 } as const;
+const DEPTH = { board: 0, marks: 1, piece: 5, moving: 7, picker: 10, cutIn: 15 } as const;
 
 /** Where the rook goes when the king castles to `to` (from its corner). */
 const CASTLE_ROOKS: Record<number, [number, number]> = {
@@ -293,8 +297,11 @@ export class ChessView extends GameView<View, Options> {
     const landed = () => {
       if (last.promotion) this.restyle(moving);
       this.sfx(sound);
-      if (ctx.state.check && !ctx.result) this.sfx('chess-check');
       if (this.effects) this.landing(to);
+      if (ctx.state.check && !ctx.result) {
+        this.sfx('chess-check');
+        if (this.effects) this.runtime.run((fx) => this.checkCutIn(fx, ctx, 'CHIẾU TƯỚNG!'));
+      }
     };
     const taken = last.enPassant ? square(rowOf(from), colOf(to)) : to;
     const victim = this.pieces.get(taken);
@@ -340,6 +347,10 @@ export class ChessView extends GameView<View, Options> {
     this.runtime.run(async (fx) => {
       if (this.effects) await fx.wait(320);
       fx.checkpoint();
+      if (this.effects && ctx.state.end?.reason === 'checkmate') {
+        await this.checkCutIn(fx, ctx, 'CHIẾU HẾT!');
+        fx.checkpoint();
+      }
       this.sfx(
         ctx.state.end?.reason === 'checkmate'
           ? 'chess-mate'
@@ -348,6 +359,23 @@ export class ChessView extends GameView<View, Options> {
             : 'chess-draw',
       );
       this.showPanel(this.effects);
+    });
+  }
+
+  /** The check (or mate) cut-in across the screen, with the piece giving check. */
+  private async checkCutIn(fx: FlowContext, ctx: Ctx, text: string) {
+    const from = checkersOf(ctx.state)[0];
+    const piece = from === undefined ? null : ctx.state.board[from];
+    if (!piece) return;
+    const { width, height, hud } = ctx.screen;
+    await cutIn(this, fx, {
+      text,
+      piece: this.texture(pieceImage(sideOf(piece), kindOf(piece))),
+      dark: sideOf(piece) === 'b',
+      width,
+      height,
+      hud,
+      depth: DEPTH.cutIn,
     });
   }
 

@@ -44,7 +44,7 @@ export default async function run(t) {
     const objects = key === 'go' ? s.stones : s.pieces;
     const expected = key === 'go' ? 0 : key === 'chess' ? 32 : 24;
     return (
-      !s.resignArmed &&
+      !s.resignDialog.shown &&
       objects.size === expected &&
       s.bowls.b.remaining === 181 &&
       s.bowls.w.remaining === 180 &&

@@ -19,8 +19,11 @@ chiều cao màn hình ngang; người chơi và nút điều khiển nằm hai 
 Người 1 ở góc dưới phải, người 2 ở góc trên trái, kể cả khi đổi màu quân. HUD không có khung:
 ảnh đại diện bên trái, tên và số quân đã bắt bên phải; vòng vàng quanh avatar chỉ bên đang có lượt.
 Hai cụm chừa chỗ cho thanh phòng và nút cài đặt chung. Trạng thái lượt và số nước nằm bên phải bàn.
+Nút "Bỏ lượt" ở bên trái bàn. Đầu hàng là nút lá cờ trắng nằm riêng bên phải, dưới trạng thái
+lượt; chạm vào mở hộp xác nhận "Đầu hàng?" với hai nút "Chơi tiếp" và "Đầu hàng" (chạm ra ngoài
+hộp cũng là chơi tiếp).
 Mỗi người có hộp mây và nắp riêng: đầu ván nắp trượt mở, hộp chứa 181 quân Đen hoặc 180 quân Trắng.
-Quân bay từ hộp lên bàn khi đặt, số quân trong hộp vơi dần; quân bắt được bay lên nắp của người bắt.
+Quân được đặt xuống bàn ngay, số quân trong hộp vơi dần; quân bắt được bay lên nắp của người bắt.
 Quân vừa đặt có vòng đỏ, điểm cướp có ô vuông. Khi đếm điểm,
 quân chết mờ đi và ô vuông nhỏ đen/trắng cho biết giao điểm đó tính cho ai. Hai bên sửa đánh dấu,
 cùng "Đồng ý" để kết thúc, hoặc "Đánh tiếp" để trở lại ván.
@@ -46,6 +49,7 @@ mắt mình và ước lượng vùng chắc bằng các ván ngẫu nhiên. Ch�
 | Máy chơi | `src/game/bot.ts` |
 | Bàn, quân, hiệu ứng và âm thanh | `src/scenes/GoView.ts` |
 | Thông báo chiến thắng và thống kê cuối ván | `src/scenes/ResultPanel.ts` |
+| Nút lá cờ trắng và hộp xác nhận đầu hàng | `src/scenes/ResignDialog.ts` |
 | Hộp, nắp và các chồng quân theo số lượng | `src/scenes/StoneBowl.ts` |
 | Nền vải xanh trầm | `src/scenes/GoBackground.ts` |
 | Form tạo phòng | `src/scenes/Setup.ts` |
@@ -79,6 +83,6 @@ Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
   tải bản ghi nguồn bằng Git LFS). Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.
   Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
 
-Hiệu ứng đặt quân bay từ hộp xuống bàn; quân bị bắt chuyển sang nắp đối thủ, hộp/nắp rung nhẹ.
+Quân đặt xuống bàn ngay, không bay từ hộp; hộp vơi dần, quân bị bắt chuyển sang nắp đối thủ, hộp/nắp rung nhẹ.
 Nước đi và âm thanh dùng runtime SDK: ván mới, đổi ghế, kết nối lại và
 rời bàn huỷ hiệu ứng cũ; dựng lại bàn không phát lại nước đi hoặc nhạc kết thúc.
