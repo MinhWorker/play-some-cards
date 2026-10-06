@@ -26,3 +26,5 @@ games/*/sources/**/*.wav filter=lfs diff=lfs merge=lfs -text
 games/*/sources/**/*.ogg filter=lfs diff=lfs merge=lfs -text
 games/*/sources/**/*.flac filter=lfs diff=lfs merge=lfs -text
 games/*/sources/**/*.zip filter=lfs diff=lfs merge=lfs -text
+# This small chess original stays in plain git: the connected transport cannot authenticate LFS uploads.
+games/chess/sources/island.png -filter -diff -merge -text

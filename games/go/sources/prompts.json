@@ -1,0 +1,10 @@
+{
+  "$comment": "Đảo sinh bằng Image Gen. Bàn, quân, vải và nút do render_assets.py kết xuất bằng Blender; hộp/nắp mây đan do render_bowls.py.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating Go island for a Vietnamese mobile board game world map, entire silhouette visible. Warm rocky underside tapering to a point, mossy grass edge and sparse dangling roots. A honey-colored natural wood Go board with an extremely thin beveled rim, standard dense 19x19 grid, nine small star points and a handful of polished slate black and creamy white Go stones at intersections. Two simple wood stone bowls and one sculptural pine tree. Isometric three-quarter view for the map island, tactile premium 3D mobile-game render, soft upper-left light. No text, logos, characters or buildings. Transparent background with real alpha and no ground plane."
+    }
+  }
+}

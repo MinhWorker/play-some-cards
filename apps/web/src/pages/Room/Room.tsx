@@ -99,7 +99,9 @@ export function Room({ session, snapshot, onLeave, onCustomize, error: moveError
       )}
 
       {snapshot.result && (
-        <div className="hud panel modal result">
+        <div
+          className={snapshot.gameId === 'go' ? 'hud result result--go' : 'hud panel modal result'}
+        >
           {!client?.showsResult && (
             <h2>
               {snapshot.result.winners.length === 0

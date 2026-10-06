@@ -1,5 +1,6 @@
 import {
   type BotContext,
+  type CommandContext,
   type EventContext,
   Game,
   type GameContext,
@@ -10,14 +11,17 @@ import {
 import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';
+import { type CardRef, catalogs, commands } from './dev.js';
 import {
-  AUCTION_BID_MS,
-  AUCTION_OPEN_MS,
-  AUCTION_STEP,
+  AUCTION_TURN_MS,
+  auctionRaise,
   BOARD,
   isDeed,
+  JAIL_CARD_PRICE,
   type Options,
   SPECIAL_EVENT_TIMEOUT,
+  STARTING_CASH,
+  STATION_CONTRIBUTION_STEP,
   type State,
   type View,
 } from './model.js';
@@ -28,10 +32,14 @@ import {
   bankrupt,
   charge,
   copy,
+  expireMortgages,
+  mortgageAmount,
   move,
   next,
-  openAuction,
+  redeemAmount,
   resolveSpecialEvent,
+  settleStations,
+  startTurn,
   transferMoney,
 } from './rules.js';
 
@@ -55,19 +63,30 @@ function requireOwner(ctx: Action<{ square: number }>) {
   return square;
 }
 
+/** Also allow the off-turn station winner to raise funds for their outstanding debt. */
+function requireManagement<T>(ctx: Action<T>) {
+  if ((ctx.state.phase === 'debt' ? decisionSeat(ctx.state) : ctx.state.turn) !== ctx.player.seat)
+    ctx.reject('Chưa tới lượt bạn');
+  if (ctx.state.winner !== null || ctx.state.players[ctx.player.seat]!.bankrupt)
+    ctx.reject('Bạn không còn chơi trong ván');
+}
+
 export class CoTyPhuClassicGame extends Game<State, Options, View> {
   events = {
     roll: z.object({}),
     'confirm-event': z.object({}),
     'event-ready': z.object({ id: z.number().int().nonnegative() }),
     buy: z.object({}),
-    auction: z.object({}),
+    auction: squareSchema,
     bid: z.object({ amount: z.number().int().min(1).max(100000) }),
     pass: z.object({}),
     'end-turn': z.object({}),
     build: squareSchema,
     'sell-house': squareSchema,
-    mortgage: squareSchema,
+    mortgage: z.union([
+      squareSchema,
+      z.object({ squares: z.array(squareSchema.shape.square).min(1).max(30) }),
+    ]),
     redeem: squareSchema,
     'pay-debt': z.object({}),
     bankrupt: z.object({}),
@@ -75,14 +94,49 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     'use-card': z.object({}),
     'offer-trade': z.object({
       to: z.number().int().min(0).max(3),
-      give: z.number().int().min(-1).max(39),
-      take: z.number().int().min(-1).max(39),
+      give: z.number().int().min(-2).max(39),
+      take: z.number().int().min(-2).max(39),
       giveCash: z.number().int().min(0).max(100000),
       takeCash: z.number().int().min(0).max(100000),
     }),
     'accept-trade': z.object({}),
     'decline-trade': z.object({}),
   };
+
+  override readonly catalogs = catalogs;
+  override readonly commands = commands;
+
+  cmdDice(ctx: CommandContext<State, Options, { a: number; b: number }>): State {
+    return { ...ctx.state, devDice: [ctx.args.a, ctx.args.b] };
+  }
+  cmdTp(ctx: CommandContext<State, Options, { seat: number; square: number }>): State {
+    if (!ctx.state.players[ctx.args.seat]) ctx.reject(`Không có ghế ${ctx.args.seat}`);
+    const s = copy(ctx.state);
+    s.players[ctx.args.seat]!.position = ctx.args.square;
+    return s;
+  }
+  cmdCash(ctx: CommandContext<State, Options, { seat: number; amount: number }>): State {
+    if (!ctx.state.players[ctx.args.seat]) ctx.reject(`Không có ghế ${ctx.args.seat}`);
+    const s = copy(ctx.state);
+    s.players[ctx.args.seat]!.cash = ctx.args.amount;
+    return s;
+  }
+  cmdCard(ctx: CommandContext<State, Options, { card: CardRef }>): State {
+    const { deck, index } = ctx.args.card;
+    const card = (deck === 'chance' ? CHANCE : CHEST)[index];
+    if (!card) ctx.reject('Lá bài không tồn tại');
+    if (!ctx.state[deck].includes(index)) ctx.reject('Lá bài đang được người chơi giữ');
+    const s = copy(ctx.state);
+    s[deck] = [index, ...s[deck].filter((id) => id !== index)];
+    s.lastCard = card.text;
+    awaitSpecialEvent(s, {
+      kind: 'card',
+      card,
+      deck,
+      roll: (s.dice?.[0] ?? 0) + (s.dice?.[1] ?? 0),
+    });
+    return this.complete(s, ctx, true);
+  }
 
   onStart(ctx: StartContext<Options>): State {
     const { players, rng } = ctx;
@@ -92,7 +146,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       moneySequence: 0,
       transfers: [],
       players: players.map(() => ({
-        cash: 1500,
+        cash: STARTING_CASH,
         position: 0,
         jailed: false,
         jailRolls: 0,
@@ -101,6 +155,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       })),
       properties: BOARD.map(() => ({ owner: null, houses: 0, mortgaged: false })),
       turn: 0,
+      playerTurns: players.map((_, seat) => (seat === 0 ? 1 : 0)),
       round: 0,
       shortages: [],
       phase: 'roll',
@@ -110,6 +165,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
       pending: null,
       buildable: null,
       auction: null,
+      stationAuctions: {},
       debt: null,
       trade: null,
       chance: shuffle(CHANCE.length, rng),
@@ -123,7 +179,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   }
 
   view({ state }: GameContext<State, Options>): View {
-    const { chance: _chance, chest: _chest, ...visible } = state;
+    const { chance: _chance, chest: _chest, devDice: _devDice, ...visible } = state;
     return visible;
   }
 
@@ -137,8 +193,8 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const seat = s.turn;
     const p = s.players[seat]!;
     s.buildable = null;
-    const a = 1 + Math.floor(ctx.rng() * 6);
-    const b = 1 + Math.floor(ctx.rng() * 6);
+    const [a, b] = s.devDice ?? [1 + Math.floor(ctx.rng() * 6), 1 + Math.floor(ctx.rng() * 6)];
+    delete s.devDice;
     s.dice = [a, b];
     s.lastCard = null;
     if (p.jailed) {
@@ -185,21 +241,16 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         ctx.setTimer(30000, 'prepare-event', s.specialEvent.id);
       return;
     }
-    // An auction is open to everyone: its own clock, bots included, restarts on every bid.
-    if (s.phase === 'auction' && s.auction) {
-      ctx.setTimer(
-        s.auction.round ? AUCTION_BID_MS : AUCTION_OPEN_MS,
-        'auction-end',
-        s.auction.round,
-      );
-      return;
-    }
     const seat = decisionSeat(s);
-    if (hasPvpClock(s, ctx.players) && !ctx.players[seat]?.bot)
+    if (ctx.players[seat]?.bot) return;
+    // Each bid in an auction has its own countdown, even in a game against the computer.
+    if (s.phase === 'auction') ctx.setTimer(AUCTION_TURN_MS, 'turn-timeout', decisionKey(s));
+    else if (hasPvpClock(s, ctx.players))
       ctx.setTimer(ctx.options.turnSeconds * 1000, 'turn-timeout', decisionKey(s));
   }
 
   private complete(s: State, ctx: GameContext<State, Options>, force = false) {
+    settleStations(s);
     if (
       force ||
       decisionKey(s) !== decisionKey(ctx.state) ||
@@ -251,7 +302,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const seat = decisionSeat(ctx.state);
     if (
       ctx.payload !== decisionKey(ctx.state) ||
-      !hasPvpClock(ctx.state, ctx.players) ||
+      (ctx.state.phase !== 'auction' && !hasPvpClock(ctx.state, ctx.players)) ||
       ctx.players[seat]?.bot ||
       ctx.state.winner !== null
     )
@@ -277,12 +328,16 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         s = this.onEndTurn(action(s, {}));
         break;
       case 'buy':
-        event = s.players[seat]!.cash >= BOARD[s.pending!]!.price! ? 'buy' : 'auction';
-        s = event === 'buy' ? this.onBuy(action(s, {})) : this.onAuction(action(s, {}));
+        event = s.players[seat]!.cash >= BOARD[s.pending!]!.price! ? 'buy' : 'end-turn';
+        s = event === 'buy' ? this.onBuy(action(s, {})) : this.onEndTurn(action(s, {}));
         break;
       case 'auction':
-        // An auction runs on its own clock (onAuctionEnd), never on a turn's.
-        return ctx.state;
+        event = 'pass';
+        if (s.auction!.leader === seat && s.auction!.seller !== undefined) {
+          s = copy(s);
+          this.auctionStep(s);
+        } else s = this.onPass(action(s, {}));
+        break;
       case 'trade':
         event = 'decline-trade';
         s = this.onDeclineTrade(action(s, {}));
@@ -291,7 +346,14 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
         const transfers = [] as State['transfers'];
         event = 'pay-debt';
         // Each step sells a building, mortgages a plot, pays, or declares insolvency.
-        for (let i = 0; i <= BOARD.length * 6 && s.phase === 'debt' && s.winner === null; i++) {
+        for (
+          let i = 0;
+          i <= BOARD.length * 6 &&
+          s.phase === 'debt' &&
+          decisionSeat(s) === seat &&
+          s.winner === null;
+          i++
+        ) {
           const move = botMove(s, seat);
           if (!move) throw new Error('Không thể tự xử lý khoản nợ');
           event = move.event;
@@ -338,132 +400,141 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     return this.complete(s, ctx);
   }
 
-  onAuction(ctx: Action): State {
-    requireTurn(ctx, 'buy');
+  onAuction(ctx: Action<{ square: number }>): State {
+    requireManagement(ctx);
+    const square = requireOwner(ctx);
     const s = copy(ctx.state);
-    openAuction(s, s.pending!);
-    s.notice = `Đấu giá ${BOARD[s.pending!]!.name}.`;
+    const seller = ctx.player.seat;
+    s.auction = {
+      square,
+      seller,
+      resume: s.phase,
+      bidder: next(s, seller),
+      highest: 0,
+      leader: null,
+      passed: [seller],
+      bids: s.players.map(() => 0),
+    };
+    s.phase = 'auction';
+    s.notice = `${ctx.player.name} mở đấu giá ${BOARD[square]!.name}.`;
+    this.auctionStep(s, false);
     return this.complete(s, ctx);
   }
 
-  /** Who may still bid: at the table, not bankrupt, not out of this auction. */
-  private bidders(s: State) {
+  private auctionStep(s: State, advance = true) {
     const auction = s.auction!;
-    return s.players.flatMap((p, i) => (p.bankrupt || auction.passed.includes(i) ? [] : [i]));
-  }
-
-  /**
-   * The auction is decided once nobody but the leader (or nobody at all) can still bid. A station
-   * must be sold: the last one left in it buys, bid or not.
-   */
-  private decided(s: State) {
-    const remaining = this.bidders(s);
-    const { leader, square } = s.auction!;
-    if (remaining.length === 0) return true;
-    return remaining.length === 1 && (remaining[0] === leader || BOARD[square]!.kind === 'station');
-  }
-
-  /**
-   * Ends the auction: the leader buys at the highest bid. A station refunds every deposit
-   * first, and its winner pays the listed price.
-   */
-  private settleAuction(s: State) {
-    const auction = s.auction!;
-    const cell = BOARD[auction.square]!;
-    let price = auction.highest;
-    let winner = auction.leader;
-    if (cell.kind === 'station') {
-      auction.bids.forEach((amount, seat) => {
-        transferMoney(s, null, seat, amount, 'Hoàn tiền đấu giá');
-      });
-      price = cell.price!;
-      const remaining = this.bidders(s);
-      if (winner === null && remaining.length === 1) winner = remaining[0]!;
+    if (s.properties[auction.square]!.owner !== auction.seller) {
+      s.auction = null;
+      s.phase = auction.resume!;
+      s.notice = 'Đấu giá bị hủy vì quyền sở hữu đã thay đổi.';
+      return;
     }
-    if (winner !== null && !s.players[winner]!.bankrupt && s.players[winner]!.cash >= price) {
-      transferMoney(s, winner, null, price, `Đấu giá ${cell.name}`);
-      s.properties[auction.square]!.owner = winner;
-      s.notice = `${cell.name} bán giá ${price}.`;
-    } else s.notice = 'Không ai mua đất trong phiên đấu giá.';
+    const remaining = s.players.flatMap((p, i) =>
+      p.bankrupt || auction.passed.includes(i) ? [] : [i],
+    );
+    if (remaining.length === 0 || (remaining.length === 1 && auction.leader === remaining[0])) {
+      if (auction.leader !== null && s.players[auction.leader]!.cash >= auction.highest) {
+        const winner = auction.leader;
+        transferMoney(
+          s,
+          winner,
+          auction.seller!,
+          auction.highest,
+          `Đấu giá ${BOARD[auction.square]!.name}`,
+        );
+        s.properties[auction.square]!.owner = winner;
+        s.notice = `${BOARD[auction.square]!.name} bán giá ${auction.highest}.`;
+      } else s.notice = 'Không ai mua đất trong phiên đấu giá.';
+      s.auction = null;
+      s.phase = auction.resume!;
+      if (s.buildable === auction.square && auction.leader !== null) s.buildable = null;
+    } else if (advance || s.auction!.passed.includes(s.auction!.bidder)) {
+      s.auction!.bidder = next(s, auction.bidder);
+      while (s.auction!.passed.includes(s.auction!.bidder)) {
+        s.auction!.bidder = next(s, s.auction!.bidder);
+      }
+    }
+  }
+
+  onBid(ctx: Action<{ amount: number }>): State {
+    if (ctx.state.phase !== 'auction' || ctx.state.auction?.bidder !== ctx.player.seat)
+      ctx.reject('Chưa tới lượt đấu giá của bạn');
+    const s = copy(ctx.state);
+    const amount = ctx.payload.amount;
+    const station = s.auction!.seller === undefined;
+    if (station) {
+      requireTurn(ctx, 'auction');
+      if (s.players[s.turn]!.position !== s.auction!.square || s.pending !== s.auction!.square)
+        ctx.reject('Chỉ được góp tiền khi bước vào bến xe');
+      if (s.auction!.passed.includes(s.turn)) ctx.reject('Bạn đã từ bỏ bến xe này');
+      if (s.auction!.leader === ctx.player.seat)
+        ctx.reject('Cần người khác góp giá trước khi bạn góp tiếp tại bến này');
+    }
+    if (
+      (station
+        ? amount !== s.auction!.highest + STATION_CONTRIBUTION_STEP
+        : amount < s.auction!.highest + auctionRaise(s.auction!.square)) ||
+      amount > s.players[ctx.player.seat]!.cash
+    )
+      ctx.reject('Giá đấu phải cao hơn và trong số tiền bạn có');
+    if (station) {
+      transferMoney(s, ctx.player.seat, null, amount, 'Góp tiền bến xe');
+      s.auction!.bids[ctx.player.seat]! += amount;
+    }
+    s.auction!.highest = amount;
+    s.auction!.leader = ctx.player.seat;
+    s.notice = `${ctx.player.name} trả ${amount}.`;
+    if (station) this.endStationVisit(s);
+    else this.auctionStep(s);
+    return this.complete(s, ctx);
+  }
+
+  private endStationVisit(s: State) {
+    const { bidder: _bidder, ...auction } = s.auction!;
+    s.stationAuctions[auction.square] = auction;
     s.auction = null;
     s.pending = null;
     s.phase = s.after;
   }
 
-  /** The auction's clock ran out: the leader buys. */
-  onAuctionEnd(ctx: TimerContext<State, number, Options>): State {
-    if (ctx.state.phase !== 'auction' || ctx.state.auction?.round !== ctx.payload) return ctx.state;
-    const s = copy(ctx.state);
-    this.settleAuction(s);
-    return this.complete(s, ctx, true);
-  }
-
-  /** Anyone still in the auction raises the highest bid; the clock starts again. */
-  onBid(ctx: Action<{ amount: number }>): State {
-    const auction = ctx.state.auction;
-    const seat = ctx.player.seat;
-    if (ctx.state.phase !== 'auction' || !auction) return ctx.reject('Không có phiên đấu giá');
-    if (ctx.state.players[seat]!.bankrupt || auction.passed.includes(seat))
-      ctx.reject('Bạn đã rời phiên đấu giá');
-    if (auction.leader === seat) ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
-    const station = BOARD[auction.square]!.kind === 'station';
-    const amount = ctx.payload.amount;
-    const available = ctx.state.players[seat]!.cash + auction.bids[seat]!;
-    if (station ? amount !== auction.highest + AUCTION_STEP : amount <= auction.highest)
-      ctx.reject('Giá đã thay đổi, hãy trả lại');
-    if (amount > available || (station && available < BOARD[auction.square]!.price!))
-      ctx.reject('Không đủ tiền cho giá này');
-    const s = copy(ctx.state);
-    const a = s.auction!;
-    if (station) {
-      transferMoney(s, seat, null, amount - a.bids[seat]!, 'Đặt tiền đấu giá');
-      a.bids[seat] = amount;
-    }
-    a.highest = amount;
-    a.leader = seat;
-    a.round++;
-    s.notice = `${ctx.player.name} trả ${amount}.`;
-    if (this.decided(s)) this.settleAuction(s);
-    return this.complete(s, ctx, true);
-  }
-
-  /** Leave the auction (a station's deposit comes back). The leader of a street may not. */
   onPass(ctx: Action): State {
-    const auction = ctx.state.auction;
-    const seat = ctx.player.seat;
-    if (ctx.state.phase !== 'auction' || !auction) return ctx.reject('Không có phiên đấu giá');
-    if (auction.passed.includes(seat)) ctx.reject('Bạn đã rời phiên đấu giá');
-    const station = BOARD[auction.square]!.kind === 'station';
-    if (auction.leader === seat && !station) ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
+    if (ctx.state.phase !== 'auction' || ctx.state.auction?.bidder !== ctx.player.seat)
+      ctx.reject('Chưa tới lượt đấu giá của bạn');
     const s = copy(ctx.state);
-    this.leaveAuction(s, seat);
-    s.notice = `${ctx.player.name} bỏ đấu giá.`;
-    if (this.decided(s)) {
-      this.settleAuction(s);
-      return this.complete(s, ctx, true);
+    const station = s.auction!.seller === undefined;
+    if (station) {
+      requireTurn(ctx, 'auction');
+      if (s.players[s.turn]!.position !== s.auction!.square || s.pending !== s.auction!.square)
+        ctx.reject('Chỉ được từ bỏ khi bước vào bến xe');
+      if (s.auction!.passed.includes(s.turn)) ctx.reject('Bạn đã từ bỏ bến xe này');
+    } else if (s.auction!.leader === ctx.player.seat) {
+      ctx.reject('Giá bạn đã trả vẫn đang cao nhất');
     }
-    // The clock keeps running: leaving doesn't give the others more time.
-    return s;
-  }
-
-  /** `seat` is out of the auction: its deposit comes back; a station's lead goes to the next deposit. */
-  private leaveAuction(s: State, seat: number) {
-    const a = s.auction!;
-    if (a.bids[seat]) transferMoney(s, null, seat, a.bids[seat]!, 'Rút tiền đấu giá');
-    a.bids[seat] = 0;
-    a.passed.push(seat);
-    if (a.leader !== seat) return;
-    const best = Math.max(0, ...a.bids);
-    a.leader = best > 0 ? a.bids.indexOf(best) : null;
-    // A station keeps its price ladder; a street starts over from nothing.
-    if (BOARD[a.square]!.kind !== 'station') a.highest = 0;
+    if (s.auction!.leader === ctx.player.seat) s.auction!.leader = null;
+    s.auction!.passed.push(ctx.player.seat);
+    s.notice = `${ctx.player.name} bỏ đấu giá.`;
+    if (station) {
+      transferMoney(
+        s,
+        null,
+        ctx.player.seat,
+        s.auction!.bids[ctx.player.seat]!,
+        'Hoàn tiền đấu giá',
+      );
+      s.auction!.bids[ctx.player.seat] = 0;
+      this.endStationVisit(s);
+    } else this.auctionStep(s);
+    return this.complete(s, ctx);
   }
 
   onEndTurn(ctx: Action): State {
-    requireTurn(ctx, 'end');
+    requireTurn(ctx);
+    if (ctx.state.phase !== 'end' && ctx.state.phase !== 'buy') ctx.reject('Thao tác chưa hợp lệ');
     const s = copy(ctx.state);
+    s.pending = null;
     const previous = s.turn;
-    s.turn = next(s, s.turn);
+    const expired = expireMortgages(s, previous);
+    startTurn(s, next(s, s.turn));
     if (s.turn <= previous) {
       s.round++;
       s.shortages = s.shortages.filter((event) => event.round >= s.round);
@@ -474,7 +545,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     s.dice = null;
     s.lastCard = null;
     s.buildable = null;
-    s.notice = `Tới lượt ${ctx.players[s.turn]!.name}.`;
+    s.notice = `${expired.length ? `Thu hồi ${expired.join(', ')} do hết hạn chuộc. ` : ''}Tới lượt ${ctx.players[s.turn]!.name}.`;
     return this.complete(s, ctx);
   }
 
@@ -505,6 +576,7 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const s = copy(ctx.state);
     const deed = s.properties[square]!;
     const cell = BOARD[square]!;
+    if (deed.mortgaged) ctx.reject('Phải chuộc tài sản trước khi bán công trình');
     if (!deed.houses) ctx.reject('Ô này không có nhà');
     if (deed.houses === 5 && bankHouses(s) < 4)
       ctx.reject('Ngân hàng thiếu 4 nhà để đổi khách sạn');
@@ -514,36 +586,53 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     return this.complete(s, ctx);
   }
 
-  onMortgage(ctx: Action<{ square: number }>): State {
-    const square = requireOwner(ctx);
+  onMortgage(ctx: Action<{ square: number } | { squares: number[] }>): State {
+    requireManagement(ctx);
+    const squares = 'squares' in ctx.payload ? ctx.payload.squares : [ctx.payload.square];
+    if (new Set(squares).size !== squares.length) ctx.reject('Danh sách thế chấp bị trùng ô');
+    for (const square of squares) {
+      requireOwner({ ...ctx, payload: { square } });
+      if (ctx.state.properties[square]!.mortgaged) ctx.reject('Đất này đã thế chấp');
+    }
     const s = copy(ctx.state);
-    if (s.properties[square]!.mortgaged) ctx.reject('Đất này đã thế chấp');
-    if (s.properties[square]!.houses) ctx.reject('Phải bán hết nhà trên ô đất này trước');
-    s.properties[square]!.mortgaged = true;
-    const amount = BOARD[square]!.price! / 2;
-    transferMoney(s, null, ctx.player.seat, amount, `Thế chấp ${BOARD[square]!.name}`);
-    s.notice = `Thế chấp ${BOARD[square]!.name}, nhận ${amount}.`;
+    let total = 0;
+    for (const square of squares) {
+      const amount = mortgageAmount(s, square);
+      s.properties[square]!.mortgaged = true;
+      s.properties[square]!.mortgage = {
+        borrower: ctx.player.seat,
+        deadline: s.playerTurns[ctx.player.seat]! + 3,
+        principal: amount,
+      };
+      transferMoney(s, null, ctx.player.seat, amount, `Thế chấp ${BOARD[square]!.name}`);
+      total += amount;
+    }
+    s.notice = `Thế chấp ${squares.length === 1 ? BOARD[squares[0]!]!.name : `${squares.length} tài sản`}, nhận ${total.toLocaleString('vi-VN')} ₫.`;
     return this.complete(s, ctx);
   }
 
   onRedeem(ctx: Action<{ square: number }>): State {
+    requireManagement(ctx);
     const square = requireOwner(ctx);
     const s = copy(ctx.state);
     if (!s.properties[square]!.mortgaged) ctx.reject('Đất này chưa thế chấp');
-    const amount = Math.ceil((BOARD[square]!.price! / 2) * 1.1);
+    const amount = redeemAmount(s, square);
     if (s.players[ctx.player.seat]!.cash < amount) ctx.reject('Không đủ tiền chuộc đất');
     transferMoney(s, ctx.player.seat, null, amount, `Chuộc ${BOARD[square]!.name}`);
     s.properties[square]!.mortgaged = false;
+    s.properties[square]!.mortgage = undefined;
     s.notice = `Chuộc ${BOARD[square]!.name} với ${amount}.`;
     return this.complete(s, ctx);
   }
 
   onPayDebt(ctx: Action): State {
-    requireTurn(ctx, 'debt');
+    if (ctx.state.phase !== 'debt' || decisionSeat(ctx.state) !== ctx.player.seat)
+      ctx.reject('Chưa tới lượt trả nợ của bạn');
     const s = copy(ctx.state);
     const debt = s.debt!;
-    if (s.players[s.turn]!.cash < debt.amount) ctx.reject('Bạn chưa đủ tiền trả nợ');
-    transferMoney(s, s.turn, debt.creditor, debt.amount, debt.reason);
+    const payer = debt.payer ?? s.turn;
+    if (s.players[payer]!.cash < debt.amount) ctx.reject('Bạn chưa đủ tiền trả nợ');
+    transferMoney(s, payer, debt.creditor, debt.amount, debt.reason);
     s.debt = null;
     s.phase = debt.after;
     s.notice = `Đã trả ${debt.amount}: ${debt.reason}.`;
@@ -554,11 +643,16 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
   }
 
   onBankrupt(ctx: Action): State {
-    requireTurn(ctx, 'debt');
-    if (ctx.state.players[ctx.state.turn]!.cash >= ctx.state.debt!.amount)
+    if (ctx.state.phase !== 'debt' || decisionSeat(ctx.state) !== ctx.player.seat)
+      ctx.reject('Chưa tới lượt trả nợ của bạn');
+    const payer = decisionSeat(ctx.state);
+    if (ctx.state.players[payer]!.cash >= ctx.state.debt!.amount)
       ctx.reject('Bạn đã đủ tiền trả nợ');
     const s = copy(ctx.state);
-    bankrupt(s, s.turn, s.debt!.creditor, ctx);
+    const resume = s.debt!.after;
+    const wasTurn = payer === s.turn;
+    bankrupt(s, payer, s.debt!.creditor, ctx);
+    if (!wasTurn) s.phase = resume;
     return this.complete(s, ctx);
   }
 
@@ -598,15 +692,30 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     const { to, give, take, giveCash, takeCash } = ctx.payload;
     if (to === ctx.player.seat || ctx.state.players[to]?.bankrupt || !ctx.state.players[to])
       ctx.reject('Người nhận trao đổi không hợp lệ');
+    const giveCard = give === -2;
+    const takeCard = take === -2;
+    if (giveCard || takeCard) {
+      if (
+        giveCard === takeCard ||
+        (giveCard ? take !== -1 : give !== -1) ||
+        giveCash !== (takeCard ? JAIL_CARD_PRICE : 0) ||
+        takeCash !== (giveCard ? JAIL_CARD_PRICE : 0)
+      )
+        ctx.reject('Vé ra tù được bán riêng với giá 200');
+      if (
+        !(giveCard ? ctx.state.players[ctx.player.seat] : ctx.state.players[to])!.freeCards.length
+      )
+        ctx.reject('Không có vé ra tù để bán');
+    }
     if (give === -1 && take === -1 && giveCash === 0 && takeCash === 0)
       ctx.reject('Đề nghị trao đổi đang trống');
-    if (give !== -1 && ctx.state.properties[give]?.owner !== ctx.player.seat)
+    if (give >= 0 && ctx.state.properties[give]?.owner !== ctx.player.seat)
       ctx.reject('Bạn không sở hữu đất đưa ra');
-    if (take !== -1 && ctx.state.properties[take]?.owner !== to)
+    if (take >= 0 && ctx.state.properties[take]?.owner !== to)
       ctx.reject('Người kia không sở hữu đất yêu cầu');
     if (
-      (give !== -1 && ctx.state.properties[give]!.houses > 0) ||
-      (take !== -1 && ctx.state.properties[take]!.houses > 0)
+      (give >= 0 && ctx.state.properties[give]!.houses > 0) ||
+      (take >= 0 && ctx.state.properties[take]!.houses > 0)
     )
       ctx.reject('Phải bán hết nhà trên ô đất trước khi đổi');
     if (
@@ -618,8 +727,10 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     s.trade = {
       from: ctx.player.seat,
       to,
-      give: give === -1 ? null : give,
-      take: take === -1 ? null : take,
+      give: give < 0 ? null : give,
+      giveCard,
+      takeCard,
+      take: take < 0 ? null : take,
       giveCash,
       takeCash,
       resume: s.phase,
@@ -638,10 +749,14 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (
       (t.give !== null && s.properties[t.give]!.owner !== t.from) ||
       (t.take !== null && s.properties[t.take]!.owner !== t.to) ||
+      (t.giveCard && !s.players[t.from]!.freeCards.length) ||
+      (t.takeCard && !s.players[t.to]!.freeCards.length) ||
       s.players[t.from]!.cash < t.giveCash ||
       s.players[t.to]!.cash < t.takeCash
     )
       ctx.reject('Tài sản trao đổi đã thay đổi');
+    if (t.giveCard) s.players[t.to]!.freeCards.push(s.players[t.from]!.freeCards.shift()!);
+    if (t.takeCard) s.players[t.from]!.freeCards.push(s.players[t.to]!.freeCards.shift()!);
     if (t.give !== null) s.properties[t.give]!.owner = t.to;
     if (t.take !== null) s.properties[t.take]!.owner = t.from;
     transferMoney(s, t.from, t.to, t.giveCash, 'Trao đổi tài sản');
@@ -668,35 +783,69 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
     if (s.players[ctx.player.seat]!.bankrupt) return this.complete(s, ctx);
     const wasTurn = s.turn === ctx.player.seat;
     bankrupt(s, ctx.player.seat, null, ctx);
+    if (
+      s.winner === null &&
+      wasTurn &&
+      ctx.state.debt?.payer !== undefined &&
+      ctx.state.debt.payer !== ctx.player.seat
+    ) {
+      s.debt = { ...ctx.state.debt, after: 'roll' };
+      s.phase = 'debt';
+    }
     if (s.winner === null && !wasTurn) {
       if (ctx.state.trade && [ctx.state.trade.from, ctx.state.trade.to].includes(ctx.player.seat)) {
         s.phase = ctx.state.trade.resume;
         s.pending = ctx.state.pending;
+      } else if (ctx.state.auction && ctx.state.auction.seller === undefined) {
+        const auction = s.stationAuctions[ctx.state.auction.square]!;
+        const remaining = s.players.filter(
+          (p, seat) => !p.bankrupt && !auction.passed.includes(seat),
+        );
+        if (remaining.length <= 1) {
+          s.phase = s.after;
+        } else {
+          s.auction = { ...auction, bidder: ctx.state.auction.bidder };
+          s.phase = 'auction';
+          s.pending = ctx.state.pending;
+        }
+      } else if (ctx.state.auction?.seller === ctx.player.seat) {
+        s.phase =
+          ctx.state.auction.resume === 'debt' ? ctx.state.debt!.after : ctx.state.auction.resume!;
+        s.pending = ctx.state.pending;
       } else if (ctx.state.auction) {
-        // bankrupt() refunded the leaver's deposit; the others' deposits stay with the bank.
         s.auction = {
           ...ctx.state.auction,
-          passed: [...ctx.state.auction.passed],
-          bids: [...ctx.state.auction.bids],
+          passed: [...ctx.state.auction.passed, ctx.player.seat],
+          bids: ctx.state.auction.bids.map((amount, seat) =>
+            seat === ctx.player.seat ? 0 : amount,
+          ),
         };
-        s.auction.bids[ctx.player.seat] = 0;
-        s.auction.passed.push(ctx.player.seat);
         if (s.auction.leader === ctx.player.seat) {
-          const best = Math.max(0, ...s.auction.bids);
-          s.auction.leader = best > 0 ? s.auction.bids.indexOf(best) : null;
-          if (BOARD[s.auction.square]!.kind !== 'station') s.auction.highest = 0;
+          s.auction.leader = null;
+          s.auction.highest = 0;
         }
         s.phase = 'auction';
-        s.pending = ctx.state.pending;
-        if (this.decided(s)) this.settleAuction(s);
-      } else {
-        s.phase = ctx.state.phase;
-        if (s.specialEvent) s.notice = ctx.state.notice;
         s.pending = ctx.state.pending;
         s.debt = ctx.state.debt && {
           ...ctx.state.debt,
           creditor: ctx.state.debt.creditor === ctx.player.seat ? null : ctx.state.debt.creditor,
         };
+        this.auctionStep(s, s.auction.bidder === ctx.player.seat);
+      } else {
+        s.phase =
+          ctx.state.phase === 'debt' && decisionSeat(ctx.state) === ctx.player.seat
+            ? ctx.state.debt!.after
+            : ctx.state.phase;
+        if (s.specialEvent) s.notice = ctx.state.notice;
+        s.pending = ctx.state.pending;
+        s.debt =
+          ctx.state.debt && decisionSeat(ctx.state) !== ctx.player.seat
+            ? {
+                ...ctx.state.debt,
+                creditor:
+                  ctx.state.debt.creditor === ctx.player.seat ? null : ctx.state.debt.creditor,
+              }
+            : null;
       }
     }
     return this.complete(s, ctx, !s.specialEvent && !hasPvpClock(s, ctx.players));
