@@ -10,8 +10,8 @@
  * take), then tap a square to move. A pawn reaching the last rank asks what it becomes. Black's
  * player sees the board turned round.
  *
- * The board is drawn here (squares, frame, coordinates). Pieces are chess symbols drawn as text
- * until their images exist in assets/ (theme.ts); sounds come with the art.
+ * The exact 8x8 board and twelve Staunton sprites are Blender renders. Coordinates and move
+ * marks stay code-native and aligned with the board. Audio reuses existing game assets.
  */
 import {
   type Button,
@@ -34,23 +34,25 @@ import {
   sideOf,
   square,
 } from '../game/rules.js';
-import {
-  COLORS,
-  DISC,
-  endText,
-  GLYPH_FONT,
-  glyphOf,
-  PROMOTION_NAMES,
-  pieceImage,
-  SIDES,
-} from './theme.js';
+import { formatPlayed, ResultPanel } from './ResultPanel.js';
+import { COLORS, DISC, endText, PROMOTION_NAMES, pieceImage, reasonText, SIDES } from './theme.js';
 
 type Ctx = ViewContext<View, Options>;
 
-/** A piece on screen: its image, or its symbol until the art exists. */
+/** A rendered Staunton piece on screen. */
 interface PieceObj {
   piece: Piece;
-  look: Phaser.GameObjects.Image | Phaser.GameObjects.Text;
+  look: Phaser.GameObjects.Image;
+}
+
+const EFFECTS_KEY = 'chess.effects';
+
+function loadEffects() {
+  try {
+    return localStorage.getItem(EFFECTS_KEY) !== 'off';
+  } catch {
+    return true;
+  }
 }
 
 const DEPTH = { board: 0, marks: 1, piece: 5, moving: 7, picker: 10 } as const;
@@ -64,7 +66,12 @@ const CASTLE_ROOKS: Record<number, [number, number]> = {
 };
 
 export class ChessView extends GameView<View, Options> {
-  private board!: Phaser.GameObjects.Graphics;
+  private board!: Phaser.GameObjects.Image;
+  private effects = true;
+  private playerMarks!: Phaser.GameObjects.Graphics;
+  private matchInfo!: Phaser.GameObjects.Text;
+  private panel!: ResultPanel;
+  private resultDismissed = false;
   /** Marks on the squares, under the pieces: last move, selection, targets, check. */
   private marks!: Phaser.GameObjects.Graphics;
   /** Files a–h along the bottom row, ranks 1–8 along the left column. */
@@ -79,7 +86,13 @@ export class ChessView extends GameView<View, Options> {
   };
   /** The column left of the board (x in the middle), for the score. */
   private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
-  private buttons!: { draw: Button; decline: Button; resign: Button };
+  private buttons!: {
+    draw: Button;
+    decline: Button;
+    resign: Button;
+    effects: Button;
+    result: Button;
+  };
   /** "What does the pawn become?": a backdrop, a title and one button per piece. */
   private picker!: {
     bg: Phaser.GameObjects.Graphics;
@@ -106,12 +119,16 @@ export class ChessView extends GameView<View, Options> {
   protected onCreate() {
     this.resignTimer = undefined;
     this.resignArmed = false;
+    this.effects = loadEffects();
+    this.resultDismissed = false;
     this.pieces = new Map();
     this.leaving = new Set();
     this.selected = null;
     this.targets = [];
     this.promoting = null;
-    this.board = this.add.graphics().setDepth(DEPTH.board);
+    this.board = this.image(0, 0, 'board').setDepth(DEPTH.board);
+    this.playerMarks = this.add.graphics().setDepth(DEPTH.marks);
+    this.matchInfo = this.label('', { size: 24, color: '#d3dfeb' });
     this.marks = this.add.graphics().setDepth(DEPTH.marks);
     const coord = () => this.add.text(0, 0, '', { fontStyle: '700' }).setDepth(DEPTH.marks);
     this.coords = {
@@ -134,7 +151,18 @@ export class ChessView extends GameView<View, Options> {
       draw: this.button('Xin hoà', () => this.send('offer-draw'), opts),
       decline: this.button('Từ chối', () => this.send('decline-draw'), opts),
       resign: this.button('Đầu hàng', () => this.resign(), opts),
+      effects: this.button('', () => this.toggleEffects(), { ...opts, size: 22 }),
+      result: this.button('Kết quả', () => this.showPanel(false), opts),
     };
+    const closeResult = this.button(
+      'Xem bàn cờ',
+      () => {
+        this.panel.hide();
+        this.resultDismissed = true;
+      },
+      opts,
+    );
+    this.panel = new ResultPanel(this, closeResult, DEPTH.picker + 2);
     this.picker = {
       bg: this.add.graphics().setDepth(DEPTH.picker),
       title: this.label('Phong cấp', { size: 30 }).setDepth(DEPTH.picker),
@@ -167,7 +195,8 @@ export class ChessView extends GameView<View, Options> {
       cell,
       flip: this.mySide(ctx) === 'b',
     };
-    this.drawBoard(left, boardTop, size);
+    this.board.setPosition(left + size / 2, boardTop + size / 2).setDisplaySize(size, size);
+    this.drawBoard();
     this.zone.setPosition(this.grid.x0, this.grid.y0).setSize(cell * SIZE, cell * SIZE);
     this.zone.input?.hitArea.setTo(0, 0, cell * SIZE, cell * SIZE);
 
@@ -181,14 +210,18 @@ export class ChessView extends GameView<View, Options> {
       x: margin + columnW / 2,
       width: columnW,
       top: boardTop + 40 * hud,
-      bottom: boardTop + size - 40 * hud,
+      bottom: boardTop + size - 56 * hud,
     };
     this.layoutScore(ctx);
+    this.matchInfo
+      .setFontSize(24 * hud)
+      .setWordWrapWidth(columnW)
+      .setPosition(this.leftColumn.x, boardTop + size / 2);
     this.buttonStack = {
       x: rightX,
       bottom: boardTop + size,
       width: Math.min(columnW, 190 * hud),
-      height: 56 * hud,
+      height: 66 * hud,
     };
     this.placeButtons();
     this.layoutPicker();
@@ -199,10 +232,18 @@ export class ChessView extends GameView<View, Options> {
       this.placePiece(obj, sq);
     }
     this.drawMarks(ctx);
+    if (this.panel.shown) this.showPanel(false);
   }
 
   /** A new game: an empty board (onState sets the pieces out). */
   protected onStart() {
+    this.resetBoard();
+    this.sfx('chess-start');
+  }
+
+  private resetBoard() {
+    this.panel.hide();
+    this.resultDismissed = false;
     this.resignTimer?.cancel();
     this.resignTimer = undefined;
     this.resignArmed = false;
@@ -224,6 +265,19 @@ export class ChessView extends GameView<View, Options> {
     const moving = this.pieces.get(from);
     this.deselect();
     if (!moving || !last) return; // onState draws whatever is missing
+    const sound = last.promotion
+      ? 'chess-promote'
+      : last.castle
+        ? 'chess-castle'
+        : last.captured
+          ? 'chess-capture'
+          : 'chess-move';
+    const landed = () => {
+      if (last.promotion) this.restyle(moving);
+      this.sfx(sound);
+      if (ctx.state.check && !ctx.result) this.sfx('chess-check');
+      if (this.effects) this.landing(to);
+    };
     const taken = last.enPassant ? square(rowOf(from), colOf(to)) : to;
     const victim = this.pieces.get(taken);
     if (victim) {
@@ -235,8 +289,8 @@ export class ChessView extends GameView<View, Options> {
     const becomes = ctx.state.board[to];
     if (becomes && becomes !== moving.piece) {
       moving.piece = becomes;
-      this.slide(moving, to, () => this.restyle(moving));
-    } else this.slide(moving, to);
+      this.slide(moving, to, landed);
+    } else this.slide(moving, to, landed);
     const rook = last.castle ? CASTLE_ROOKS[to] : undefined;
     const rookObj = rook && this.pieces.get(rook[0]);
     if (rook && rookObj) {
@@ -247,8 +301,9 @@ export class ChessView extends GameView<View, Options> {
   }
 
   protected onResync(ctx: Ctx) {
-    this.onStart();
+    this.resetBoard();
     this.onState(ctx);
+    if (ctx.result) this.showPanel(false);
   }
 
   protected onState(ctx: Ctx) {
@@ -260,6 +315,91 @@ export class ChessView extends GameView<View, Options> {
     this.showStatus(ctx);
     this.showButtons(ctx);
     this.layoutScore(ctx);
+    const took = (side: Side) => ctx.state.captured.filter((p) => sideOf(p) !== side).length;
+    this.matchInfo.setText(
+      `Nước ${Math.floor(ctx.state.plies / 2) + 1}\nĐã ăn\nTrắng ${took('w')} · Đen ${took('b')}`,
+    );
+  }
+
+  protected onEnd(ctx: Ctx) {
+    this.runtime.run(async (fx) => {
+      if (this.effects) await fx.wait(320);
+      fx.checkpoint();
+      this.sfx(
+        ctx.state.end?.reason === 'checkmate'
+          ? 'chess-mate'
+          : ctx.state.end?.winner
+            ? 'chess-win'
+            : 'chess-draw',
+      );
+      this.showPanel(this.effects);
+    });
+  }
+
+  private landing(sq: number) {
+    const { x, y } = this.pointXY(sq);
+    const cell = this.grid.cell;
+    const ring = this.add
+      .graphics()
+      .setPosition(x, y)
+      .setDepth(DEPTH.piece - 1);
+    ring.lineStyle(2, 0xffedc7, 0.7).strokeEllipse(0, 0, cell * 0.65, cell * 0.3);
+    this.runtime.run(async (fx) => {
+      fx.defer(() => ring.destroy());
+      await fx.tween({ targets: ring, scale: 1.6, alpha: 0, duration: 220 });
+    });
+  }
+
+  private toggleEffects() {
+    this.effects = !this.effects;
+    try {
+      localStorage.setItem(EFFECTS_KEY, this.effects ? 'on' : 'off');
+    } catch {
+      /* Storage may be unavailable; the current device session still works. */
+    }
+    this.runtime.newRound('effects');
+    const dismissed = this.resultDismissed;
+    this.resetBoard();
+    this.resultDismissed = dismissed;
+    this.onState(this.ctx);
+    if (this.ctx.result && !dismissed) this.showPanel(false);
+  }
+
+  private showPanel(pop: boolean) {
+    const { state, clock } = this.ctx;
+    const end = state.end;
+    if (!this.ctx.result || !end) return;
+    this.resultDismissed = false;
+    const mine = this.mySide(this.ctx);
+    const winner = end.winner;
+    const title = !winner
+      ? 'Hoà'
+      : mine
+        ? winner === mine
+          ? 'Chiến thắng!'
+          : 'Thua rồi'
+        : `${SIDES[winner].name} thắng`;
+    const took = (side: Side) => state.captured.filter((p) => sideOf(p) !== side).length;
+    const rows: [string, string][] = [];
+    if (clock)
+      rows.push(['Thời gian', formatPlayed((clock.endedAt ?? Date.now()) - clock.startedAt)]);
+    rows.push(['Số lượt đi', String(state.plies)]);
+    rows.push(['Quân đã ăn', `Trắng ${took('w')} · Đen ${took('b')}`]);
+    const { x0, y0, cell } = this.grid;
+    const king = (side: Side) => this.texture(pieceImage(side, 'k'));
+    this.panel.show(
+      {
+        title,
+        reason: reasonText(
+          end.reason,
+          winner ? this.nameOf(this.ctx, winner === 'w' ? 'b' : 'w') : '',
+        ),
+        kings: winner ? [king(winner)] : [king('w'), king('b')],
+        rows,
+      },
+      { x: x0 + cell * 4, y: y0 + cell * 4, width: cell * SIZE, hud: this.ctx.screen.hud },
+      pop,
+    );
   }
 
   // ── Board ───────────────────────────────────────────────────────────────────────────────
@@ -299,16 +439,8 @@ export class ChessView extends GameView<View, Options> {
   }
 
   /** The frame and the 64 squares, with the files and ranks written on the edge squares. */
-  private drawBoard(left: number, top: number, size: number) {
+  private drawBoard() {
     const { x0, y0, cell, flip } = this.grid;
-    const g = this.board.clear();
-    g.fillStyle(COLORS.frame, 1).fillRoundedRect(left, top, size, size, size * 0.012);
-    for (let row = 0; row < SIZE; row++) {
-      for (let col = 0; col < SIZE; col++) {
-        g.fillStyle((row + col) % 2 ? COLORS.dark : COLORS.light, 1);
-        g.fillRect(x0 + col * cell, y0 + row * cell, cell, cell);
-      }
-    }
     const font = `${Math.round(cell * 0.2)}px`;
     const pad = cell * 0.06;
     this.coords.files.forEach((text, col) => {
@@ -344,24 +476,16 @@ export class ChessView extends GameView<View, Options> {
     });
   }
 
-  /** A piece's image, or its symbol when the art isn't there yet. */
+  /** A sprite with a shared base anchor. */
   private makeLook(piece: Piece): PieceObj['look'] {
-    const side = sideOf(piece);
-    const kind = kindOf(piece);
-    const key = `${this.gameId}/${pieceImage(side, kind)}`;
-    if (this.textures.exists(key)) return this.add.image(0, 0, key).setDepth(DEPTH.piece);
-    const { fill, edge } = SIDES[side];
-    return this.add
-      .text(0, 0, glyphOf(kind), { fontFamily: GLYPH_FONT, color: fill, stroke: edge })
-      .setOrigin(0.5, 0.52)
+    return this.image(0, 0, pieceImage(sideOf(piece), kindOf(piece)))
+      .setOrigin(0.5, 0.62)
       .setDepth(DEPTH.piece);
   }
 
-  /** Sizes a piece's look for `size` design units (the piece's width). */
+  /** Every piece shares the same canvas and base anchor; pawns remain shorter than kings. */
   private sizeLook(look: PieceObj['look'], size: number) {
-    if ('setFontSize' in look) {
-      look.setFontSize(Math.round(size)).setStroke(look.style.stroke, Math.max(2, size * 0.06));
-    } else look.setDisplaySize(size / DISC, size / DISC);
+    look.setDisplaySize(size / DISC, size / DISC);
   }
 
   /** A promoted piece changes its looks. */
@@ -369,7 +493,7 @@ export class ChessView extends GameView<View, Options> {
     const { x, y } = obj.look;
     obj.look.destroy();
     obj.look = this.makeLook(obj.piece);
-    this.sizeLook(obj.look, this.grid.cell * 0.82);
+    this.sizeLook(obj.look, this.grid.cell * 0.9);
     obj.look.setPosition(x, y);
   }
 
@@ -377,16 +501,29 @@ export class ChessView extends GameView<View, Options> {
   private placePiece(obj: PieceObj, sq: number) {
     const { x, y } = this.pointXY(sq);
     this.runtime.cancelTweens(obj.look);
-    this.sizeLook(obj.look, this.grid.cell * 0.82);
+    this.sizeLook(obj.look, this.grid.cell * 0.9);
     obj.look.setPosition(x, y).setAlpha(1).setDepth(DEPTH.piece);
   }
 
   private slide(obj: PieceObj, to: number, done?: () => void) {
     const { x, y } = this.pointXY(to);
     this.runtime.cancelTweens(obj.look);
+    if (!this.effects) {
+      this.placePiece(obj, to);
+      done?.();
+      return;
+    }
     obj.look.setDepth(DEPTH.moving);
     this.runtime.run(async (fx) => {
-      await fx.tween({ targets: obj.look, x, y, duration: 180, ease: 'Sine.easeInOut' });
+      await fx.tween({
+        targets: obj.look,
+        x,
+        y: y - this.grid.cell * 0.1,
+        duration: 180,
+        ease: 'Sine.easeInOut',
+      });
+      fx.checkpoint();
+      await fx.tween({ targets: obj.look, y, duration: 70, ease: 'Quad.easeIn' });
       fx.checkpoint();
       obj.look.setDepth(DEPTH.piece);
       done?.();
@@ -395,6 +532,10 @@ export class ChessView extends GameView<View, Options> {
 
   private fade(obj: PieceObj) {
     const look = obj.look;
+    if (!this.effects) {
+      look.destroy();
+      return;
+    }
     this.leaving.add(look);
     this.runtime.cancelTweens(look);
     this.runtime.run(async (fx) => {
@@ -402,7 +543,13 @@ export class ChessView extends GameView<View, Options> {
         this.leaving.delete(look);
         look.destroy();
       });
-      await fx.tween({ targets: look, alpha: 0, delay: 120, duration: 200 });
+      await fx.tween({
+        targets: look,
+        y: look.y - this.grid.cell * 0.24,
+        alpha: 0,
+        delay: 80,
+        duration: 170,
+      });
     });
   }
 
@@ -465,7 +612,16 @@ export class ChessView extends GameView<View, Options> {
     } else if (sq === this.selected) {
       this.deselect();
     } else if (this.canPick(ctx, sq)) {
+      this.deselect();
       this.selected = sq;
+      this.sfx('chess-select');
+      const look = this.pieces.get(sq)?.look;
+      if (look && this.effects)
+        this.runtime.tween({
+          targets: look,
+          y: this.pointXY(sq).y - this.grid.cell * 0.08,
+          duration: 100,
+        });
       this.targets = legalTargets(ctx.state, sq);
     } else {
       this.deselect();
@@ -483,6 +639,8 @@ export class ChessView extends GameView<View, Options> {
   }
 
   private deselect() {
+    const obj = this.selected === null ? null : this.pieces.get(this.selected);
+    if (obj && this.selected !== null) this.placePiece(obj, this.selected);
     this.selected = null;
     this.targets = [];
     if (this.promoting) {
@@ -564,7 +722,9 @@ export class ChessView extends GameView<View, Options> {
     const offered = playing && state.drawOffer && state.drawOffer !== mine;
     // The computer never takes a draw: no point offering one.
     const vsBot = ctx.players.some((p) => p.bot);
-    const { draw, decline, resign } = this.buttons;
+    const { draw, decline, resign, effects, result } = this.buttons;
+    effects.setText(this.effects ? 'Hiệu ứng: Bật' : 'Hiệu ứng: Tắt');
+    result.container.setVisible(Boolean(ctx.result));
     draw.container.setVisible(playing && !vsBot);
     resign.container.setVisible(playing);
     decline.container.setVisible(Boolean(offered));
@@ -580,8 +740,11 @@ export class ChessView extends GameView<View, Options> {
     const shown = Object.values(this.buttons).filter((b) => b.container.visible);
     const gap = 8;
     const span = shown.length * height + (shown.length - 1) * gap;
+    // The room's restart/customize panel occupies the bottom-right after a result.
+    const top = this.ctx.result ? this.status.y + this.status.height + 16 : bottom - span;
     shown.forEach((b, i) => {
-      b.setSize(width, height).setPosition(x, bottom - span + height / 2 + i * (height + gap));
+      b.setSize(width, height).setPosition(x, top + height / 2 + i * (height + gap));
+      b.container.input?.hitArea.setTo(0, 0, width, height);
     });
   }
 
@@ -607,10 +770,11 @@ export class ChessView extends GameView<View, Options> {
   private layoutScore({ players, score, state }: Ctx) {
     const { hud } = this.ctx.screen;
     const col = this.leftColumn;
-    const icon = 56 * hud;
+    const icon = 44 * hud;
     const textX = col.x - col.width / 2 + icon + 10 * hud;
     const textW = col.width - icon - 10 * hud;
     const bottomSide: Side = this.grid.flip ? 'b' : 'w';
+    this.playerMarks.clear();
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
       const wins = this.score.wins[seat];
@@ -619,6 +783,16 @@ export class ChessView extends GameView<View, Options> {
       if (!name || !wins || !king) return;
       const side: Side = player ? (state.players[0] === player.id ? 'w' : 'b') : seat ? 'b' : 'w';
       const y = side === bottomSide ? col.bottom : col.top;
+      if (!state.end && state.turn === side)
+        this.playerMarks
+          .lineStyle(3, COLORS.last, 0.9)
+          .strokeRoundedRect(
+            col.x - col.width / 2 - 4,
+            y - icon / 2 - 8,
+            col.width + 8,
+            icon + 48 * hud,
+            12,
+          );
       const piece = side === 'w' ? 'K' : 'k';
       if (king.piece !== piece) {
         king.piece = piece;
@@ -626,12 +800,16 @@ export class ChessView extends GameView<View, Options> {
       }
       this.sizeLook(king.look, icon);
       king.look.setPosition(col.x - col.width / 2 + icon / 2, y);
-      name.setFontSize(26 * hud).setPosition(textX, y - 14 * hud);
+      name.setFontSize(28 * hud).setPosition(textX, y - 14 * hud);
       this.fitText(name, player ? player.name : '…', textW, 18 * hud);
       wins
-        .setFontSize(20 * hud)
-        .setText(`Thắng ${score.wins[seat] ?? 0}`)
-        .setPosition(textX, y + 16 * hud);
+        .setFontSize(22 * hud)
+        .setText(
+          `${SIDES[side].name}${col.width < 210 ? '\n' : ' · '}Thắng ${score.wins[seat] ?? 0}`,
+        )
+        .setOrigin(0.5)
+        .setPosition(col.x, y + 30 * hud);
+      this.fitText(wins, wins.text, col.width - 8, 20 * hud);
     });
   }
 }

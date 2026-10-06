@@ -1,27 +1,11 @@
 /**
- * Look and words shared by the scenes. Until the piece art exists, pieces are chess symbols
- * drawn as text; a piece uses its image instead as soon as assets/piece-<side>-<kind>.webp is
- * there (the piece's disc DISC of the image wide, centered).
+ * Look and words shared by the scenes. Staunton sprites use a shared transparent canvas
+ * and soft upper-left lighting, rendered by sources/render_assets.py.
  */
 import type { EndReason, Kind, Promotion, Side } from '../game/model.js';
 
-/** The piece's width as a share of its image (the rest is room for shadows and animations). */
-export const DISC = 0.8;
-
-/** Fonts that have the chess symbols, on phones and computers. */
-export const GLYPH_FONT =
-  '"Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", serif';
-
-/** Filled chess symbols for both sides (colored by the text), shown as text, not emoji. */
-const GLYPHS: Record<Kind, string> = {
-  k: '♚︎',
-  q: '♛︎',
-  r: '♜︎',
-  b: '♝︎',
-  n: '♞︎',
-  p: '♟︎',
-};
-export const glyphOf = (kind: Kind) => GLYPHS[kind];
+/** The visible sprite height as a share of its shared transparent canvas (the rest is room for shadows and animations). */
+export const DISC = 0.68;
 
 /** The image of a piece: assets/piece-<side>-<kind>.webp. */
 const ART: Record<Kind, string> = {
@@ -52,8 +36,8 @@ export const COLORS = {
   light: 0xefd9b4,
   dark: 0xb3805a,
   frame: 0x5c2d12,
-  lightText: '#b3805a',
-  darkText: '#efd9b4',
+  lightText: '#614029',
+  darkText: '#ffebbd',
   last: 0xffe066,
   selected: 0x7fd4ff,
   target: 0x1f6b3a,
