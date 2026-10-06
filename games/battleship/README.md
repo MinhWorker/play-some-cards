@@ -52,6 +52,8 @@ assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo 
 sprite tàu nhìn từ trên xuống, xoay theo hướng tàu; tàu đã chìm sẫm màu, ô trúng có dấu lửa,
 ô trượt có vòng nước. Đạn bay tới ô bắn, trượt tạo cột nước, trúng tạo chớp lửa; tàu chìm
 lún xuống và rung theo chiều dài. Khán giả thấy hiệu ứng đúng vùng biển, chỉ thấy tàu đã chìm.
+Bàn và hai cột HUD của game nằm dưới hàng HUD dùng chung, kể cả khi thanh phòng thấp hơn
+nút cài đặt hoặc người chơi đổi cỡ HUD; chữ người chơi căn theo mép trên của khối.
 
 Âm thanh riêng cho đặt tàu, sẵn sàng, bắn, trượt, trúng, chìm và thắng. Nhạc nền nhẹ được
 app phát qua kênh nhạc; hiệu ứng đi qua kênh âm thanh và tuân theo cài đặt tắt tiếng.

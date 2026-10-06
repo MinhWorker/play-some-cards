@@ -110,8 +110,8 @@ export class BattleshipView extends GameView<View, Options> {
       .on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p.worldX, p.worldY));
     this.status = this.label('', { size: 30 });
     this.fleetLines = FLEET.map(() => this.label('', { size: 20 }).setOrigin(0.5, 0));
-    this.names = [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0.5));
-    this.lines = [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0.5));
+    this.names = [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0));
+    this.lines = [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0));
     const opts = { image: 'button', size: 24 };
     this.buttons = {
       shuffle: this.button('Xếp lại', () => this.shuffle(), opts),
@@ -128,10 +128,13 @@ export class BattleshipView extends GameView<View, Options> {
   protected onLayout(ctx: Ctx) {
     const { width, height, top, hud } = ctx.screen;
     const margin = 16;
-    const availH = height - top - margin;
+    // The measured room/sandbox bar can be shorter than the shared corner controls.
+    // Keep at least the SDK's default HUD row (110) and its gap (8), at the user's scale.
+    const contentTop = Math.max(top, 118 * hud);
+    const availH = height - contentTop - margin;
     const side = Math.max(160, Math.min(width - 2 * 150 * hud, availH));
     const left = (width - side) / 2;
-    const boardTop = top + Math.max(0, (availH - side) / 2);
+    const boardTop = contentTop + Math.max(0, (availH - side) / 2);
     const cell = side / (SIZE + 0.6);
     this.bigSea = { x0: left + cell * 0.6, y0: boardTop + cell * 0.6, cell };
     const seaW = cell * SIZE;
@@ -157,22 +160,14 @@ export class BattleshipView extends GameView<View, Options> {
       left: margin + columnW / 2,
       right: left + side + margin + columnW / 2,
       width: columnW,
-      top: boardTop + 30 * hud,
-      bottom: boardTop + side - 30 * hud,
-    };
-    // Your small sea between the two players.
-    const room = this.column.bottom - this.column.top - 110 * hud;
-    const smallSide = Math.max(60, Math.min(columnW, room));
-    this.smallSea = {
-      x0: this.column.left - smallSide / 2,
-      y0: (this.column.top + this.column.bottom) / 2 - smallSide / 2,
-      cell: smallSide / SIZE,
+      top: boardTop + 16 * hud,
+      bottom: boardTop + side - 16 * hud,
     };
     this.status
       .setFontSize(24 * hud)
       .setOrigin(0.5, 0)
       .setWordWrapWidth(columnW)
-      .setPosition(this.column.right, boardTop + 8);
+      .setPosition(this.column.right, boardTop + 16 * hud);
     this.buttonStack = {
       x: this.column.right,
       bottom: boardTop + side,
@@ -370,8 +365,25 @@ export class BattleshipView extends GameView<View, Options> {
         ? { ...ctx.state.waters[big], ships: this.draft }
         : ctx.state.waters[big];
     this.drawSea(this.big, this.bigFleet, this.bigMarks, this.bigSea, bigWaters, ctx, big);
+    this.showStatus(ctx);
+    this.showFleet(ctx);
+    this.showPlayers(ctx);
+    this.showButtons(ctx);
     // The small sea: yours in battle (the first player's for spectators).
     const smallSeat: Seat = mine ?? 0;
+    const upperLine = this.lines[other(smallSeat)];
+    const lowerName = this.names[smallSeat];
+    if (upperLine && lowerName) {
+      const gap = 12 * ctx.screen.hud;
+      const top = upperLine.y + upperLine.height + gap;
+      const bottom = lowerName.y - gap;
+      const side = Math.max(0, Math.min(this.column.width, bottom - top));
+      this.smallSea = {
+        x0: this.column.left - side / 2,
+        y0: (top + bottom - side) / 2,
+        cell: side / SIZE,
+      };
+    }
     const showSmall = !setup;
     this.small.clear().setVisible(showSmall);
     this.smallFleet.removeAll(true).setVisible(showSmall);
@@ -386,10 +398,6 @@ export class BattleshipView extends GameView<View, Options> {
         ctx,
         smallSeat,
       );
-    this.showStatus(ctx);
-    this.showFleet(ctx);
-    this.showPlayers(ctx);
-    this.showButtons(ctx);
   }
 
   /** One sea: water, grid, ships (shown ones), shots, and the last shot or picked ship. */
@@ -556,9 +564,8 @@ export class BattleshipView extends GameView<View, Options> {
       const line = this.lines[seat];
       if (!name || !line) return;
       const s = seat as Seat;
-      const y = s === mine ? this.column.bottom : this.column.top;
       const x = this.column.left - this.column.width / 2;
-      name.setFontSize(26 * hud).setPosition(x, y - 14 * hud);
+      name.setFontSize(26 * hud);
       const player = ctx.players.find((p) => p.id === ctx.state.players[s]);
       this.fitText(name, player?.name ?? '…', this.column.width, 18 * hud);
       const afloat = FLEET.length - ctx.state.waters[s].sunk.length;
@@ -569,11 +576,12 @@ export class BattleshipView extends GameView<View, Options> {
             ? 'Sẵn sàng'
             : 'Đang xếp tàu'
           : `Còn ${afloat} tàu`;
-      line
-        .setFontSize(20 * hud)
-        .setText(`Thắng ${wins} · ${doing}`)
-        .setPosition(x, y + 16 * hud);
+      line.setFontSize(20 * hud).setText(`Thắng ${wins} · ${doing}`);
       this.fitText(line, line.text, this.column.width, 14 * hud);
+      const gap = 4 * hud;
+      const y = s === mine ? this.column.bottom - name.height - line.height - gap : this.column.top;
+      name.setPosition(x, y);
+      line.setPosition(x, y + name.height + gap);
     });
   }
 
