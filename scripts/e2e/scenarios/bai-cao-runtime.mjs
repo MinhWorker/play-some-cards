@@ -1,26 +1,18 @@
 // Restart, resync and leave while a real game presentation is still running.
 import { clickCanvas, DESKTOP } from '../lib.mjs';
 
-export const games = ['go'];
+export const games = ['bai-cao'];
 
 export default async function run(t) {
-  const id = 'go';
+  const id = 'bai-cao';
   const page = await t.page(DESKTOP);
   await page.goto(`${t.url}/?play=${id}&players=2`);
   await page.waitForFunction((key) => window.__phaser?.scene.isActive(key), id);
   await page.evaluate((key) => window.__phaser.scene.getScene(key).runtime.setSpeed(0.25), id);
-  const path = [40];
-  for (const sq of path) {
-    const at = await page.evaluate(
-      ({ key, sq }) => {
-        const s = window.__phaser.scene.getScene(key);
-        const { x, y } = s.pointXY(sq);
-        return window.__toScreen(key, x, y);
-      },
-      { key: id, sq },
-    );
-    await page.mouse.click(at.x, at.y);
-  }
+  await page.getByRole('button', { name: 'Người 2', exact: true }).click();
+  await clickCanvas(page, id, (s) => s.buttons.bets[0].container);
+  await page.getByRole('button', { name: 'Người 1', exact: true }).click();
+  await clickCanvas(page, id, (s) => s.seats[0].cards[0]);
   await page.waitForFunction(
     (key) => window.__phaser.scene.getScene(key).runtime.inspect().motion > 0,
     id,
@@ -32,31 +24,17 @@ export default async function run(t) {
     return s.runtime.inspect().motion === 0 && s.runtime.inspect().waits === 0;
   }, id);
   await page.screenshot({ path: t.shot('resynced.png') });
-  await clickCanvas(page, id, (s) => s.buttons.resign.container);
+
   await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
-  await page.evaluate((key) => window.__phaser.scene.getScene(key).runtime.setSpeed(1), id);
   await page.waitForFunction((key) => {
     const s = window.__phaser.scene.getScene(key);
     return !s.ctx.result && s.runtime.inspect().motion === 0 && s.runtime.inspect().waits === 0;
   }, id);
-  const clean = await page.evaluate((key) => {
-    const s = window.__phaser.scene.getScene(key);
-    const objects = key === 'go' ? s.stones : s.pieces;
-    const expected = key === 'go' ? 0 : key === 'chess' ? 32 : 24;
-    return (
-      !s.resignDialog.shown &&
-      objects.size === expected &&
-      s.bowls.b.remaining === 181 &&
-      s.bowls.w.remaining === 180 &&
-      s.bowls.b.captured === 0 &&
-      s.bowls.w.captured === 0 &&
-      [...objects.values()].every((obj) => {
-        const image = obj.image ?? obj.look;
-        return image.alpha === 1;
-      })
-    );
-  }, id);
-  if (!clean) throw new Error(`${id}: a cancelled move or surrender survived the new round`);
+  const cards = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('bai-cao');
+    return s.seats.every((seat) => seat.cards.every((card) => !card.visible && card.scaleX === 1));
+  });
+  if (!cards) throw new Error('A cancelled flip left cards visible or folded in the next round');
   await page.screenshot({ path: t.shot('new-round.png') });
   await page.evaluate((key) => {
     window.__leavingRuntime = window.__phaser.scene.getScene(key).runtime;

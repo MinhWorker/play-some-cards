@@ -1,5 +1,5 @@
 // Cờ Vây against the computer on a phone: standard 19 × 19, a few stones as Black by
-// tapping points, "Bỏ lượt", then "Đầu hàng" (tapped twice) ends the game.
+// tapping points, "Bỏ lượt", then the white flag and "Đầu hàng" in its dialog end the game.
 import { clickCanvas, openRooms, PHONE, signUp } from '../lib.mjs';
 
 export const games = ['go'];
@@ -115,8 +115,16 @@ export default async function run(t) {
     const { ctx } = window.__phaser.scene.getScene('go');
     return ctx.state.turn === 'b' || ctx.state.phase === 'scoring';
   });
+  // The white flag only opens a dialog: "Chơi tiếp" closes it and the game goes on.
   await clickCanvas(page, 'go', (s) => s.buttons.resign.container);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go').resignDialog.shown);
+  await page.screenshot({ path: t.shot('13-go-resign-dialog.png') });
+  await clickCanvas(page, 'go', (s) => s.resignDialog.cancel.container);
+  await page.waitForFunction(() => !window.__phaser.scene.getScene('go').resignDialog.shown);
+  if ((await state(page)).end) throw new Error('Closing the resign dialog ended the game');
   await clickCanvas(page, 'go', (s) => s.buttons.resign.container);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go').resignDialog.shown);
+  await clickCanvas(page, 'go', (s) => s.resignDialog.confirm.container);
   await page.waitForFunction(() => window.__phaser.scene.getScene('go').ctx.state.end);
   const end = await page.evaluate(() => window.__phaser.scene.getScene('go').panel.reason.text);
   if (!end.includes('đầu hàng')) throw new Error(`After resigning the status says "${end}"`);

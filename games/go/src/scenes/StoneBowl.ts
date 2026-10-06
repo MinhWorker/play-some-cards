@@ -153,11 +153,6 @@ export class StoneBowl {
     this.captured = visibleCaptures;
   }
 
-  takeXY() {
-    const point = this.point(Math.max(0, this.remaining - 1), this.diameter);
-    return { x: this.bowl.x + point.x, y: this.bowl.y + point.y, size: this.diameter * 0.13 };
-  }
-
   captureXY(index: number) {
     const point = this.point(Math.min(180, index), this.lidDiameter);
     return { x: this.home.x + point.x, y: this.home.y + point.y, size: this.lidDiameter * 0.13 };

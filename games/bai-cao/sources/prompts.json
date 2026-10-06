@@ -1,0 +1,10 @@
+{
+  "$comment": "Đảo riêng tạo bằng công cụ tạo ảnh của Codex; npm run gen:asset -- bai-cao/island để tạo lại.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "Polished 3D cartoon Vietnamese mobile board-game style, warm soft lighting, rounded toy materials. A floating sky island with brown faceted rocky underside tapering to a point, hanging vines, lush green grass and tiny white flowers. On top a round low wooden table with a woven straw mat, exactly three large upright playing cards fanned at center: one red heart, one black spade, one red diamond, no ranks or letters. Small stacks of red, jade green and gold betting chips beside the cards, a round golden dealer token and a little red paper lantern. Isometric three-quarter camera, full island visible, clear silhouettes readable at icon size. Single isolated object, no text, transparent background."
+    }
+  }
+}

@@ -33,7 +33,7 @@ import {
 import Phaser from 'phaser';
 import { COLS, type Move, type Options, ROWS, type Side, type View } from '../game/model.js';
 import { colOf, generalOf, kindOf, legalTargets, rowOf, sideOf } from '../game/rules.js';
-import { cutIn } from './cutin.js';
+import { cutIn, loadBrushFont } from './cutin.js';
 import { formatPlayed, ResultPanel } from './ResultPanel.js';
 import { shatter } from './shatter.js';
 import {
@@ -132,6 +132,7 @@ export class XiangqiView extends GameView<View, Options> {
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
   protected onCreate() {
+    loadBrushFont();
     this.pieces = new Map();
     this.leaving = new Set();
     this.endQueued = false;
