@@ -7,4 +7,9 @@ import { defineClient } from '@psc/sdk/client';
 import { BaiCaoView } from './scenes/BaiCaoView.js';
 import { Setup } from './scenes/Setup.js';
 
-export default defineClient({ setup: Setup, scene: BaiCaoView, showsPlayers: true });
+export default defineClient({
+  setup: Setup,
+  scene: BaiCaoView,
+  background: false,
+  showsPlayers: true,
+});

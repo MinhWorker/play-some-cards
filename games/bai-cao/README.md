@@ -1,24 +1,9 @@
 # Bài Cào
 
-Bài Cào (ba cây) cho 2–6 người, có thể thêm người chơi máy. Game đang ở trạng thái `wip`: luật,
-người chơi máy và bàn đã chơi được; hình riêng và âm thanh làm sau, xem
-[kế hoạch Bài Cào](PLAN.md).
+Bài Cào (ba cây) cho 2–6 người, chơi với bạn bè hoặc thêm tối đa 5 người chơi máy.
+Game ở trạng thái `ready`.
 
-## Luật chơi
-
-- Một ván gồm 5, 10 hoặc 20 ván con. Mỗi ván con một người **làm cái**, lần lượt vòng quanh bàn
-  (người tạo phòng làm cái trước). Ai cũng bắt đầu với 0 điểm.
-- **Đặt cược**: mọi người trừ nhà cái cược 5, 10 hoặc 20 điểm (15 giây; không kịp thì cược 5).
-- **Chia bài**: mỗi người 3 lá từ bộ 52 lá. Bài của mình lúc đầu úp: chạm từng lá để tự xem
-  (nặn bài); "Lật bài" lật cả ba cho mọi người thấy (20 giây; hết giờ thì tự lật).
-- **Tính nút**: A là 1, 2–9 theo số, 10 J Q K là 0; cộng ba lá, lấy hàng đơn vị (0 là "bù",
-  9 là cao nhất). **Ba Tây** (ba lá J, Q, K bất kỳ) lớn hơn mọi bài.
-- **So bài**: mỗi người so với nhà cái; bài lớn hơn ăn tiền cược, thắng bằng Ba Tây thì ăn gấp đôi.
-  Bằng nút thì so lá lớn nhất: K > Q > J > 10 > … > 2 > A, cùng hạng thì rô > cơ > bích > tép.
-  Nên không bao giờ hoà.
-- Hết các ván con, người nhiều điểm nhất thắng (bằng nhau thì cùng thắng).
-- Người rời bàn thì ngồi ngoài từ đó (tiền cược ván đang chơi không tính); nhà cái rời bàn thì
-  ván con đó huỷ. Còn một người thì ván kết thúc.
+Luật hiện tại: [Luật Bài Cào](RULES.md).
 
 ## Tạo phòng
 
@@ -34,7 +19,7 @@ src/
   game/cards.ts             lá bài, tính nút, Ba Tây, so bài
   game/model.ts             dữ liệu: State, View (giấu bài chưa lật), tuỳ chọn phòng, thời gian
   game/BaiCaoGame.ts        các sự kiện: bet, reveal; hẹn giờ: bet-over, reveal-over, next-round
-  scenes/BaiCaoView.ts      bàn: các ghế, chia bài, nặn bài, cược, lật bài, điểm từng ván
+  scenes/BaiCaoView.ts      ghế, chia/nặn/lật bài, phỉnh cược, tính điểm và âm thanh
   scenes/Card.ts, deck.ts   vẽ lá bài (chép từ Tiến Lên)
   scenes/Mat.ts             mặt chiếu (chép từ Tiến Lên)
   scenes/Setup.ts           form tạo phòng
@@ -42,7 +27,10 @@ assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo 
 ```
 
 Mặt chiếu, lá bài, chất và nút lấy từ Tiến Lên (`mat`, `face-classic`, `back-lattice`,
-`back-lotus`, `suit-*`, `button`). `island.webp` là đảo mẫu của `npm run new:game`.
+`back-lotus`, `suit-*`, `button`). Đảo `island.webp` là hình riêng của Bài Cào, tạo bằng công cụ
+tạo ảnh của Codex; mô tả lưu trong `sources/prompts.json`. Phỉnh `chip-5`, `chip-10`, `chip-20`
+và dấu `dealer` là hình vector gốc của dự án, xuất bằng
+`node games/bai-cao/sources/render_tokens.mjs`.
 
 Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=bai-cao&players=4 (khi đang
 chạy `npm run dev`).
@@ -52,3 +40,20 @@ chạy `npm run dev`).
 Chia bài, lật bài và hiện điểm dùng runtime của SDK. Mỗi ván con huỷ các hiệu ứng của ván
 trước. Khi kết nối lại hoặc đổi kích thước bàn, bài được dựng ngay từ trạng thái hiện tại;
 hiệu ứng đang chờ không lật lại bài đã thay đổi.
+
+## Hình và âm thanh
+
+Ba mức cược hiện bằng phỉnh xanh (5), đỏ (10), vàng (20), luôn có số để phân biệt. Nhà cái có
+dấu vàng “CÁI”; chủ phòng có vương miện. Bài úp dùng mặt sen đỏ. Kết quả ván con hiện tên bài
+và điểm được/mất cạnh từng bộ bài, đồng thời phỉnh bay từ người thua sang người thắng.
+
+Chạm hoặc kéo trên lá bài của mình để nặn; thao tác này chỉ tự xem, còn “Lật bài” mới công khai
+cả ba lá. Có âm thanh đặt cược, chia, nặn, lật bài, thắng/thua, Ba Tây và kết thúc trận. Ba giây
+cuối có tiếng nhắc nếu mình còn phải cược hoặc lật. Âm thanh và nhạc tuân theo nút âm thanh của
+ứng dụng; kết nối lại và đổi kích thước dựng bàn ngay, không phát lại hiệu ứng tính điểm.
+
+Âm thanh chia/nặn/kết thúc và nhạc nền sao chép từ Tiến Lên; lật/thắng/Ba Tây/nhắc giờ sao chép
+từ Mậu Binh, giữ nguyên nguồn và giấy phép trong [LICENSE-ASSETS.md](../../LICENSE-ASSETS.md).
+Tiếng phỉnh và thua được tổng hợp riêng trong `sources/prepare_audio.py`. Tạo lại toàn bộ audio:
+`python3 games/bai-cao/sources/prepare_audio.py`. Hiệu ứng là WAV mono PCM 16-bit 48 kHz; nhạc là
+MP3 128 kbps. File chạy trực tiếp nằm trong `assets/`, không cần tạo lại lúc build.

@@ -43,11 +43,11 @@ export class Setup extends RoomSetupScene<Options> {
     this.title = this.label(this.current ? 'Tuỳ chỉnh bàn' : 'Tạo bàn Bài Cào', { size: 40 });
     this.rows = ROWS.map((row) => ({
       row,
-      title: this.label(row.title, { size: 24, color: '#ffe8a3' }),
+      title: this.label(row.title, { size: 28, color: '#ffe8a3' }),
       chips: row.choices.map(({ value, label }) =>
         this.button(label, () => this.pick(row.key, value), {
           image: 'button',
-          size: 24,
+          size: 28,
           hoverSound: false,
         }),
       ),
@@ -85,11 +85,11 @@ export class Setup extends RoomSetupScene<Options> {
   protected draw() {
     const { width, height } = this.view;
     const top = this.safeTop();
-    const panelW = Math.min(560, width - 24);
-    const pad = 16;
-    const rowH = 88;
-    const titleH = 64;
-    const submitH = 72;
+    const panelW = Math.min(820, width - 48);
+    const pad = 24;
+    const rowH = 136;
+    const titleH = 80;
+    const submitH = 112;
     const panelH = titleH + ROWS.length * rowH + submitH + pad * 2;
     const scale = Math.min(1, (height - top - 16) / panelH);
     const h = panelH * scale;
@@ -107,18 +107,18 @@ export class Setup extends RoomSetupScene<Options> {
     const inner = panelW - pad * 2;
     for (const { title, chips } of this.rows) {
       title.setPosition(width / 2, cursor + 16 * scale);
-      const gap = 8;
+      const gap = 12;
       const chipW = (inner - gap * (chips.length - 1)) / chips.length;
-      const chipH = 50 * scale;
+      const chipH = 88 * scale;
       chips.forEach((chip, i) => {
         chip
           .setSize(chipW, chipH)
-          .setPosition(x + pad + chipW / 2 + i * (chipW + gap), cursor + 58 * scale);
+          .setPosition(x + pad + chipW / 2 + i * (chipW + gap), cursor + 80 * scale);
       });
       cursor += rowH * scale;
     }
     this.submitButton
-      .setSize(Math.min(280, inner), 62 * scale)
+      .setSize(Math.min(320, inner), 96 * scale)
       .setPosition(width / 2, cursor + (submitH * scale) / 2);
   }
 }

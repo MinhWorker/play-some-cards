@@ -15,8 +15,7 @@ export default definePlugin({
     name: 'Bài Cào',
     minPlayers: 2,
     maxPlayers: 6,
-    // Locked in production until you change this to 'ready'.
-    status: 'wip',
+    status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },
