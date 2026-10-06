@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/MinhWorker/play-some-cards/compare/v0.16.0...v0.17.0) (2026-10-06)
+
+
+### Features
+
+* **chess:** add ready-to-play chess with rendered pieces and audio ([#52](https://github.com/MinhWorker/play-some-cards/issues/52)) ([5ecf2d7](https://github.com/MinhWorker/play-some-cards/commit/5ecf2d794c7fc2e6df180dd6a633733127f35ff8))
+* **go:** add animated bowls and match summary HUD ([#82](https://github.com/MinhWorker/play-some-cards/issues/82)) ([4a7773f](https://github.com/MinhWorker/play-some-cards/commit/4a7773f2e94a9ebf6689091eb80d7286f2e5657b))
+
 ## [0.16.0](https://github.com/MinhWorker/play-some-cards/compare/v0.15.0...v0.16.0) (2026-10-05)
 
 
