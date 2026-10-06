@@ -1,8 +1,8 @@
 # Bắn Tàu
 
-Bắn Tàu (Battleship) cho hai người, chơi với bạn bè hoặc với máy. Game đang ở trạng thái `wip`:
-luật, máy chơi và hai vùng biển đã chơi được; hình và âm thanh làm sau, xem
-[kế hoạch Bắn Tàu](PLAN.md).
+Bắn Tàu (Battleship) cho hai người, chơi với bạn bè hoặc với máy ở ba mức. Game ở trạng thái
+`ready`, có đảo quân cảng riêng, biển và hạm đội, hiệu ứng bắn/chìm cùng âm thanh và nhạc nền.
+Xem [luật chơi](RULES.md).
 
 ## Luật chơi
 
@@ -48,8 +48,24 @@ src/
 assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo tên file
 ```
 
-Biển, tàu, dấu trúng và trượt đều vẽ bằng code. `island.webp` là đảo mẫu của `npm run new:game`;
-`button.webp` lấy từ Tiến Lên.
+`OceanBackground.ts` dựng nền biển phủ toàn màn hình. Bàn lớn và bản đồ hạm đội dùng cùng
+sprite tàu nhìn từ trên xuống, xoay theo hướng tàu; tàu đã chìm sẫm màu, ô trúng có dấu lửa,
+ô trượt có vòng nước. Đạn bay tới ô bắn, trượt tạo cột nước, trúng tạo chớp lửa; tàu chìm
+lún xuống và rung theo chiều dài. Khán giả thấy hiệu ứng đúng vùng biển, chỉ thấy tàu đã chìm.
+
+Âm thanh riêng cho đặt tàu, sẵn sàng, bắn, trượt, trúng, chìm và thắng. Nhạc nền nhẹ được
+app phát qua kênh nhạc; hiệu ứng đi qua kênh âm thanh và tuân theo cài đặt tắt tiếng.
+
+## Hình và âm thanh
+
+Toàn bộ hình và âm thanh Bắn Tàu là tác phẩm gốc tạo bằng code trong
+`sources/render_assets.py`, phát hành theo giấy phép MIT của repo, không dùng mẫu tải ngoài.
+Hình WebP có nền trong suốt (trừ biển), hiệu ứng WAV mono 16-bit 44,1 kHz, nhạc MP3 128 kbps.
+Tạo lại từ thư mục gốc (cần `npm install`, Python 3 và ffmpeg):
+
+```sh
+python3 games/battleship/sources/render_assets.py
+```
 
 Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=battleship&players=2 (khi
 đang chạy `npm run dev`).

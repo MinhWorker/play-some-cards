@@ -15,8 +15,7 @@ export default definePlugin({
     name: 'Bắn Tàu',
     minPlayers: 2,
     maxPlayers: 2,
-    // Locked in production until you change this to 'ready'.
-    status: 'wip',
+    status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },

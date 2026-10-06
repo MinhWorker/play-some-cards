@@ -9,7 +9,7 @@
  * to move it there; "Xếp lại" shuffles the fleet, "Sẵn sàng" starts. In battle the big sea is
  * the other side's (tap a cell to fire on your turn) and yours is the small one on the left.
  *
- * Everything is drawn here until the art exists; sounds come with it.
+ * Naval sprites and scoped shot presentations preserve the server's hidden information.
  */
 import {
   type Button,
@@ -60,6 +60,11 @@ interface SeaBox {
 export class BattleshipView extends GameView<View, Options> {
   private big!: Phaser.GameObjects.Graphics;
   private small!: Phaser.GameObjects.Graphics;
+  private panels!: Phaser.GameObjects.Graphics;
+  private bigFleet!: Phaser.GameObjects.Container;
+  private smallFleet!: Phaser.GameObjects.Container;
+  private bigMarks!: Phaser.GameObjects.Graphics;
+  private smallMarks!: Phaser.GameObjects.Graphics;
   private effects!: Phaser.GameObjects.Graphics;
   private labels!: Phaser.GameObjects.Text[];
   private zone!: Phaser.GameObjects.Zone;
@@ -89,6 +94,11 @@ export class BattleshipView extends GameView<View, Options> {
     this.picked = null;
     this.big = this.add.graphics();
     this.small = this.add.graphics();
+    this.panels = this.add.graphics().setDepth(-1);
+    this.bigFleet = this.add.container(0, 0).setDepth(1);
+    this.smallFleet = this.add.container(0, 0).setDepth(1);
+    this.bigMarks = this.add.graphics().setDepth(2);
+    this.smallMarks = this.add.graphics().setDepth(2);
     this.effects = this.add.graphics().setDepth(5);
     this.labels = Array.from({ length: SIZE * 2 }, () =>
       this.label('', { size: 18 }).setColor('#dff1ff'),
@@ -159,7 +169,7 @@ export class BattleshipView extends GameView<View, Options> {
       cell: smallSide / SIZE,
     };
     this.status
-      .setFontSize(28 * hud)
+      .setFontSize(24 * hud)
       .setOrigin(0.5, 0)
       .setWordWrapWidth(columnW)
       .setPosition(this.column.right, boardTop + 8);
@@ -169,6 +179,11 @@ export class BattleshipView extends GameView<View, Options> {
       width: Math.min(columnW, 190 * hud),
       height: 56 * hud,
     };
+    this.panels.clear().fillStyle(0x082b40, 0.82).lineStyle(1.5, 0x75c4c8, 0.35);
+    for (const x of [this.column.left, this.column.right]) {
+      this.panels.fillRoundedRect(x - columnW / 2 - 8, boardTop, columnW + 16, side, 18);
+      this.panels.strokeRoundedRect(x - columnW / 2 - 8, boardTop, columnW + 16, side, 18);
+    }
     this.redraw(ctx);
   }
 
@@ -185,28 +200,126 @@ export class BattleshipView extends GameView<View, Options> {
     this.cameras.main.resetFX();
   }
 
-  /** A shot landed: a splash for a miss, a burst for a hit, a shake when a ship goes down. */
+  protected onShuffle() {
+    void this.sfx('battleship-place');
+  }
+
+  protected onReady() {
+    void this.sfx('battleship-ready');
+  }
+
+  protected onEnd(ctx: Ctx) {
+    const mine = this.mySeat(ctx);
+    if (mine !== null && ctx.state.end?.winner === mine) {
+      this.runtime.run(
+        async (fx) => {
+          await fx.sound('battleship-win', { duck: true, wait: 'finished' });
+        },
+        { lane: 'shots', policy: 'queue' },
+      );
+    }
+  }
+
+  /** A shell, impact and sinking, all cancelled together on resync or a new game. */
   protected onFire(ctx: Ctx, _event: ViewEvent<{ cell: number }>) {
     const last = ctx.state.last;
     if (!last) return;
     const mine = this.mySeat(ctx);
     // Shots at your sea land on the small one; everyone else's (and yours) on the big one.
-    const onSmall = mine !== null && last.by !== mine;
+    const onSmall = other(last.by) === (mine ?? 0);
     const box = onSmall ? this.smallSea : this.bigSea;
     const x = box.x0 + (colOf(last.cell) + 0.5) * box.cell;
     const y = box.y0 + (rowOf(last.cell) + 0.5) * box.cell;
-    const ring = this.add.circle(x, y, box.cell * 0.2).setDepth(6);
-    ring.setStrokeStyle(Math.max(2, box.cell * 0.08), last.hit ? COLORS.hit : COLORS.miss);
-    this.runtime.run(async (fx) => {
-      fx.defer(() => ring.destroy());
-      await fx.tween({
-        targets: ring,
-        scale: last.hit ? 3 : 2.2,
-        alpha: 0,
-        duration: last.hit ? 420 : 320,
-      });
-    });
-    if (last.sunk) this.cameras.main.shake(260, 0.006);
+    this.runtime.run(
+      async (fx) => {
+        const originX = onSmall
+          ? this.bigSea.x0 + (SIZE * this.bigSea.cell) / 2
+          : this.smallSea.x0 + (SIZE * this.smallSea.cell) / 2;
+        const originY = onSmall ? this.bigSea.y0 : this.smallSea.y0 + SIZE * this.smallSea.cell;
+        const shell = this.add.ellipse(originX, originY, 8, 18, 0xffe9a6).setDepth(7);
+        shell.setRotation(Math.atan2(y - originY, x - originX) + Math.PI / 2);
+        fx.defer(() => shell.destroy());
+        await fx.parallel(
+          async (flight) => {
+            await flight.sound('battleship-fire');
+          },
+          async (flight) => {
+            await flight.tween({ targets: shell, x, y, duration: 220, ease: 'Quad.In' });
+          },
+        );
+        shell.setVisible(false);
+        const impact = this.image(x, y, last.hit ? 'burst' : 'splash').setDepth(7);
+        impact.setDisplaySize(box.cell * 1.4, box.cell * 1.4);
+        fx.defer(() => impact.destroy());
+        const ring = this.add.circle(x, y, box.cell * 0.2).setDepth(6);
+        ring.setStrokeStyle(Math.max(2, box.cell * 0.06), last.hit ? COLORS.hit : COLORS.miss);
+        fx.defer(() => ring.destroy());
+        const smoke = last.hit ? this.add.container(x, y).setDepth(6) : null;
+        if (smoke) {
+          for (let i = 0; i < 3; i++) {
+            smoke.add(
+              this.add.circle(
+                (i - 1) * box.cell * 0.15,
+                -i * box.cell * 0.1,
+                box.cell * 0.22,
+                0x354957,
+                0.65,
+              ),
+            );
+          }
+          fx.defer(() => smoke.destroy());
+        }
+        await fx.parallel(
+          async (hit) => {
+            await hit.sound(last.hit ? 'battleship-hit' : 'battleship-miss');
+          },
+          async (hit) => {
+            await hit.tween({ targets: ring, scale: 3, alpha: 0, duration: 460 });
+          },
+          async (hit) => {
+            await hit.tween({
+              targets: impact,
+              y: y - box.cell * 0.3,
+              scaleX: impact.scaleX * 1.5,
+              scaleY: impact.scaleY * 1.5,
+              alpha: 0,
+              duration: 520,
+            });
+          },
+          async (hit) => {
+            if (smoke)
+              await hit.tween({
+                targets: smoke,
+                y: y - box.cell * 0.8,
+                scale: 1.8,
+                alpha: 0,
+                duration: 650,
+              });
+          },
+        );
+        if (last.sunk) {
+          const wreck = this.shipImage({ cells: last.sunk }, box).setDepth(6);
+          fx.defer(() => wreck.destroy());
+          fx.defer(() => this.cameras.main.resetFX());
+          this.cameras.main.shake(160 + last.sunk.length * 45, 0.001 * last.sunk.length);
+          await fx.parallel(
+            async (sink) => {
+              await sink.sound('battleship-sunk');
+            },
+            async (sink) => {
+              await sink.tween({
+                targets: wreck,
+                y: wreck.y + box.cell * 0.35,
+                alpha: 0,
+                duration: 850,
+                ease: 'Sine.In',
+              });
+            },
+          );
+        }
+      },
+      { lane: 'shots', policy: 'queue' },
+    );
   }
 
   protected onResync(ctx: Ctx) {
@@ -256,15 +369,25 @@ export class BattleshipView extends GameView<View, Options> {
       setup && big === mine && this.draft.length
         ? { ...ctx.state.waters[big], ships: this.draft }
         : ctx.state.waters[big];
-    this.drawSea(this.big, this.bigSea, bigWaters, ctx, big);
+    this.drawSea(this.big, this.bigFleet, this.bigMarks, this.bigSea, bigWaters, ctx, big);
     // The small sea: yours in battle (the first player's for spectators).
     const smallSeat: Seat = mine ?? 0;
     const showSmall = !setup;
     this.small.clear().setVisible(showSmall);
+    this.smallFleet.removeAll(true).setVisible(showSmall);
+    this.smallMarks.clear().setVisible(showSmall);
     if (showSmall)
-      this.drawSea(this.small, this.smallSea, ctx.state.waters[smallSeat], ctx, smallSeat);
-    this.showFleet(ctx);
+      this.drawSea(
+        this.small,
+        this.smallFleet,
+        this.smallMarks,
+        this.smallSea,
+        ctx.state.waters[smallSeat],
+        ctx,
+        smallSeat,
+      );
     this.showStatus(ctx);
+    this.showFleet(ctx);
     this.showPlayers(ctx);
     this.showButtons(ctx);
   }
@@ -272,6 +395,8 @@ export class BattleshipView extends GameView<View, Options> {
   /** One sea: water, grid, ships (shown ones), shots, and the last shot or picked ship. */
   private drawSea(
     g: Phaser.GameObjects.Graphics,
+    fleet: Phaser.GameObjects.Container,
+    marks: Phaser.GameObjects.Graphics,
     box: SeaBox,
     waters: Waters,
     ctx: Ctx,
@@ -280,6 +405,8 @@ export class BattleshipView extends GameView<View, Options> {
     const { x0, y0, cell } = box;
     const w = cell * SIZE;
     g.clear();
+    fleet.removeAll(true);
+    marks.clear();
     g.fillStyle(COLORS.frame, 1).fillRoundedRect(
       x0 - cell * 0.12,
       y0 - cell * 0.12,
@@ -288,6 +415,14 @@ export class BattleshipView extends GameView<View, Options> {
       cell * 0.2,
     );
     g.fillStyle(COLORS.water, 1).fillRect(x0, y0, w, w);
+    for (let row = 0; row < SIZE; row++) {
+      g.fillStyle(row % 2 ? 0x246e87 : 0x205e79, 0.7).fillRect(x0, y0 + row * cell, w, cell);
+      for (let col = 0; col < SIZE; col++) {
+        const cx = x0 + (col + 0.25) * cell;
+        const cy = y0 + (row + 0.7) * cell;
+        g.lineStyle(1, 0x90dae0, 0.16).lineBetween(cx, cy, cx + cell * 0.25, cy - cell * 0.04);
+      }
+    }
     g.lineStyle(Math.max(1, cell * 0.03), COLORS.grid, 0.55);
     for (let i = 0; i <= SIZE; i++) {
       g.lineBetween(x0, y0 + i * cell, x0 + w, y0 + i * cell);
@@ -296,40 +431,58 @@ export class BattleshipView extends GameView<View, Options> {
     const shot = new Set(waters.shots.map((s) => s.cell));
     waters.ships.forEach((ship, i) => {
       const sunk = ship.cells.every((c) => shot.has(c));
-      const first = ship.cells[0] ?? 0;
-      const vertical = isVertical(ship);
-      const pad = cell * 0.12;
-      const x = x0 + colOf(first) * cell + pad;
-      const y = y0 + rowOf(first) * cell + pad;
-      const long = ship.cells.length * cell - 2 * pad;
-      const short = cell - 2 * pad;
-      const [bw, bh] = vertical ? [short, long] : [long, short];
-      g.fillStyle(sunk ? COLORS.sunk : COLORS.hull, 1).fillRoundedRect(x, y, bw, bh, short / 2);
+      const sprite = this.shipImage(ship, box);
+      if (sunk) sprite.setTint(0x657a83).setAlpha(0.6);
+      fleet.add(sprite);
       const picked = this.picked === i && seat === this.mySeat(ctx) && this.draft.length > 0;
-      g.lineStyle(
-        Math.max(1.5, cell * (picked ? 0.1 : 0.05)),
-        picked ? COLORS.picked : sunk ? COLORS.hit : COLORS.hullEdge,
-        1,
-      );
-      g.strokeRoundedRect(x, y, bw, bh, short / 2);
+      if (picked) {
+        marks.lineStyle(Math.max(2, cell * 0.06), COLORS.picked, 1);
+        for (const c of ship.cells)
+          marks.strokeRoundedRect(
+            x0 + colOf(c) * cell + 2,
+            y0 + rowOf(c) * cell + 2,
+            cell - 4,
+            cell - 4,
+            4,
+          );
+      }
     });
     for (const { cell: at, hit } of waters.shots) {
       const cx = x0 + (colOf(at) + 0.5) * cell;
       const cy = y0 + (rowOf(at) + 0.5) * cell;
       if (hit) {
-        g.fillStyle(COLORS.hit, 1).fillCircle(cx, cy, cell * 0.26);
-        g.lineStyle(Math.max(1.5, cell * 0.07), 0xffffff, 0.9);
+        marks.fillStyle(0x361f25, 1).fillCircle(cx, cy, cell * 0.27);
+        marks
+          .lineStyle(Math.max(1.5, cell * 0.05), COLORS.hit, 1)
+          .strokeCircle(cx, cy, cell * 0.27);
+        marks.lineStyle(Math.max(1.5, cell * 0.06), 0xffd69a, 1);
         const d = cell * 0.14;
-        g.lineBetween(cx - d, cy - d, cx + d, cy + d).lineBetween(cx - d, cy + d, cx + d, cy - d);
+        marks
+          .lineBetween(cx - d, cy - d, cx + d, cy + d)
+          .lineBetween(cx - d, cy + d, cx + d, cy - d);
       } else {
-        g.fillStyle(COLORS.miss, 0.85).fillCircle(cx, cy, cell * 0.12);
+        marks
+          .lineStyle(Math.max(1, cell * 0.03), COLORS.miss, 0.6)
+          .strokeCircle(cx, cy, cell * 0.22);
+        marks.fillStyle(COLORS.miss, 0.85).fillCircle(cx, cy, cell * 0.08);
       }
     }
     const last = ctx.state.last;
     if (last && last.by !== seat && !ctx.result) {
-      g.lineStyle(Math.max(2, cell * 0.07), COLORS.last, 1);
-      g.strokeRect(x0 + colOf(last.cell) * cell, y0 + rowOf(last.cell) * cell, cell, cell);
+      marks.lineStyle(Math.max(2, cell * 0.05), COLORS.last, 1);
+      marks.strokeRect(x0 + colOf(last.cell) * cell, y0 + rowOf(last.cell) * cell, cell, cell);
     }
+  }
+
+  private shipImage(ship: Ship, box: SeaBox) {
+    const first = ship.cells[0] ?? 0;
+    const vertical = isVertical(ship);
+    const length = ship.cells.length;
+    const x = box.x0 + (colOf(first) + (vertical ? 0.5 : length / 2)) * box.cell;
+    const y = box.y0 + (rowOf(first) + (vertical ? length / 2 : 0.5)) * box.cell;
+    return this.image(x, y, `ship-${length}`)
+      .setDisplaySize(length * box.cell - box.cell * 0.1, box.cell * 0.88)
+      .setRotation(vertical ? Math.PI / 2 : 0);
   }
 
   /** In battle, the fleet on the big sea: each ship, crossed out once sunk. */
@@ -501,6 +654,7 @@ export class BattleshipView extends GameView<View, Options> {
       return;
     }
     this.draft = this.draft.map((s, k) => (k === i ? ship : s));
+    void this.sfx('battleship-place');
     this.send('arrange', { ships: this.draft });
   }
 

@@ -4,6 +4,7 @@
  */
 import { defineClient } from '@psc/sdk/client';
 import { BattleshipView } from './scenes/BattleshipView.js';
+import { OceanBackground } from './scenes/OceanBackground.js';
 import { Setup } from './scenes/Setup.js';
 
-export default defineClient({ setup: Setup, scene: BattleshipView });
+export default defineClient({ setup: Setup, scene: BattleshipView, background: OceanBackground });
