@@ -2,9 +2,9 @@
 
 Where to look:
 - **How to build a game** (Vietnamese, for people): `docs/making-a-game.md`.
-- **Every hook**: `games/counter/README.md`.
+- **Every hook**: `docs/making-a-game.md` ("Các hook").
 - **Examples**:
-  - `games/counter` is the smallest game.
+  - `scripts/templates/game/` is the minimal starter.
   - `games/tic-tac-toe` (Caro) adds room options, a computer player and a setup screen.
 - **The source of truth for the API** is the headers of `packages/sdk/src/engine.ts` and
   `packages/sdk/src/client/GameView.ts`.
@@ -66,8 +66,7 @@ games/<id>/          Only index.ts + client.ts are required
   game. Examples: a system event, a `ctx` property, a view helper, a test helper.
 - Changing an SDK API means, in the same change:
   - updating every game that uses it;
-  - documenting it in the engine.ts / GameView.ts headers, `games/counter/README.md` and
-    `docs/making-a-game.md`.
+  - documenting it in the engine.ts / GameView.ts headers and `docs/making-a-game.md`.
 - `meta.status: 'wip'` is locked only on the production site (`VERCEL_ENV`), so unfinished games
   can be merged. `'ready'` releases the game.
 - The server runs the games' compiled `dist/`, while the web app and typechecks use their

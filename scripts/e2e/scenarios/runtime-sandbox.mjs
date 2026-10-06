@@ -2,7 +2,6 @@
 import { clickCanvas, DESKTOP } from '../lib.mjs';
 
 export const games = [
-  'counter',
   'co-ca-ngua',
   'tic-tac-toe',
   'xiangqi',
@@ -35,12 +34,12 @@ export default async function run(t) {
     const result = await page.evaluate(async () => (await window.__sandboxCancelled.done).status);
     if (result !== 'cancelled') throw new Error(`${id}: new round kept the old flow`);
   };
-  for (const id of ['counter', 'co-ca-ngua']) {
+  for (const id of ['co-ca-ngua']) {
     await open(id);
     await clickCanvas(page, id, (s) => s.buttons[0].container);
     await page.waitForFunction((key) => {
       const s = window.__phaser.scene.getScene(key);
-      return (s.ctx.state.count ?? s.ctx.state.total) > 0;
+      return s.ctx.state.total > 0;
     }, id);
     await restart(id);
     await page.screenshot({ path: t.shot(`${id}-new-round.png`) });

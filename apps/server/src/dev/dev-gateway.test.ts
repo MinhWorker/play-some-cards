@@ -11,7 +11,7 @@ import { logRoom } from './room-log.js';
 afterEach(() => vi.restoreAllMocks());
 function setup(dev: boolean) {
   const rooms = new RoomsService(dev);
-  const { room } = rooms.create('counter', { id: 'a', name: 'A' });
+  const { room } = rooms.create('tic-tac-toe', { id: 'a', name: 'A' }, { opponent: 'bot' });
   const gateway = new RoomsGateway(
     rooms,
     new AccountsService(new MemoryAccountsStore()),
@@ -77,12 +77,14 @@ describe('dev gateway', () => {
       'dev:log',
       expect.objectContaining({ kind: 'command', text: 'help → xong' }),
     );
-    expect(await gateway.move(socket, { move: { event: 'press', payload: {} } })).toMatchObject({
+    expect(
+      await gateway.move(socket, { move: { event: 'place', payload: { x: 0, y: 0 } } }),
+    ).toMatchObject({
       ok: true,
     });
     expect(socket.emit).toHaveBeenCalledWith(
       'dev:log',
-      expect.objectContaining({ kind: 'move', text: expect.stringContaining('gửi press') }),
+      expect.objectContaining({ kind: 'move', text: expect.stringContaining('gửi place') }),
     );
     expect(room.dev?.followers.size).toBe(1);
   });
