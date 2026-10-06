@@ -116,7 +116,7 @@ export default async function run(t) {
   const balances = await host.evaluate(() =>
     window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.players.map((p) => p.cash),
   );
-  if (balances.some((cash) => cash !== 1500)) throw new Error('An expired trade transferred money');
+  if (balances.some((cash) => cash !== 1000)) throw new Error('An expired trade transferred money');
   await host.waitForFunction(
     () => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -131,25 +131,47 @@ export default async function run(t) {
     await host.waitForFunction(() => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
       return (
-        s.visualPhase === 'decision' &&
-        !s.runtime.busy('turn') &&
-        !s.activeMoney &&
-        (s.main[0].hit.visible || s.diceHit.visible)
+        (s.ctx.state.turn === 1 && s.ctx.state.lastAutoAction?.event === 'end-turn') ||
+        (s.visualPhase === 'decision' &&
+          !s.runtime.busy('turn') &&
+          !s.activeMoney &&
+          (s.main[0].hit.visible || s.diceHit.visible))
       );
     });
-    const phase = await host.evaluate(
-      () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase,
-    );
-    if (phase === 'end') break;
+    const { phase, ended, canBuy } = await host.evaluate(() => {
+      const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+      const state = scene.ctx.state;
+      return {
+        phase: state.phase,
+        canBuy: scene.main.some((b) => b.hit.visible && b.text.text.startsWith('Mua ')),
+        ended: state.turn === 1 && state.lastAutoAction?.event === 'end-turn',
+      };
+    });
+    if (phase === 'end' || ended || (phase === 'buy' && !canBuy)) break;
     await clickCanvas(host, 'co-ty-phu-classic', (s) =>
-      s.ctx.state.phase === 'roll' ? s.diceHit : s.main[0].hit,
+      s.ctx.state.phase === 'roll'
+        ? s.diceHit
+        : s.ctx.state.phase === 'buy'
+          ? s.main.find((b) => b.hit.visible && b.text.text.startsWith('Mua ')).hit
+          : s.main[0].hit,
     );
   }
   await host.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.ctx.state.phase === 'end' && s.visualPhase === 'decision' && s.main[0].hit.visible;
+    return (
+      (s.ctx.state.turn === 1 && s.ctx.state.lastAutoAction?.event === 'end-turn') ||
+      (['buy', 'end'].includes(s.ctx.state.phase) &&
+        s.visualPhase === 'decision' &&
+        s.main[0].hit.visible)
+    );
   });
-  await host.screenshot({ path: t.shot('end-turn-center.png') });
+  // The server may already have ended the turn while the headless browser renders the landing.
+  if (
+    await host.evaluate(() =>
+      ['buy', 'end'].includes(window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase),
+    )
+  )
+    await host.screenshot({ path: t.shot('end-turn-center.png') });
   await guest.waitForFunction(
     () => {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');

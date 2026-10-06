@@ -9,7 +9,7 @@
  * Tap one of your pieces on your turn to see where it may go (dots; rings on pieces it can
  * take), then tap a point to move. Black's player sees the board turned round.
  *
- * The board image is plain wood in a lacquer frame (theme.ts BOARD says where the points go);
+ * The board image is plain wood in a narrow walnut frame (theme.ts BOARD has the points);
  * the lines are drawn here and 楚河 漢界 is an image. Pieces are renders seen a little from
  * the front: each is drawn a little above its point and over the pieces behind it, on a
  * shadow of its own (piece-shadow) that stays on the table when the piece is lifted.
@@ -36,7 +36,17 @@ import { colOf, generalOf, kindOf, legalTargets, rowOf, sideOf } from '../game/r
 import { cutIn } from './cutin.js';
 import { formatPlayed, ResultPanel } from './ResultPanel.js';
 import { shatter } from './shatter.js';
-import { BOARD, COLORS, DISC, endText, pieceImage, reasonText, SIDES } from './theme.js';
+import {
+  BOARD,
+  COLORS,
+  DISC,
+  endText,
+  PIECE_HOVER,
+  PIECE_TINT,
+  pieceImage,
+  reasonText,
+  SIDES,
+} from './theme.js';
 
 type Ctx = ViewContext<View, Options>;
 
@@ -79,6 +89,8 @@ export class XiangqiView extends GameView<View, Options> {
   private checkRing!: Phaser.GameObjects.Graphics;
   private zone!: Phaser.GameObjects.Zone;
   private status!: Phaser.GameObjects.Text;
+  private playerMarks!: Phaser.GameObjects.Graphics;
+  private matchInfo!: Phaser.GameObjects.Text;
   /** Per seat: the general it plays, its name and its wins, in the left column. */
   private score!: {
     icons: Phaser.GameObjects.Image[];
@@ -86,7 +98,7 @@ export class XiangqiView extends GameView<View, Options> {
     wins: Phaser.GameObjects.Text[];
   };
   /** The column left of the board (x in the middle), for the score. */
-  private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
+  private leftColumn = { x: 0, width: 200, top: 0, bottom: 400, compact: false };
   private buttons!: {
     draw: Button;
     decline: Button;
@@ -143,19 +155,25 @@ export class XiangqiView extends GameView<View, Options> {
       })
       .on('pointerout', () => this.hover(null));
     this.status = this.label('', { size: 34 });
+    this.status.setColor('#f3e6ce').setStroke('#211a14', 3);
+    this.playerMarks = this.add.graphics();
+    this.matchInfo = this.label('', { size: 24, color: '#cab79a' }).setStroke('#211a14', 2);
     this.score = {
       icons: [0, 1].map(() => this.sprite(pieceImage('r', 'k'))),
-      names: [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0.5)),
-      wins: [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0.5)),
+      names: [0, 1].map(() => this.label('', { size: 30 }).setStroke('#211a14', 3)),
+      wins: [0, 1].map(() =>
+        this.label('', { size: 24, color: '#cab79a' }).setStroke('#211a14', 2),
+      ),
     };
-    const opts = { image: 'button', size: 24 };
+    const opts = { image: 'button', size: 28 };
     this.buttons = {
       draw: this.button('Xin hoà', () => this.send('offer-draw'), opts),
       decline: this.button('Từ chối', () => this.send('decline-draw'), opts),
       resign: this.button('Đầu hàng', () => this.resign(), opts),
       result: this.button('Kết quả', () => this.showPanel(false), opts),
-      effects: this.button('', () => this.toggleEffects(), opts),
+      effects: this.button('Hiệu ứng: Bật', () => this.toggleEffects(), { size: 24 }),
     };
+    this.buttons.effects.label.setColor('#cab79a').setStroke('#211a14', 2);
     const close = this.button(
       'Xem bàn cờ',
       () => {
@@ -169,24 +187,28 @@ export class XiangqiView extends GameView<View, Options> {
   }
 
   /**
-   * On the frame (docs/ui-guide.md): the board as tall as it fits under the room bar, in the
-   * middle; the players and their wins in the column on its left (the side at the top of the
-   * board above, yours below); the status line and the buttons in the column on its right.
+   * Fill the free middle between the room's corner controls. A wrapped bar or the sandbox's
+   * seat controls keep the board below the bar. The side rails never cover playable points.
    */
   protected onLayout(ctx: Ctx) {
     const interrupted = this.runtime.busy('turn');
     if (interrupted) this.runtime.newRound('resize');
-    const { width, height, top, hud } = ctx.screen;
-    const margin = 16;
-    const columnMin = 150 * hud;
+    const { width, height, top, hud, gap } = ctx.screen;
+    const margin = 12;
+    const columnMin = 136 * hud + margin;
     const availW = width - 2 * columnMin;
-    const availH = height - top - margin;
+    const fullScale = Math.min(availW / BOARD.width, (height - 2 * margin) / BOARD.height);
+    const fullW = BOARD.width * fullScale;
+    const fullLeft = (width - fullW) / 2;
+    const fitsGap = gap && fullLeft >= gap.left + 8 && fullLeft + fullW <= gap.right - 8;
+    const safeTop = fitsGap ? Math.max(margin, gap.top) : top;
+    const availH = height - safeTop - margin;
     // The table image, as big as fits.
     const scale = Math.min(availW / BOARD.width, availH / BOARD.height);
     const boardW = BOARD.width * scale;
     const boardH = BOARD.height * scale;
     const cx = width / 2;
-    const boardTop = top + Math.max(0, (availH - boardH) / 2);
+    const boardTop = safeTop + Math.max(0, (availH - boardH) / 2);
     const cy = boardTop + boardH / 2;
     const left = cx - boardW / 2;
     const columnW = left - 2 * margin;
@@ -198,7 +220,6 @@ export class XiangqiView extends GameView<View, Options> {
       flip: this.mySide(ctx) === 'b',
     };
     this.grid = grid;
-    const cell = grid.dx;
 
     this.boardImage.setPosition(cx, cy).setDisplaySize(boardW, boardH);
     this.drawLines();
@@ -219,23 +240,27 @@ export class XiangqiView extends GameView<View, Options> {
 
     const rightX = cx + boardW / 2 + margin + columnW / 2;
     this.status
-      .setFontSize(Math.min(34, Math.max(22, cell * 0.5)) * hud)
+      .setFontSize(28 * hud)
       .setOrigin(0.5, 0)
       .setWordWrapWidth(columnW)
-      .setPosition(rightX, boardTop + 8);
+      .setPosition(rightX, top + 16);
+    const compact = boardH < 440 * hud;
     this.leftColumn = {
       x: margin + columnW / 2,
       width: columnW,
-      top: boardTop + 40 * hud,
-      bottom: boardTop + boardH - 40 * hud,
+      top: Math.max(top + 42 * hud, boardTop + boardH * 0.23),
+      bottom: boardTop + boardH * 0.76,
+      compact,
     };
+    this.matchInfo.setFontSize(24 * hud).setPosition(this.leftColumn.x, boardTop + boardH * 0.53);
     this.layoutScore(ctx);
+    this.updateMatchInfo(ctx);
 
-    const btnH = 56 * hud;
+    const btnH = 72 * hud;
     this.buttonStack = {
       x: rightX,
-      bottom: boardTop + boardH,
-      width: Math.min(columnW, 190 * hud),
+      bottom: boardTop + boardH - 8,
+      width: Math.min(columnW, 210 * hud),
       height: btnH,
     };
     this.placeButtons();
@@ -301,6 +326,7 @@ export class XiangqiView extends GameView<View, Options> {
     this.showStatus(ctx);
     this.showButtons(ctx);
     this.layoutScore(ctx);
+    this.updateMatchInfo(ctx);
     if (!ctx.result) this.live = true;
     else if (!this.endQueued) {
       // After the last move's animation (it is queued already, onMove comes first).
@@ -308,6 +334,16 @@ export class XiangqiView extends GameView<View, Options> {
       const live = this.live;
       this.enqueue((fx) => this.presentEnd(fx, live), { move: false });
     }
+  }
+
+  protected onUpdate(ctx: Ctx) {
+    this.updateMatchInfo(ctx);
+  }
+
+  private updateMatchInfo({ clock, state }: Ctx) {
+    const elapsed = clock ? formatPlayed((clock.endedAt ?? Date.now()) - clock.startedAt) : '';
+    const text = [elapsed, `${state.plies} nước`].filter(Boolean).join('\n');
+    if (this.matchInfo.text !== text) this.matchInfo.setText(text);
   }
 
   // ── Board ───────────────────────────────────────────────────────────────────────────────
@@ -446,7 +482,7 @@ export class XiangqiView extends GameView<View, Options> {
     this.runtime.cancelTweens([obj, obj.container, obj.image, obj.shadow]);
     obj.container.setPosition(x, y).setScale(1).setAlpha(1).setAngle(0).setDepth(this.depthAt(sq));
     const size = (this.grid.dx * BOARD.disc) / DISC;
-    obj.image.setDisplaySize(size, size).setPosition(0, 0).clearTint();
+    obj.image.setDisplaySize(size, size).setPosition(0, 0).setTint(PIECE_TINT);
     obj.shadow.setDisplaySize(size, size).setPosition(0, 0).setAlpha(1);
     if (sq === this.selected && this.effects) this.setLift(obj, LIFT.picked);
   }
@@ -622,7 +658,7 @@ export class XiangqiView extends GameView<View, Options> {
   }
 
   /**
-   * How each kind of piece takes (games/xiangqi/PLAN.md): the attacker ends on `to` standing
+   * How each kind of piece takes: the attacker ends on `to` standing
    * on the table, and `hit(power)` fires at the moment it strikes.
    */
   private async attack(
@@ -919,7 +955,7 @@ export class XiangqiView extends GameView<View, Options> {
     c.setDepth(DEPTH.popup - 1);
     image.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.runtime.after(60, () => {
-      if (image.active) image.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+      if (image.active) image.setTint(PIECE_TINT).setTintMode(Phaser.TintModes.MULTIPLY);
     });
     this.runtime.tween({
       targets: victim.shadow,
@@ -1174,9 +1210,9 @@ export class XiangqiView extends GameView<View, Options> {
     const pickable = sq !== null && sq !== this.selected && this.canPick(this.ctx, sq);
     const next = pickable ? sq : null;
     if (next === this.hovered) return;
-    if (this.hovered !== null) this.pieces.get(this.hovered)?.image.clearTint();
+    if (this.hovered !== null) this.pieces.get(this.hovered)?.image.setTint(PIECE_TINT);
     this.hovered = next;
-    if (next !== null) this.pieces.get(next)?.image.setTint(0xfff3d0);
+    if (next !== null) this.pieces.get(next)?.image.setTint(PIECE_HOVER);
   }
 
   // ── Status, score and buttons ───────────────────────────────────────────────────────────
@@ -1202,11 +1238,9 @@ export class XiangqiView extends GameView<View, Options> {
     } else {
       const check = state.check ? ' · Chiếu tướng!' : '';
       text =
-        state.turn === mine
-          ? `Tới lượt bạn${check}`
-          : `Lượt ${SIDES[state.turn].name} · ${this.nameOf(ctx, state.turn)}${check}`;
+        state.turn === mine ? `Tới lượt bạn${check}` : `Lượt ${SIDES[state.turn].name}${check}`;
       if (state.drawOffer && state.drawOffer !== mine && mine) {
-        text = `${this.nameOf(ctx, state.drawOffer)} xin hoà`;
+        text = `${SIDES[state.drawOffer].name} xin hoà`;
       }
     }
     // Wraps in the column right of the board (onLayout).
@@ -1241,13 +1275,21 @@ export class XiangqiView extends GameView<View, Options> {
    * under the status line instead (the app's result panel takes the bottom-right corner).
    */
   private placeButtons() {
-    const { x, bottom, width, height } = this.buttonStack;
+    const { x, bottom, width, height: preferredHeight } = this.buttonStack;
     const shown = Object.values(this.buttons).filter((b) => b.container.visible);
     const gap = 8;
+    const available = bottom - this.status.y - this.status.height - 16;
+    const height = this.ctx.result
+      ? preferredHeight
+      : Math.min(
+          preferredHeight,
+          Math.max(88, (available - (shown.length - 1) * gap) / shown.length),
+        );
     const span = shown.length * height + (shown.length - 1) * gap;
     const top = this.ctx.result ? this.status.y + this.status.height + 16 : bottom - span;
     shown.forEach((b, i) => {
       b.setSize(width, height).setPosition(x, top + height / 2 + i * (height + gap));
+      b.container.input?.hitArea.setTo(0, 0, width, height);
     });
   }
 
@@ -1283,13 +1325,15 @@ export class XiangqiView extends GameView<View, Options> {
    * The two players in the left column, each beside the general it plays, with its wins: the
    * side at the top of the board above, the side at the bottom below.
    */
-  private layoutScore({ players, score, state }: Ctx) {
+  private layoutScore({ players, score, state, hostId }: Ctx) {
     const { hud } = this.ctx.screen;
     const col = this.leftColumn;
-    const icon = 60 * hud;
-    const textX = col.x - col.width / 2 + icon + 10 * hud;
-    const textW = col.width - icon - 10 * hud;
+    const icon = (col.compact ? 44 : 54) * hud;
+    const iconX = col.compact ? col.x - col.width / 2 + icon / 2 + 8 : col.x;
+    const textX = col.compact ? col.x - col.width / 2 + icon + 16 : col.x;
+    const textW = col.compact ? col.width - icon - 24 : col.width - 8;
     const bottomSide: Side = this.grid.flip ? 'b' : 'r';
+    this.playerMarks.clear();
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
       const wins = this.score.wins[seat];
@@ -1301,16 +1345,26 @@ export class XiangqiView extends GameView<View, Options> {
       img
         .setTexture(this.texture(pieceImage(side, 'k')))
         .setDisplaySize(icon / DISC, icon / DISC)
-        .setPosition(col.x - col.width / 2 + icon / 2, y);
+        .setPosition(iconX, y)
+        .setTint(PIECE_TINT);
+      const active = !state.end && state.turn === side;
+      if (active) {
+        this.playerMarks.lineStyle(3, 0xe5bd72, 0.95).strokeCircle(iconX, y - 3 * hud, icon * 0.57);
+      }
       name
-        .setFontSize(26 * hud)
+        .setFontSize(30 * hud)
         .setColor(SIDES[side].text)
-        .setPosition(textX, y - 14 * hud);
-      this.fitText(name, player ? player.name : '…', textW, 18 * hud);
+        .setOrigin(col.compact ? 0 : 0.5, 0.5)
+        .setPosition(textX, y + (col.compact ? -14 : 46) * hud)
+        .setAlpha(active ? 1 : 0.8);
+      const playerName = player ? `${player.id === hostId ? '♛ ' : ''}${player.name}` : '…';
+      this.fitText(name, playerName, textW, col.compact ? 24 : 24 * hud);
       wins
-        .setFontSize(20 * hud)
-        .setText(`Thắng ${score.wins[seat] ?? 0}`)
-        .setPosition(textX, y + 16 * hud);
+        .setFontSize(24 * hud)
+        .setOrigin(col.compact ? 0 : 0.5, 0.5)
+        .setPosition(textX, y + (col.compact ? 16 : 75) * hud);
+      const won = score.wins[seat] ?? 0;
+      this.fitText(wins, col.compact ? `${won} thắng` : `Thắng ${won}`, textW, 18 * hud);
     });
   }
 }

@@ -7,11 +7,12 @@ export const optionsSchema = z.object({
 });
 export type Options = z.infer<typeof optionsSchema>;
 
+export const STARTING_CASH = 1000;
+
 export type Group = 'nau' | 'xanh-nhat' | 'hong' | 'cam' | 'do' | 'vang' | 'xanh-la' | 'xanh-dam';
-export type DeedKind = 'street' | 'station';
+export type DeedKind = 'street' | 'station' | 'utility';
 export type SquareKind =
   | DeedKind
-  | 'utility'
   | 'start'
   | 'chance'
   | 'chest'
@@ -35,6 +36,8 @@ export interface Property {
   /** 0–4 houses; 5 is a hotel. */
   houses: number;
   mortgaged: boolean;
+  /** Original borrower and deadline, measured in their own turns (not dice rolls). */
+  mortgage?: { borrower: number; deadline: number; principal: number };
 }
 
 export interface TycoonPlayer {
@@ -48,28 +51,32 @@ export interface TycoonPlayer {
 
 export type Phase = 'roll' | 'buy' | 'auction' | 'debt' | 'trade' | 'event' | 'end';
 
-/**
- * An open auction: every player still in it may bid at any time while its clock runs (no turns).
- * Each bid restarts the clock; when it runs out the leader buys. A station is mandatory and its
- * bids are deposits held by the bank: all are refunded and the winner pays the listed price.
- */
+/** How long each bidder has to raise or pass in an auction (ms). */
+export const AUCTION_TURN_MS = 10_000;
+
 export interface Auction {
   square: number;
+  /** Absent for the persistent station contribution mechanic. */
+  seller?: number;
+  resume?: Phase;
+  bidder: number;
   highest: number;
   leader: number | null;
-  /** Players who left the auction (they may not bid again). */
   passed: number[];
-  /** Station deposits held by the bank, per seat. */
   bids: number[];
-  /** Bids so far: the clock's timer is tied to it, so an older timer never closes the auction. */
-  round: number;
 }
 
-/** How long an auction runs before its first bid, and after each bid (ms). */
-export const AUCTION_OPEN_MS = 10_000;
-export const AUCTION_BID_MS = 6_000;
+/** Deposits and withdrawals persist between visits to this station. */
+export type StationAuction = Omit<Auction, 'bidder'>;
+
+export const STATION_CONTRIBUTION_STEP = 50;
+export const STATION_BASE_FEE = 50;
+
+export const auctionRaise = (square: number) => Math.ceil(BOARD[square]!.price! / 5);
 
 export interface Debt {
+  /** A station winner may owe the bank during another player's turn. */
+  payer?: number;
   amount: number;
   creditor: number | null;
   reason: string;
@@ -86,6 +93,8 @@ export interface Trade {
   take: number | null;
   giveCash: number;
   takeCash: number;
+  giveCard?: boolean;
+  takeCard?: boolean;
   resume: Phase;
 }
 
@@ -116,6 +125,7 @@ export interface State {
   players: TycoonPlayer[];
   properties: Property[];
   turn: number;
+  playerTurns: number[];
   round: number;
   shortages: { square: number; round: number }[];
   phase: Phase;
@@ -123,10 +133,13 @@ export interface State {
   after: 'roll' | 'end';
   doubles: number;
   dice: [number, number] | null;
+  /** Dev console override, consumed by the next roll and hidden from player views. */
+  devDice?: [number, number];
   pending: number | null;
   /** One building upgrade after landing on an already-owned street. */
   buildable: number | null;
   auction: Auction | null;
+  stationAuctions: Record<number, StationAuction>;
   debt: Debt | null;
   trade: Trade | null;
   chance: number[];
@@ -138,76 +151,83 @@ export interface State {
 }
 
 /** Deck order is server-only. */
-export type View = Omit<State, 'chance' | 'chest'>;
+export type View = Omit<State, 'chance' | 'chest' | 'devDice'>;
 
-const street = (
-  name: string,
-  group: Group,
-  price: number,
-  rent: readonly number[],
-  houseCost: number,
-): Square => ({ name, kind: 'street', group, price, rent, houseCost });
+/** Every street uses the same price-based building and rent ladder. */
+const street = (name: string, group: Group, price: number): Square => ({
+  name,
+  kind: 'street',
+  group,
+  price,
+  houseCost: price / 2,
+  rent: [0.1, 0.4, 1.1, 3, 4, 5].map((rate) => Math.round(price * rate)),
+});
 const station = (name: string): Square => ({ name, kind: 'station', price: 200 });
-const utility = (name: string): Square => ({ name, kind: 'utility', tax: 100 });
-export const AUCTION_STEP = 10;
+const utility = (name: string): Square => ({ name, kind: 'utility', price: 150 });
 
-/** Fixed interleaved price layout; each street retains its group and building ladder. */
+/** Clockwise from Start: six streets per side, with two Chance and two Chest squares. */
 export const BOARD: readonly Square[] = [
   { name: 'Xuất phát', kind: 'start' },
-  street('Tp. Hà Nội', 'nau', 60, [2, 10, 30, 90, 160, 250], 50),
-  { name: 'Khí vận', kind: 'chest' },
-  street('Vĩnh Long', 'xanh-la', 320, [28, 150, 450, 1000, 1200, 1400], 200),
-  { name: 'Thuế thu nhập', kind: 'tax', tax: 200 },
+  street('Phú Quốc', 'nau', 200),
+  street('Lào Cai', 'nau', 150),
+  street('Việt Trì', 'nau', 180),
+  { name: 'Thuế thu nhập', kind: 'tax', tax: 100 },
   station('Bến Bắc'),
-  street('Tp. Hải Phòng', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
+  street('Hạ Long', 'xanh-nhat', 280),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Đồng Nai', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
-  street('Hưng Yên', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
+  street('Hải Phòng', 'xanh-nhat', 320),
+  street('Hà Nội', 'xanh-nhat', 350),
   { name: 'Nhà tù', kind: 'jail' },
-  street('Tp. Đà Nẵng', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
+  street('Hải Dương', 'hong', 220),
   utility('Điện lực'),
-  street('Đồng Tháp', 'xanh-dam', 350, [35, 175, 500, 1100, 1300, 1500], 200),
-  street('Khánh Hòa', 'hong', 160, [12, 60, 180, 500, 700, 900], 100),
-  station('Bến Trung'),
-  street('Tây Ninh', 'vang', 280, [24, 120, 360, 850, 1025, 1200], 150),
+  street('Thái Bình', 'hong', 260),
+  street('Nam Định', 'hong', 240),
+  station('Bến Tây'),
+  street('Thanh Hóa', 'cam', 270),
   { name: 'Khí vận', kind: 'chest' },
-  street('Tp. HCM', 'nau', 60, [4, 20, 60, 180, 320, 450], 50),
-  street('Tp. Cần Thơ', 'xanh-nhat', 120, [8, 40, 100, 300, 450, 600], 50),
+  street('Vinh', 'cam', 260),
+  street('Hà Tĩnh', 'cam', 170),
   { name: 'Sân bay', kind: 'airport' },
-  street('Gia Lai', 'do', 240, [20, 100, 300, 750, 925, 1100], 150),
+  street('Huế', 'do', 270),
   { name: 'Cơ hội', kind: 'chance' },
-  street('Cà Mau', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
-  street('Lâm Đồng', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
+  street('Đà Nẵng', 'do', 300),
+  street('Hội An', 'do', 250),
   station('Bến Nam'),
-  street('Phú Thọ', 'xanh-dam', 400, [50, 200, 600, 1400, 1700, 2000], 200),
-  street('Tp. Huế', 'xanh-nhat', 100, [6, 30, 90, 270, 400, 550], 50),
+  street('Kon Tum', 'vang', 140),
+  street('Pleiku', 'vang', 160),
   utility('Cấp nước'),
-  street('Đắk Lắk', 'vang', 260, [22, 110, 330, 800, 975, 1150], 150),
+  street('Đà Lạt', 'vang', 270),
   { name: 'Vào tù', kind: 'go-jail' },
-  street('An Giang', 'xanh-la', 300, [26, 130, 390, 900, 1100, 1275], 200),
-  street('Quảng Ninh', 'hong', 140, [10, 50, 150, 450, 625, 750], 100),
+  street('Nha Trang', 'xanh-la', 280),
+  street('Vũng Tàu', 'xanh-la', 260),
   { name: 'Khí vận', kind: 'chest' },
-  street('Ninh Bình', 'cam', 180, [14, 70, 200, 550, 750, 950], 100),
+  street('Biên Hòa', 'xanh-la', 220),
   station('Bến Đông'),
-  { name: 'Cơ hội', kind: 'chance' },
-  street('Quảng Trị', 'do', 220, [18, 90, 250, 700, 875, 1050], 150),
+  street('Tp. HCM', 'xanh-dam', 350),
+  street('Cần Thơ', 'xanh-dam', 300),
   { name: 'Thuế xa xỉ', kind: 'tax', tax: 200 },
-  street('Bắc Ninh', 'cam', 200, [16, 80, 220, 600, 800, 1000], 100),
+  street('Cà Mau', 'xanh-dam', 180),
 ];
 
+// Group IDs remain stable; their display palette is independent of player colors.
 export const GROUP_COLORS: Record<Group, number> = {
-  nau: 0x895135,
-  'xanh-nhat': 0x73c4df,
-  hong: 0xe07bba,
-  cam: 0xe89b43,
-  do: 0xcd5249,
-  vang: 0xe9ce63,
-  'xanh-la': 0x5da968,
-  'xanh-dam': 0x416fbd,
+  nau: 0x434959,
+  'xanh-nhat': 0x73dde7,
+  hong: 0xb94dd6,
+  cam: 0x7451c7,
+  do: 0xc3288e,
+  vang: 0x77717d,
+  'xanh-la': 0x673c91,
+  'xanh-dam': 0x176578,
 };
 
 export const isDeed = (square: Square): square is Square & { price: number } =>
-  square.kind === 'street' || square.kind === 'station';
+  square.kind === 'street' || square.kind === 'station' || square.kind === 'utility';
 
 export const groupSquares = (group: Group): number[] =>
   BOARD.flatMap((square, i) => (square.group === group ? [i] : []));
+
+export const UTILITY_SQUARES = BOARD.flatMap((cell, square) =>
+  cell.kind === 'utility' ? [square] : [],
+);
+export const JAIL_CARD_PRICE = 200;

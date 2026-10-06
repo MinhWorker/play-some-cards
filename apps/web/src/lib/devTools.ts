@@ -17,6 +17,7 @@ export type DevSetting =
   | (Base & { type: 'number'; default: number });
 
 export const DEV_SETTINGS = {
+  console: { label: 'Dev Console', type: 'toggle', default: false },
   prodLocks: {
     label: 'Khoá portal như prod',
     type: 'toggle',

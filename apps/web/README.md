@@ -66,11 +66,35 @@ Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import 
 
 Xem `AGENTS.md` (gốc repo và `apps/web/AGENTS.md`) cho các quy ước và `docs/making-a-game.md` để làm game.
 
-`PhaserStage` dùng `SceneDirector` của SDK để chuyển bàn chơi, bỏ kết quả tải cũ và tạo runtime mới khi mở phòng khác. Nếu tải client lỗi, màn hình có nút **Thử lại**. Mục **Runtime** trong DEV hiển thị epoch, lane, tài nguyên và âm thanh đang hoạt động, không chứa bài hoặc snapshot.
+`PhaserStage` dùng `SceneDirector` của SDK để chuyển bàn chơi, bỏ kết quả tải cũ và tạo runtime mới khi mở phòng khác. Game có thể đặt `background: false` để tắt nền trời ở bàn/sandbox hoặc cung cấp `GameBackgroundScene` dưới key `<id>:background` để thay nền. Director tải scene nền trước bàn, dừng nền khi rời bàn và khôi phục trời chung ở setup/hub; ván mới/resync giữ nền đang chạy. Nếu tải client lỗi, màn hình có nút **Thử lại**. Mục **Runtime** trong DEV hiển thị epoch, lane, tài nguyên và âm thanh đang hoạt động, không chứa bài hoặc snapshot.
 
 Âm thanh ngắn có handle riêng để dừng khi rời scene/đổi ván; buffer vẫn dùng chung. Âm thanh chưa unlock, đang tắt, tab ẩn hoặc bắt đầu muộn hơn 250 ms được bỏ qua. Nhạc nền vẫn theo Stage và thiết lập âm lượng hiện tại.
 
 Thanh phòng chỉ giữ các góc: nút ← (về danh sách phòng) và 🏠 ở bên trái, danh sách người chơi
 (👑 cạnh chủ phòng) khi bàn không tự vẽ danh sách đó, nút cài đặt ở góc phải. Không ghi tên game
 hay "Phòng của …"; màn chờ ghi tên chủ phòng. Thanh của sandbox cũng không còn nhãn "Chơi thử",
-chỉ hiện ai thắng khi ván kết thúc.
+chỉ hiện ai thắng khi ván kết thúc nếu game không có panel tổng kết riêng (`showsResult`).
+Cờ Vây tự vẽ HUD người chơi và tổng kết; các nút "Chơi ván mới"/"Tuỳ chỉnh" của phòng
+nằm giữa thanh trên, không có khung kết quả phụ hay che người chơi ở góc dưới phải.
+
+## Dev Console
+
+Trong phòng thật của server chạy `npm run dev` (`PSC_DEV=1`), bật **Dev Console** trong **DEV**.
+`Ctrl+/` gõ lệnh, `` Ctrl+` `` hiện/ẩn, `Esc` thoát và `?` trong ô trống mở bảng phím tắt.
+Toàn bộ lớp phủ có nền tối bán trong suốt để đọc rõ trên cảnh sáng; `.opacity` chỉnh độ đậm.
+Mọi chuột/chạm đi xuống game; không đổi kích thước khung chơi.
+Chi tiết cú pháp, ghim và log: [hướng dẫn tạo game](../../docs/making-a-game.md#dùng-dev-console).
+
+Mã ở `components/hud/DevConsole/`; store, socket và lệnh nằm trong `lib/devConsole.ts`, phím
+vật lý ở `lib/devConsoleKeys.ts`. Công tắc tắt thì thôi theo dõi log; ẩn bằng phím vẫn giữ log.
+`DevConsoleLoader` tải lớp phủ khi bật và cung cấp `window.__devCommand` / `__devRoomLogs`
+cho e2e ở bản dev. Màn hình chỉ dùng bàn phím, còn chi tiết object/stack xem trong DevTools.
+
+Ảnh phòng thật có thể dùng trạng thái đăng nhập đã lưu bằng Playwright:
+
+```sh
+npm run shots -- --state .dev/room-state.json --command 'help' --devices laptop,iphone-15
+```
+
+File trạng thái chứa thông tin đăng nhập local, để trong `.dev/` (Git bỏ qua). `--crop` chọn
+vùng chi tiết 1:1 từ cùng khung hình với ảnh toàn màn hình. `npm run e2e` cần server bật dev; kịch bản lỗi lưu `.e2e/<scenario>/room.log`.

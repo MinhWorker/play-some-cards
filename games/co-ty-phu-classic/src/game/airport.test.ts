@@ -27,7 +27,7 @@ describe('airport', () => {
       resolveSpecialEvent(game.state, () => (choice + 0.5) / 39);
       const position = game.state.players[0]!.position;
       destinations.add(position);
-      expect(game.state.players[0]?.cash).toBe(position === 0 ? 1700 : 1500);
+      expect(game.state.players[0]?.cash).toBe(position === 0 ? 1200 : 1000);
     }
     expect([...destinations]).toEqual(
       BOARD.flatMap((_, square) => (square === 20 ? [] : [square])),
@@ -43,22 +43,21 @@ describe('airport', () => {
     expect(game.state).toMatchObject({ phase: 'roll', buildable: 3, after: 'roll' });
   });
 
-  it('charges fixed utility tax after confirming the destination and can enter debt', () => {
+  it('charges the owned utility using the flight dice and can enter debt', () => {
     const game = atAirport();
     game.state.properties[12]!.owner = 1;
     game.state.players[0]!.cash = 1;
     resolveSpecialEvent(game.state, () => 12.5 / 39);
-    expect(game.state.specialEvent).toMatchObject({ kind: 'tax', amount: 100 });
-    resolveSpecialEvent(game.state, () => 0);
-    expect(game.state).toMatchObject({ phase: 'debt', debt: { amount: 100, creditor: null } });
+    expect(game.state.specialEvent).toBeNull();
+    expect(game.state).toMatchObject({ phase: 'debt', debt: { amount: 28, creditor: 1 } });
     expect(game.state.players[0]?.cash).toBe(1);
   });
 
   it('continues destination taxes, cards and jail as separate confirmed events', () => {
-    expect(fly(4).state.specialEvent).toMatchObject({ kind: 'tax', amount: 200 });
-    const card = fly(2);
+    expect(fly(4).state.specialEvent).toMatchObject({ kind: 'tax', amount: 100 });
+    const card = fly(17);
     expect(card.state.specialEvent).toMatchObject({ kind: 'card', deck: 'chest' });
-    expect(BOARD[2]?.name).toBe('Khí vận');
+    expect(BOARD[17]?.name).toBe('Khí vận');
     expect(fly(10).state.players[0]?.jailed).toBe(false);
     const jailed = fly(30);
     expect(jailed.state.specialEvent?.kind).toBe('jail');
