@@ -40,7 +40,8 @@ export function Sandbox({ gameId, players: count }: Props) {
       options,
     ),
   );
-  const hasSetup = Boolean(useGameClient(gameId)?.setup);
+  const client = useGameClient(gameId);
+  const hasSetup = Boolean(client?.setup);
   const [settingUp, setSettingUp] = useState(false);
   const [me, setMe] = useState<string | null>(seats[0]?.id ?? null);
   const [error, setError] = useState('');
@@ -220,7 +221,7 @@ export function Sandbox({ gameId, players: count }: Props) {
       <main className="ui">
         <header ref={bar} className="hud hud-top room-bar sandbox-bar">
           {/* No "Chơi thử" or game name: the seat buttons say it is the sandbox. */}
-          {result && (
+          {result && !client?.showsResult && (
             <div className="room-title">
               {result.winners.length
                 ? `${result.winners.map((id) => seats.find((s) => s.id === id)?.name).join(', ')} thắng!`

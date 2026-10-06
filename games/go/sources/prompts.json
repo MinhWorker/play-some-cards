@@ -1,5 +1,5 @@
 {
-  "$comment": "Đảo sinh bằng Image Gen. Bàn, quân, vải và nút do render_assets.py kết xuất bằng Blender.",
+  "$comment": "Đảo sinh bằng Image Gen. Bàn, quân, vải và nút do render_assets.py kết xuất bằng Blender; hộp/nắp mây đan do render_bowls.py.",
   "assets": {
     "island": {
       "transparent": true,

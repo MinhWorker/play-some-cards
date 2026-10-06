@@ -12,4 +12,5 @@ export default defineClient({
   scene: GoView,
   background: GoBackground,
   showsPlayers: true,
+  showsResult: true,
 });

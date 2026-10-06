@@ -118,8 +118,16 @@ export default async function run(t) {
   await clickCanvas(page, 'go', (s) => s.buttons.resign.container);
   await clickCanvas(page, 'go', (s) => s.buttons.resign.container);
   await page.waitForFunction(() => window.__phaser.scene.getScene('go').ctx.state.end);
-  const end = await page.evaluate(() => window.__phaser.scene.getScene('go').status.text);
+  const end = await page.evaluate(() => window.__phaser.scene.getScene('go').panel.reason.text);
   if (!end.includes('đầu hàng')) throw new Error(`After resigning the status says "${end}"`);
   await page.getByRole('button', { name: 'Chơi ván mới' }).waitFor();
   await page.screenshot({ path: t.shot('14-go-resigned.png') });
+  await clickCanvas(page, 'go', (s) => s.buttons.result.container);
+  await page.waitForFunction(() => !window.__phaser.scene.getScene('go').panel.shown);
+  await clickCanvas(page, 'go', (s) => s.buttons.result.container);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('go').panel.shown);
+  const hiddenStatus = await page.evaluate(
+    () => !window.__phaser.scene.getScene('go').status.visible,
+  );
+  if (!hiddenStatus) throw new Error('The old result status should stay hidden');
 }

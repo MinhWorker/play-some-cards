@@ -16,6 +16,8 @@ import { type Button, type FlowHandle, GameView, type ViewContext } from '@psc/s
 import type Phaser from 'phaser';
 import { BOARD_SIZE, KOMI, type Options, type Side, type View } from '../game/model.js';
 import { colOf, place, rowOf, score, starPoints } from '../game/rules.js';
+import { ResultPanel } from './ResultPanel.js';
+import { StoneBowl } from './StoneBowl.js';
 
 type Ctx = ViewContext<View, Options>;
 
@@ -55,14 +57,24 @@ export class GoView extends GameView<View, Options> {
   private loupeStones!: Phaser.GameObjects.Image[];
   private zone!: Phaser.GameObjects.Zone;
   private status!: Phaser.GameObjects.Text;
+  private details!: Phaser.GameObjects.Text;
   private score!: {
+    avatars: Phaser.GameObjects.Image[];
     icons: Phaser.GameObjects.Image[];
     names: Phaser.GameObjects.Text[];
     lines: Phaser.GameObjects.Text[];
+    hosts: Phaser.GameObjects.Text[];
   };
-  private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
-  private statusArea = { top: 0, side: 0 };
-  private buttons!: { pass: Button; accept: Button; resume: Button; resign: Button };
+  private rails = { left: 0, right: 0, width: 200, top: 0, bottom: 720, playerHeight: 120 };
+  private bowls!: Record<Side, StoneBowl>;
+  private buttons!: {
+    pass: Button;
+    accept: Button;
+    resume: Button;
+    resign: Button;
+    result: Button;
+  };
+  private panel!: ResultPanel;
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   private stones = new Map<number, StoneObj>();
   /** Where point (0, 0) is on screen and the gap between lines. */
@@ -120,10 +132,13 @@ export class GoView extends GameView<View, Options> {
       })
       .on('pointerout', () => this.hover(null));
     this.status = this.railLabel('', 30).setAlign('center');
+    this.details = this.railLabel('', 24).setAlign('center').setOrigin(0.5, 0);
     this.score = {
+      avatars: [0, 1].map(() => this.add.image(0, 0, this.avatar({}))),
       icons: [0, 1].map(() => this.add.image(0, 0, this.stoneKey('b'))),
       names: [0, 1].map(() => this.railLabel('', 30).setOrigin(0, 0.5)),
       lines: [0, 1].map(() => this.railLabel('', 24).setOrigin(0, 0.5)),
+      hosts: [0, 1].map(() => this.railLabel('♛', 24)),
     };
     const opts = { image: 'button', slice: 36, size: 30, hoverSound: false };
     this.buttons = {
@@ -131,7 +146,20 @@ export class GoView extends GameView<View, Options> {
       accept: this.button('Đồng ý', () => this.send('accept'), opts),
       resume: this.button('Đánh tiếp', () => this.send('resume'), opts),
       resign: this.button('Đầu hàng', () => this.resign(), opts),
+      result: this.button('Tổng kết', () => this.togglePanel(), opts),
     };
+    this.panel = new ResultPanel(this);
+    this.bowls = Object.fromEntries(
+      (['b', 'w'] as const).map((side) => [
+        side,
+        new StoneBowl(this, {
+          bowl: this.texture('bowl'),
+          lid: this.texture('bowl-lid'),
+          own: this.stoneKey(side),
+          other: this.stoneKey(side === 'b' ? 'w' : 'b'),
+        }),
+      ]),
+    ) as Record<Side, StoneBowl>;
     for (const button of Object.values(this.buttons)) {
       button.label.setColor('#fff1d2').setStroke('#352417', 2);
     }
@@ -145,8 +173,8 @@ export class GoView extends GameView<View, Options> {
 
   /**
    * On the frame (docs/ui-guide.md): the board as tall as it fits under the room bar, in the
-   * middle; the players in the column on its left (White above, Black below); the status line
-   * and the buttons in the column on its right.
+   * middle; seat two and its bowl/lid at the upper left, seat one at the lower right.
+   * Play controls occupy the lower left; status and the scoring resume button the upper right.
    */
   protected onLayout(ctx: Ctx) {
     const { width, height, top, hud, gap } = ctx.screen;
@@ -176,33 +204,66 @@ export class GoView extends GameView<View, Options> {
     this.hover(null);
 
     const rightX = left + side + margin + columnW / 2;
-    this.statusArea = { top: boardTop, side };
+    // Room bar reporting can be shorter than the shared settings button. Reserve both corners.
+    const railTop = Math.max(safeTop, top, 88 * hud);
+    const railBottom = height - 24;
+    const available = railBottom - railTop;
+    const railHud = Math.min(hud, columnW / 190, available / 520);
+    this.rails = {
+      left: margin + columnW / 2,
+      right: rightX,
+      width: columnW,
+      top: railTop,
+      bottom: height - 48,
+      playerHeight: 90 * railHud,
+    };
     this.status
-      .setFontSize(30 * hud)
       .setOrigin(0.5, 0)
       .setWordWrapWidth(columnW)
-      .setPosition(rightX, boardTop + side * 0.27);
-    this.leftColumn = {
-      x: margin + columnW / 2,
-      width: columnW,
-      top: boardTop + side * 0.26,
-      bottom: boardTop + side * 0.67,
-    };
-    this.layoutScore(ctx);
+      .setPosition(rightX, railTop + 8);
     this.buttonStack = {
-      x: rightX,
-      bottom: boardTop + side - 16,
+      x: this.rails.left,
+      bottom: height - 84,
       width: Math.min(columnW, 210 * hud),
-      height: 80 * hud,
+      height: Math.max(88, Math.min(80 * hud, side * 0.18)),
     };
+    const diameter = Math.max(
+      72,
+      Math.min(
+        columnW * 1.15,
+        240,
+        (available - this.rails.playerHeight - 2 * this.buttonStack.height - 88) / 1.75,
+      ),
+    );
+    const separation = diameter * 0.73 + 8;
+    ctx.players.forEach((player, seat) => {
+      const color: Side = ctx.state.players[0] === player.id ? 'b' : 'w';
+      const x = seat === 0 ? this.rails.right : this.rails.left;
+      const y =
+        seat === 0
+          ? railBottom - this.rails.playerHeight - diameter / 2 - 12
+          : railTop + this.rails.playerHeight + diameter / 2 + 12;
+      this.bowls[color].layout({
+        x,
+        y,
+        lidX: x,
+        lidY: y + (seat === 0 ? -separation : separation),
+        diameter,
+      });
+    });
+    this.syncBowls(ctx, false);
+    this.layoutScore(ctx);
     this.placeButtons();
     for (const [p, stone] of this.stones) this.placeStone(stone, p);
     this.drawMarks(ctx);
+    if (this.panel.shown) this.showPanel(false);
   }
 
   /** A new game: an empty board (onState sets the stones out). */
   protected onStart() {
     this.resetBoard();
+    this.syncBowls(this.ctx, false);
+    for (const bowl of Object.values(this.bowls)) bowl.open();
     void this.sfx('go-start');
   }
 
@@ -210,6 +271,7 @@ export class GoView extends GameView<View, Options> {
     this.resignTimer?.cancel();
     this.resignTimer = undefined;
     this.resignArmed = false;
+    this.panel.hide();
     this.buttons.resign.setText('Đầu hàng');
     for (const stone of this.stones.values()) stone.image.destroy();
     this.stones.clear();
@@ -221,6 +283,7 @@ export class GoView extends GameView<View, Options> {
     this.onLayout(ctx);
     this.syncStones(ctx, false);
     this.onState(ctx);
+    if (ctx.result && ctx.state.end) this.showPanel(false);
   }
 
   protected onState(ctx: Ctx) {
@@ -229,6 +292,7 @@ export class GoView extends GameView<View, Options> {
       this.onLayout(ctx);
     }
     this.syncStones(ctx);
+    this.syncBowls(ctx);
     this.drawMarks(ctx);
     this.showStatus(ctx);
     this.showButtons(ctx);
@@ -315,13 +379,79 @@ export class GoView extends GameView<View, Options> {
 
   protected onEnd() {
     this.jingle('go-end');
+    this.hover(null);
+    this.showPanel(true);
+  }
+
+  private showPanel(pop: boolean) {
+    const ctx = this.ctx;
+    const end = ctx.state.end;
+    if (!ctx.result || !end) return;
+    const mine = this.mySide(ctx);
+    const loser: Side = end.winner === 'b' ? 'w' : 'b';
+    const title = mine
+      ? end.winner === mine
+        ? 'Chiến thắng!'
+        : 'Thua rồi'
+      : `${SIDES[end.winner].name} thắng!`;
+    const reason =
+      end.reason === 'score' && end.score
+        ? `Thắng ${num(Math.abs(end.score.b - end.score.w))} điểm`
+        : `${this.nameOf(ctx, loser)} ${end.reason === 'resign' ? 'đầu hàng' : 'rời bàn'}`;
+    const rows: [string, string][] = [
+      ['Số nước', String(ctx.state.plies)],
+      ['Quân đã bắt', `Đen ${ctx.state.prisoners.b} · Trắng ${ctx.state.prisoners.w}`],
+    ];
+    if (ctx.clock) {
+      const seconds = Math.max(
+        0,
+        Math.floor(((ctx.clock.endedAt ?? Date.now()) - ctx.clock.startedAt) / 1000),
+      );
+      rows.push([
+        'Thời gian',
+        `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`,
+      ]);
+    }
+    this.panel.show(
+      {
+        title,
+        winner: `${this.nameOf(ctx, end.winner)} · Quân ${SIDES[end.winner].name.toLowerCase()}`,
+        stone: this.stoneKey(end.winner),
+        reason,
+        count: end.reason === 'score' && end.score ? [num(end.score.b), num(end.score.w)] : null,
+        rows,
+      },
+      {
+        x: this.wood.x,
+        y: Math.max(this.wood.y, (this.rails.top + this.rails.bottom) / 2),
+        width: this.wood.displayWidth,
+        height: Math.min(this.wood.displayHeight, this.rails.bottom - this.rails.top),
+        hud: ctx.screen.hud,
+      },
+      pop,
+    );
+    this.showButtons(ctx);
+  }
+
+  private togglePanel() {
+    if (this.panel.shown) {
+      this.panel.hide();
+      this.showButtons(this.ctx);
+    } else this.showPanel(false);
+  }
+
+  private syncBowls({ state }: Ctx, animate = true) {
+    const black = [...state.board].filter((cell) => cell === 'b').length;
+    const white = [...state.board].filter((cell) => cell === 'w').length;
+    this.bowls.b.sync(181 - black - state.prisoners.w, state.prisoners.b, animate);
+    this.bowls.w.sync(180 - white - state.prisoners.b, state.prisoners.w, animate);
   }
 
   private placeStone(stone: StoneObj, p: number) {
     const { x, y } = this.pointXY(p);
     const size = this.grid.cell * 1.04;
     this.runtime.cancelTweens(stone.image);
-    stone.image.setPosition(x, y).setDisplaySize(size, size).setAlpha(1);
+    stone.image.setPosition(x, y).setDisplaySize(size, size).setAlpha(1).setDepth(DEPTH.stone);
   }
 
   /**
@@ -336,9 +466,23 @@ export class GoView extends GameView<View, Options> {
       const image = stone.image;
       if (animate && last?.captured.includes(p)) {
         this.runtime.cancelTweens(image);
+        const index = last.captured.indexOf(p);
+        const destination = this.bowls[last.side].captureXY(
+          state.prisoners[last.side] - last.captured.length + index,
+        );
         this.runtime.run(async (fx) => {
           fx.defer(() => image.destroy());
-          await fx.tween({ targets: image, alpha: 0, duration: 220, delay: 80 });
+          image.setDepth(10);
+          await fx.tween({
+            targets: image,
+            x: destination.x,
+            y: destination.y,
+            displayWidth: destination.size,
+            displayHeight: destination.size,
+            duration: 380,
+            delay: index * 28,
+            ease: 'Cubic.easeInOut',
+          });
         });
       } else image.destroy();
     }
@@ -350,15 +494,23 @@ export class GoView extends GameView<View, Options> {
       this.stones.set(p, stone);
       this.placeStone(stone, p);
       if (animate && p === last?.point) {
+        const source = this.bowls[side].takeXY();
+        const destination = this.pointXY(p);
         const { scaleX, scaleY } = stone.image;
-        stone.image.setScale(scaleX * 1.12, scaleY * 1.12).setAlpha(0.85);
+        stone.image
+          .setPosition(source.x, source.y)
+          .setDisplaySize(source.size, source.size)
+          .setDepth(10);
         this.runtime.tween({
           targets: stone.image,
+          x: destination.x,
+          y: destination.y,
           scaleX,
           scaleY,
           alpha: 1,
-          duration: 100,
-          ease: 'Quad.easeIn',
+          duration: 260,
+          ease: 'Cubic.easeInOut',
+          onComplete: () => stone.image.setDepth(DEPTH.stone),
         });
       }
     }
@@ -477,50 +629,45 @@ export class GoView extends GameView<View, Options> {
 
   private showStatus(ctx: Ctx) {
     const { state } = ctx;
+    const playing = !state.end && !ctx.result;
+    this.status.setVisible(playing);
+    this.details.setVisible(playing);
+    if (!playing) return;
     const mine = this.mySide(ctx);
-    let text: string;
-    if (state.end) {
-      const { winner, reason, score: count } = state.end;
-      const loser = winner === 'b' ? 'w' : 'b';
-      const who = this.nameOf(ctx, winner);
-      if (reason === 'score' && count) {
-        text = `${who} thắng ${num(Math.abs(count.b - count.w))} điểm · Đen ${num(count.b)} · Trắng ${num(count.w)}`;
-      } else {
-        text = `${who} thắng · ${this.nameOf(ctx, loser)} ${reason === 'resign' ? 'đầu hàng' : 'rời bàn'}`;
-      }
-    } else if (state.phase === 'scoring') {
+    let text = state.turn === mine ? 'Lượt bạn' : `Lượt ${SIDES[state.turn].name}`;
+    let detail = `Nước ${state.plies}`;
+    if (state.phase === 'scoring') {
       const { b, w } = score(state.board, state.size, state.dead, KOMI);
-      text = `Đếm điểm · Đen ${num(b)} · Trắng ${num(w)}`;
+      text = 'Đếm điểm';
+      detail = `Đen ${num(b)}\nTrắng ${num(w)}`;
       const other = mine === 'b' ? 'w' : 'b';
-      if (mine && state.accepted.includes(other)) text += ` · ${this.nameOf(ctx, other)} đã đồng ý`;
-    } else {
-      const turn =
-        state.turn === mine
-          ? 'Tới lượt bạn'
-          : `Lượt ${SIDES[state.turn].name} · ${this.nameOf(ctx, state.turn)}`;
-      const passed =
-        state.last?.point === null ? `${this.nameOf(ctx, state.last.side)} bỏ lượt · ` : '';
-      text = passed + turn;
+      if (mine && state.accepted.includes(other)) detail += '\nĐã đồng ý';
+    } else if (state.last?.point === null) {
+      text = `${SIDES[state.last.side].name} bỏ lượt`;
+      detail = state.turn === mine ? 'Lượt bạn' : `Lượt ${SIDES[state.turn].name}`;
     }
-    this.status.setText(text);
-    const { top, side } = this.statusArea;
-    const { hud } = ctx.screen;
-    this.status.setFontSize(30 * hud);
-    if (state.phase === 'scoring' && !state.end) {
-      const available = side - 3 * (80 * hud + 8) - 48;
-      for (let font = Math.round(30 * hud); this.status.height > available && font > 24 * hud; )
-        this.status.setFontSize(--font);
-    }
-    this.status.setY(top + (state.phase === 'scoring' || state.end ? 16 : side * 0.27));
+    const hud = Math.min(
+      ctx.screen.hud,
+      this.rails.width / 190,
+      (this.rails.bottom - this.rails.top) / 520,
+    );
+    this.status.setText(text).setFontSize(Math.max(24, 30 * hud));
+    this.details
+      .setText(detail)
+      .setFontSize(Math.max(24, 24 * hud))
+      .setWordWrapWidth(this.rails.width - 16)
+      .setPosition(this.status.x, this.status.y + this.status.height + 12);
   }
 
-  /** "Bỏ lượt" while playing (on your turn), "Đồng ý" and "Đánh tiếp" while counting. */
+  /** The result toggle stays available whether the summary is open or closed. */
   private showButtons(ctx: Ctx) {
     const { state } = ctx;
     const mine = this.mySide(ctx);
     const on = Boolean(mine && !state.end && !ctx.result);
     const counting = on && state.phase === 'scoring';
-    const { pass, accept, resume, resign } = this.buttons;
+    const { pass, accept, resume, resign, result } = this.buttons;
+    result.container.setVisible(Boolean(ctx.result && state.end));
+    result.setText(this.panel.shown ? 'Xem bàn cờ' : 'Tổng kết');
     pass.container.setVisible(on && !counting);
     pass.setEnabled(state.turn === mine);
     accept.container.setVisible(counting);
@@ -532,15 +679,20 @@ export class GoView extends GameView<View, Options> {
     this.placeButtons();
   }
 
-  /** The visible buttons, stacked down to the board's bottom edge. */
+  /** Keep play actions at the lower left, above DEV and away from seat one's HUD. */
   private placeButtons() {
     const { x, bottom, width, height } = this.buttonStack;
-    const shown = Object.values(this.buttons).filter((b) => b.container.visible);
+    const shown = Object.entries(this.buttons)
+      .filter(([key, button]) => key !== 'resume' && button.container.visible)
+      .map(([, button]) => button);
     const gap = 8;
     const span = shown.length * height + (shown.length - 1) * gap;
-    shown.forEach((b, i) => {
-      b.setSize(width, height).setPosition(x, bottom - span + height / 2 + i * (height + gap));
+    shown.forEach((button, i) => {
+      button.setSize(width, height).setPosition(x, bottom - span + height / 2 + i * (height + gap));
     });
+    this.buttons.resume
+      .setSize(width, height)
+      .setPosition(this.rails.right, this.details.y + this.details.height + 8 + height / 2);
   }
 
   private resign() {
@@ -558,40 +710,50 @@ export class GoView extends GameView<View, Options> {
     });
   }
 
-  /** Open player rail: color, name, wins and prisoners, with a ring on the active side. */
-  private layoutScore({ players, score: wins, state, hostId }: Ctx) {
-    const { hud } = this.ctx.screen;
-    const col = this.leftColumn;
-    const icon = 62 * hud;
-    const left = col.x - col.width / 2 + 8;
+  /** Seat positions stay fixed even when room options swap the stone colors. */
+  private layoutScore({ players, state, hostId }: Ctx) {
+    const rail = this.rails;
+    const hud = rail.playerHeight / 90;
+    const icon = 46 * hud;
     this.playerMarks.clear();
     [0, 1].forEach((seat) => {
+      const player = players[seat];
       const name = this.score.names[seat];
       const line = this.score.lines[seat];
       const img = this.score.icons[seat];
-      const player = players[seat];
       if (!name || !line || !img) return;
       const side: Side = player ? (state.players[0] === player.id ? 'b' : 'w') : seat ? 'w' : 'b';
-      const y = side === 'b' ? col.bottom : col.top;
+      const x = seat === 0 ? rail.right : rail.left;
+      const top = seat === 0 ? rail.bottom - rail.playerHeight : rail.top;
+      const avatarX = x - rail.width / 2 + icon / 2 + 6;
+      const textX = avatarX + icon / 2 + 10 * hud;
+      const y = top + 44 * hud;
+      this.score.avatars[seat]
+        ?.setTexture(this.avatar(player ?? {}))
+        .setDisplaySize(icon, icon)
+        .setPosition(avatarX, y);
       img
         .setTexture(this.stoneKey(side))
-        .setDisplaySize(icon, icon)
-        .setPosition(left + icon / 2, y);
+        .setDisplaySize(icon * 0.48, icon * 0.48)
+        .setPosition(avatarX + icon * 0.38, y + icon * 0.3);
       const active = !state.end && state.phase === 'play' && state.turn === side;
-      if (active) {
-        this.playerMarks.lineStyle(2, 0xe5bd72, 0.9).strokeCircle(left + icon / 2, y, icon * 0.52);
-      }
-      name.setFontSize(30 * hud).setPosition(left, y + icon / 2 + 24 * hud);
-      const playerName = player ? `${player.id === hostId ? '♛ ' : ''}${player.name}` : '…';
-      this.fitText(name, playerName, col.width - 16, 24 * hud);
-      name.setAlpha(active || state.phase === 'scoring' ? 1 : 0.7);
+      if (active)
+        this.playerMarks.lineStyle(2, 0xe5bd72, 0.9).strokeCircle(avatarX, y, icon * 0.54);
+      this.score.hosts[seat]
+        ?.setVisible(player?.id === hostId)
+        .setFontSize(Math.max(24, 24 * hud))
+        .setPosition(avatarX - icon * 0.4, y - icon * 0.45);
+      name
+        .setOrigin(0, 0.5)
+        .setFontSize(Math.max(24, 26 * hud))
+        .setPosition(textX, y - 17 * hud);
+      this.fitText(name, player?.name ?? '…', x + rail.width / 2 - textX - 6, 24);
+      name.setAlpha(active || state.phase === 'scoring' || state.end ? 1 : 0.8);
       line
-        .setFontSize(24 * hud)
-        .setText(`Thắng ${wins.wins[seat] ?? 0} · Bắt ${state.prisoners[side]}`);
-      const wrapped = line.width > col.width - 16;
-      if (wrapped) line.setText(`Thắng ${wins.wins[seat] ?? 0}\nBắt ${state.prisoners[side]}`);
-      line.setPosition(left, y + icon / 2 + (wrapped ? 75 : 58) * hud);
-      this.fitText(line, line.text, col.width - 16, 24 * hud);
+        .setOrigin(0, 0.5)
+        .setFontSize(Math.max(24, 24 * hud))
+        .setText(`Bắt ${state.prisoners[side]}`)
+        .setPosition(textX, y + 19 * hud);
     });
   }
 }
