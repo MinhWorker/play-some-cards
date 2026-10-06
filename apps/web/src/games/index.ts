@@ -23,15 +23,22 @@ const assetsById: Record<string, GameAssets> = {};
 for (const [path, url] of Object.entries(files)) {
   const [, id, file] = path.match(/games\/([^/]+)\/assets\/(.+)$/) ?? [];
   if (!id || !file) continue;
-  assetsById[id] ??= { images: {}, sounds: {}, atlases: {} };
-  const name = file.replace(/\.\w+$/, '');
-  const kind = file.endsWith('.json') ? 'atlases' : IMAGE.test(file) ? 'images' : 'sounds';
+  assetsById[id] ??= { images: {}, normals: {}, sounds: {}, atlases: {} };
+  const normal = file.endsWith('.normal.webp');
+  const name = file.replace(normal ? /\.normal\.webp$/ : /\.\w+$/, '');
+  const kind = normal
+    ? 'normals'
+    : file.endsWith('.json')
+      ? 'atlases'
+      : IMAGE.test(file)
+        ? 'images'
+        : 'sounds';
   assetsById[id][kind][name] = url;
 }
 
 /** URLs of a game's `assets/`, by file name without the extension. */
 export function gameAssets(gameId: string): GameAssets {
-  return assetsById[gameId] ?? { images: {}, sounds: {}, atlases: {} };
+  return assetsById[gameId] ?? { images: {}, normals: {}, sounds: {}, atlases: {} };
 }
 
 /** A game's background music: every `music*` file in its assets/ (empty if it has none). */

@@ -1,18 +1,11 @@
 import { GameBackgroundScene } from '@psc/sdk/client';
-import type Phaser from 'phaser';
 
-/** Quiet woven teal beneath the top-down wood board, including the screen's safe-area bleed. */
+/** Quiet woven teal beneath the top-down wood board: a small seamless POT tile over the whole screen, its bleed included. */
 export class GoBackground extends GameBackgroundScene {
-  private cloth!: Phaser.GameObjects.Image;
-
   protected onCreate() {
-    this.cloth = this.image(0, 0, 'cloth');
+    this.tiled('cloth');
   }
 
-  protected onLayout() {
-    const { left, right, top, bottom } = this.bleed;
-    this.cloth
-      .setPosition((left + right) / 2, (top + bottom) / 2)
-      .setDisplaySize(right - left, bottom - top);
-  }
+  /** The tile follows the frame by itself. */
+  protected onLayout() {}
 }

@@ -15,8 +15,8 @@ const INK = '#5c2d12';
 export interface ResultData {
   title: string;
   reason: string;
-  /** Image keys of the kings shown on the banner (the winner's, or both for a draw). */
-  kings: string[];
+  /** Atlas frames of the kings shown on the banner (the winner's, or both for a draw). */
+  kings: { key: string; frame: string }[];
   rows: [label: string, value: string][];
 }
 
@@ -98,10 +98,10 @@ export class ResultPanel {
 
     for (const img of this.kings) img.destroy();
     const icon = bannerH * 1.8;
-    this.kings = data.kings.map((key, i) => {
+    this.kings = data.kings.map(({ key, frame }, i) => {
       const side = data.kings.length === 1 ? -1 : i === 0 ? -1 : 1;
       return scene.add
-        .image(side * (w / 2 - icon * 0.35), top + bannerH * 0.3, key)
+        .image(side * (w / 2 - icon * 0.35), top + bannerH * 0.3, key, frame)
         .setDisplaySize(icon, icon)
         .setAngle(side * -12);
     });

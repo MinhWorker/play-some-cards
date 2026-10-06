@@ -25,7 +25,8 @@ export class PlayerInfo {
 
   constructor(
     scene: GameScene,
-    private textures: Record<Side, string>,
+    private texture: string,
+    private frames: Record<Side, string>,
     private fit: (
       label: Phaser.GameObjects.Text,
       value: string,
@@ -36,7 +37,7 @@ export class PlayerInfo {
     const text = (color: string, weight = '600') =>
       scene.add.text(0, 0, '', { fontFamily: FONT, fontStyle: weight, color }).setOrigin(0, 0.5);
     this.bg = scene.add.graphics();
-    this.king = scene.add.image(0, 0, textures.w).setOrigin(0.5, 0.62);
+    this.king = scene.add.image(0, 0, texture, frames.w).setOrigin(0.5, 0.62);
     this.name = text('#fff4df', '700');
     this.side = text('#c6d5df');
     this.labels = [text('#a6bbc9'), text('#a6bbc9')];
@@ -65,7 +66,7 @@ export class PlayerInfo {
     this.fit(this.name, data.name, width - 2 * pad, 22 * hud);
     const icon = 36 * hud;
     this.king
-      .setTexture(this.textures[data.side])
+      .setTexture(this.texture, this.frames[data.side])
       .setDisplaySize(icon / DISC, icon / DISC)
       .setPosition(pad + icon / 2, 63 * hud);
     this.side

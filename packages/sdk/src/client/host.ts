@@ -3,6 +3,8 @@ import type { SoundHandle, SoundOptions } from './runtime/SceneAudio.js';
 /** Files in a game's `assets/` folder, by file name without the extension. */
 export interface GameAssets {
   images: Record<string, string>;
+  /** `<name>.normal.webp`: raw camera-space normals paired with image/atlas `<name>`. */
+  normals: Record<string, string>;
   sounds: Record<string, string>;
   /**
    * `<name>.json` next to image `<name>`: that image is a texture atlas (Phaser's JSON hash or

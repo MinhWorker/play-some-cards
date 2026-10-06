@@ -289,7 +289,8 @@ Scene nền đăng ký dưới key `<id>:background`, dùng `this.image`, `this.
 nền được tải trước khi mở bàn và tắt bầu trời chung. `this.runtime` có lifetime `scene`:
 hoạt ảnh tiếp tục qua ván mới/resync, được huỷ khi đóng bàn. `onCreate` chạy lại khi mở
 bàn khác, nên đặt lại field chứa đối tượng ở đây. `onLayout` chạy sau tạo scene và mỗi
-lần khung đổi; vẽ nền ra hết `this.bleed` để phủ cả lề và tai thỏ. Ví dụ đang dùng:
+lần khung đổi; vẽ nền ra hết `this.bleed` để phủ cả lề và tai thỏ. Nền là một tile lặp thì
+gọi `this.tiled('cloth')` trong `onCreate`: nó tự phủ `this.bleed` và giữ nét ở mọi mật độ. Ví dụ đang dùng:
 `games/co-ty-phu-classic/src/scenes/CityBackground.ts` (mây trôi, đèn thành phố).
 
 ### Luồng trình diễn và vòng đời
@@ -387,6 +388,17 @@ export class MyView extends GameView<State, Options> {
   một promise hoàn thành khi âm thanh bắt đầu. Dùng `await this.sfx('deal')` để đồng bộ hoạt ảnh
   với lúc phát tiếng;
   `this.jingle('victory')` cũng vậy, nhưng nhạc nền nhỏ đi trong lúc nó phát (nhạc thắng).
+- `assets/<name>.normal.webp` là normal map của hình hoặc atlas `<name>`, tự nạp ở phòng
+  thật và sandbox. Trong `onCreate`, `this.lighting()` bật ánh sáng nền và đèn trên trái;
+  `this.lighting({ pointer: true })` thêm đèn mềm theo hover/kéo. Tuỳ chỉnh `ambient`, `color`,
+  `intensity`; kết quả có `key` và `pointer` (đèn Phaser). Đèn theo khung khi resize và dọn
+  listener khi scene dừng. `const pieces = this.litLayer()` rồi
+  `pieces.add(this.image(x, y, 'pieces', 'pawn'))` tạo quân từ khung atlas và bật chiếu sáng;
+  `pieces.remove(obj)` lấy quân ra và tắt chiếu sáng. Vị trí là đơn vị scene; depth của quân
+  xếp trong layer, `pieces.layer.setDepth(…)` xếp cả layer với UI (layer tạo sau các đối tượng
+  cùng depth thì vẽ đè lên chúng).
+  Giữ chữ/dấu bàn ngoài layer. Nhiều quân nên dùng chung một cặp atlas để tránh đổi texture;
+  hình không có normal map dùng normal phẳng của Phaser.
 - `this.button('Đánh', onTap, { image: 'button' })` là nút có nền `assets/button.webp`. Nền là
   9-slice: nút to nhỏ, dài ngắn thế nào thì bốn góc vẫn giữ nguyên hình, chỉ phần giữa giãn ra.
   Mặc định mỗi góc rộng bằng nửa cạnh ngắn của ảnh, hợp với nút viên thuốc hay hộp bo góc; ảnh
@@ -476,6 +488,50 @@ nhiên một bài.
 `npm run gen:asset -- <id>/card-back`.
 Khung hình cho animation: thêm `"from": "<tên hình gốc>"` và `"preserveCanvas": true`, prompt chỉ
 tả chỗ khác đi. Codex sẽ sửa từ hình gốc nên nhân vật và bố cục giữ nguyên (tạo hình gốc trước).
+
+### Kết xuất Blender và normal map
+
+Helper chung ở `tools/blender/psc_bake/`: vật liệu, `cube`/`sphere`/`lathe`, `setup`/`render`,
+đèn trên trái và pass normal. Cờ Vua, Cờ Đam và Cờ Vây dùng cùng bộ này.
+
+```sh
+npm run blender -- chess pieces cloth
+npm run blender -- chess piece-white-knight
+npm run blender -- checkers cloth
+npm run blender -- go cloth
+```
+
+Lệnh mặc định dùng `blender` và Pillow. Nếu máy không có Blender CLI, cài wheel bằng Python
+3.13 rồi chọn Python đó cho lệnh:
+
+```sh
+python3.13 -m venv /tmp/psc-blender
+/tmp/psc-blender/bin/python -m pip install bpy==5.1.2 Pillow
+PSC_BLENDER_PYTHON=/tmp/psc-blender/bin/python npm run blender -- chess pieces
+```
+
+Lệnh chạy lần lượt mọi `sources/render*.py` của game; mỗi script chỉ kết xuất những tên của
+nó trong danh sách (không ghi tên thì kết xuất hết). Cũng chạy trực tiếp được bằng `python games/chess/sources/render_assets.py -- pieces` hoặc
+`blender -b -t 4 --python games/chess/sources/render_assets.py -- pieces`;
+`PSC_BLENDER_BIN` chọn Blender ở đường dẫn khác. PNG trung gian nằm trong `.blender/<id>/`,
+chỉ commit script Python và tài nguyên sẵn dùng; không cần thêm `.blend` hay file nguồn LFS.
+Đổi một quân Cờ Vua sẽ ghép lại atlas `pieces`; lần đầu sẽ kết xuất thêm quân còn thiếu.
+`npm run blender -- go bowl bowl-lid` kết xuất riêng hộp và nắp.
+
+Normal map mang tên `assets/<name>.normal.webp`, cùng kích thước với `<name>.webp` và
+**đục hoàn toàn** (không alpha): Phaser nạp hình theo kiểu premultiplied alpha, nên pixel viền
+nửa trong suốt sẽ làm vector normal ngắn lại và sáng tối sai. Chỗ trống là mặt phẳng
+`(128,128,255)`; viền hoà dần về mặt phẳng. Atlas dùng cùng toạ độ khung, không xoay hoặc cắt
+canvas. Trục X sang phải, Y lên trên, Z
+hướng người xem. Mặt phẳng nhìn thẳng phải đọc gần `(128,128,255)`. Xuất pass emission
+camera-space bằng **Raw**, không dùng Standard vì vẫn chuyển sang sRGB; tắt dither và lưu
+WebP **lossless**. Không đưa normal map qua bước cắt viền, chỉnh màu hay nén mất dữ liệu.
+Kiểm tra bằng `python tools/blender/test_bake.py` hoặc
+`blender -b --python tools/blender/test_bake.py`.
+
+Nền vải dùng tile POT 256×256 liền mép: trong scene nền, `this.tiled('cloth')` phủ màn hình
+tới `this.bleed` và giữ một texel cho mỗi điểm ảnh canvas ở mọi mật độ màn hình, nên vải không
+bị mờ khi phóng to; không cần ảnh phủ toàn màn hình trong bộ nhớ điện thoại.
 
 ## Xong chưa?
 

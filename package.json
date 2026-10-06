@@ -29,7 +29,8 @@
     "shots": "node scripts/shots.mjs",
     "new": "node scripts/new.mjs",
     "new:game": "node scripts/new.mjs game",
-    "assets": "node scripts/assets.mjs"
+    "assets": "node scripts/assets.mjs",
+    "blender": "node scripts/blender.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

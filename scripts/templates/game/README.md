@@ -24,3 +24,20 @@ tiếp; rồi mọi màn hình nhận `onAdd(ctx, event)` và `onState(ctx)`.
 Thêm file từ mẫu: `npm run new -- logic|view|setup __ID__ [Tên]`.
 
 Chơi thử một mình: http://localhost:5033/?play=__ID__&players=2 (khi đang chạy `npm run dev`).
+
+## Ánh sáng cho sprite
+
+Thêm `assets/<name>.normal.webp` cạnh hình hoặc atlas `<name>`: SDK tự nạp normal map ở cả
+phòng thật và sandbox. Normal map giữ nguyên kích thước và vị trí khung, đục hoàn toàn
+(không alpha); lưu raw, lossless, trục X sang phải, Y lên trên, Z hướng người xem. Mặt phẳng
+và chỗ trống là `(128,128,255)`.
+
+Trong `onCreate`, gọi `this.lighting()` để bật ánh sáng nền và đèn chính ở trên trái;
+`this.lighting({ pointer: true })` thêm đèn mềm đi theo chuột hoặc ngón tay khi kéo.
+Có thể chỉnh `ambient`, `color`, `intensity`; kết quả có `key` và `pointer` để chỉnh đèn
+bằng API Phaser. Đèn tự theo khung khi đổi kích thước và dọn listener khi rời scene.
+`const pieces = this.litLayer()` tạo một `Layer`; `pieces.add(this.sprite('piece'))` bật
+chiếu sáng cho quân mới thêm, `pieces.remove(obj)` lấy ra và tắt. `this.image(x, y, 'pieces',
+'pawn')` lấy một khung atlas. Vị trí vẫn là đơn vị scene, depth sắp xếp bên trong layer;
+`pieces.layer.setDepth(…)` xếp cả layer với UI. Hình không có normal map dùng mặt phẳng mặc định. Giữ chữ và dấu bàn ngoài layer.
+Gộp nhiều quân vào một cặp atlas để tránh đổi texture làm tăng draw call.

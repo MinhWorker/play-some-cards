@@ -36,7 +36,7 @@ function harness(voice?: SoundHandle) {
   const gameEvents = new Events();
   const report = vi.fn();
   const host: ClientHost = {
-    assets: () => ({ images: {}, atlases: {}, sounds: { hit: '/hit.wav' } }),
+    assets: () => ({ images: {}, normals: {}, atlases: {}, sounds: { hit: '/hit.wav' } }),
     prepareSound: async () => 'ready',
     playSound: () => voice ?? skippedSound('muted'),
     avatars: () => ({}),

@@ -7,7 +7,7 @@ import type { EndReason, Kind, Promotion, Side } from '../game/model.js';
 /** The visible sprite height as a share of its shared transparent canvas (the rest is room for shadows and animations). */
 export const DISC = 0.68;
 
-/** The image of a piece: assets/piece-<side>-<kind>.webp. */
+/** Frame names in the paired assets/pieces atlas. */
 const ART: Record<Kind, string> = {
   k: 'king',
   q: 'queen',
