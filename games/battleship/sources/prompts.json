@@ -1,0 +1,10 @@
+{
+  "$comment": "Đảo Bắn Tàu tạo bằng image generation, cùng phong cách đảo Tiến Lên và Bài Cào. Tạo lại: npm run gen:asset -- battleship/island.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "A floating sky island for the Battleship game, matching the polished stylized 3D cartoon Vietnamese casual mobile-game islands. Chunky rounded toy materials, saturated lush green grass, tiny white flowers, leafy hanging vines, warm soft upper-left lighting, brown faceted rocky underside tapering down to a point. Isometric three-quarter view, complete island silhouette, approximately square overall proportions. On the grassy plateau, an enclosed turquoise naval harbour basin with timber piers and exactly two cute slate-blue toy battleships, ivory deck structures and rounded turret barrels. A compact ivory lighthouse with a red roof and warm glowing windows stands beside rounded rocks and bushes. Harbour water stays entirely within the island; no external ocean or ground plane. Naval objects large and legible at small map-icon size, prominent grass rim and floating rock. Friendly calm maritime theme, no explosions. No cards, chips, text, letters, numbers, logo, watermark, frame, sky, clouds or ground shadow. Real transparent alpha outside the island."
+    }
+  }
+}

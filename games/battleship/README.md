@@ -60,14 +60,24 @@ app phát qua kênh nhạc; hiệu ứng đi qua kênh âm thanh và tuân theo 
 
 ## Hình và âm thanh
 
-Toàn bộ hình và âm thanh Bắn Tàu là tác phẩm gốc tạo bằng code trong
-`sources/render_assets.py`, phát hành theo giấy phép MIT của repo, không dùng mẫu tải ngoài.
+Đảo quân cảng tạo bằng image generation của Codex, lấy đảo Tiến Lên và Bài Cào làm mẫu:
+chất liệu 3D mềm, ánh sáng ấm, cỏ xanh, dây leo và khối đá lơ lửng thuôn nhọn. Prompt ở
+`sources/prompts.json`; ảnh WebP cắt khoảng trống trong suốt và có cạnh dài nhất 640 px,
+cùng chuẩn với các đảo khác. Khi tạo lại bằng `npm run gen:asset`, PNG gốc được lưu vào
+`sources/island.png` (Git LFS).
+
+Các hình trên bàn và âm thanh là tác phẩm gốc tạo bằng code trong `sources/render_assets.py`.
+Asset phát hành theo giấy phép MIT của repo, không dùng mẫu tải ngoài.
 Hình WebP có nền trong suốt (trừ biển), hiệu ứng WAV mono 16-bit 44,1 kHz, nhạc MP3 128 kbps.
 Tạo lại từ thư mục gốc (cần `npm install`, Python 3 và ffmpeg):
 
 ```sh
 python3 games/battleship/sources/render_assets.py
+npm run assets -- battleship
 ```
+
+Tạo lại đảo bằng image generation: `npm run gen:asset -- battleship/island`.
+Script Python chỉ tạo hình trên bàn và âm thanh, không ghi đè đảo.
 
 Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=battleship&players=2 (khi
 đang chạy `npm run dev`).

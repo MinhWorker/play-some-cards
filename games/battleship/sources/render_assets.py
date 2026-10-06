@@ -58,29 +58,7 @@ waves = "".join(
 )
 render("ocean", 1600, 1024, '<defs><radialGradient id="sea"><stop stop-color="#226b80"/><stop offset=".6" stop-color="#144a63"/><stop offset="1" stop-color="#082437"/></radialGradient></defs><rect width="1600" height="1024" fill="url(#sea)"/>' + waves)
 
-# Transparent miniature naval harbour for the home island strip.
-render("island", 1024, 768, '''
-<defs><linearGradient id="rock" x2="0" y2="1"><stop stop-color="#938879"/><stop offset="1" stop-color="#33485d"/></linearGradient><linearGradient id="land" x2="0" y2="1"><stop stop-color="#7cad77"/><stop offset="1" stop-color="#305955"/></linearGradient></defs>
-<ellipse cx="510" cy="620" rx="426" ry="80" fill="#30babc" opacity=".18"/>
-<path d="M120 440 L880 420 852 546 700 628 328 638 166 548Z" fill="url(#rock)" stroke="#243d50" stroke-width="10"/>
-<path d="M116 422 Q125 292 344 264 L604 258 Q832 258 890 386 L794 468 640 454 558 550 292 524Z" fill="#d8c49a" stroke="#f4dfb4" stroke-width="14"/>
-<path d="M140 400 Q151 313 344 286 L604 280 Q798 282 853 384 L760 424 632 410 539 496 290 488Z" fill="url(#land)"/>
-<path d="M500 514 L632 412 838 430 779 564 636 586Z" fill="#2d94a2" stroke="#79d2d0" stroke-width="8"/>
-<path d="M541 511 L674 453 760 476" fill="none" stroke="#233e4b" stroke-width="29"/>
-<path d="M541 505 L674 447 760 470" fill="none" stroke="#c5b190" stroke-width="23"/>
-<g transform="translate(640 494) rotate(-18) scale(.38)">''' + ship(3) + '''</g>
-<path d="M286 346 l38 -172 h77 l34 172Z" fill="#e4e4cb" stroke="#294655" stroke-width="8"/>
-<path d="M304 260 h114 v38 H297Z" fill="#ca6550"/>
-<path d="M318 176 v-42 h80 v42Z" fill="#83c9cf" stroke="#294655" stroke-width="8"/>
-<path d="M300 134 l60 -54 58 54Z" fill="#d36b52" stroke="#294655" stroke-width="8"/>
-<path d="M357 116 v-52" stroke="#294655" stroke-width="7"/>
-<path d="M476 361 v-73 l121 -42 115 51 v63Z" fill="#b5c4b6" stroke="#294655" stroke-width="8"/>
-<path d="M468 290 l130 -72 124 76 -124 22Z" fill="#466875" stroke="#294655" stroke-width="8"/>
-<rect x="552" y="318" width="49" height="43" rx="4" fill="#284e62"/>
-<circle cx="744" cy="335" r="46" fill="#315d55"/><circle cx="786" cy="361" r="38" fill="#3e7560"/>
-<path d="M222 439 l-12 -76 m12 31 l-40 -35 m40 22 l30 -35" stroke="#594e3d" stroke-width="12"/>
-<path d="M208 366 q-57 -54 -82 7 q47 -16 82 -7 q-10 -73 43 -72 q-27 26 -43 72 q46 -43 77 9 q-41 -18 -77 -9Z" fill="#4c8e64" stroke="#294e49" stroke-width="5"/>
-''')
+# The hub island is generated separately: sources/island.png and prompts.json.
 
 render("splash", 256, 256, '''<ellipse cx="128" cy="187" rx="99" ry="39" fill="none" stroke="#9be4ed" stroke-width="8"/><ellipse cx="128" cy="183" rx="65" ry="24" fill="#7ed1e4" opacity=".65"/><path d="M76 180 Q98 130 72 73 Q119 96 126 33 Q147 100 186 73 Q161 142 188 178 Q130 210 76 180Z" fill="#d7f7f7"/><path d="M109 171 Q125 112 126 77 Q145 133 154 176Z" fill="#80d3e8"/><circle cx="52" cy="113" r="10" fill="#e2ffff"/><circle cx="204" cy="133" r="9" fill="#e2ffff"/><circle cx="167" cy="44" r="6" fill="#e2ffff"/>''')
 render("burst", 256, 256, '''<path d="M128 10 l22 64 64 -40 -17 67 56 30 -65 24 29 68 -63 -34 -25 65 -24 -65 -67 29 29 -65 -64 -25 66 -24 -30 -64 65 28Z" fill="#ed6236"/><path d="M128 49 l22 50 47 -16 -23 45 31 31 -50 5 -27 45 -15 -47 -57 -3 39 -32 -14 -45 34 22Z" fill="#ffb849"/><circle cx="129" cy="133" r="28" fill="#fff2bc"/>''')
