@@ -13,8 +13,10 @@ Where to look:
 
 ```
 games/<id>/          Only index.ts + client.ts are required
+  RULES.md             Current Vietnamese gameplay rules (non-starter games)
+  README.md            Component map, development commands and asset credits
   src/index.ts         export default definePlugin({ meta, game: new MyGame(), room? }); server
-  src/client.ts        export default defineClient({ scene, setup?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
+  src/client.ts        export default defineClient({ scene, setup?, background?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
   src/game/            Pure logic, no Phaser or DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
   src/scenes/          Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (a RoomSetupScene for "Tạo phòng")
   assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'));
@@ -38,10 +40,24 @@ games/<id>/          Only index.ts + client.ts are required
 - **Never send raw state.** Hide other players' cards and the deck in `view`. Spectators get
   `viewer = null`, and events listed in `secretEvents` stay hidden from others.
 - Hooks are pure and return a new state. Randomness goes only through `ctx.rng`.
+- Optional `override readonly commands` declares `z.object` schemas; each needs a `cmd<Name>`
+  hook (`move-token` → `cmdMoveToken`). `CommandContext<State, Options, Args>` adds validated
+  `args` and `reject` to the normal game context. Positional arguments follow object key order.
+- Optional `override readonly catalogs` lists `{ id, value, label }` entries. IDs are unique
+  kebab-case; labels are Vietnamese. `catalog(name)` defaults to numeric values; pass a zod
+  schema as the second argument for other types. Console `@catalog:id` resolves to `value`.
+- `gameRules` and registry tests reject reserved command names, missing command hooks,
+  invalid/duplicate catalog IDs and references to unknown catalogs. Existing games need no
+  commands or catalogs.
+- Synchronous `console.log/info/warn/error` in hooks reaches the room log with `PSC_DEV=1`
+  and still prints in the terminal. SDK declares these methods for pure game builds.
 - A game imports only these; Biome enforces it, and core never imports a game:
   - `@psc/sdk` and `@psc/sdk/client`;
   - `phaser` and `zod`;
   - its own files.
+- Cờ tỷ phú Classic groups scene helpers under `src/scenes/board/`, `effects/`, `hud/` and
+  `presentation/`; see `co-ty-phu-classic/AGENTS.md`. Its depth-specific Biome override still
+  prevents imports outside the game's `src/`.
 - Every `Game` has tests with `testGame` (`src/game/<Name>Game.test.ts`).
 - A game's browser test is a scenario, `scripts/e2e/scenarios/<id>.mjs` with
   `export const games = ['<id>']` (copy `tien-len.mjs`). CI runs it on its own machine whenever
@@ -76,12 +92,15 @@ games/<id>/          Only index.ts + client.ts are required
   build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
+- **Backgrounds**: optional `defineClient({ background: false | MyBackground })` hides/replaces
+  the app sky for boards/sandboxes. `GameBackgroundScene` has scene lifetime, no room state/input,
+  and `onCreate`, `onLayout`, `onUpdate(dt)` hooks. Setups retain the app sky.
 - **Presentation**: `this.runtime.run` owns scoped async flows; `fx.tween`, `wait`, `sound`,
   `animate`, `frame` and `parallel` use its clock and cancellation. Use `fx.defer` for temporary
   objects and `fx.checkpoint` before direct side effects after await. Reset display fields in
   `onCreate`; rebuild silently in `onResync`. Games with multiple visual rounds per match call
   `runtime.newRound('game-round')` before replacing cards. Never mix managed and raw Phaser
-  tweens on a target. See `docs/engine-runtime-design.md`.
+  tweens on a target. See the presentation/runtime sections of `docs/making-a-game.md`.
 - **Coordinates are design units** on a landscape frame 720 tall and 960–1600 wide
   (`this.view`, `ctx.screen`), never screen pixels: the camera scales the frame to the screen at
   its pixel density. `this.bleed` is how far the screen reaches beyond it (backgrounds only).
@@ -91,6 +110,7 @@ games/<id>/          Only index.ts + client.ts are required
   drop) is drawn in Phaser.
 - **`testGame`** takes a plugin or a `Game`. It offers:
   - `send`, `error`, `view` and `assertHidden`;
+  - `command(line)` for optional game dev commands, catalog references and semicolon chains;
   - `bot`, `newGame`, `timer`, `fireTimer` and `leave`;
   - the option `bots`.
 

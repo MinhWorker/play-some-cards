@@ -7,6 +7,8 @@
 //   npm run shots -- --login                  sign up a throwaway account first (home, rooms)
 //   npm run shots -- --devices iphone-15,ipad some devices (comma separated)
 //   npm run shots -- --tab                    in a browser tab (minus its bars), not the app
+//   --state FILE reuse a Playwright storage state (a real room and its dev settings)
+//   --command LINE run a dev console line after loading, before taking the shot
 //   --wait MS    wait after the page loads (default 2500)
 //   --crop X,Y,W,H  the 1:1 detail crop, in CSS px (default: the middle of the screen)
 //   --audit      also list the images drawn bigger than their pixels (blurry: export them bigger)
@@ -18,6 +20,7 @@ import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 
 /**
  * Landscape screens in CSS px with their pixel density, notch/home-bar insets (the app runs full
@@ -47,6 +50,8 @@ const { values: args, positionals } = parseArgs({
     path: { type: 'string', default: '/' },
     devices: { type: 'string' },
     login: { type: 'boolean', default: false },
+    state: { type: 'string' },
+    command: { type: 'string' },
     tab: { type: 'boolean', default: false },
     wait: { type: 'string', default: '2500' },
     crop: { type: 'string' },
@@ -81,7 +86,7 @@ async function account() {
   return state;
 }
 
-const storageState = args.login ? await account() : undefined;
+const storageState = args.state ?? (args.login ? await account() : undefined);
 
 for (const name of names) {
   const d = DEVICES[name];
@@ -102,15 +107,27 @@ for (const name of names) {
   }
   await page.goto(new URL(args.path, base).href);
   await page.waitForTimeout(Number(args.wait));
+  if (args.command) {
+    const result = await page.evaluate((line) => window.__devCommand?.(line), args.command);
+    if (!result?.ok)
+      throw new Error(`Dev command failed: ${result?.error ?? 'console unavailable'}`);
+  }
 
   const file = join(out, `${name}.png`);
-  await page.screenshot({ path: file });
+  const screenshot = await page.screenshot({ path: file });
   const [x, y, w, h] = args.crop?.split(',').map(Number) ?? [];
   // About 1000×600 device px: shown unscaled by image viewers and the agent's Read tool.
   const cw = w ?? Math.min(d.width, 1000 / d.dpr);
   const ch = h ?? Math.min(height, 600 / d.dpr);
-  const clip = { x: x ?? (d.width - cw) / 2, y: y ?? (height - ch) / 2, width: cw, height: ch };
-  await page.screenshot({ path: join(out, `${name}-crop.png`), clip });
+  // Crop the same frame, so fading logs and animation match the full screenshot exactly.
+  await sharp(screenshot)
+    .extract({
+      left: Math.round((x ?? (d.width - cw) / 2) * d.dpr),
+      top: Math.round((y ?? (height - ch) / 2) * d.dpr),
+      width: Math.round(cw * d.dpr),
+      height: Math.round(ch * d.dpr),
+    })
+    .toFile(join(out, `${name}-crop.png`));
 
   const canvas = await page.evaluate(() => {
     const c = document.querySelector('canvas');

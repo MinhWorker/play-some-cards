@@ -6,6 +6,8 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
 - **Phaser** draws the world: the sky, the island strip and the boards.
   - React passes a `Stage` to `PhaserStage`; its SDK `SceneDirector` serializes foreground changes.
     Board/setup stages carry a local opening `instance`, distinct from room round and game ID.
+    Optional client `background` sleeps the default sky and starts `<id>:background` behind
+    boards/sandboxes; setup/hub/sky restore the default. SceneDirector owns both lifecycles.
   - Phaser emits events on `bridge`.
   - Anything game-like (pieces, cards, animation, drag and drop) is Phaser.
 - **File placement**:
@@ -33,6 +35,22 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
 - **Dev tools** (the DEV button, bottom-left; not in production):
   - Add a toggle or an input as one entry in `DEV_SETTINGS` (`src/lib/devTools.ts`).
   - Read it with `devSetting(key)`. Runtime diagnostics expose only scope/lane/audio metadata.
+  - `console` is the master Dev Console switch, off by default. `DevConsoleLoader` lazily loads
+    `components/hud/DevConsole/`; `lib/devConsole.ts` owns commands, schema, logs and persisted
+    preferences, with `useSyncExternalStore` subscriptions.
+  - All keyboard shortcuts use physical `event.code` constants in `DEV_CONSOLE_KEYS`
+    (`lib/devConsoleKeys.ts`). Ignore IME composition and other app inputs. While typing,
+    disable Phaser's keyboard manager and restore its previous enabled state on exit.
+  - The overlay and every descendant have `pointer-events: none`; never add interactive
+    buttons or alter `lib/frame.ts` for the console. Clicking the game exits command mode.
+    Console z-index 2 sits above the game and below app modals.
+  - Hidden by shortcut keeps room logs; disabling the master switch stops `dev:logs`.
+    Re-follow after a new room or resumed socket connection; buffers hold at most 500 lines.
+  - Dev-only `window.__devCommand(line)` shares `runCommand` with UI and pins, even when the
+    overlay is off. `window.__devRoomLogs()` reads server room logs for failed e2e artifacts.
+    Neither handle is installed in production.
+  - `npm run shots -- --state <file> --command '<line>'` can reuse Playwright storage state
+    for a real room and its DEV settings; inspect the 1:1 crop as well as the full image.
 - **Assets**:
   - `imageUrl(name)` and `soundUrl(name)` give the URLs of `public/shared/` files.
   - Phaser images also go in `IMAGES` (`src/phaser/assets.ts`).

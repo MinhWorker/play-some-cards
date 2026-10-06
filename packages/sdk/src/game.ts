@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import type { Catalogs } from './console/parser.js';
 import { type Game, type GameEvent, gameRules, type Seat, type Stored } from './engine.js';
 
 /** A player's id inside a room (their account id). */
@@ -32,6 +33,19 @@ export interface RoomContext<Options = unknown> {
 export interface GameRules<State, Move, View = State, Options = undefined> {
   /** Validates the shape of an incoming move before any game logic runs. */
   moveSchema: z.ZodType<Move>;
+  /** Event parameter schemas, for the dev console. */
+  events: Record<string, z.ZodType>;
+  /** Optional dev-only game commands and catalog metadata. */
+  commands?: Record<string, z.ZodObject>;
+  catalogs?: Catalogs;
+  /** Runs cmd<Name> through the same hook/timer/result bookkeeping as moves. */
+  runCommand?(
+    stored: State,
+    name: string,
+    args: unknown,
+    rng: () => number,
+    room?: RoomContext<Options>,
+  ): State;
   /**
    * Creates the initial state. `rng` returns a float in [0, 1). `options` are the room's
    * options (see `RoomSetup`), `undefined` for a game without them. Copy into the state what

@@ -1,5 +1,61 @@
 # Changelog
 
+## [0.16.0](https://github.com/MinhWorker/play-some-cards/compare/v0.15.0...v0.16.0) (2026-10-05)
+
+
+### Features
+
+* **co-ty-phu-classic:** polish metallic tiles and distinguish monopoly colors ([#81](https://github.com/MinhWorker/play-some-cards/issues/81)) ([817465f](https://github.com/MinhWorker/play-some-cards/commit/817465f88411fc414f8ae3a71e005e02f4e830a2))
+* **go:** release Go for production ([#79](https://github.com/MinhWorker/play-some-cards/issues/79)) ([86f2685](https://github.com/MinhWorker/play-some-cards/commit/86f2685c5feb7db42b70c1c1503ae3686f5aa2eb))
+* **xiangqi:** refresh classic board and mobile HUD ([#75](https://github.com/MinhWorker/play-some-cards/issues/75)) ([537561b](https://github.com/MinhWorker/play-some-cards/commit/537561b6331eb484a032767d1564f9e594ec5590))
+
+## [0.15.0](https://github.com/MinhWorker/play-some-cards/compare/v0.14.0...v0.15.0) (2026-10-05)
+
+
+### Features
+
+* **co-ty-phu-classic:** add utility deeds, monopoly sets and celebrations ([#76](https://github.com/MinhWorker/play-some-cards/issues/76)) ([3c38b6e](https://github.com/MinhWorker/play-some-cards/commit/3c38b6ef15365029c1566b9938ad7d6a800f81e6))
+
+
+### Bug fixes
+
+* **co-ty-phu-classic:** restore board order and polish ownership effects ([#78](https://github.com/MinhWorker/play-some-cards/issues/78)) ([b90aaff](https://github.com/MinhWorker/play-some-cards/commit/b90aaffb9f2907b13c49021c525afe70dcab973e))
+
+## [0.14.0](https://github.com/MinhWorker/play-some-cards/compare/v0.13.0...v0.14.0) (2026-10-05)
+
+
+### Features
+
+* **go:** add standard 19x19 Go with polished board and touch controls ([#53](https://github.com/MinhWorker/play-some-cards/issues/53)) ([04152a8](https://github.com/MinhWorker/play-some-cards/commit/04152a869204788a3d8f3ac276bbfb33c33da348))
+* **sdk:** support custom game background scenes ([#74](https://github.com/MinhWorker/play-some-cards/issues/74)) ([155936c](https://github.com/MinhWorker/play-some-cards/commit/155936c4c64869a289bf3fe7f4af88632f1330ea))
+
+
+### Bug fixes
+
+* **co-ty-phu-classic:** clarify property actions and confirm asset management ([#72](https://github.com/MinhWorker/play-some-cards/issues/72)) ([6447da7](https://github.com/MinhWorker/play-some-cards/commit/6447da7e7eace8083dcb193d09e9a51bac834f32))
+
+## [0.13.0](https://github.com/MinhWorker/play-some-cards/compare/v0.12.0...v0.13.0) (2026-10-04)
+
+
+### Features
+
+* **co-ty-phu-classic:** animate jail doors and sync client turns ([#69](https://github.com/MinhWorker/play-some-cards/issues/69)) ([9faffc8](https://github.com/MinhWorker/play-some-cards/commit/9faffc89f18498d17f5bc84e573d3e977ef26c20))
+
+## [0.12.0](https://github.com/MinhWorker/play-some-cards/compare/v0.11.0...v0.12.0) (2026-10-04)
+
+
+### Features
+
+* add dev console for game state commands ([#66](https://github.com/MinhWorker/play-some-cards/issues/66)) ([2d31a97](https://github.com/MinhWorker/play-some-cards/commit/2d31a97482395269dab33438bc4c446a28b4ba43))
+* **co-ty-phu-classic:** update property rules and optimize board rendering ([#65](https://github.com/MinhWorker/play-some-cards/issues/65)) ([cec1c8b](https://github.com/MinhWorker/play-some-cards/commit/cec1c8b7eb9ecd9dfa74d68d00f4d917ddb57907))
+
+## [0.11.0](https://github.com/MinhWorker/play-some-cards/compare/v0.10.0...v0.11.0) (2026-10-04)
+
+
+### Features
+
+* **co-ty-phu-classic:** rebalance board and polish perspective UI ([#63](https://github.com/MinhWorker/play-some-cards/issues/63)) ([78b453b](https://github.com/MinhWorker/play-some-cards/commit/78b453b05783870ad89a48ffba2398138a871f5b))
+
 ## [0.10.0](https://github.com/MinhWorker/play-some-cards/compare/v0.9.0...v0.10.0) (2026-10-02)
 
 

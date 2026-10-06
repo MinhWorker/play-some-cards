@@ -1,3 +1,7 @@
+import type { ConsoleIssue, DevConsoleSchema } from '@psc/sdk';
+
+export type { DevCommandInfo, DevConsoleSchema } from '@psc/sdk';
+
 import type { ProfileUpdate, User } from './account.js';
 import type { GameResult, PlayerId } from './game.js';
 
@@ -109,6 +113,17 @@ export interface JoinedRoom {
   playerId: PlayerId;
 }
 
+/** Dev logs contain full game details and are only sent to opted-in members in dev mode. */
+export interface DevLogEntry {
+  id: number;
+  t: number;
+  level: 'info' | 'warn' | 'error';
+  kind: 'move' | 'reject' | 'timer' | 'bot' | 'command' | 'game' | 'room' | 'error';
+  seat?: number;
+  text: string;
+  data?: unknown;
+}
+
 export interface ClientToServerEvents {
   /**
    * Sent after every (re)connect: who you are, and the room your account is in (if any). Being
@@ -146,9 +161,21 @@ export interface ClientToServerEvents {
   'game:start': (req: Record<string, never>, ack: Ack) => void;
   'game:move': (req: { move: unknown }, ack: Ack) => void;
   'game:restart': (req: Record<string, never>, ack: Ack) => void;
+  /** Dev only: start or stop following the current room's log. */
+  'dev:logs': (req: { on: boolean }, ack: Ack<{ entries: DevLogEntry[] }>) => void;
+  /** Dev only: execute in the sender's room. Older clients need none of these events. */
+  'dev:command': (
+    req: { line: string },
+    ack: (
+      res: { ok: true; output: string } | { ok: false; error: string; issue?: ConsoleIssue },
+    ) => void,
+  ) => void;
+  'dev:schema': (req: Record<string, never>, ack: Ack<DevConsoleSchema>) => void;
 }
 
 export interface ServerToClientEvents {
+  /** Dev only: the next room log entry, while following dev:logs. */
+  'dev:log': (entry: DevLogEntry) => void;
   'room:state': (snapshot: RoomSnapshot) => void;
   'lobby:rooms': (update: { gameId: string; rooms: RoomSummary[] }) => void;
   /** The room was disbanded (no players left); everyone still inside is sent out. */

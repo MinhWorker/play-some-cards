@@ -27,7 +27,7 @@ export interface Button {
 /**
  * What every scene a game ships shares: its own `assets/` by file name, text helpers and a few
  * ready-made objects (`label`, `button`, `sprite`). Games extend `GameView` (the screen),
- * or `RoomSetupScene` (its "Tạo phòng" screen).
+ * `RoomSetupScene` (its "Tạo phòng" screen), or `GameBackgroundScene` (its optional backdrop).
  */
 export abstract class GameScene extends Phaser.Scene {
   private warned = new Set<string>();
@@ -63,7 +63,7 @@ export abstract class GameScene extends Phaser.Scene {
     followFrame(this, onChange);
   }
 
-  /** The game id. The app adds the board as `<id>` and the setup screen as `<id>:setup`. */
+  /** The game id. Scene keys are `<id>`, `<id>:setup` and `<id>:background`. */
   get gameId() {
     return this.scene.key.split(':')[0] ?? '';
   }

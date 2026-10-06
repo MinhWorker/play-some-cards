@@ -1,6 +1,6 @@
 {
   "name": "play-some-cards",
-  "version": "0.10.0",
+  "version": "0.16.0",
   "license": "MIT",
   "private": true,
   "type": "module",
@@ -32,11 +32,11 @@
     "assets": "node scripts/assets.mjs"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.14",
+    "@biomejs/biome": "^2.5.15",
     "concurrently": "^10.0.5",
     "playwright": "^1.63.0",
-    "sharp": "^0.35.4",
-    "socket.io-client": "^4.8.3",
+    "sharp": "^0.35.5",
+    "socket.io-client": "^4.8.4",
     "typescript": "~6.0.2"
   }
 }

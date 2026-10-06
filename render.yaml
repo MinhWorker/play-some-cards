@@ -20,6 +20,7 @@ services:
         - package-lock.json
         # The root package.json holds the app version (bumped by release PRs).
         - package.json
+    # Never set PSC_DEV here: it grants room members full game-state commands.
     envVars:
       - key: NODE_VERSION
         value: "22"
