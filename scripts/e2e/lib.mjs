@@ -46,7 +46,9 @@ export async function signUp(t, page, name, shot) {
  */
 export async function openRooms(page, gameId) {
   const create = page.getByRole('button', { name: '+ Tạo phòng' });
-  for (let i = 0; i < 8 && !(await create.count()); i++) {
+  await page.waitForFunction(() => window.__phaser?.scene.isActive('hub'));
+  const portals = await page.evaluate(() => window.__phaser.scene.getScene('hub').views.length);
+  for (let i = 0; i < portals && !(await create.count()); i++) {
     await page.waitForTimeout(800); // let the strip settle
     await page.waitForFunction(() => window.__phaser?.scene.isActive('hub'));
     const off = await page.evaluate((id) => {
