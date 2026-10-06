@@ -41,3 +41,33 @@
   bottom: 12px;
   width: 280px;
 }
+
+/* Go owns the summary and the lower-right seat; room actions stay between the shared corners. */
+.result--go {
+  top: 12px;
+  bottom: auto;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  max-width: calc(100% - 200px);
+}
+
+.result--go .btn {
+  min-height: 48px;
+  font-size: 1rem;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+
+.result--go .muted {
+  margin: 0;
+  color: var(--paper);
+  font-size: 0.8rem;
+  text-shadow: 0 2px 2px var(--wood-dark);
+}

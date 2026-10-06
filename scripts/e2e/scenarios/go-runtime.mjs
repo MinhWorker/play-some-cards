@@ -34,6 +34,7 @@ export default async function run(t) {
   await page.screenshot({ path: t.shot('resynced.png') });
   await clickCanvas(page, id, (s) => s.buttons.resign.container);
   await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
+  await page.evaluate((key) => window.__phaser.scene.getScene(key).runtime.setSpeed(1), id);
   await page.waitForFunction((key) => {
     const s = window.__phaser.scene.getScene(key);
     return !s.ctx.result && s.runtime.inspect().motion === 0 && s.runtime.inspect().waits === 0;
@@ -45,6 +46,10 @@ export default async function run(t) {
     return (
       !s.resignArmed &&
       objects.size === expected &&
+      s.bowls.b.remaining === 181 &&
+      s.bowls.w.remaining === 180 &&
+      s.bowls.b.captured === 0 &&
+      s.bowls.w.captured === 0 &&
       [...objects.values()].every((obj) => {
         const image = obj.image ?? obj.look;
         return image.alpha === 1;
