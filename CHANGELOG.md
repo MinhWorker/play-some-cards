@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.18.0](https://github.com/MinhWorker/play-some-cards/compare/v0.17.0...v0.18.0) (2026-10-06)
+
+
+### Features
+
+* **bai-cao:** release Bài Cào with table effects and audio ([#57](https://github.com/MinhWorker/play-some-cards/issues/57)) ([e10b5bb](https://github.com/MinhWorker/play-some-cards/commit/e10b5bb24f8237c4bcbad650a948772c71bb4ae3))
+* **battleship:** add naval battles with hidden fleets, artwork and audio ([#55](https://github.com/MinhWorker/play-some-cards/issues/55)) ([e5693de](https://github.com/MinhWorker/play-some-cards/commit/e5693dee9f3296f86ef0b0dd81456ced59cbaf7d))
+* **checkers:** release standard 8x8 draughts with rendered pieces and audio ([#54](https://github.com/MinhWorker/play-some-cards/issues/54)) ([910f580](https://github.com/MinhWorker/play-some-cards/commit/910f580d5a7d5da4200ab0760088734a88b7b2ee))
+* white-flag resign in Go, game-styled check cut-ins for chess and xiangqi ([#85](https://github.com/MinhWorker/play-some-cards/issues/85)) ([1bf5ac9](https://github.com/MinhWorker/play-some-cards/commit/1bf5ac9970aefb767a4c0590069ffd628d926bac))
+
+
+### Bug fixes
+
+* **battleship:** match hub island artwork and size ([#87](https://github.com/MinhWorker/play-some-cards/issues/87)) ([7d612fd](https://github.com/MinhWorker/play-some-cards/commit/7d612fd5296e2bce190b506cff0f7906de6e0dd2))
+* **hub:** normalize island sizes and remove counter demo ([#86](https://github.com/MinhWorker/play-some-cards/issues/86)) ([91b12a3](https://github.com/MinhWorker/play-some-cards/commit/91b12a31180fd93143db89055dd510607bf8a7c7))
+
 ## [0.17.0](https://github.com/MinhWorker/play-some-cards/compare/v0.16.0...v0.17.0) (2026-10-06)
 
 
