@@ -1,8 +1,9 @@
 /**
  * A check ("CHIẾU TƯỚNG!") or mate ("CHIẾU BÍ!") announced like a Chinese ink painting: a paper
  * scroll unrolls between its two rollers, a pale ink wash sweeps across it, the checking piece
- * appears on the left, the words bleed in as black ink letter by letter, a red seal stamps down
- * with a thud, and the scroll rolls up again. About a second and a half in all.
+ * appears on the left, then the two words slam down one after the other in brush letters, each
+ * jolting the scroll and splattering ink (a red seal lands with the second), and the scroll rolls
+ * up again. About a second and a half in all.
  */
 
 import { type FlowContext, type GameScene } from '@psc/sdk/client';
@@ -14,8 +15,25 @@ const INK = 0x16110d;
 const ROLLER = 0x4a2a16;
 const BRASS = 0xc9a24a;
 const SEAL = 0xb3261e;
-/** A serif with Vietnamese letters on every platform: closer to a brush than rounded letters. */
-const SERIF = '"Noto Serif", Georgia, "Times New Roman", "DejaVu Serif", serif';
+/**
+ * Brush letters with every Vietnamese mark (Google Fonts, loaded by `loadBrushFont`); a serif
+ * stands in until it has loaded or when offline.
+ */
+const BRUSH_FAMILY = 'Comforter Brush';
+const BRUSH = `"${BRUSH_FAMILY}", "Noto Serif", Georgia, "Times New Roman", serif`;
+const BRUSH_CSS = `https://fonts.googleapis.com/css2?family=${BRUSH_FAMILY.replace(/ /g, '+')}&display=swap`;
+
+/** Starts loading the brush font, once per page (call it when the board is created). */
+export function loadBrushFont() {
+  if (typeof document === 'undefined' || document.querySelector(`link[href="${BRUSH_CSS}"]`)) {
+    return;
+  }
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = BRUSH_CSS;
+  link.onload = () => void document.fonts.load(`64px "${BRUSH_FAMILY}"`, 'CHIẾU TƯỚNG BÍ!');
+  document.head.append(link);
+}
 /** A font for the seal's character. */
 const CJK = '"Noto Serif CJK SC", "Songti SC", "SimSun", "WenQuanYi Zen Hei", serif';
 
@@ -100,27 +118,46 @@ export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promi
     .setTint(PIECE_TINT)
     .setAlpha(0);
 
-  // The words, bleeding in as ink.
-  const letters = [...o.text].map((ch) =>
+  // The words, one per slam: each starts big above the paper and lands in place.
+  const words = o.text.split(' ').map((word) =>
     scene.add
-      .text(0, 0, ch, {
-        fontFamily: SERIF,
-        fontStyle: 'bold',
-        fontSize: `${Math.round(58 * k)}px`,
+      .text(0, 0, word, {
+        fontFamily: BRUSH,
+        fontSize: `${Math.round(104 * k)}px`,
         color: '#16110d',
       })
       .setOrigin(0.5)
-      .setStroke('#16110d', Math.max(1, 1.5 * k)),
+      .setStroke('#16110d', Math.max(1, 2 * k)),
   );
-  const total = letters.reduce((sum, l) => sum + l.width, 0);
-  const fit = Math.min(1, (w * 0.6) / total);
-  let x = w * 0.06 - (total * fit) / 2;
-  for (const l of letters) {
-    l.setPosition(x + (l.width * fit) / 2, 0)
-      .setScale(fit * 1.25)
+  const gap = 40 * k;
+  const total = words.reduce((sum, word) => sum + word.width, 0) + gap * (words.length - 1);
+  const fit = Math.min(1, (w * 0.62) / total);
+  let x = w * 0.08 - (total * fit) / 2;
+  for (const word of words) {
+    word
+      .setPosition(x + (word.width * fit) / 2, 0)
+      .setScale(fit * 2.6)
+      .setAngle((Math.random() - 0.5) * 10)
       .setAlpha(0);
-    x += l.width * fit;
+    x += (word.width + gap) * fit;
   }
+  // Ink splattered by each slam, around its word.
+  const splats = words.map((word) =>
+    Array.from({ length: 9 }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const reach = (0.5 + Math.random() * 0.4) * word.width * fit;
+      const dot = scene.add
+        .circle(
+          word.x + Math.cos(angle) * reach,
+          Math.sin(angle) * reach * 0.45,
+          (1.5 + Math.random() * 4) * k,
+          INK,
+          0.75,
+        )
+        .setScale(0);
+      return dot;
+    }),
+  );
 
   // The red seal, in the lower right corner of the scroll.
   const sealSize = 62 * k;
@@ -155,16 +192,26 @@ export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promi
     return { roller, open: dir * (w / 2 + 6 * k), shut: dir * 10 * k };
   });
 
-  root.add([paper, washBox, shadow, piece, ...letters, seal, ...rollers.map((r) => r.roller)]);
+  root.add([
+    paper,
+    washBox,
+    shadow,
+    piece,
+    ...splats.flat(),
+    ...words,
+    seal,
+    ...rollers.map((r) => r.roller),
+  ]);
 
   fx.defer(() => {
     root.destroy(true);
     dim.destroy();
   });
   const unroll = 280;
-  const hold = 520;
-  const sealAt = unroll + 260 + letters.length * 45;
-  const rollUp = sealAt + 220 + hold;
+  const hold = 560;
+  /** When each word lands: the first once the scroll is open, the next a beat later. */
+  const slams = words.map((_, i) => unroll + 140 + i * 320);
+  const rollUp = (slams[slams.length - 1] ?? unroll) + 110 + hold;
   return fx.parallel(
     async (child) => {
       await child.tween({ targets: dim, fillAlpha: 0.45, duration: 180 });
@@ -198,26 +245,38 @@ export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promi
     async (child) => {
       await child.tween({ targets: shadow, alpha: 0.35, delay: unroll, duration: 200 });
     },
-    ...letters.map((letter, i) => async (child: FlowContext) => {
+    ...words.map((word, i) => async (child: FlowContext) => {
+      await child.wait((slams[i] ?? 0) - 110);
       await child.tween({
-        targets: letter,
+        targets: word,
         scale: fit,
+        angle: 0,
         alpha: 1,
-        delay: unroll + 120 + i * 45,
-        duration: 220,
-        ease: 'Quad.easeOut',
+        duration: 110,
+        ease: 'Quad.easeIn',
       });
+      // The thud: the scroll jolts, the word squashes, ink splatters around it.
+      await child.parallel(
+        async (c) => {
+          await c.tween({ targets: root, y: cy + 6 * k, duration: 45, yoyo: true });
+        },
+        async (c) => {
+          await c.tween({ targets: word, scaleY: fit * 0.9, duration: 45, yoyo: true });
+        },
+        ...(splats[i] ?? []).map((dot) => async (c: FlowContext) => {
+          await c.tween({ targets: dot, scale: 1, duration: 90, ease: 'Back.easeOut' });
+        }),
+      );
     }),
+    // The seal lands with the last word.
     async (child) => {
-      await child.wait(sealAt);
-      await child.tween({ targets: seal, scale: 1, alpha: 1, duration: 130, ease: 'Quad.easeIn' });
-      // The thud: the scroll jolts under the stamp.
-      await child.tween({ targets: root, y: cy + 4 * k, duration: 50, yoyo: true });
+      await child.wait((slams[slams.length - 1] ?? 0) - 110);
+      await child.tween({ targets: seal, scale: 1, alpha: 1, duration: 110, ease: 'Quad.easeIn' });
     },
     async (child) => {
       await child.wait(rollUp);
       await child.tween({
-        targets: [washBox, shadow, piece, ...letters, seal],
+        targets: [washBox, shadow, piece, ...words, ...splats.flat(), seal],
         alpha: 0,
         duration: 140,
       });
