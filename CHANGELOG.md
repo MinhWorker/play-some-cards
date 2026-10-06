@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.0](https://github.com/MinhWorker/play-some-cards/compare/v0.18.0...v0.19.0) (2026-10-06)
+
+
+### Features
+
+* shared Blender helpers, normal maps and lit chess pieces ([#89](https://github.com/MinhWorker/play-some-cards/issues/89)) ([03d5680](https://github.com/MinhWorker/play-some-cards/commit/03d5680ff71f04ab142b6e20029891b5802721ec))
+
 ## [0.18.0](https://github.com/MinhWorker/play-some-cards/compare/v0.17.0...v0.18.0) (2026-10-06)
 
 
