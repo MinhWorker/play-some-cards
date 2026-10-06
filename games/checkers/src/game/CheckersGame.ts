@@ -1,5 +1,5 @@
 /**
- * The game's logic, on the server (8 × 8 English draughts, or 10 × 10 international). A
+ * The game's logic, on the server (8 × 8 English draughts). A
  * player's event runs its hook, which gets the whole room in `ctx` and returns the next state;
  * everyone's screen then gets it (scenes/CheckersView.ts).
  *
@@ -23,7 +23,7 @@ import { type EndReason, type Options, RULES, type Side, type State, type View }
 import { isKing, legalMoves, other, play, positionKey, sameMove, startBoard } from './rules.js';
 
 const move = z.object({
-  path: z.array(z.number().int().min(0).max(99)).min(2).max(24),
+  path: z.array(z.number().int().min(0).max(63)).min(2).max(13),
 });
 const none = z.object({});
 
@@ -35,10 +35,9 @@ export class CheckersGame extends Game<State, Options, View> {
   /** A new game: the first seat moves first, or the second when the room swapped. */
   onStart({ players, options }: StartContext<Options>): State {
     const [first, second] = players.map((p) => p.id) as [string, string];
-    const rules = RULES[options.variant];
+    const rules = RULES;
     const board = startBoard(rules);
     return {
-      variant: options.variant,
       board,
       players: options.swap ? [second, first] : [first, second],
       turn: rules.first,
@@ -55,14 +54,14 @@ export class CheckersGame extends Game<State, Options, View> {
   /** A player moves a piece (event `move`). */
   onMove(ctx: Ctx<z.infer<typeof move>>): State {
     const { state, payload, reject } = ctx;
-    const rules = RULES[state.variant];
+    const rules = RULES;
     const side = sideOfPlayer(state, ctx.player);
     if (side !== state.turn) reject('Chưa tới lượt bạn');
     const moves = legalMoves(state.board, side, rules);
     const chosen = moves.find((m) => sameMove(m, payload));
     if (!chosen) {
       if (!moves[0]?.captures.length) return reject('Nước đi không đúng luật');
-      return reject(rules.mostCaptures ? 'Phải ăn được nhiều quân nhất' : 'Bắt buộc phải ăn quân');
+      return reject('Bắt buộc phải ăn quân');
     }
     const from = state.board[chosen.path[0] ?? 0] ?? '.';
     const { board, taken, crowned } = play(state.board, chosen, rules);
@@ -122,7 +121,7 @@ export class CheckersGame extends Game<State, Options, View> {
     if (options.opponent !== 'bot' || state.end) return null;
     const side = sideOfPlayer(state, player);
     if (side !== state.turn) return null;
-    const best = botMove(state.board, side, RULES[state.variant], rng, options.level);
+    const best = botMove(state.board, side, RULES, rng, options.level);
     return best && { event: 'move', payload: { path: best.path } };
   }
 
@@ -134,11 +133,8 @@ export class CheckersGame extends Game<State, Options, View> {
 }
 
 /** The side a seated player plays: the first seat moves first. */
-export function sideOfPlayer(
-  state: Pick<State, 'players' | 'variant'>,
-  player: { id: string },
-): Side {
-  const first = RULES[state.variant].first;
+export function sideOfPlayer(state: Pick<State, 'players'>, player: { id: string }): Side {
+  const first = RULES.first;
   return state.players[0] === player.id ? first : other(first);
 }
 
@@ -149,7 +145,7 @@ function end(
   reason: EndReason,
   winner: Side | null,
 ): State {
-  const first = RULES[state.variant].first;
+  const first = RULES.first;
   ctx.finish(winner ? [state.players[winner === first ? 0 : 1]] : []);
   return { ...state, drawOffer: null, end: { reason, winner } };
 }

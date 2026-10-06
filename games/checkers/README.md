@@ -1,75 +1,66 @@
 # Cờ Đam
 
-Cờ Đam cho hai người, chơi với bạn bè hoặc với máy, theo một trong hai luật chọn khi tạo phòng:
-**8 × 8** (luật Anh, còn gọi là checkers) hoặc **10 × 10 quốc tế** (luật FMJD). Game đang ở
-trạng thái `wip`: luật, máy chơi và bàn cờ đã chơi được; hình và âm thanh làm sau, xem
-[kế hoạch Cờ Đam](PLAN.md).
+Cờ Đam cho hai người, chơi với bạn bè hoặc máy ở ba mức, dùng duy nhất bàn **8 × 8 theo luật Anh**.
+Game ở trạng thái `ready`. Xem [luật chơi](RULES.md).
 
-## Luật chơi
+## Chơi
 
-Chung cho hai bàn:
+Form tạo phòng có **Đối thủ**, **Máy chơi** và **Lượt đi**. Đen đi trước, mỗi bên 12 quân;
+người đi sau thấy bàn xoay ngược. Chủ phòng đổi tuỳ chọn giữa hai ván bằng “Tuỳ chỉnh”.
 
-- Quân đứng và đi trên các ô tối. Mỗi bên bắt đầu với 12 quân (8 × 8) hoặc 20 quân (10 × 10).
-- **Quân thường** đi chéo một ô về phía trước.
-- **Ăn quân** bằng cách nhảy chéo qua quân đối phương đứng sát sang ô trống ngay sau. Nhảy tới
-  đâu mà còn ăn được thì phải ăn tiếp trong cùng nước. Các quân bị ăn được nhấc ra khi nước đi
-  xong; không được nhảy qua một quân hai lần.
-- **Bắt buộc ăn**: có nước ăn thì phải ăn.
-- Quân thường đi tới hàng cuối của đối phương thì **phong Vua**.
-- **Thua** khi tới lượt mà không còn quân hoặc không còn nước đi, khi đầu hàng, hoặc khi rời bàn.
-- **Hoà** khi hai bên đồng ý, khi một thế cờ lặp lại lần thứ ba, hoặc khi quá lâu không ai ăn quân
-  và không ai đi quân thường (xem dưới).
+Quân đi được có vòng vàng. Chọn quân rồi chọn ô có chấm xanh; với nước ăn nhiều quân, chọn lần
+lượt từng ô đáp. Ô nước vừa đi tô vàng, đường đang chọn tô xanh. Quân di chuyển từng bước, quân
+bị ăn bay về cột thống kê, phong Vua có vòng sáng và dấu vương miện vàng trên quân.
 
-Bàn **8 × 8** (luật Anh):
+Cột trái hiển thị tên, chủ phòng, số ván thắng, số quân đã ăn và số nước. Viền vàng đánh dấu
+người đang đi. Bên phải có trạng thái, **Xin hoà**, **Đầu hàng** (xác nhận lần hai trong ba giây)
+và **Hiệu ứng: Bật/Tắt**, lưu trên máy. Tắt hiệu ứng giữ âm thanh; loa chung điều khiển âm thanh
+và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt và quân đã ăn; **Xem bàn cờ** đóng bảng,
+**Kết quả** mở lại.
 
-- Đen đi trước. Quân thường chỉ ăn về phía trước.
-- Vua đi và ăn chéo một ô, cả tiến lẫn lùi.
-- Có nhiều cách ăn thì được chọn cách nào cũng được (nhưng phải ăn tới hết).
-- Quân thường vừa phong Vua trong lúc ăn thì dừng lại ở đó.
-- Hoà sau 40 nước mỗi bên không ăn quân, không đi quân thường.
+## Thành phần
 
-Bàn **10 × 10 quốc tế**:
+| Thành phần | File |
+| --- | --- |
+| Đăng ký game, tuỳ chọn phòng | `src/index.ts`, `src/game/model.ts` |
+| Luật đi quân, bắt buộc ăn và phong Vua | `src/game/rules.ts` |
+| Máy chơi alpha-beta | `src/game/bot.ts` |
+| Lượt đi, xin hoà, đầu hàng | `src/game/CheckersGame.ts` |
+| Bàn, quân, thống kê, hiệu ứng và âm thanh | `src/scenes/CheckersView.ts` |
+| Bảng kết quả | `src/scenes/ResultPanel.ts` |
+| Nền vải, nút và form tạo phòng | `src/scenes/CheckersBackground.ts`, `buttons.ts`, `Setup.ts` |
 
-- Trắng đi trước. Quân thường ăn được cả về phía sau.
-- **Vua bay**: đi chéo bao xa cũng được; ăn một quân ở xa trên đường chéo rồi đáp xuống bất kỳ ô
-  trống nào phía sau nó.
-- **Phải ăn nhiều quân nhất** có thể.
-- Quân thường chỉ phong Vua nếu nước đi dừng ở hàng cuối; đi ngang qua hàng cuối trong lúc ăn
-  tiếp thì không phong.
-- Hoà sau 25 nước mỗi bên không ăn quân, không đi quân thường.
+## Hình và âm thanh
 
-## Tạo phòng
+- Bốn quân đam trắng ngà/đen gỗ có rãnh, Vua có dấu vương miện và vòng vàng, cùng canvas 384 px.
+  Đảo riêng có bàn 8 × 8 và bốn quân. Kết xuất bằng Blender:
+  `blender -b -t 4 --python games/checkers/sources/render_assets.py`.
+  Thêm `-- island` hoặc `-- piece-black-king` để chỉ kết xuất một hình.
+  PNG trung gian ở `.blender/checkers/`; WebP trực tiếp ở `assets/`.
+- Bàn walnut/maple, nền vải xanh đêm và hai nút nine-slice dùng lại tài nguyên Blender của
+  Cờ Vua (`games/chess/assets/{board,cloth,button,button-secondary}.webp`). Mặt chơi chiếm 94%
+  ảnh bàn, khớp lề 3% trong scene; nút dùng slice 32.
+- Âm thanh lấy từ dự án, không dùng nguồn ngoài. Tái tạo bằng
+  `python3 games/checkers/sources/prepare_audio.py`. Hiệu ứng mono PCM 16-bit WAV 48 kHz,
+  nhạc MP3 128 kbps.
 
-Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó),
-**Bàn cờ** (8 × 8 hoặc 10 × 10 quốc tế) và **Lượt đi** (bạn đi trước hoặc đối thủ đi trước).
-Người đi sau thấy bàn cờ xoay ngược để quân mình luôn ở dưới.
+| Asset | Nguồn |
+| --- | --- |
+| `checkers-start`, `checkers-select` | Cờ Tướng: `xiangqi-start`, `xiangqi-piece-select` |
+| `checkers-move`, `checkers-capture` | Cờ Vây: `go-place-1`, `go-capture` |
+| `checkers-promote`, `checkers-draw`, `checkers-win` | Cờ Tướng: `xiangqi-decisive-move`, `xiangqi-draw`, `xiangqi-game-win` |
+| `music-checkers` | Cờ Vây: `music-go` (gốc `music-xiangqi-a`) |
 
-Tới lượt bạn, các quân đi được có vòng vàng. Chạm một quân rồi chạm ô muốn đến (chấm xanh); nước
-ăn nhiều quân thì chạm lần lượt từng ô đáp xuống.
+Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
 
-## Các thứ nằm ở đâu
+## Phát triển và vòng đời
 
-```
-src/
-  index.ts                  đầu vào phía server: meta, phần logic và tuỳ chọn phòng
-  client.ts                 đầu vào phía trình duyệt: form tạo phòng và bàn cờ
-  game/model.ts             dữ liệu: State, View, tuỳ chọn phòng, luật của hai bàn (RULES)
-  game/rules.ts             nước đi, ăn quân, phong Vua (dùng chung cho server, máy và màn hình)
-  game/bot.ts               máy chơi (tìm kiếm alpha-beta)
-  game/CheckersGame.ts      các sự kiện: move, offer-draw, decline-draw, resign
-  scenes/CheckersView.ts    bàn cờ: chọn quân, chọn từng ô đáp, nút xin hoà/đầu hàng
-  scenes/Setup.ts           form tạo phòng
-assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo tên file
-```
+Chạy `npm run dev`, chơi thử http://localhost:5033/?play=checkers&players=2.
+Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
+`npm run shots -- --path '/?play=checkers&players=2' --audit`.
+Test gồm perft khai cuộc tới độ sâu 6 (36768), ăn liên tiếp, phong Vua, Vua đi lùi, hoà và máy chơi.
+Kịch bản trình duyệt ở `scripts/e2e/scenarios/checkers*.mjs`.
 
-Bàn và quân tạm vẽ bằng code. Khi có `assets/piece-<white|black>-<man|king>.webp`, bàn tự dùng
-hình đó. `island.webp` là đảo mẫu của `npm run new:game`; `button.webp` lấy từ Tiến Lên.
-
-Test: `npm run check` (gồm perft đếm nước đi từ thế khai cuộc của cả hai bàn). Chơi thử một
-mình: http://localhost:5033/?play=checkers&players=2 (khi đang chạy `npm run dev`).
-
-## Vòng đời bàn chơi
-
-Hoạt ảnh và thời gian xác nhận đầu hàng dùng runtime của SDK. Khi mở ván mới, kết nối lại
-hoặc rời bàn, các hiệu ứng cũ được huỷ; kết nối lại dựng bàn từ trạng thái hiện tại,
-không phát lại nước đi trước đó.
+Chuyển động, âm thanh và xác nhận đầu hàng dùng runtime SDK. Ván mới, kết nối lại, đổi người xem,
+bật/tắt hiệu ứng hoặc rời bàn huỷ tác vụ cũ. Dựng lại bàn từ trạng thái hiện tại không phát lại
+nước đi hay âm thanh bắt đầu/kết thúc. Bảng kết quả đợi chuỗi ăn và phong Vua hoàn tất.

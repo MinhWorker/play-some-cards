@@ -35,6 +35,16 @@ export default async function run(t) {
     return s.runtime.inspect().motion === 0 && s.runtime.inspect().waits === 0;
   }, id);
   await page.screenshot({ path: t.shot('resynced.png') });
+  await page.getByRole('button', { name: 'Khán giả', exact: true }).click();
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('checkers');
+    return (
+      s.ctx.me === null && s.moves.length === 0 && !s.grid.flip && s.runtime.inspect().motion === 0
+    );
+  });
+  await page.screenshot({ path: t.shot('spectator.png') });
+  await page.getByRole('button', { name: 'Người 2', exact: true }).click();
+  await page.waitForFunction(() => window.__phaser.scene.getScene('checkers').grid.flip);
   await clickCanvas(page, id, (s) => s.buttons.resign.container);
   await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
   await page.waitForFunction((key) => {

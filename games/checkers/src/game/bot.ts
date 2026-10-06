@@ -81,8 +81,7 @@ export function botMove(
   const moves = ordered(legalMoves(board, side, rules));
   if (moves.length <= 1) return moves[0] ?? null;
   const { noise } = LEVELS[level];
-  // The big board has more moves per turn: one ply less.
-  const depth = LEVELS[level].depth - (rules.size > 8 && level === 'hard' ? 1 : 0);
+  const depth = LEVELS[level].depth;
   let best: Move | null = null;
   let bestScore = -Infinity;
   for (const move of moves) {

@@ -1,5 +1,5 @@
 /**
- * Cờ Đam (draughts) for two: 8 × 8 English draughts or 10 × 10 international, against a friend
+ * Cờ Đam (draughts) for two: standard 8 × 8 English draughts, against a friend
  * or the computer.
  *
  * Server entry: the game's meta, its logic (a `Game`) and its room options. It loads on the
@@ -15,8 +15,7 @@ export default definePlugin({
     name: 'Cờ Đam',
     minPlayers: 2,
     maxPlayers: 2,
-    // Locked in production until you change this to 'ready'.
-    status: 'wip',
+    status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },

@@ -2,7 +2,7 @@ import { type StartContext, testGame } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { CheckersGame } from './CheckersGame.js';
-import { type Options, RULES, type Side, type State, type View } from './model.js';
+import { type Options, optionsSchema, RULES, type Side, type State, type View } from './model.js';
 import { boardOf, legalMoves, positionKey } from './rules.js';
 
 /** The game from a made-up board instead of the opening one. */
@@ -40,7 +40,7 @@ const sq = (row: number, col: number) => row * 8 + col;
 /** Plays paths of [row, col] squares, each by whoever's turn it is. */
 function moves<G extends Game>(game: G, ...list: [number, number][][]) {
   for (const path of list) {
-    const first = RULES[game.state.variant].first;
+    const first = RULES.first;
     const player = game.state.players[game.state.turn === first ? 0 : 1];
     game.send(player, 'move', { path: path.map(([r, c]) => sq(r, c)) });
   }
@@ -50,17 +50,24 @@ function moves<G extends Game>(game: G, ...list: [number, number][][]) {
 const fresh = (options: Partial<Options> = {}) => testGame(plugin, ['a', 'b'], { options });
 const from = (board: string, options: Partial<Options> = {}, bots: string[] = [], quiet = 0) =>
   testGame(new FromBoard(board, null, quiet), ['a', 'b'], {
-    options: { opponent: 'human', level: 'normal', variant: 'english', swap: false, ...options },
+    options: { opponent: 'human', level: 'normal', swap: false, ...options },
     bots,
   });
 
 describe('checkers', () => {
-  it('starts with a moving first: Black on 8 × 8, White on 10 × 10', () => {
+  it('starts on the standard board, with Black first and either seat', () => {
     expect(fresh().state).toMatchObject({ players: ['a', 'b'], turn: 'b', end: null });
     expect(fresh().state.board).toHaveLength(64);
-    const big = fresh({ variant: 'international', swap: true });
-    expect(big.state).toMatchObject({ players: ['b', 'a'], turn: 'w' });
-    expect(big.state.board).toHaveLength(100);
+    const swapped = fresh({ swap: true });
+    expect(swapped.state).toMatchObject({ players: ['b', 'a'], turn: 'b' });
+    expect(swapped.state.board).toHaveLength(64);
+  });
+
+  it('keeps a single board even when old setup options include a variant', () => {
+    const options = optionsSchema.parse({ variant: 'international' });
+    expect(options).not.toHaveProperty('variant');
+    expect(fresh(options).state.board).toHaveLength(64);
+    expect(plugin.meta.status).toBe('ready');
   });
 
   it('refuses moves out of turn and against the rules', () => {
@@ -165,7 +172,7 @@ describe('checkers', () => {
       ),
       {},
       [],
-      RULES.english.quietLimit - 1,
+      RULES.quietLimit - 1,
     );
     moves(game, [
       [0, 1],
@@ -212,19 +219,17 @@ describe('checkers', () => {
 
   it('asks the computer only in rooms against it, and it plays legal moves', () => {
     expect(fresh().bot('b')).toBeNull();
-    for (const variant of ['english', 'international'] as const) {
-      for (const level of ['easy', 'normal', 'hard'] as const) {
-        const game = testGame(plugin, ['a', 'b'], {
-          options: { opponent: 'bot', level, variant },
-          bots: ['b'],
-        });
-        expect(game.bot('b')).toBeNull(); // the human moves first
-        const first = legalMoves(game.state.board, game.state.turn, RULES[variant])[0];
-        game.send('a', 'move', { path: first?.path ?? [] });
-        const reply = game.bot('b') as { event: string; payload: { path: number[] } };
-        expect(reply.event).toBe('move');
-        expect(game.error('b', 'move', reply.payload)).toBeNull();
-      }
+    for (const level of ['easy', 'normal', 'hard'] as const) {
+      const game = testGame(plugin, ['a', 'b'], {
+        options: { opponent: 'bot', level },
+        bots: ['b'],
+      });
+      expect(game.bot('b')).toBeNull(); // the human moves first
+      const first = legalMoves(game.state.board, game.state.turn, RULES)[0];
+      game.send('a', 'move', { path: first?.path ?? [] });
+      const reply = game.bot('b') as { event: string; payload: { path: number[] } };
+      expect(reply.event).toBe('move');
+      expect(game.error('b', 'move', reply.payload)).toBeNull();
     }
   });
 
@@ -247,23 +252,21 @@ describe('checkers', () => {
     expect(reply.payload.path).toEqual([sq(5, 0), sq(3, 2), sq(1, 4)]);
   });
 
-  it('thinks quickly enough on its hardest level, on both boards', () => {
-    for (const variant of ['english', 'international'] as const) {
-      const game = testGame(plugin, ['a', 'b'], {
-        options: { opponent: 'bot', level: 'hard', variant },
-        bots: ['b'],
-      });
-      let slowest = 0;
-      for (let i = 0; i < 6 && !game.state.end; i++) {
-        const mine = legalMoves(game.state.board, game.state.turn, RULES[variant]);
-        game.send('a', 'move', { path: mine[Math.floor(mine.length / 2)]?.path ?? [] });
-        if (game.state.end) break;
-        const started = Date.now();
-        const reply = game.bot('b') as { event: string; payload: object };
-        slowest = Math.max(slowest, Date.now() - started);
-        game.send('b', reply.event, reply.payload);
-      }
-      expect(slowest).toBeLessThan(1000);
+  it('thinks quickly enough on its hardest level, on the standard board', () => {
+    const game = testGame(plugin, ['a', 'b'], {
+      options: { opponent: 'bot', level: 'hard' },
+      bots: ['b'],
+    });
+    let slowest = 0;
+    for (let i = 0; i < 6 && !game.state.end; i++) {
+      const mine = legalMoves(game.state.board, game.state.turn, RULES);
+      game.send('a', 'move', { path: mine[Math.floor(mine.length / 2)]?.path ?? [] });
+      if (game.state.end) break;
+      const started = Date.now();
+      const reply = game.bot('b') as { event: string; payload: object };
+      slowest = Math.max(slowest, Date.now() - started);
+      game.send('b', reply.event, reply.payload);
     }
+    expect(slowest).toBeLessThan(1000);
   });
 });

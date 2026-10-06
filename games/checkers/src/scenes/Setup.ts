@@ -1,13 +1,14 @@
 /**
- * The room settings screen, one form: who you play against, how strong the computer is, which
- * draughts (8 × 8 or 10 × 10) and whether you move first. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room,
+ * The room settings screen, one form: who you play against, how strong the computer is
+ * and whether you move first on the standard 8 × 8 board. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room,
  * with the current picks selected.
  */
 import { type Button, RoomSetupScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
+import { PRIMARY_BUTTON, SECONDARY_BUTTON, styleButton } from './buttons.js';
 
-type Key = 'opponent' | 'level' | 'variant' | 'swap';
+type Key = 'opponent' | 'level' | 'swap';
 
 interface Row {
   key: Key;
@@ -31,14 +32,6 @@ const ROWS: Row[] = [
       { value: 'easy', label: 'Dễ' },
       { value: 'normal', label: 'Vừa' },
       { value: 'hard', label: 'Khó' },
-    ],
-  },
-  {
-    key: 'variant',
-    title: 'Bàn cờ',
-    choices: [
-      { value: 'english', label: '8 × 8' },
-      { value: 'international', label: '10 × 10 quốc tế' },
     ],
   },
   {
@@ -69,17 +62,18 @@ export class Setup extends RoomSetupScene<Options> {
       row,
       title: this.label(row.title, { size: 24, color: '#ffe8a3' }),
       chips: row.choices.map(({ value, label }) =>
-        this.button(label, () => this.pick(row.key, value), {
-          image: 'button',
-          size: 24,
-          hoverSound: false,
-        }),
+        styleButton(
+          this.button(label, () => this.pick(row.key, value), {
+            ...SECONDARY_BUTTON,
+            hoverSound: false,
+          }),
+        ),
       ),
     }));
-    this.submitButton = this.button(this.current ? 'Lưu' : 'Tạo phòng', () => this.send(), {
-      image: 'button',
-      size: 32,
-    });
+    this.submitButton = styleButton(
+      this.button(this.current ? 'Lưu' : 'Tạo phòng', () => this.send(), PRIMARY_BUTTON),
+      true,
+    );
     this.refresh();
   }
 
@@ -112,11 +106,11 @@ export class Setup extends RoomSetupScene<Options> {
   protected draw() {
     const { width, height } = this.view;
     const top = this.safeTop();
-    const panelW = Math.min(560, width - 24);
+    const panelW = Math.min(640, width - 48);
     const pad = 16;
-    const rowH = 88;
+    const rowH = 120;
     const titleH = 64;
-    const submitH = 72;
+    const submitH = 96;
     const panelH = titleH + ROWS.length * rowH + submitH + pad * 2;
     const scale = Math.min(1, (height - top - 16) / panelH);
     const h = panelH * scale;
@@ -136,16 +130,16 @@ export class Setup extends RoomSetupScene<Options> {
       title.setPosition(width / 2, cursor + 16 * scale);
       const gap = 8;
       const chipW = (inner - gap * (chips.length - 1)) / chips.length;
-      const chipH = 50 * scale;
+      const chipH = 80 * scale;
       chips.forEach((chip, i) => {
         chip
           .setSize(chipW, chipH)
-          .setPosition(x + pad + chipW / 2 + i * (chipW + gap), cursor + 58 * scale);
+          .setPosition(x + pad + chipW / 2 + i * (chipW + gap), cursor + 68 * scale);
       });
       cursor += rowH * scale;
     }
     this.submitButton
-      .setSize(Math.min(280, inner), 62 * scale)
+      .setSize(Math.min(280, inner), 80 * scale)
       .setPosition(width / 2, cursor + (submitH * scale) / 2);
   }
 }

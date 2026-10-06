@@ -10,12 +10,10 @@
  * capture of several pieces is tapped one landing square at a time. The side that moves second
  * sees the board turned round, so your pieces are always at the bottom.
  *
- * The board and the pieces are drawn here until their images exist in assets/ (piece-<white|
- * black>-<man|king>); sounds come with the art.
+ * The wooden board and ridged discs are rendered assets. Presentation and audio use the SDK runtime.
  */
 import {
   type Button,
-  type FlowContext,
   type FlowHandle,
   GameView,
   type ViewContext,
@@ -24,15 +22,14 @@ import {
 import type Phaser from 'phaser';
 import { type Move, type Options, RULES, type Side, type View } from '../game/model.js';
 import { colOf, isDark, isKing, legalMoves, other, rowOf, sideOf } from '../game/rules.js';
+import { PRIMARY_BUTTON, SECONDARY_BUTTON, styleButton } from './buttons.js';
+import { formatPlayed, ResultPanel } from './ResultPanel.js';
 
 type Ctx = ViewContext<View, Options>;
 
 const DEPTH = { board: 0, marks: 1, piece: 5, moving: 7 } as const;
 
 const COLORS = {
-  light: 0xf0dcb4,
-  dark: 0xa87650,
-  frame: 0x4a2a14,
   last: 0xffe066,
   selected: 0x7fd4ff,
   target: 0x2e9d57,
@@ -50,7 +47,13 @@ interface PieceObj {
 }
 
 export class CheckersView extends GameView<View, Options> {
-  private board!: Phaser.GameObjects.Graphics;
+  private board!: Phaser.GameObjects.Image;
+  private cards!: Phaser.GameObjects.Graphics;
+  private moveCount!: Phaser.GameObjects.Text;
+  private panel!: ResultPanel;
+  private resultDismissed = false;
+  private moveFlow?: FlowHandle;
+  private effects = true;
   private marks!: Phaser.GameObjects.Graphics;
   private zone!: Phaser.GameObjects.Zone;
   private status!: Phaser.GameObjects.Text;
@@ -60,7 +63,13 @@ export class CheckersView extends GameView<View, Options> {
     lines: Phaser.GameObjects.Text[];
   };
   private leftColumn = { x: 0, width: 200, top: 0, bottom: 400 };
-  private buttons!: { draw: Button; decline: Button; resign: Button };
+  private buttons!: {
+    draw: Button;
+    decline: Button;
+    resign: Button;
+    result: Button;
+    effects: Button;
+  };
   private buttonStack = { x: 0, bottom: 0, width: 200, height: 40 };
   private pieces = new Map<number, PieceObj>();
   private leaving = new Set<Phaser.GameObjects.Image>();
@@ -82,8 +91,16 @@ export class CheckersView extends GameView<View, Options> {
     this.leaving = new Set();
     this.path = [];
     this.moves = [];
-    this.makeTextures();
-    this.board = this.add.graphics().setDepth(DEPTH.board);
+    this.resultDismissed = false;
+    this.moveFlow = undefined;
+    try {
+      this.effects = localStorage.getItem('checkers-effects') !== 'off';
+    } catch {
+      this.effects = true;
+    }
+    this.board = this.image(0, 0, 'board').setDepth(DEPTH.board);
+    this.cards = this.add.graphics();
+    this.moveCount = this.label('', { size: 32, color: '#ead7ae' });
     this.marks = this.add.graphics().setDepth(DEPTH.marks);
     this.zone = this.add
       .zone(0, 0, 10, 10)
@@ -96,12 +113,29 @@ export class CheckersView extends GameView<View, Options> {
       names: [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0.5)),
       lines: [0, 1].map(() => this.label('', { size: 20 }).setOrigin(0, 0.5)),
     };
-    const opts = { image: 'button', size: 24 };
+    const opts = SECONDARY_BUTTON;
     this.buttons = {
-      draw: this.button('Xin hoà', () => this.send('offer-draw'), opts),
-      decline: this.button('Từ chối', () => this.send('decline-draw'), opts),
-      resign: this.button('Đầu hàng', () => this.resign(), opts),
+      draw: styleButton(this.button('Xin hoà', () => this.send('offer-draw'), opts)),
+      decline: styleButton(this.button('Từ chối', () => this.send('decline-draw'), opts)),
+      resign: styleButton(this.button('Đầu hàng', () => this.resign(), opts)),
+      result: styleButton(
+        this.button('Kết quả', () => this.showPanel(false), PRIMARY_BUTTON),
+        true,
+      ),
+      effects: styleButton(this.button('', () => this.toggleEffects(), opts)),
     };
+    const close = styleButton(
+      this.button(
+        'Xem bàn cờ',
+        () => {
+          this.panel.hide();
+          this.resultDismissed = true;
+        },
+        PRIMARY_BUTTON,
+      ),
+      true,
+    );
+    this.panel = new ResultPanel(this, close, 20);
   }
 
   /**
@@ -111,19 +145,20 @@ export class CheckersView extends GameView<View, Options> {
    */
   protected onLayout(ctx: Ctx) {
     this.runtime.cancelLane('move');
+    this.runtime.cancelLane('result');
     for (const image of this.leaving) image.destroy();
     this.leaving.clear();
     const { width, height, top, hud } = ctx.screen;
     const margin = 16;
     const availH = height - top - margin;
     const side = Math.max(160, Math.min(width - 2 * 150 * hud, availH));
-    const size = RULES[ctx.state.variant].size;
+    const size = RULES.size;
     const frame = side * 0.03;
     const cell = (side - 2 * frame) / size;
     const left = (width - side) / 2;
     const boardTop = top + Math.max(0, (availH - side) / 2);
     const columnW = left - 2 * margin;
-    const flip = this.mySide(ctx) === other(RULES[ctx.state.variant].first);
+    const flip = this.mySide(ctx) === other(RULES.first);
     this.grid = { x0: left + frame, y0: boardTop + frame, cell, size, flip };
     this.drawBoard(left, boardTop, side);
     this.zone.setPosition(this.grid.x0, this.grid.y0).setSize(cell * size, cell * size);
@@ -138,24 +173,35 @@ export class CheckersView extends GameView<View, Options> {
     this.leftColumn = {
       x: margin + columnW / 2,
       width: columnW,
-      top: boardTop + 40 * hud,
-      bottom: boardTop + side - 40 * hud,
+      top: boardTop + 54 * hud,
+      bottom: boardTop + side - 54 * hud,
     };
     this.layoutScore(ctx);
     this.buttonStack = {
       x: rightX,
       bottom: boardTop + side,
       width: Math.min(columnW, 190 * hud),
-      height: 56 * hud,
+      height: 66 * hud,
     };
     this.placeButtons();
     for (const [sq, obj] of this.pieces) this.placePiece(obj, sq);
     this.drawMarks(ctx);
+    this.moveCount.setFontSize(28 * hud).setPosition(this.leftColumn.x, boardTop + side / 2);
+    if (ctx.result && !this.resultDismissed) this.showPanel(false);
   }
 
   /** A new game: an empty board (onState sets the pieces out). */
   protected onStart() {
+    this.resetBoard();
+    this.sfx('checkers-start');
+  }
+
+  private resetBoard() {
+    this.panel.hide();
+    this.resultDismissed = false;
+    this.moveFlow = undefined;
     this.runtime.cancelLane('move');
+    this.runtime.cancelLane('result');
     for (const image of this.leaving) image.destroy();
     this.leaving.clear();
     this.resignTimer?.cancel();
@@ -183,70 +229,177 @@ export class CheckersView extends GameView<View, Options> {
     moving.image.setDepth(DEPTH.moving);
     const hops = last.path.slice(1).map((sq) => this.pointXY(sq));
     for (const obj of taken) this.leaving.add(obj.image);
-    this.runtime.run(
+    if (!this.effects) {
+      for (const obj of taken) {
+        this.leaving.delete(obj.image);
+        obj.image.destroy();
+      }
+      this.placePiece(moving, to);
+      this.sfx(
+        last.crowned ? 'checkers-promote' : taken.length ? 'checkers-capture' : 'checkers-move',
+      );
+      return;
+    }
+    this.moveFlow = this.runtime.run(
       async (fx) => {
         for (const obj of taken)
           fx.defer(() => {
             this.leaving.delete(obj.image);
             obj.image.destroy();
           });
-        await fx.parallel(
-          async (move) => {
-            for (const { x, y } of hops) {
-              await move.tween({
-                targets: moving.image,
-                x,
-                y,
-                duration: 150,
-                ease: 'Sine.easeInOut',
+        for (let i = 0; i < hops.length; i++) {
+          const at = hops[i];
+          if (!at) continue;
+          await fx.tween({
+            targets: moving.image,
+            x: at.x,
+            y: at.y,
+            duration: 180,
+            ease: 'Sine.easeInOut',
+          });
+          const victim = taken[i];
+          await fx.parallel(
+            async (sound) => {
+              await sound.sound(victim ? 'checkers-capture' : 'checkers-move', {
+                wait: 'finished',
               });
-            }
-            move.checkpoint();
-            moving.image.setTexture(this.pieceKey(moving.piece)).setDepth(DEPTH.piece);
-            this.placePiece(moving, to);
-          },
-          ...taken.map((obj, i) => async (capture: FlowContext) => {
-            await capture.tween({
-              targets: obj.image,
-              alpha: 0,
-              delay: 150 * (i + 1),
-              duration: 200,
-            });
-          }),
-        );
+            },
+            async (capture) => {
+              if (!victim) return;
+              const { x, top, bottom } = this.leftColumn;
+              const bottomSide = this.grid.flip ? other(RULES.first) : RULES.first;
+              await capture.tween({
+                targets: victim.image,
+                x,
+                y: sideOf(moving.piece) === bottomSide ? bottom : top,
+                alpha: 0,
+                scaleX: victim.image.scaleX * 0.3,
+                scaleY: victim.image.scaleY * 0.3,
+                duration: 180,
+                ease: 'Sine.easeIn',
+              });
+            },
+          );
+        }
+        fx.checkpoint();
+        this.placePiece(moving, to);
+        if (last.crowned) {
+          const ring = this.add
+            .graphics()
+            .setPosition(moving.image.x, moving.image.y)
+            .setDepth(DEPTH.moving);
+          fx.defer(() => ring.destroy());
+          ring.lineStyle(4, 0xffd56b, 1).strokeCircle(0, 0, this.grid.cell * 0.42);
+          await fx.parallel(
+            async (sound) => {
+              await sound.sound('checkers-promote', { wait: 'finished' });
+            },
+            async (crown) => {
+              await crown.tween({ targets: ring, scale: 1.8, alpha: 0, duration: 380 });
+            },
+          );
+        }
       },
       { lane: 'move', onFailure: () => this.onResync(this.ctx) },
     );
   }
 
   protected onResync(ctx: Ctx) {
-    this.onStart();
+    this.resetBoard();
     this.onState(ctx);
+    if (ctx.result) this.showPanel(false);
   }
 
   protected onState(ctx: Ctx) {
-    const size = RULES[ctx.state.variant].size;
-    const flip = this.mySide(ctx) === other(RULES[ctx.state.variant].first);
-    if (size !== this.grid.size) this.onStart();
+    const size = RULES.size;
+    const flip = this.mySide(ctx) === other(RULES.first);
+    if (size !== this.grid.size) this.resetBoard();
     if (size !== this.grid.size || flip !== this.grid.flip) this.onLayout(ctx);
     this.syncPieces(ctx);
     const mine = this.mySide(ctx);
     this.moves =
       mine && !ctx.result && ctx.state.turn === mine
-        ? legalMoves(ctx.state.board, mine, RULES[ctx.state.variant])
+        ? legalMoves(ctx.state.board, mine, RULES)
         : [];
     if (this.path.length && !this.moves.some((m) => this.startsWith(m, this.path))) this.path = [];
     this.drawMarks(ctx);
     this.showStatus(ctx);
     this.showButtons(ctx);
     this.layoutScore(ctx);
+    this.moveCount.setText(`Nước ${Math.floor(ctx.state.plies / 2) + 1}`);
+  }
+
+  protected onEnd(ctx: Ctx) {
+    const pending = this.moveFlow;
+    this.runtime.run(
+      async (fx) => {
+        if (pending) await pending.done;
+        fx.checkpoint();
+        this.showPanel(this.effects);
+        await fx.sound(ctx.state.end?.winner ? 'checkers-win' : 'checkers-draw', {
+          wait: 'finished',
+        });
+      },
+      { lane: 'result' },
+    );
+  }
+
+  private toggleEffects() {
+    this.effects = !this.effects;
+    try {
+      localStorage.setItem('checkers-effects', this.effects ? 'on' : 'off');
+    } catch {
+      /* Storage may be unavailable. */
+    }
+    const dismissed = this.resultDismissed;
+    this.runtime.cancelLane('result');
+    this.onResync(this.ctx);
+    if (dismissed) {
+      this.panel.hide();
+      this.resultDismissed = true;
+    }
+  }
+
+  private showPanel(pop: boolean) {
+    const { state, clock } = this.ctx;
+    if (!state.end) return;
+    const winner = state.end.winner;
+    const mine = this.mySide(this.ctx);
+    const title = !winner
+      ? 'Hoà'
+      : mine
+        ? winner === mine
+          ? 'Chiến thắng!'
+          : 'Thua rồi'
+        : `${SIDES[winner].name} thắng`;
+    const rows: [string, string][] = [];
+    if (clock)
+      rows.push(['Thời gian', formatPlayed((clock.endedAt ?? Date.now()) - clock.startedAt)]);
+    rows.push(
+      ['Số lượt đi', String(state.plies)],
+      ['Quân đã ăn', `Trắng ${state.taken.w} · Đen ${state.taken.b}`],
+    );
+    const { x0, y0, cell } = this.grid;
+    this.resultDismissed = false;
+    this.panel.show(
+      {
+        title,
+        reason: this.status.text,
+        kings: winner
+          ? [this.pieceKey(winner.toUpperCase())]
+          : [this.pieceKey('W'), this.pieceKey('B')],
+        rows,
+      },
+      { x: x0 + cell * 4, y: y0 + cell * 4, width: cell * 8, hud: this.ctx.screen.hud },
+      pop,
+    );
   }
 
   // ── Board ───────────────────────────────────────────────────────────────────────────────
 
   private mySide({ me, state }: Ctx): Side | null {
     if (!me) return null;
-    const first = RULES[state.variant].first;
+    const first = RULES.first;
     return state.players[0] === me.id ? first : state.players[1] === me.id ? other(first) : null;
   }
 
@@ -271,47 +424,12 @@ export class CheckersView extends GameView<View, Options> {
   }
 
   private drawBoard(left: number, top: number, side: number) {
-    const { x0, y0, cell, size } = this.grid;
-    const g = this.board.clear();
-    g.fillStyle(COLORS.frame, 1).fillRoundedRect(left, top, side, side, side * 0.012);
-    for (let row = 0; row < size; row++) {
-      for (let col = 0; col < size; col++) {
-        g.fillStyle((row + col) % 2 ? COLORS.dark : COLORS.light, 1);
-        g.fillRect(x0 + col * cell, y0 + row * cell, cell, cell);
-      }
-    }
+    this.board.setPosition(left + side / 2, top + side / 2).setDisplaySize(side, side);
   }
 
-  /** Texture key of a piece's look: its image once the art exists, the drawn one until then. */
   private pieceKey(piece: string) {
     const side = sideOf(piece);
-    const art = `${this.gameId}/piece-${SIDES[side].art}-${isKing(piece) ? 'king' : 'man'}`;
-    return this.textures.exists(art) ? art : `checkers-${side}${isKing(piece) ? 'k' : ''}`;
-  }
-
-  /** Round pieces with a ridge, kings with a gold crown ring, drawn once. */
-  private makeTextures() {
-    const r = 64;
-    for (const side of ['w', 'b'] as const) {
-      for (const king of [false, true]) {
-        const key = `checkers-${side}${king ? 'k' : ''}`;
-        if (this.textures.exists(key)) continue;
-        const [body, rim, ring] =
-          side === 'w' ? [0xf6ead0, 0xc9b58c, 0xe2d2ae] : [0x2a1d1a, 0x0f0a09, 0x5a4038];
-        const g = this.make.graphics({}, false);
-        g.fillStyle(0x000000, 0.3).fillCircle(r + 3, r + 6, r - 6);
-        g.fillStyle(rim, 1).fillCircle(r, r, r - 6);
-        g.fillStyle(body, 1).fillCircle(r, r - 3, r - 10);
-        g.lineStyle(4, ring, 1).strokeCircle(r, r - 3, r * 0.62);
-        g.lineStyle(3, ring, 1).strokeCircle(r, r - 3, r * 0.38);
-        if (king) {
-          g.lineStyle(7, 0xf2c14e, 1).strokeCircle(r, r - 3, r * 0.5);
-          g.fillStyle(0xf2c14e, 1).fillCircle(r, r - 3, r * 0.16);
-        }
-        g.generateTexture(key, r * 2 + 6, r * 2 + 8);
-        g.destroy();
-      }
-    }
+    return this.texture(`piece-${SIDES[side].art}-${isKing(piece) ? 'king' : 'man'}`);
   }
 
   private placePiece(obj: PieceObj, sq: number) {
@@ -391,6 +509,10 @@ export class CheckersView extends GameView<View, Options> {
    * the tapped squares make a whole move), or drop the pick.
    */
   private tap(x: number, y: number) {
+    const moving = this.runtime
+      .inspect()
+      .lanes.some((lane) => lane.name === 'move' && (lane.active || lane.pending > 0));
+    if (this.panel.shown || moving) return;
     const sq = this.squareAt(x, y);
     if (sq === null || !isDark(this.grid.size, sq)) {
       this.path = [];
@@ -406,6 +528,7 @@ export class CheckersView extends GameView<View, Options> {
         this.path = [];
       } else this.path = extended;
     } else if (this.moves.some((m) => m.path[0] === sq)) {
+      this.sfx('checkers-select');
       this.path = sq === this.path[0] && this.path.length === 1 ? [] : [sq];
     } else this.path = [];
     this.drawMarks(this.ctx);
@@ -414,7 +537,7 @@ export class CheckersView extends GameView<View, Options> {
   // ── Status, score and buttons ───────────────────────────────────────────────────────────
 
   private nameOf(ctx: Ctx, side: Side) {
-    const first = RULES[ctx.state.variant].first;
+    const first = RULES.first;
     const id = ctx.state.players[side === first ? 0 : 1];
     if (id === ctx.me?.id) return 'Bạn';
     return ctx.players.find((p) => p.id === id)?.name ?? SIDES[side].name;
@@ -455,7 +578,10 @@ export class CheckersView extends GameView<View, Options> {
     const playing = Boolean(mine && !state.end && !ctx.result);
     const offered = playing && state.drawOffer && state.drawOffer !== mine;
     const vsBot = ctx.players.some((p) => p.bot);
-    const { draw, decline, resign } = this.buttons;
+    const { draw, decline, resign, result, effects } = this.buttons;
+    result.container.setVisible(Boolean(ctx.result));
+    effects.container.setVisible(!ctx.result);
+    effects.setText(`Hiệu ứng: ${this.effects ? 'Bật' : 'Tắt'}`);
     draw.container.setVisible(playing && !vsBot);
     resign.container.setVisible(playing);
     decline.container.setVisible(Boolean(offered));
@@ -469,6 +595,13 @@ export class CheckersView extends GameView<View, Options> {
     const { x, bottom, width, height } = this.buttonStack;
     const shown = Object.values(this.buttons).filter((b) => b.container.visible);
     const gap = 8;
+    if (this.ctx.result) {
+      const top = this.status.y + this.status.height + 24;
+      shown.forEach((b, i) => {
+        b.setSize(width, height).setPosition(x, top + height / 2 + i * (height + gap));
+      });
+      return;
+    }
     const span = shown.length * height + (shown.length - 1) * gap;
     shown.forEach((b, i) => {
       b.setSize(width, height).setPosition(x, bottom - span + height / 2 + i * (height + gap));
@@ -497,7 +630,8 @@ export class CheckersView extends GameView<View, Options> {
     const icon = 52 * hud;
     const textX = col.x - col.width / 2 + icon + 12 * hud;
     const textW = col.width - icon - 12 * hud;
-    const first = RULES[state.variant].first;
+    const first = RULES.first;
+    const g = this.cards.clear();
     const bottomSide = this.grid.flip ? other(first) : first;
     [0, 1].forEach((seat) => {
       const name = this.score.names[seat];
@@ -514,19 +648,37 @@ export class CheckersView extends GameView<View, Options> {
               ? other(first)
               : first;
       const y = side === bottomSide ? col.bottom : col.top;
+      g.fillStyle(0x0a1c28, 0.9).fillRoundedRect(
+        col.x - col.width / 2 - 4,
+        y - 50 * hud,
+        col.width + 8,
+        100 * hud,
+        12,
+      );
+      g.lineStyle(
+        state.turn === side && !state.end ? 3 : 1,
+        0xd9a441,
+        state.turn === side && !state.end ? 0.9 : 0.25,
+      ).strokeRoundedRect(col.x - col.width / 2 - 4, y - 50 * hud, col.width + 8, 100 * hud, 12);
       img
         .setTexture(this.pieceKey(side))
         .setDisplaySize(icon, icon)
-        .setPosition(col.x - col.width / 2 + icon / 2, y);
+        .setPosition(col.x - col.width / 2 + icon / 2, y - 12 * hud);
       name
         .setFontSize(26 * hud)
         .setColor(SIDES[side].text)
-        .setPosition(textX, y - 14 * hud);
-      this.fitText(name, player ? player.name : '…', textW, 18 * hud);
+        .setPosition(textX, y - 18 * hud);
+      this.fitText(
+        name,
+        player ? `${this.ctx.hostId === player.id ? '♛ ' : ''}${player.name}` : '…',
+        textW,
+        18 * hud,
+      );
       line
-        .setFontSize(20 * hud)
+        .setFontSize(24 * hud)
         .setText(`Thắng ${score.wins[seat] ?? 0} · Ăn ${state.taken[side]}`)
-        .setPosition(textX, y + 16 * hud);
+        .setPosition(col.x - col.width / 2 + 12 * hud, y + 26 * hud);
+      this.fitText(line, line.text, col.width - 24 * hud, 24);
     });
   }
 }

@@ -1,5 +1,5 @@
 /**
- * How pieces move, for both variants (model.ts `RULES`): pure functions on a board, shared by
+ * How pieces move, for standard 8 × 8 English draughts: pure functions on a board, shared by
  * the game, the computer player and the screen (which shows where a picked piece may go).
  */
 import type { Move, Rules, Side } from './model.js';
@@ -59,24 +59,7 @@ function capturesFrom(cells: string[], from: number, rules: Rules, out: Move[]) 
     const col = colOf(size, at);
     let more = false;
     for (const [dr, dc] of DIAGONALS) {
-      if (!king && !rules.menTakeBack && dr !== forward(side, rules)) continue;
-      if (king && rules.flyingKings) {
-        // Slide to the first piece; if it is an enemy not yet taken, land on any empty square
-        // beyond it.
-        let r = row + dr;
-        let c = col + dc;
-        while (inside(r, c) && empty(r * size + c)) {
-          r += dr;
-          c += dc;
-        }
-        if (!inside(r, c) || !enemy(r * size + c, taken)) continue;
-        const over = r * size + c;
-        for (r += dr, c += dc; inside(r, c) && empty(r * size + c); r += dr, c += dc) {
-          more = true;
-          follow(r * size + c, true, [...path, r * size + c], [...taken, over]);
-        }
-        continue;
-      }
+      if (!king && dr !== forward(side, rules)) continue;
       const r = row + 2 * dr;
       const c = col + 2 * dc;
       if (!inside(r, c)) continue;
@@ -85,8 +68,7 @@ function capturesFrom(cells: string[], from: number, rules: Rules, out: Move[]) 
       if (!enemy(over, taken) || !empty(land)) continue;
       more = true;
       const crowned = !king && r === crownRow(side, rules);
-      if (crowned && rules.crownStops)
-        out.push({ path: [...path, land], captures: [...taken, over] });
+      if (crowned) out.push({ path: [...path, land], captures: [...taken, over] });
       else follow(land, king, [...path, land], [...taken, over]);
     }
     if (!more && taken.length) out.push({ path, captures: taken });
@@ -104,35 +86,25 @@ function stepsFrom(cells: string[], from: number, rules: Rules, out: Move[]) {
   const col = colOf(size, from);
   for (const [dr, dc] of DIAGONALS) {
     if (!king && dr !== forward(side, rules)) continue;
-    for (
-      let r = row + dr, c = col + dc;
-      r >= 0 && r < size && c >= 0 && c < size;
-      r += dr, c += dc
-    ) {
-      const to = r * size + c;
-      if (cells[to] !== '.') break;
-      out.push({ path: [from, to], captures: [] });
-      if (!king || !rules.flyingKings) break;
-    }
+    const r = row + dr;
+    const c = col + dc;
+    if (r < 0 || r >= size || c < 0 || c >= size) continue;
+    const to = r * size + c;
+    if (cells[to] === '.') out.push({ path: [from, to], captures: [] });
   }
 }
 
 /**
- * Every legal move of `side`: captures when there are any (the longest ones only when the
- * variant says so), otherwise plain moves.
+ * Every legal move of `side`: captures when there are any, otherwise plain moves.
  */
 export function legalMoves(board: string, side: Side, rules: Rules): Move[] {
   const cells = [...board];
-  let captures: Move[] = [];
+  const captures: Move[] = [];
   for (let sq = 0; sq < cells.length; sq++) {
     if (cells[sq] !== '.' && sideOf(cells[sq] ?? '.') === side)
       capturesFrom(cells, sq, rules, captures);
   }
   if (captures.length) {
-    if (rules.mostCaptures) {
-      const most = Math.max(...captures.map((m) => m.captures.length));
-      captures = captures.filter((m) => m.captures.length === most);
-    }
     // The same path and the same pieces taken is the same move (a king can reach it twice).
     const seen = new Set<string>();
     return captures.filter((m) => {

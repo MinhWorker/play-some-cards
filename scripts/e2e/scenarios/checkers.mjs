@@ -29,7 +29,10 @@ export default async function run(t) {
   for (let move = 0; move < 4; move++) {
     await page.waitForFunction(() => {
       const s = window.__phaser.scene.getScene('checkers');
-      return s.ctx.result || s.moves.length > 0;
+      const moving = s.runtime
+        .inspect()
+        .lanes.some((lane) => lane.name === 'move' && (lane.active || lane.pending > 0));
+      return s.ctx.result || (s.moves.length > 0 && !moving);
     });
     const { plies, path, over } = await page.evaluate(() => {
       const s = window.__phaser.scene.getScene('checkers');
@@ -60,5 +63,9 @@ export default async function run(t) {
   const status = await page.evaluate(() => window.__phaser.scene.getScene('checkers').status.text);
   if (!status.includes('đầu hàng')) throw new Error(`After resigning the status says "${status}"`);
   await page.getByRole('button', { name: 'Chơi ván mới' }).waitFor();
+  await page.waitForFunction(() => window.__phaser.scene.getScene('checkers').panel.shown);
+  await page.waitForFunction(
+    () => window.__phaser.scene.getScene('checkers').runtime.inspect().motion === 0,
+  );
   await page.screenshot({ path: t.shot('14-checkers-resigned.png') });
 }

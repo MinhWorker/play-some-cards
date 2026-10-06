@@ -12,52 +12,16 @@ import { z } from 'zod';
 
 export type Side = 'w' | 'b';
 
-/**
- * `english`: 8 × 8, Black first, men move and take forward only, kings step one square, any
- * capture sequence may be chosen. `international`: 10 × 10, White first, men take backwards
- * too, kings fly, the sequence taking the most pieces is required.
- */
-export type Variant = 'english' | 'international';
-
+/** The single standard board: 8 × 8 English draughts, Black moves first. */
 export interface Rules {
   size: number;
-  /** Rows of men each side starts with. */
   rows: number;
   first: Side;
-  /** Men may take backwards. */
-  menTakeBack: boolean;
-  /** Kings move and take any distance along a diagonal. */
-  flyingKings: boolean;
-  /** The sequence taking the most pieces must be played. */
-  mostCaptures: boolean;
-  /** A man reaching the far row mid-capture is crowned there and stops. */
-  crownStops: boolean;
   /** Plies without a capture or a man moving that end the game in a draw. */
   quietLimit: number;
 }
 
-export const RULES: Record<Variant, Rules> = {
-  english: {
-    size: 8,
-    rows: 3,
-    first: 'b',
-    menTakeBack: false,
-    flyingKings: false,
-    mostCaptures: false,
-    crownStops: true,
-    quietLimit: 80,
-  },
-  international: {
-    size: 10,
-    rows: 4,
-    first: 'w',
-    menTakeBack: true,
-    flyingKings: true,
-    mostCaptures: true,
-    crownStops: false,
-    quietLimit: 50,
-  },
-};
+export const RULES: Rules = { size: 8, rows: 3, first: 'b', quietLimit: 80 };
 
 /** A move: the squares the piece stands on, from where it starts to where it ends, and the
  * squares of the pieces it takes. */
@@ -80,7 +44,6 @@ export type EndReason =
 
 /** Everything about one game in progress. Kept on the server, never mutated. */
 export interface State {
-  variant: Variant;
   board: string;
   /** players[0] plays the side that moves first, players[1] the other. */
   players: [PlayerId, PlayerId];
@@ -110,7 +73,6 @@ export type View = Omit<State, 'history'>;
 export const optionsSchema = z.object({
   opponent: z.enum(['human', 'bot']).default('human'),
   level: z.enum(['easy', 'normal', 'hard']).default('normal'),
-  variant: z.enum(['english', 'international']).default('english'),
   /** The second seat moves first instead of the first. */
   swap: z.boolean().default(false),
 });
