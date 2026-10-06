@@ -8,7 +8,7 @@ const TITLE_WIDTH = 540;
 const CLOUD_WIDTH = { 'cloud-a': 512, 'cloud-b': 384 };
 
 /**
- * Always-on background: the sky image, the game title (home map only, set through the
+ * Default background (sleeps while a board opts out or uses its own scene): the sky image, the game title (home map only, set through the
  * registry key 'showTitle' by HubScene) and clouds drifting across in front of both. In design
  * units like every scene, but it covers the whole screen (the frame's bleed), notch included.
  */

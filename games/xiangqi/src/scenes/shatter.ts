@@ -4,8 +4,7 @@ import type { GameScene } from '@psc/sdk/client';
  * it breaks, into jagged wedges around a point near its middle (an inner and an outer shard
  * per wedge). The shards fly apart, fall onto the table, bounce and fade.
  */
-import type Phaser from 'phaser';
-import { DISC } from './theme.js';
+import { DISC, PIECE_TINT } from './theme.js';
 
 /** One shard: its texture, and where its middle sits from the image's center (image px). */
 interface Shard {
@@ -157,6 +156,7 @@ export function shatter(scene: GameScene, o: ShatterOptions) {
     const image = scene.add
       .image(sx, sy, shard.key)
       .setScale(scale)
+      .setTint(PIECE_TINT)
       .setAngle(o.angle)
       .setDepth(o.depth + Math.random() * 0.1);
     return {

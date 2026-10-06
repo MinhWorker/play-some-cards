@@ -1,7 +1,8 @@
-"""Render four angled enamel pawns for the 2.5D board.
+"""Render four enamel pawns for the board or front-facing victory celebration.
 
 Run from the repository root:
   blender -b -t 4 --python games/co-ty-phu-classic/sources/render_pawns.py
+  blender -b -t 4 --python games/co-ty-phu-classic/sources/render_pawns.py -- --front
 
 The editable Blender scene and PNG previews stay in .blender/; game-ready WebP files go in assets/.
 """
@@ -9,6 +10,7 @@ The editable Blender scene and PNG previews stay in .blender/; game-ready WebP f
 from __future__ import annotations
 
 import math
+import sys
 from pathlib import Path
 
 import bpy
@@ -19,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO = ROOT.parents[1]
 PREVIEW = REPO / ".blender"
 ASSETS = ROOT / "assets"
+FRONT = "--front" in sys.argv
 PREVIEW.mkdir(parents=True, exist_ok=True)
 
 bpy.ops.object.select_all(action="SELECT")
@@ -33,8 +36,8 @@ def material(name, rgba, metallic=0.0, roughness=0.28):
     surface.inputs["Base Color"].default_value = (*rgba, 1)
     surface.inputs["Metallic"].default_value = metallic
     surface.inputs["Roughness"].default_value = roughness
-    surface.inputs["Coat Weight"].default_value = 0.38
-    surface.inputs["Coat Roughness"].default_value = 0.14
+    (surface.inputs.get("Coat Weight") or surface.inputs["Clearcoat"]).default_value = 0.38
+    (surface.inputs.get("Coat Roughness") or surface.inputs["Clearcoat Roughness"]).default_value = 0.14
     return mat
 
 
@@ -104,12 +107,12 @@ head.data.materials.append(enamel)
 for face in head.data.polygons:
     face.use_smooth = True
 
-# Match the board camera's direction while keeping the pawn centered in its sprite crop.
-bpy.ops.object.camera_add(location=(0, -5.7, 9.46))
+# Victory sprites use an eye-level orthographic camera, without the board's overhead tilt.
+bpy.ops.object.camera_add(location=(0, -6, 0.9) if FRONT else (0, -5.7, 9.46))
 camera = bpy.context.object
-camera.rotation_euler = (Vector((0, 0, 0.78)) - camera.location).to_track_quat("-Z", "Y").to_euler()
+camera.rotation_euler = (Vector((0, 0, 0.9 if FRONT else 0.78)) - camera.location).to_track_quat("-Z", "Y").to_euler()
 camera.data.type = "ORTHO"
-camera.data.ortho_scale = 2.15
+camera.data.ortho_scale = 2.6 if FRONT else 2.15
 bpy.context.scene.camera = camera
 
 for name, position, energy, size in [
@@ -125,25 +128,27 @@ for name, position, energy, size in [
 
 scene = bpy.context.scene
 scene.render.engine = "CYCLES"
-scene.cycles.samples = 48
-scene.cycles.use_denoising = True
-scene.render.resolution_x = 256
-scene.render.resolution_y = 320
+scene.cycles.samples = 96 if FRONT else 48
+scene.cycles.use_denoising = False
+scene.render.resolution_x = 512 if FRONT else 256
+scene.render.resolution_y = 640 if FRONT else 320
 scene.render.resolution_percentage = 100
 scene.render.film_transparent = True
 scene.render.image_settings.file_format = "PNG"
 scene.view_settings.view_transform = "Standard"
 scene.world.color = (0.32, 0.32, 0.32)
 
-blend = PREVIEW / "co-ty-phu-classic-pawns.blend"
+prefix = "pawn-front" if FRONT else "pawn"
+blend = PREVIEW / f"co-ty-phu-classic-{prefix}s.blend"
 bpy.ops.wm.save_as_mainfile(filepath=str(blend))
 
 for name, rgb in colors:
     enamel.diffuse_color = (*rgb, 1)
     enamel.node_tree.nodes.get("Principled BSDF").inputs["Base Color"].default_value = (*rgb, 1)
-    png = PREVIEW / f"pawn-{name}.png"
-    webp = ASSETS / f"pawn-{name}.webp"
+    png = PREVIEW / f"{prefix}-{name}.png"
+    webp = ASSETS / f"{prefix}-{name}.webp"
     scene.render.filepath = str(png)
     bpy.ops.render.render(write_still=True)
-    Image.open(png).crop((32, 32, 224, 288)).save(webp, "WEBP", quality=94, method=6)
+    crop = (64, 64, 448, 576) if FRONT else (32, 32, 224, 288)
+    Image.open(png).crop(crop).save(webp, "WEBP", quality=94, method=6)
     print(f"Rendered {webp}")

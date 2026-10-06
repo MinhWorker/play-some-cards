@@ -5,6 +5,13 @@
  */
 import { defineClient } from '@psc/sdk/client';
 import { Setup } from './scenes/Setup.js';
+import { XiangqiBackground } from './scenes/XiangqiBackground.js';
 import { XiangqiView } from './scenes/XiangqiView.js';
 
-export default defineClient({ setup: Setup, scene: XiangqiView, showsResult: true });
+export default defineClient({
+  setup: Setup,
+  scene: XiangqiView,
+  background: XiangqiBackground,
+  showsResult: true,
+  showsPlayers: true,
+});

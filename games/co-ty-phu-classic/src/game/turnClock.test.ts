@@ -2,7 +2,7 @@ import { seededRng, testGame } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 
-const gameAt = (square: number, cash = 1500) => {
+const gameAt = (square: number, cash = 1000) => {
   const game = testGame(plugin, ['a', 'b'], { options: { turnSeconds: 15 }, seed: 1 });
   const rng = seededRng(1);
   for (let i = 0; i < 24; i++) rng();
@@ -29,15 +29,15 @@ describe('PvP turn clock', () => {
     expect(game.error('a', 'turn-timeout')).toBeTruthy();
   });
 
-  it('opens an auction when a timed-out buyer cannot afford the property, run by its own clock', () => {
-    const game = gameAt(3, 1);
+  it('ends the turn when a timed-out buyer cannot afford the property', () => {
+    const game = gameAt(8, 1);
     game.send('a', 'roll');
     game.fireTimer();
-    expect(game.state.phase).toBe('auction');
-    expect(game.timer).toEqual({ event: 'auction-end', ms: 10000 });
-    game.fireTimer();
-    expect(game.state.phase).toBe('end');
-    expect(game.state.properties[3]!.owner).toBeNull();
+    expect(game.state.phase).toBe('roll');
+    expect(game.state.turn).toBe(1);
+    expect(game.state.auction).toBeNull();
+    expect(game.state.properties[8]!.owner).toBeNull();
+    expect(game.state.lastAutoAction).toMatchObject({ seat: 0, event: 'end-turn' });
   });
 
   it('declines an unanswered trade instead of accepting someone’s assets', () => {
@@ -46,7 +46,7 @@ describe('PvP turn clock', () => {
     game.fireTimer();
     expect(game.state.trade).toBeNull();
     expect(game.state.phase).toBe('roll');
-    expect(game.state.players.map((p) => p.cash)).toEqual([1500, 1500]);
+    expect(game.state.players.map((p) => p.cash)).toEqual([1000, 1000]);
     expect(game.state.lastAutoAction).toMatchObject({ seat: 1, event: 'decline-trade' });
   });
 
@@ -62,9 +62,10 @@ describe('PvP turn clock', () => {
     expect(game.state.debt).toBeNull();
     expect(game.state.players[0]!.bankrupt).toBe(false);
     expect(game.state.properties[1]!.houses).toBe(0);
-    expect(game.state.properties[3]!.mortgaged).toBe(true);
-    expect(game.state.transfers).toHaveLength(5);
-    expect(game.state.players[0]!.cash).toBe(41);
+    expect(game.state.properties[1]!.mortgaged).toBe(true);
+    expect(game.state.properties[3]!.mortgaged).toBe(false);
+    expect(game.state.transfers).toHaveLength(4);
+    expect(game.state.players[0]!.cash).toBe(1);
   });
 
   it('declares insolvency when no assets can cover the debt and ends the game', () => {
@@ -77,7 +78,7 @@ describe('PvP turn clock', () => {
     expect(game.timer).toBeNull();
   });
 
-  it('does not restart a deadline for optional actions or another player’s property management', () => {
+  it('does not restart a deadline for optional property management', () => {
     const options = plugin.room!.options.parse({ turnSeconds: 60 });
     const rules = plugin.rules;
     let stored = rules.setup(['a', 'b'], seededRng(1), options);
@@ -88,12 +89,6 @@ describe('PvP turn clock', () => {
       stored,
       { event: 'mortgage', payload: { square: 1 } },
       'a',
-      seededRng(1),
-    );
-    stored = rules.applyMove(
-      stored,
-      { event: 'mortgage', payload: { square: 3 } },
-      'b',
       seededRng(1),
     );
     expect(rules.timer(stored)).toEqual(before);
@@ -117,7 +112,7 @@ describe('PvP turn clock', () => {
     game.send('a', 'event-ready', { id: game.state.specialEvent!.id });
     expect(game.timer).toEqual({ event: 'auto-confirm-event', ms: 8000 });
     game.fireTimer();
-    expect(game.state.players[0]!.cash).toBe(1300);
+    expect(game.state.players[0]!.cash).toBe(800);
     expect(game.timer).toEqual({ event: 'turn-timeout', ms: 15000 });
   });
 });
