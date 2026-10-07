@@ -71,7 +71,7 @@ export interface CardLook {
   back: BackId;
 }
 
-export const DEFAULT_LOOK: CardLook = { face: 'classic', back: 'lotus' };
+export const DEFAULT_LOOK: CardLook = { face: 'classic', back: 'lattice' };
 
 /** A look with its images turned into texture keys, ready for `CardSprite`. */
 export interface CardArt extends Omit<CardFace, 'blank' | 'suits'> {

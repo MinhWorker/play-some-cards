@@ -34,11 +34,15 @@ export class CardSprite extends Phaser.GameObjects.Container {
   /** The card it shows face up, or `null` face down. */
   card: Card | null = null;
   targetCard: Card | null = null;
+  dealing = false;
   private readonly face: Phaser.GameObjects.Image;
   private readonly back: Phaser.GameObjects.Image;
   private readonly rank: Phaser.GameObjects.Image;
   private readonly small: Phaser.GameObjects.Image;
   private readonly big: Phaser.GameObjects.Image;
+  private readonly fold: Phaser.GameObjects.Graphics;
+  private squeezedCard: Card | null = null;
+  private progress = 0;
   private cardWidth = 60;
 
   constructor(
@@ -53,7 +57,8 @@ export class CardSprite extends Phaser.GameObjects.Container {
     this.rank = scene.add.image(0, 0, '__DEFAULT');
     this.small = scene.add.image(0, 0, art.suits.spade);
     this.big = scene.add.image(0, 0, art.suits.spade);
-    this.add([this.face, this.back, this.rank, this.small, this.big]);
+    this.fold = scene.add.graphics();
+    this.add([this.face, this.rank, this.small, this.big, this.back, this.fold]);
     scene.add.existing(this);
     this.setCard(card);
   }
@@ -64,11 +69,15 @@ export class CardSprite extends Phaser.GameObjects.Container {
 
   /** Face up with `card`, or face down (`null`). */
   setCard(card: Card | null) {
+    this.squeezedCard = null;
+    this.progress = 0;
+    this.back.setCrop();
+    this.fold.clear();
     this.card = card;
     this.targetCard = card;
     const up = card !== null;
     this.back.setVisible(!up);
-    for (const obj of [this.face, this.rank, this.small, this.big]) obj.setVisible(up);
+    for (const obj of [this.face, this.rank, this.small, this.big]) obj.setVisible(up).setCrop();
     if (up) {
       const color = isRed(card) ? this.art.ink.red : this.art.ink.black;
       this.rank.setTexture(rankTexture(this.scene, RANKS[rankOf(card)] ?? '', color));
@@ -76,6 +85,47 @@ export class CardSprite extends Phaser.GameObjects.Container {
       this.big.setTexture(this.art.suits[suitOf(card)]);
     }
     return this.setCardWidth(this.cardWidth);
+  }
+
+  /** Peel the back down to expose the rank first. This never publishes a game event. */
+  squeeze(card: Card, progress: number) {
+    if (this.squeezedCard !== card) {
+      this.setCard(card);
+      this.squeezedCard = card;
+    }
+    this.targetCard = card;
+    this.squeezeProgress = progress;
+  }
+
+  get squeezeProgress() {
+    return this.progress;
+  }
+
+  set squeezeProgress(value: number) {
+    this.progress = Phaser.Math.Clamp(value, 0, 1);
+    const p = this.progress;
+    this.card = p === 1 ? this.squeezedCard : null;
+    this.back.setVisible(p < 1);
+    const source = this.back.texture.getSourceImage();
+    this.back.setCrop(0, source.height * p, source.width, source.height * (1 - p));
+    const seam = -this.cardHeight / 2 + this.cardHeight * p;
+    for (const symbol of [this.rank, this.small, this.big]) {
+      const exposed = Phaser.Math.Clamp(
+        (seam - symbol.y + symbol.displayHeight / 2) / symbol.displayHeight,
+        0,
+        1,
+      );
+      const image = symbol.texture.getSourceImage();
+      symbol.setVisible(exposed > 0).setCrop(0, 0, image.width, image.height * exposed);
+    }
+    this.fold.clear();
+    if (p > 0 && p < 1) {
+      const w = this.cardWidth;
+      // The curled edge and contact shadow travel with the pointer, over the existing art.
+      this.fold.fillStyle(0x241309, 0.22).fillRect(-w / 2, seam - 7, w, 14);
+      this.fold.fillStyle(0xd6c6a7, 1).fillRect(-w / 2, seam, w, 10);
+      this.fold.fillStyle(0xfff8e7, 1).fillRect(-w / 2, seam + 1, w, 4);
+    }
   }
 
   /** Sizes the card by its width (the height follows the art). */
