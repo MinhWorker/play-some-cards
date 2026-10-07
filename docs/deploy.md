@@ -60,7 +60,23 @@ Mỗi bản build web đặt tên file theo mã băm, và Vercel chỉ phục v�
 trang mở từ trước lần deploy web sẽ không tải được code của game (404) khi người chơi mở game.
 Web nhận ra điều này (`src/lib/newBuild.ts`: tải lại `index.html` và so file JS chính) khi tải
 code game thất bại hoặc khi người chơi quay lại tab, rồi hiện hộp "Đã có phiên bản mới" với nút
-"Tải lại". Ở chế độ dev hộp này không bao giờ hiện.
+"Tải lại". Bấm nút chuyển sang màn "Đang cập nhật…": web đọc commit và protocol của bản
+mới từ thẻ `psc-build` trong `index.html`, kiểm tra `/api/health` mỗi 3 giây và chỉ tải lại
+khi backend trả về đúng commit, đúng protocol và database không báo `down`. Vì các lần merge
+có thể dùng chung số phiên bản và protocol, hai trường đó không thay thế việc so commit.
+Request lỗi hoặc quá 10 giây vẫn giữ màn chờ và tự thử lại; nếu có bản web mới hơn trong lúc
+chờ, mục tiêu cập nhật chuyển sang bản đó. Nếu backend deploy thất bại, màn chờ giữ nguyên
+tới khi deploy được khắc phục hoặc có bản web khác thay thế.
+Màn chờ phủ toàn màn hình, có hoạt ảnh bài và xúc xắc trên nền trời cùng các câu đùa luân
+phiên. Thanh "Nạp năng lượng" chỉ là tiến độ giả cho vui, tăng chậm tới tối đa 95%, không
+phải phần trăm deploy và không kéo dài thời gian chờ khi backend đã sẵn sàng. Thiết bị bật
+chế độ giảm chuyển động sẽ không chạy hoạt ảnh.
+
+Trang production vừa mở hoặc tự refresh cũng chặn thao tác tới khi backend khớp commit,
+tránh tạo phòng trên tiến trình cũ rồi mất phòng khi backend khởi động lại. Phòng có sẵn vẫn
+nằm trong bộ nhớ backend và không được giữ qua lần khởi động lại. Dev và bản xem trước PR
+không chờ commit (bản xem trước dùng backend production); kiểm tra protocol vẫn áp dụng.
+Ở chế độ dev hộp bản mới không tự hiện vì file JS chính luôn là `/src/main.tsx`.
 
 Migration database chạy khi server khởi động, trong lúc bản web trước có thể vẫn đang chạy: hãy
 làm chúng chạy được với bản trước (thêm cột trước, xoá cột cũ ở một PR sau).

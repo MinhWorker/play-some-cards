@@ -13,6 +13,7 @@ import {
   WarmupOverlay,
 } from '@/components/hud';
 import { DevConsoleLoader } from '@/components/hud/DevConsoleLoader';
+import { UpdateLoading } from '@/components/hud/NewVersionDialog';
 import { gameMusic } from '@/games';
 import { useAccount } from '@/hooks/useAccount';
 import { useBoardMoves } from '@/hooks/useBoardMoves';
@@ -21,7 +22,9 @@ import { useConnected } from '@/hooks/useConnected';
 import { useGameEndSound } from '@/hooks/useGameEndSound';
 import { useNewBuild } from '@/hooks/useNewBuild';
 import { useRoom } from '@/hooks/useRoom';
+import { useServerReady } from '@/hooks/useServerReady';
 import { useVersionGuard } from '@/hooks/useVersionGuard';
+import { currentBuild } from '@/lib/deployment';
 import { request } from '@/lib/socket';
 import { appMusic, installButtonSounds, setMusicScene } from '@/lib/sound';
 import { GameRooms } from '@/pages/GameRooms/GameRooms';
@@ -40,6 +43,7 @@ export function App() {
   const connected = useConnected();
   const version = useVersionGuard();
   const newBuild = useNewBuild();
+  const serverReady = useServerReady(currentBuild, !newBuild);
   const [notice, setNotice] = useState('');
   const [browsing, browse] = useBrowsingGame();
   /** The game's own settings screen is open: for a new room, or for the room we are in. */
@@ -155,13 +159,15 @@ export function App() {
     <>
       <DevConsoleLoader room={session ? snapshot : null} />
       <PhaserStage stage={stage} onReady={revealCurtain} />
-      <main className="ui">
+      <main className="ui" inert={!serverReady || !!newBuild}>
         {version === 'newer' ? (
           <Banner>Đã có phiên bản mới, đang tải lại…</Banner>
         ) : version === 'older' ? (
           <Banner>Server đang cập nhật, chờ chút nhé…</Banner>
         ) : null}
-        <WarmupOverlay shown={version === 'ok' && !connected && account.status !== 'guest'} />
+        <WarmupOverlay
+          shown={serverReady && version === 'ok' && !connected && account.status !== 'guest'}
+        />
         {account.status === 'guest' ? (
           <Login onSignIn={signIn} />
         ) : account.status === 'loading' ? null : session && editing ? (
@@ -196,8 +202,8 @@ export function App() {
         )}
         {notice && <Toast>{notice}</Toast>}
         <SoundControl />
-        {newBuild && version !== 'newer' && <NewVersionDialog />}
       </main>
+      {newBuild ? <NewVersionDialog target={newBuild} /> : !serverReady ? <UpdateLoading /> : null}
       <CloudCurtain />
       <VersionTag />
     </>
