@@ -15,6 +15,7 @@ import {
   type State,
 } from '../game/model.js';
 import { COLORS, horsePoint } from './board.js';
+import { victoryBadge } from './victoryBadge.js';
 
 type Ctx = ViewContext<State, Options>;
 interface Piece {
@@ -435,17 +436,33 @@ export class CoCaNguaView extends GameView<State, Options> {
         const fireworks = this.add.graphics().setDepth(8);
         const rank = this.ctx.state.rankings.indexOf(seat) + 1;
         const player = this.ctx.players[seat];
-        const banner = this.label(
-          `${player?.id === this.ctx.me?.id ? 'Bạn' : (player?.name ?? '')} · Hạng ${rank}`,
-          { size: 36, color: COLORS[this.ctx.state.colors[seat] ?? 0]?.text },
-        )
-          .setStroke('#092b30', 5)
-          .setDepth(9);
+        const color = COLORS[this.ctx.state.colors[seat] ?? 0];
+        const badge = victoryBadge(this, color?.ink ?? 0xe7bd64).setAlpha(0);
+        const heading = this.label(rank === 1 ? 'CHIẾN THẮNG!' : 'VỀ ĐÍCH!', {
+          size: 22,
+          color: '#fff0b5',
+        })
+          .setPosition(61, -34)
+          .setFontSize(22)
+          .setStroke('#001a1e', 1);
+        const name = this.label(player?.id === this.ctx.me?.id ? 'Bạn' : (player?.name ?? ''), {
+          size: 34,
+          color: color?.text ?? '#ffffff',
+        })
+          .setPosition(61, -3)
+          .setFontSize(34)
+          .setStroke('#001a1e', 2);
+        this.fitText(name, name.text, 278, 22);
+        const placement = this.label(`HẠNG ${rank}`, { size: 26, color: '#553410' })
+          .setPosition(61, 35)
+          .setFontSize(26)
+          .setStroke('#fff1bf', 0);
+        badge.add([heading, name, placement]);
         const keys = team.map((_, horse) => `${seat}:${horse}`);
         for (const key of keys) this.moving.add(key);
         fx.defer(() => {
           fireworks.destroy();
-          banner.destroy();
+          badge.destroy();
           for (const key of keys) this.moving.delete(key);
           team.forEach((piece, horse) => {
             piece.image.setAngle(0);
@@ -463,8 +480,13 @@ export class CoCaNguaView extends GameView<State, Options> {
         await fx.frame((dt) => {
           elapsed += dt;
           const { left, top, side } = this.layout;
-          banner.setPosition(left + side / 2, top + side * 0.12);
-          this.fitText(banner, banner.text, side * 0.86, 24);
+          const scale = side / 640;
+          const entrance = Math.min(1, elapsed / 350);
+          const settle = 1 + Math.sin(entrance * Math.PI) * 0.08;
+          badge
+            .setPosition(left + side / 2, top + side * 0.15 - (1 - entrance) * 20 * scale)
+            .setScale(scale * settle)
+            .setAlpha(entrance);
           team.forEach((piece, horse) => {
             const at = this.pointXY(seat, horse);
             const bounce = Math.abs(Math.sin(elapsed / 160 + horse * 0.8)) * side * 0.065;
