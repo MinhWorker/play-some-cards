@@ -34,7 +34,7 @@ src/
                       hiệu ứng mây chuyển cảnh, thông báo, nhãn phiên bản, hộp báo
                       phiên bản mới, công cụ dev.
                       Import từ '@/components/hud'
-    ui/               Khối xây dựng nhỏ (Button)
+    ui/               Khối xây dựng nhỏ (Button, AvatarPicture: avatar chồng khung)
   hooks/              React hook: đăng nhập, kết nối phòng, âm thanh, trạng thái URL
   lib/                TypeScript thuần (không React): socket, đăng nhập, âm thanh, URL tài nguyên,
                       nhận ra bản web mới (newBuild.ts), giữ màn hình sáng (wakeLock.ts)
@@ -53,7 +53,7 @@ Import ra ngoài thư mục hiện tại dùng `@/`, nghĩa là `src/`: `import 
 | Mình muốn đổi… | Xem ở |
 | --- | --- |
 | Bố cục hoặc chữ của một màn hình | `src/pages/<Page>/` |
-| Huy hiệu hồ sơ, nút loa, mây chuyển cảnh, thông báo | `src/components/hud/` |
+| Huy hiệu hồ sơ, bảng hồ sơ (chọn avatar, khung), nút loa, mây chuyển cảnh, thông báo | `src/components/hud/` |
 | Màu, font, kiểu nút và bảng | `src/styles/` |
 | Bàn chơi trông ra sao hay phản ứng khi bấm | `games/<id>/src/scenes/` (ở gốc repo) |
 | Bản đồ đảo hoặc bầu trời | `src/phaser/scenes/HubScene.ts`, `SkyScene.ts` |

@@ -381,8 +381,8 @@ export class MyView extends GameView<State, Options> {
   Ngoài khung vẫn còn màn hình (`this.bleed`): nền trải tới đó, còn thứ phải thấy thì đặt trong
   khung. Vị trí chạm lấy `pointer.worldX`, `pointer.worldY` (không dùng `pointer.x`, là điểm ảnh
   của canvas).
-- `this.avatar(player)` cho ảnh đại diện của người chơi (máy có ảnh robot), dùng với
-  `this.add.image(x, y, this.avatar(player))`.
+- `this.avatar(player)` cho ảnh đại diện của người chơi, đã ghép sẵn khung người đó chọn (máy có ảnh
+  robot), dùng với `this.add.image(x, y, this.avatar(player))`.
 - `this.sprite('card')` hiện `assets/card.webp`; `this.texture('card')` cho `setTexture`;
   `this.sfx('deal')` phát `assets/deal.wav` theo âm lượng hiệu ứng của người chơi và trả về
   một promise hoàn thành khi âm thanh bắt đầu. Dùng `await this.sfx('deal')` để đồng bộ hoạt ảnh

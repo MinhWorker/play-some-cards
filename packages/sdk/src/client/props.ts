@@ -9,6 +9,8 @@ export interface Seat {
   bot?: boolean;
   /** The account's picture (see `GameScene.avatar`). */
   avatar?: string;
+  /** The ring drawn around `avatar`. */
+  frame?: string;
   /** Left the room during this game (games that go on without them keep the seat). */
   left?: boolean;
 }

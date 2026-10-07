@@ -26,6 +26,10 @@ Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `
 - **Ảnh của Long** (`assets/shared/images/Long-look-at-u.jpg` và avatar làm từ nó,
   `apps/web/public/shared/images/avatar-long.webp`), là ảnh người thật: không được dùng lại bên
   ngoài game này.
+- **Avatar con vật** (`apps/web/public/shared/images/avatar-<con vật>.webp`, làm bằng
+  `scripts/avatars.mjs`): hình con vật là [Fluent Emoji](https://github.com/microsoft/fluentui-emoji)
+  bản 3D của Microsoft, theo giấy phép MIT (Copyright (c) Microsoft Corporation), đặt trên nền trời
+  của dự án.
 
 Khi đóng góp hình hoặc âm thanh, bạn đồng ý chia sẻ chúng theo cùng giấy phép. Tài nguyên miễn phí
 lấy từ nơi khác vẫn theo điều kiện của nơi đó; ghi nguồn khi tiện. Đừng dùng tài nguyên trả phí hay

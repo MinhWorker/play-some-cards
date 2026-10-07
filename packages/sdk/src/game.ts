@@ -17,7 +17,7 @@ export interface GameResult {
  */
 export interface RoomContext<Options = unknown> {
   /** Seated players in seat order (seat = index). */
-  players: { id: PlayerId; name: string; bot: boolean; avatar?: string }[];
+  players: { id: PlayerId; name: string; bot: boolean; avatar?: string; frame?: string }[];
   hostId: PlayerId | null;
   /** Wins per seat and draws over every game in the room. */
   score: { wins: number[]; draws: number };

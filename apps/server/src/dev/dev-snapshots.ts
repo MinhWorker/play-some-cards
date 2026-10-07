@@ -79,6 +79,7 @@ export class DevSnapshots {
           name: p.name,
           bot: Boolean(p.bot),
           avatar: p.avatar,
+          frame: p.frame,
         }));
         // Reject stale snapshots before replacing the live room.
         room.game.seats(stored);

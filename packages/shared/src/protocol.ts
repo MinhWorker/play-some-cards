@@ -36,8 +36,9 @@ export interface PlayerInfo {
   connected: boolean;
   /** A seat the computer plays (never a host, always connected). */
   bot?: boolean;
-  /** The account's picture (`Avatar`); bots have none. */
+  /** The account's picture (`Avatar`) and the ring around it (`Frame`); bots have none. */
   avatar?: string;
+  frame?: string;
   /** In `seats` only: left the room during this game. */
   left?: boolean;
 }
@@ -134,7 +135,7 @@ export interface ClientToServerEvents {
     req: Record<string, never>,
     ack: Ack<{ user: User; room: JoinedRoom | null }>,
   ) => void;
-  /** Change display name and avatar (also updates your name in your current room). */
+  /** Change display name, avatar and frame (also updates your name in your current room). */
   'profile:update': (req: ProfileUpdate, ack: Ack<{ user: User }>) => void;
   /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
   'lobby:watch': (req: { gameId: string }, ack: Ack<{ rooms: RoomSummary[] }>) => void;

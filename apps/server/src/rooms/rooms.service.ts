@@ -27,6 +27,7 @@ interface Member {
   /** Played by the computer (`game.bot`). Bots don't keep a room alive and are never host. */
   bot?: boolean;
   avatar?: string;
+  frame?: string;
 }
 
 /** The account entering a room (from the logged-in socket). */
@@ -34,6 +35,7 @@ export interface Account {
   id: string;
   name: string;
   avatar?: string;
+  frame?: string;
 }
 
 export interface Room {
@@ -176,10 +178,10 @@ export class RoomsService {
   }
 
   /** The account changed its name or picture: update it in its room (returned, if any). */
-  rename(userId: string, { name, avatar }: { name: string; avatar?: string }) {
+  rename(userId: string, { name, avatar, frame }: Omit<Account, 'id'>) {
     const room = this.roomOf(userId);
     const member = room && this.members(room).find((m) => m.id === userId);
-    if (member) Object.assign(member, { name, avatar });
+    if (member) Object.assign(member, { name, avatar, frame });
     return room;
   }
 
@@ -441,12 +443,13 @@ export class RoomsService {
   /** What `memberId` is allowed to see. Never send `room.state` directly. */
   snapshotFor(room: Room, memberId: PlayerId): RoomSnapshot {
     const isPlayer = room.players.some((p) => p.id === memberId);
-    const info = ({ id, name, connected, bot, avatar }: Member) => ({
+    const info = ({ id, name, connected, bot, avatar, frame }: Member) => ({
       id,
       name,
       connected,
       ...(bot && { bot }),
       ...(avatar && { avatar }),
+      ...(frame && { frame }),
     });
     return {
       code: room.code,
@@ -463,6 +466,7 @@ export class RoomsService {
               connected: p.bot || Boolean(room.players.find((m) => m.id === p.id)?.connected),
               ...(p.bot && { bot: true }),
               ...(p.avatar && { avatar: p.avatar }),
+              ...(p.frame && { frame: p.frame }),
               ...(p.left && { left: true }),
             })),
       status: room.status,
@@ -562,6 +566,7 @@ export class RoomsService {
         name: p.name,
         bot: Boolean(p.bot),
         avatar: p.avatar,
+        frame: p.frame,
       })),
       hostId: room.hostId,
       score: room.score,
@@ -590,7 +595,8 @@ export class RoomsService {
   }
 
   private newMember(account: Account): Member {
-    return { id: account.id, name: account.name, avatar: account.avatar, connected: true };
+    const { id, name, avatar, frame } = account;
+    return { id, name, avatar, frame, connected: true };
   }
 
   private newCode() {

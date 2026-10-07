@@ -36,6 +36,8 @@ export interface Seat {
   bot: boolean;
   /** The account's picture (`boy`, `girl`, …); missing for bots and in tests. */
   avatar?: string;
+  /** The ring around their picture (`gold`, `silver`, …); missing for bots and in tests. */
+  frame?: string;
   /** They left the room during this game (only games with an `onLeave` hook go on without them). */
   left: boolean;
 }
@@ -170,6 +172,7 @@ export interface SeatInfo {
   name: string;
   bot: boolean;
   avatar?: string;
+  frame?: string;
 }
 
 /** What the server keeps: the game's state plus bookkeeping the game doesn't see. */
@@ -317,7 +320,13 @@ export function gameRules<State, Options, View>(
     setup(players, rng, options, room) {
       const info: SeatInfo[] = players.map((id) => {
         const p = room?.players.find((m) => m.id === id);
-        return { id, name: p?.name ?? id, bot: p?.bot ?? false, avatar: p?.avatar };
+        return {
+          id,
+          name: p?.name ?? id,
+          bot: p?.bot ?? false,
+          avatar: p?.avatar,
+          frame: p?.frame,
+        };
       });
       const empty = { state: undefined as never, players: info, left: [], timer: null, timers: 0 };
       const { ctx, out } = context(empty, rng, options, room);

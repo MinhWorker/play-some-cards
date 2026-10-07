@@ -1,13 +1,14 @@
 import type { User } from '@psc/shared';
 import { useState } from 'react';
-import { avatarImage, type Profile } from '@/lib/profile';
+import { AvatarPicture } from '@/components/ui/AvatarPicture';
+import type { Profile } from '@/lib/profile';
 import { ProfileModal } from './ProfileModal';
 import './ProfileBadge.css';
 import { imageUrl } from '@/lib/assetUrl';
 
 /**
- * Avatar + nickname in the top-left corner; the pencil opens a modal to change both (saved on
- * the account) or log out.
+ * Avatar + nickname in the top-left corner; the pencil opens a modal to change them and the
+ * avatar's frame (saved on the account) or log out.
  */
 export function ProfileBadge({
   user: profile,
@@ -24,7 +25,7 @@ export function ProfileBadge({
   return (
     <>
       <div className="hud profile">
-        <img className="profile-avatar" src={avatarImage(profile.avatar)} alt="" />
+        <AvatarPicture className="profile-avatar" avatar={profile.avatar} frame={profile.frame} />
         <span className="profile-name">{profile.name}</span>
         <button
           type="button"

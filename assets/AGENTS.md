@@ -19,8 +19,15 @@
   - App-ready files are in `apps/web/public/shared/`.
 - **Storage**: originals are Git LFS, and a new binary type needs a pattern in `.gitattributes`.
   App-ready files are plain git.
-- `avatar-long.webp` is a real photo (`assets/shared/images/Long-look-at-u.jpg`) inside the
-  generated `avatar-frame`. It is not generated art.
+- **Avatars and frames are separate images** of the same 256×256 canvas: `avatar-<id>.webp` is a
+  round, frameless picture (a disc of radius 100), `frame-<id>.webp` the ring drawn over it. The ids
+  are `AVATARS` and `FRAMES` in `packages/shared/src/account.ts`; `avatar-bot` keeps its own frame.
+  - `avatar-boy`, `avatar-girl` and `avatar-long` had the gold frame cut off (`frame-gold` is the
+    generated ring). `avatar-long` is a real photo (`assets/shared/images/Long-look-at-u.jpg`), not
+    generated art.
+  - `node scripts/avatars.mjs frames` recolors `frame-gold` into the other frames;
+    `node scripts/avatars.mjs emoji <dir>` makes the animal avatars from Microsoft's Fluent Emoji 3D
+    (MIT, credited in LICENSE-ASSETS.md). Add a new id to both the script and `account.ts`.
 
 ## Codex images
 

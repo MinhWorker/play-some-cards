@@ -1,0 +1,13 @@
+.avatar-picture {
+  position: relative;
+  display: inline-block;
+  aspect-ratio: 1;
+}
+
+.avatar-picture img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}

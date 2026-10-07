@@ -30,6 +30,7 @@ export function Sandbox({ gameId, players: count }: Props) {
       name: seatName(i),
       connected: true,
       avatar: i % 2 ? 'girl' : 'boy',
+      frame: 'gold',
     }));
   }, [game, count]);
   const [options, setOptions] = useState<unknown>(() => game && defaultOptions(game));
@@ -53,7 +54,13 @@ export function Sandbox({ gameId, players: count }: Props) {
   // What the rules get to know about the room, like on the server.
   const room = useMemo(
     () => ({
-      players: seats.map((s) => ({ id: s.id, name: s.name, bot: false, avatar: s.avatar })),
+      players: seats.map(({ id, name, avatar, frame }) => ({
+        id,
+        name,
+        bot: false,
+        avatar,
+        frame,
+      })),
       hostId: me,
       score,
       options,

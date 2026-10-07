@@ -2,7 +2,7 @@
 import '@/styles/theme.css';
 import '@/styles/base.css';
 import { setClientHost } from '@psc/sdk/client';
-import { AVATARS } from '@psc/shared';
+import { AVATARS, FRAMES } from '@psc/shared';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@/App';
@@ -35,6 +35,7 @@ setClientHost({
   playUiSound: (kind) => playSfx(kind === 'click' ? 'button-click' : 'button-hover'),
   avatars: () =>
     Object.fromEntries([...AVATARS, 'bot'].map((name) => [name, imageUrl(`avatar-${name}`)])),
+  frames: () => Object.fromEntries(FRAMES.map((name) => [name, imageUrl(`frame-${name}`)])),
 });
 
 // `/?play=<id>` tries a game alone (dev and PR previews only), otherwise the real app.

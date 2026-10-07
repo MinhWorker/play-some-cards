@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { framedAvatar } from './avatar.js';
 import { followFrame } from './followFrame.js';
 import { currentFrame, FRAME, type Frame } from './frame.js';
 import { clientHost } from './host.js';
@@ -102,6 +103,9 @@ export abstract class GameScene extends Phaser.Scene {
     for (const [name, url] of Object.entries(clientHost().avatars())) {
       if (!this.textures.exists(`avatar/${name}`)) this.load.image(`avatar/${name}`, url);
     }
+    for (const [name, url] of Object.entries(clientHost().frames())) {
+      if (!this.textures.exists(`frame/${name}`)) this.load.image(`frame/${name}`, url);
+    }
     // `music*` files are the game's background music: the app streams one, no need to preload.
     for (const [name, url] of Object.entries(sounds)) {
       if (!name.startsWith('music')) void clientHost().prepareSound(url);
@@ -117,13 +121,18 @@ export abstract class GameScene extends Phaser.Scene {
   }
 
   /**
-   * Texture key of a player's picture (round, in a golden frame): their account's avatar, the
-   * robot for the computer. E.g. `this.add.image(x, y, this.avatar(player))`.
+   * Texture key of a player's picture in its frame: their account's avatar inside the frame they
+   * picked, the robot for the computer. E.g. `this.add.image(x, y, this.avatar(player))`.
    */
-  protected avatar(player: { avatar?: string; bot?: boolean }) {
-    const name = player.bot ? 'bot' : (player.avatar ?? 'boy');
-    const key = `avatar/${name}`;
-    return this.textures.exists(key) ? key : 'avatar/boy';
+  protected avatar(player: { avatar?: string; frame?: string; bot?: boolean }) {
+    if (player.bot && this.textures.exists('avatar/bot')) return 'avatar/bot';
+    const picture = this.textures.exists(`avatar/${player.avatar}`)
+      ? `avatar/${player.avatar}`
+      : 'avatar/boy';
+    const ring = this.textures.exists(`frame/${player.frame}`)
+      ? `frame/${player.frame}`
+      : 'frame/gold';
+    return framedAvatar(this.textures, picture, ring);
   }
 
   /** Adds `assets/<name>.webp|png` as an image; optional frame for an atlas. */
