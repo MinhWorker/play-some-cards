@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.21.0](https://github.com/MinhWorker/play-some-cards/compare/v0.20.0...v0.21.0) (2026-10-07)
+
+
+### Features
+
+* **bai-cao:** redesign multiplayer table and card squeezing ([#98](https://github.com/MinhWorker/play-some-cards/issues/98)) ([999f3ab](https://github.com/MinhWorker/play-some-cards/commit/999f3abe22fb216bedaf847a786ba0cd363ff1fe))
+* **battleship:** add ship dragging with placement previews ([#100](https://github.com/MinhWorker/play-some-cards/issues/100)) ([2ffb572](https://github.com/MinhWorker/play-some-cards/commit/2ffb57212a40b1a0e578f33c590eabc667d42ee4))
+* **checkers:** simplify captures and add flying kings ([#99](https://github.com/MinhWorker/play-some-cards/issues/99)) ([a8fb1e6](https://github.com/MinhWorker/play-some-cards/commit/a8fb1e64b9f6c9908ec38480563225845ac60f65))
+* **co-ca-ngua:** add ranked mode and touch-friendly game updates ([#95](https://github.com/MinhWorker/play-some-cards/issues/95)) ([c582653](https://github.com/MinhWorker/play-some-cards/commit/c5826533ffeb3fa8103cee5a1222043250443560))
+
+
+### Bug fixes
+
+* rebuild xiangqi lighting and distinguish chess bishops ([#96](https://github.com/MinhWorker/play-some-cards/issues/96)) ([d7e6291](https://github.com/MinhWorker/play-some-cards/commit/d7e6291e18ef84357d53c47fdd4383f7824e5306))
+* **web:** wait for backend deployment before updating ([#101](https://github.com/MinhWorker/play-some-cards/issues/101)) ([2d2bbc5](https://github.com/MinhWorker/play-some-cards/commit/2d2bbc5e346a9103b584b9c38247849de16112fd))
+
 ## [0.20.0](https://github.com/MinhWorker/play-some-cards/compare/v0.19.0...v0.20.0) (2026-10-07)
 
 
