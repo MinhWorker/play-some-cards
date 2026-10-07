@@ -173,14 +173,19 @@ export class XiangqiView extends GameView<View, Options> {
         this.label('', { size: 24, color: '#cab79a' }).setStroke('#211a14', 2),
       ),
     };
-    const opts = { image: 'button', size: 28 };
+    const slice: [number, number, number, number] = [80, 80, 80, 80];
+    const opts = { image: 'button-draw', size: 28, slice };
     this.buttons = {
       draw: this.button('Xin hoà', () => this.send('offer-draw'), opts),
       decline: this.button('Từ chối', () => this.send('decline-draw'), opts),
-      resign: this.button('Đầu hàng', () => this.resign(), opts),
+      resign: this.button('Đầu hàng', () => this.resign(), { ...opts, image: 'button-resign' }),
       result: this.button('Kết quả', () => this.showPanel(false), opts),
       effects: this.button('Hiệu ứng: Bật', () => this.toggleEffects(), { size: 24 }),
     };
+    for (const button of [this.buttons.draw, this.buttons.decline, this.buttons.result]) {
+      button.label.setColor('#5c2d12').setStroke('#efe2c4', 1);
+    }
+    this.buttons.resign.label.setColor('#f6e8cd').setStroke('#451510', 2);
     this.buttons.effects.label.setColor('#cab79a').setStroke('#211a14', 2);
     const close = this.button(
       'Xem bàn cờ',
@@ -190,6 +195,7 @@ export class XiangqiView extends GameView<View, Options> {
       },
       opts,
     );
+    close.label.setColor('#5c2d12').setStroke('#efe2c4', 1);
     this.panel = new ResultPanel(this, close, DEPTH.panel);
     this.makeDustTexture();
   }
