@@ -1,5 +1,5 @@
 /**
- * The game's logic, on the server (8 × 8 English draughts). A
+ * The game's logic, on the server (simplified 8 × 8 draughts). A
  * player's event runs its hook, which gets the whole room in `ctx` and returns the next state;
  * everyone's screen then gets it (scenes/CheckersView.ts).
  *
@@ -59,10 +59,7 @@ export class CheckersGame extends Game<State, Options, View> {
     if (side !== state.turn) reject('Chưa tới lượt bạn');
     const moves = legalMoves(state.board, side, rules);
     const chosen = moves.find((m) => sameMove(m, payload));
-    if (!chosen) {
-      if (!moves[0]?.captures.length) return reject('Nước đi không đúng luật');
-      return reject('Bắt buộc phải ăn quân');
-    }
+    if (!chosen) return reject('Nước đi không đúng luật');
     const from = state.board[chosen.path[0] ?? 0] ?? '.';
     const { board, taken, crowned } = play(state.board, chosen, rules);
     const turn = other(side);

@@ -1,5 +1,5 @@
 /**
- * How pieces move, for standard 8 × 8 English draughts: pure functions on a board, shared by
+ * How pieces move, for simplified 8 × 8 draughts: pure functions on a board, shared by
  * the game, the computer player and the screen (which shows where a picked piece may go).
  */
 import type { Move, Rules, Side } from './model.js';
@@ -60,16 +60,29 @@ function capturesFrom(cells: string[], from: number, rules: Rules, out: Move[]) 
     let more = false;
     for (const [dr, dc] of DIAGONALS) {
       if (!king && dr !== forward(side, rules)) continue;
-      const r = row + 2 * dr;
-      const c = col + 2 * dc;
+      let r = row + dr;
+      let c = col + dc;
+      // A flying king reaches the first occupied square along this diagonal.
+      while (king && inside(r, c) && empty(r * size + c)) {
+        r += dr;
+        c += dc;
+      }
       if (!inside(r, c)) continue;
-      const over = (row + dr) * size + col + dc;
-      const land = r * size + c;
-      if (!enemy(over, taken) || !empty(land)) continue;
-      more = true;
-      const crowned = !king && r === crownRow(side, rules);
-      if (crowned) out.push({ path: [...path, land], captures: [...taken, over] });
-      else follow(land, king, [...path, land], [...taken, over]);
+      const over = r * size + c;
+      if (!enemy(over, taken)) continue;
+      r += dr;
+      c += dc;
+      // Men land immediately behind the enemy; kings may choose any clear square beyond it.
+      while (inside(r, c) && empty(r * size + c)) {
+        const land = r * size + c;
+        more = true;
+        const crowned = !king && r === crownRow(side, rules);
+        if (crowned) out.push({ path: [...path, land], captures: [...taken, over] });
+        else follow(land, king, [...path, land], [...taken, over]);
+        if (!king) break;
+        r += dr;
+        c += dc;
+      }
     }
     if (!more && taken.length) out.push({ path, captures: taken });
   };
@@ -86,16 +99,21 @@ function stepsFrom(cells: string[], from: number, rules: Rules, out: Move[]) {
   const col = colOf(size, from);
   for (const [dr, dc] of DIAGONALS) {
     if (!king && dr !== forward(side, rules)) continue;
-    const r = row + dr;
-    const c = col + dc;
-    if (r < 0 || r >= size || c < 0 || c >= size) continue;
-    const to = r * size + c;
-    if (cells[to] === '.') out.push({ path: [from, to], captures: [] });
+    let r = row + dr;
+    let c = col + dc;
+    while (r >= 0 && r < size && c >= 0 && c < size) {
+      const to = r * size + c;
+      if (cells[to] !== '.') break;
+      out.push({ path: [from, to], captures: [] });
+      if (!king) break;
+      r += dr;
+      c += dc;
+    }
   }
 }
 
 /**
- * Every legal move of `side`: captures when there are any, otherwise plain moves.
+ * Every legal move of `side`: captures and plain moves are both optional choices.
  */
 export function legalMoves(board: string, side: Side, rules: Rules): Move[] {
   const cells = [...board];
@@ -104,21 +122,19 @@ export function legalMoves(board: string, side: Side, rules: Rules): Move[] {
     if (cells[sq] !== '.' && sideOf(cells[sq] ?? '.') === side)
       capturesFrom(cells, sq, rules, captures);
   }
-  if (captures.length) {
-    // The same path and the same pieces taken is the same move (a king can reach it twice).
-    const seen = new Set<string>();
-    return captures.filter((m) => {
-      const key = `${m.path.join(',')}|${[...m.captures].sort((a, b) => a - b).join(',')}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
+  // The same path and the same pieces taken is the same move (a king can reach it twice).
+  const seen = new Set<string>();
+  const uniqueCaptures = captures.filter((m) => {
+    const key = `${m.path.join(',')}|${[...m.captures].sort((a, b) => a - b).join(',')}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   const steps: Move[] = [];
   for (let sq = 0; sq < cells.length; sq++) {
     if (cells[sq] !== '.' && sideOf(cells[sq] ?? '.') === side) stepsFrom(cells, sq, rules, steps);
   }
-  return steps;
+  return [...uniqueCaptures, ...steps];
 }
 
 /** The board after a move: the piece at the path's end, the taken pieces gone, a man crowned

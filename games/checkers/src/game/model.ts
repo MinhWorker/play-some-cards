@@ -12,7 +12,7 @@ import { z } from 'zod';
 
 export type Side = 'w' | 'b';
 
-/** The single standard board: 8 × 8 English draughts, Black moves first. */
+/** The single board: simplified 8 × 8 draughts, Black moves first. */
 export interface Rules {
   size: number;
   rows: number;

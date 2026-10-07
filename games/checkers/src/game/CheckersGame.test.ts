@@ -77,7 +77,7 @@ describe('checkers', () => {
     expect(game.error('a', 'move', { path: [sq(5, 0), sq(4, 1)] })).toBeNull();
   });
 
-  it('makes a capture compulsory', () => {
+  it('accepts either a quiet move or a capture when a capture is available', () => {
     const game = from(
       boardOf(
         '........',
@@ -90,13 +90,37 @@ describe('checkers', () => {
         '........',
       ),
     );
-    expect(game.error('a', 'move', { path: [sq(5, 6), sq(4, 7)] })).toBe('Bắt buộc phải ăn quân');
+    const quiet = from(game.state.board);
+    expect(quiet.error('a', 'move', { path: [sq(5, 6), sq(4, 7)] })).toBeNull();
+    quiet.send('a', 'move', { path: [sq(5, 6), sq(4, 7)] });
+    expect(quiet.state).toMatchObject({ turn: 'w', taken: { b: 0, w: 0 } });
+    expect(quiet.state.board[sq(4, 1)]).toBe('w');
+    expect(quiet.state.last).toMatchObject({ path: [sq(5, 6), sq(4, 7)], captures: [] });
+    expect(game.error('a', 'move', { path: [sq(5, 6), sq(3, 4)] })).toBe('Nước đi không đúng luật');
     moves(game, [
       [5, 0],
       [3, 2],
     ]);
     expect(game.state).toMatchObject({ taken: { b: 1, w: 0 }, quiet: 0 });
     expect(game.state.last).toMatchObject({ captures: [sq(4, 1)], taken: ['w'] });
+  });
+
+  it('accepts long king moves and rejects crossing friendly or multiple enemy pieces', () => {
+    const cells = Array(64).fill('.');
+    cells[sq(7, 0)] = 'B';
+    cells[sq(0, 1)] = 'w';
+    const game = from(cells.join(''));
+    game.send('a', 'move', { path: [sq(7, 0), sq(1, 6)] });
+    expect(game.state.board[sq(1, 6)]).toBe('B');
+    expect(game.state).toMatchObject({ turn: 'w', quiet: 1 });
+    for (const blockers of ['b.', 'ww']) {
+      cells[sq(4, 3)] = blockers[0];
+      cells[sq(3, 4)] = blockers[1];
+      const blocked = from(cells.join(''));
+      expect(blocked.error('a', 'move', { path: [sq(7, 0), sq(1, 6)] })).toBe(
+        'Nước đi không đúng luật',
+      );
+    }
   });
 
   it('crowns a man on the far row, and wins when the other side cannot move', () => {

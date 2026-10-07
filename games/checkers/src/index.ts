@@ -1,5 +1,5 @@
 /**
- * Cờ Đam (draughts) for two: standard 8 × 8 English draughts, against a friend
+ * Cờ Đam (draughts) for two: simplified 8 × 8 draughts, against a friend
  * or the computer.
  *
  * Server entry: the game's meta, its logic (a `Game`) and its room options. It loads on the

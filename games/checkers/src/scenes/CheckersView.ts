@@ -560,10 +560,9 @@ export class CheckersView extends GameView<View, Options> {
       }[reason];
       text = winner ? `${this.nameOf(ctx, winner)} thắng · ${how}` : `Hoà · ${how}`;
     } else {
-      const must = this.moves[0]?.captures.length ? ' · Phải ăn quân' : '';
       text =
         state.turn === mine
-          ? `Tới lượt bạn${must}`
+          ? 'Tới lượt bạn'
           : `Lượt ${SIDES[state.turn].name} · ${this.nameOf(ctx, state.turn)}`;
       if (state.drawOffer && mine && state.drawOffer !== mine) {
         text = `${this.nameOf(ctx, state.drawOffer)} xin hoà`;
