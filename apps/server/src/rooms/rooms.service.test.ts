@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { RoomsService } from './rooms.service.js';
 
 /** A logged-in account (id = lowercase name, for readable tests). */
@@ -91,6 +91,25 @@ describe('RoomsService', () => {
     }
     expect(room.status).toBe('finished');
     expect(room.result).toEqual({ winners: [host.id] });
+  });
+
+  it('tells its listeners when a game ends', () => {
+    const { service, room, host, guest } = setupRoom();
+    const finished = vi.fn();
+    service.onFinished(finished);
+    service.start(room.code, host.id);
+    for (const [id, x, y] of fiveInARow(host.id, guest.id)) {
+      service.move(room.code, id, place(x, y));
+    }
+    expect(finished).toHaveBeenCalledOnce();
+    expect(finished.mock.calls[0]?.[0]).toMatchObject({
+      gameId: 'tic-tac-toe',
+      seats: [
+        { id: host.id, name: 'Alice', bot: false, left: false },
+        { id: guest.id, name: 'Bob', bot: false, left: false },
+      ],
+      result: { winners: [host.id] },
+    });
   });
 
   it('rejects malformed moves', () => {

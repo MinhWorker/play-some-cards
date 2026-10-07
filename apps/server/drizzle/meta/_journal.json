@@ -15,6 +15,13 @@
       "when": 1791342793878,
       "tag": "0001_profile_frame",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791344995332,
+      "tag": "0002_match_history",
+      "breakpoints": true
     }
   ]
 }

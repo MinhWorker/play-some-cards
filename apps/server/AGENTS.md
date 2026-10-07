@@ -5,6 +5,7 @@ src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = 
                 login + protocol check, plays bot moves and game timers
 src/dev/        gated console commands, snapshots, undo/RNG frames and per-room logs
 src/accounts/   Username/password (scrypt) and login tokens
+src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
 packages/shared/src/protocol.ts   Socket events + PROTOCOL_VERSION
@@ -32,8 +33,17 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 - The socket connects with `auth: { token, protocol }`.
 - Being in a room belongs to the account. After every connect, the client sends `session:resume`
   to get back to its seat from any tab or device.
-- Accounts and tokens live in Postgres (Neon, `DATABASE_URL`). Without it they live in memory,
-  which is fine for local work.
+- Accounts, tokens and match history live in Postgres (Neon, `DATABASE_URL`). Without it they
+  live in memory, which is fine for local work.
+
+## Match history
+
+- `RoomsService` knows nothing about storage: `onFinished(listener)` hears each game that ends
+  with a result (a stopped game is not one). The gateway hands it to `MatchesService.record`.
+- A game is kept only when an account sat at it. Players are stored as they were when it began
+  (name, avatar, frame); bots have no `user_id`.
+- `history:recent` returns the caller's last `HISTORY_LIMIT` (20) games, newest first, each with
+  the caller's own `outcome`.
 
 ## Changing things
 

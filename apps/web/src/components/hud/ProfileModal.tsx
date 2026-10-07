@@ -4,6 +4,7 @@ import { AvatarPicture } from '@/components/ui/AvatarPicture';
 import { Button } from '@/components/ui/Button';
 import { imageUrl } from '@/lib/assetUrl';
 import { type Profile, randomSillyName } from '@/lib/profile';
+import { MatchHistory } from './MatchHistory';
 import './ProfileBadge.css';
 
 const AVATAR_LABELS: Record<Avatar, string> = {
@@ -43,11 +44,12 @@ const FRAME_LABELS: Record<Frame, string> = {
   rose: 'Hồng phấn',
 };
 
-type Tab = 'avatar' | 'frame';
+type Tab = 'avatar' | 'frame' | 'history';
 
 /**
  * The player's profile: a big preview with the nickname (the dice suggests a silly one) on the
- * left, and a grid of avatars or frames to pick from on the right. Opened from ProfileBadge.
+ * left; on the right, a grid of avatars or frames to pick from, or their recent games.
+ * Opened from ProfileBadge.
  */
 export function ProfileModal({
   profile,
@@ -138,29 +140,39 @@ export function ProfileModal({
             <TabButton tab="frame" current={tab} onPick={setTab}>
               Khung
             </TabButton>
+            <TabButton tab="history" current={tab} onPick={setTab}>
+              Lịch sử
+            </TabButton>
           </div>
-          <div className="profile-grid" role="tabpanel">
-            {tab === 'avatar'
-              ? AVATARS.map((id) => (
-                  <PickButton
-                    key={id}
-                    label={AVATAR_LABELS[id]}
-                    selected={avatar === id}
-                    onPick={() => setAvatar(id)}
-                  >
-                    <AvatarPicture avatar={id} frame={frame} />
-                  </PickButton>
-                ))
-              : FRAMES.map((id) => (
-                  <PickButton
-                    key={id}
-                    label={FRAME_LABELS[id]}
-                    selected={frame === id}
-                    onPick={() => setFrame(id)}
-                  >
-                    <AvatarPicture avatar={avatar} frame={id} />
-                  </PickButton>
-                ))}
+          <div
+            className={tab === 'history' ? 'profile-tray' : 'profile-tray profile-grid'}
+            role="tabpanel"
+          >
+            {tab === 'history' ? (
+              <MatchHistory />
+            ) : tab === 'avatar' ? (
+              AVATARS.map((id) => (
+                <PickButton
+                  key={id}
+                  label={AVATAR_LABELS[id]}
+                  selected={avatar === id}
+                  onPick={() => setAvatar(id)}
+                >
+                  <AvatarPicture avatar={id} frame={frame} />
+                </PickButton>
+              ))
+            ) : (
+              FRAMES.map((id) => (
+                <PickButton
+                  key={id}
+                  label={FRAME_LABELS[id]}
+                  selected={frame === id}
+                  onPick={() => setFrame(id)}
+                >
+                  <AvatarPicture avatar={avatar} frame={id} />
+                </PickButton>
+              ))
+            )}
           </div>
         </section>
       </form>
