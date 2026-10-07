@@ -15,7 +15,7 @@ const ready = (page, seat) =>
     );
   }, seat);
 const roll = async (page) => {
-  await clickCanvas(page, id, (s) => s.rollButton.container);
+  await clickCanvas(page, id, (s) => s.die);
   await page.waitForFunction(
     () => window.__phaser.scene.getScene('co-ca-ngua').ctx.state.dice !== null,
   );
@@ -35,6 +35,28 @@ export default async function run(t) {
   await clickCanvas(page, id, (s) => s.rulesButton.container);
   await page.waitForFunction(() => window.__phaser.scene.getScene('co-ca-ngua').rulesPanel.visible);
   await page.screenshot({ path: t.shot('01-rules-phone.png') });
+  for (let rule = 1; rule < 10; rule++) {
+    await clickCanvas(page, id, (s) => s.rulesNext.container);
+    await page.waitForFunction((rule) => {
+      const s = window.__phaser.scene.getScene('co-ca-ngua');
+      const { x, y, width, height } = s.rulesLayout;
+      return (
+        s.rulesPage === rule &&
+        s.rulesText.style.align === 'left' &&
+        s.rulesText.getBounds().bottom < y + height - 60 &&
+        s.rulesText.getBounds().right <= x + width - 130 &&
+        s.rulesPrevious.container.width >= 100 &&
+        s.rulesNext.container.height >= 100
+      );
+    }, rule);
+    if (rule === 7) await page.screenshot({ path: t.shot('01-home-order-phone.png') });
+    if (rule === 8) await page.screenshot({ path: t.shot('01-ranked-rules-phone.png') });
+  }
+  await clickCanvas(page, id, (s) => s.rulesNext.container);
+  if ((await page.evaluate(() => window.__phaser.scene.getScene('co-ca-ngua').rulesPage)) !== 9)
+    throw new Error('Rules navigation exceeded the last page');
+  await clickCanvas(page, id, (s) => s.rulesPrevious.container);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('co-ca-ngua').rulesPage === 8);
   await clickCanvas(page, id, (s) => s.rulesClose.container);
   await page.waitForFunction(
     () => !window.__phaser.scene.getScene('co-ca-ngua').rulesPanel.visible,
@@ -71,7 +93,7 @@ export default async function run(t) {
     window.__ludoDie = 6;
     window.__phaser.scene.getScene('co-ca-ngua').runtime.setSpeed(0.25);
   });
-  await clickCanvas(page, id, (s) => s.rollButton.container);
+  await clickCanvas(page, id, (s) => s.die);
   await page.waitForFunction(() => window.__phaser.scene.getScene('co-ca-ngua').rolling);
   await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
   await page.getByRole('button', { name: 'Khán giả', exact: true }).click();
@@ -82,7 +104,7 @@ export default async function run(t) {
       s.ctx.me === null &&
       s.runtime.inspect().motion === 0 &&
       s.ctx.state.horses.flat().every((h) => h.position === -1) &&
-      s.rollButton.container.alpha < 1
+      !s.die.input.enabled
     );
   });
   if (!clean) throw new Error('Restart or spectator mode kept old input or dice motion');
@@ -109,7 +131,7 @@ export default async function run(t) {
   await desktop.evaluate(() => {
     window.__ludoRuntime = window.__phaser.scene.getScene('co-ca-ngua').runtime;
   });
-  await clickCanvas(desktop, id, (s) => s.rollButton.container);
+  await clickCanvas(desktop, id, (s) => s.die);
   await desktop.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
   await desktop.waitForFunction(() => window.__phaser.scene.isActive('co-ca-ngua:setup'));
   const old = await desktop.evaluate(() => window.__ludoRuntime.inspect());

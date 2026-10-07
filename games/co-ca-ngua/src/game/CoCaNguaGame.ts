@@ -9,6 +9,7 @@ import {
 } from '@psc/sdk';
 import { z } from 'zod';
 import {
+  CELEBRATION_MS,
   legalMoves,
   type Options,
   preferredMove,
@@ -61,6 +62,7 @@ export class CoCaNguaGame extends Game<State, Options> {
       notice: '',
       moves: 0,
       winner: null,
+      rankings: [],
     };
   }
 
@@ -116,9 +118,18 @@ export class CoCaNguaGame extends Game<State, Options> {
       const kicked = horses[selected.capture.seat]?.[selected.capture.horse];
       if (kicked) kicked.position = -1;
     }
-    const winner = horses[state.turn]?.every((h) => h.finished) ? state.turn : null;
+    const completed = horses[state.turn]?.every((h) => h.finished) ?? false;
+    const rankings = completed ? [...state.rankings, state.turn] : state.rankings;
+    const remaining = ctx.players.filter((p) => !p.left && !rankings.includes(p.seat));
+    const over = completed && (ctx.options.mode === 'normal' || remaining.length <= 1);
+    if (over && ctx.options.mode === 'ranked') rankings.push(...remaining.map((p) => p.seat));
+    const winner = over ? (rankings[0] ?? null) : null;
     if (winner !== null) ctx.finish([ctx.players[winner]?.id ?? '']);
-    else ctx.setTimer(selected.path.length * STEP_MS + 450, 'advance');
+    else
+      ctx.setTimer(
+        selected.path.length * STEP_MS + 450 + (completed ? CELEBRATION_MS : 0),
+        'advance',
+      );
     return {
       ...state,
       horses,
@@ -133,15 +144,18 @@ export class CoCaNguaGame extends Game<State, Options> {
             : state.notice,
       moves: state.moves + 1,
       winner,
+      rankings,
     };
   }
 
   onAdvance(ctx: GameContext<State, Options>): State {
     const { state } = ctx;
     let turn = state.turn;
-    if (state.dice !== 6 || ctx.players[turn]?.left) {
+    const active = ctx.players.filter((p) => !p.left && !state.rankings.includes(p.seat));
+    if (!active.length || state.winner !== null) return state;
+    if (state.dice !== 6 || ctx.players[turn]?.left || state.rankings.includes(turn)) {
       do turn = (turn + 1) % ctx.players.length;
-      while (ctx.players[turn]?.left);
+      while (ctx.players[turn]?.left || state.rankings.includes(turn));
     }
     ctx.setTimer(TURN_MS, 'timeout');
     return { ...state, turn, phase: 'roll', dice: null };
@@ -154,27 +168,35 @@ export class CoCaNguaGame extends Game<State, Options> {
   }
 
   onLeave(ctx: LeaveContext<State, Options>): State {
-    const active = ctx.players.filter((p) => !p.left);
-    const horses = ctx.state.horses.map((team, seat) =>
-      seat === ctx.player.seat ? team.map(() => ({ position: -1, finished: false })) : team,
+    const { state } = ctx;
+    const ranked = ctx.options.mode === 'ranked';
+    const rankings = [...state.rankings];
+    const completed = rankings.includes(ctx.player.seat);
+    const horses = state.horses.map((team, seat) =>
+      seat === ctx.player.seat && !completed
+        ? team.map(() => ({ position: -1, finished: false }))
+        : team,
     );
-    const state = { ...ctx.state, horses };
+    const active = ctx.players.filter((p) => !p.left && (!ranked || !rankings.includes(p.seat)));
     if (active.length <= 1) {
-      ctx.finish(active.map((p) => p.id));
-      return {
-        ...state,
-        winner: active[0]?.seat ?? null,
-        notice: 'Đối thủ rời bàn',
-        lastMove: null,
-      };
+      if (ranked) rankings.push(...active.map((p) => p.seat));
+      const winner = ranked ? (rankings[0] ?? null) : (active[0]?.seat ?? null);
+      ctx.finish(winner === null ? [] : [ctx.players[winner]?.id ?? '']);
+      return { ...state, horses, rankings, winner, notice: 'Đối thủ rời bàn', lastMove: null };
     }
+    const next = { ...state, horses };
     return ctx.player.seat === state.turn
-      ? this.onAdvance({ ...ctx, state: { ...state, dice: null, lastMove: null } })
-      : state;
+      ? this.onAdvance({ ...ctx, state: { ...next, dice: null, lastMove: null } })
+      : next;
   }
 
   bot(ctx: BotContext<State, Options>) {
-    if (ctx.player.seat !== ctx.state.turn || ctx.player.left || ctx.state.phase === 'pause')
+    if (
+      ctx.player.seat !== ctx.state.turn ||
+      ctx.player.left ||
+      ctx.state.rankings.includes(ctx.player.seat) ||
+      ctx.state.phase === 'pause'
+    )
       return null;
     if (ctx.state.phase === 'roll') return { event: 'roll' };
     const selected = preferredMove(ctx.state);

@@ -4,7 +4,11 @@ export const TRACK_LENGTH = 52;
 export const TURN_MS = 30_000;
 export const ROLL_MS = 620;
 export const STEP_MS = 110;
-export const optionsSchema = z.object({ bots: z.number().int().min(0).max(3).default(0) });
+export const CELEBRATION_MS = 3000;
+export const optionsSchema = z.object({
+  bots: z.number().int().min(0).max(3).default(0),
+  mode: z.enum(['normal', 'ranked']).default('normal'),
+});
 export type Options = z.infer<typeof optionsSchema>;
 
 export interface Horse {
@@ -33,6 +37,8 @@ export interface State {
   notice: string;
   moves: number;
   winner: number | null;
+  /** Seats in finishing order; ranked matches assign the final remaining seat last. */
+  rankings: number[];
 }
 
 export const squareOf = (state: State, seat: number, position: number) =>
@@ -41,7 +47,7 @@ export const squareOf = (state: State, seat: number, position: number) =>
 /** A horse blocks every intermediate square; only an opponent at the destination is kicked. */
 export function legalMoves(state: State): Move[] {
   const dice = state.dice;
-  if (!dice || state.winner !== null) return [];
+  if (!dice || state.winner !== null || state.rankings.includes(state.turn)) return [];
   const seat = state.turn;
   const team = state.horses[seat] ?? [];
   const target = 6 - team.filter((horse) => horse.finished).length;
