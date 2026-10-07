@@ -77,8 +77,8 @@ export function UpdateLoading() {
 }
 
 /**
- * Shown when the site was updated while this page was open: the old page can't open games any
- * more, so its only way on is a reload (a room in progress takes the player back to their seat).
+ * The old page cannot open newly deployed game chunks. After confirmation, wait for the
+ * matching backend before reloading; existing in-memory rooms cannot survive its restart.
  */
 export function NewVersionDialog({ target }: { target: NewBuild }) {
   const reload = useRef<HTMLButtonElement>(null);
