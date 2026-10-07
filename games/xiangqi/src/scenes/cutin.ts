@@ -7,7 +7,6 @@
  */
 
 import { type FlowContext, type GameScene } from '@psc/sdk/client';
-import { PIECE_TINT } from './theme.js';
 
 const PAPER = 0xf2e8d0;
 const PAPER_EDGE = 0xcdb88e;
@@ -41,6 +40,7 @@ export interface CutInOptions {
   text: string;
   /** Image key of the piece giving check. */
   piece: string;
+  frame: string;
   /** The screen, and the HUD scale for the scroll. */
   width: number;
   height: number;
@@ -107,15 +107,14 @@ export function cutIn(scene: GameScene, fx: FlowContext, o: CutInOptions): Promi
   // The piece, on the left, with an ink shadow.
   const size = h * 0.66;
   const shadow = scene.add
-    .image(-w * 0.36 + 5 * k, 8 * k, o.piece)
+    .image(-w * 0.36 + 5 * k, 8 * k, o.piece, o.frame)
     .setDisplaySize(size, size)
     .setTint(INK)
     .setTintMode(1)
     .setAlpha(0);
   const piece = scene.add
-    .image(-w * 0.36, 0, o.piece)
+    .image(-w * 0.36, 0, o.piece, o.frame)
     .setDisplaySize(size, size)
-    .setTint(PIECE_TINT)
     .setAlpha(0);
 
   // The words, one per slam: each starts big above the paper and lands in place.

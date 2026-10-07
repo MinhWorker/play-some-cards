@@ -1,11 +1,11 @@
 /**
- * Look and words shared by the scenes. Piece images are renders (engraved characters and all):
- * assets/piece-<side>-<kind>.webp, the disc centered, DISC of the image wide.
+ * Look and words shared by the scenes. Piece images are renders with recessed colored glyphs:
+ * assets/pieces.webp + pieces.normal.webp, the disc centered, DISC of the frame wide.
  */
 import type { EndReason, Kind, Side } from '../game/model.js';
 
-/** The disc's width as a share of its image (the rest is room for its shadow and animations). */
-export const DISC = 0.625;
+/** The sharp disc's diameter (1.88) as a share of the orthographic canvas width (3.2). */
+export const DISC = 0.5875;
 
 /**
  * assets/board.webp (generated, sources/prompts.json): a 900 × 1000 design rectangle with
@@ -20,15 +20,14 @@ export const BOARD = {
   y0: 77,
   dx: 94,
   dy: 94,
-  lift: 0.048,
-  disc: 0.96,
+  lift: 0.1,
+  disc: 0.9,
 };
 
-/** Warm ivory instead of bright white; restored after hover and capture flashes. */
-export const PIECE_TINT = 0xe4d5bb;
-export const PIECE_HOVER = 0xf2e2c5;
+/** Hover slightly warms the ivory already baked into the material. */
+export const PIECE_HOVER = 0xfff4df;
 
-/** The image of a piece: assets/piece-<side>-<kind>.webp. */
+/** Frame names in the aligned pieces diffuse/normal atlas. */
 const ART: Record<Kind, string> = {
   k: 'general',
   a: 'advisor',

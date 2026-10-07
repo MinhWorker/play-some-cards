@@ -49,11 +49,13 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 
 - Bàn 8 × 8 ô có mặt phẳng chơi chiếm đúng 94% ảnh, viền walnut mỏng có đường khảm đồng;
   12 quân Staunton có cùng canvas và điểm neo, góc chụp cao gần nhìn thẳng từ trên xuống,
-  ánh sáng mềm từ trên trái. Tái tạo bằng
+  ánh sáng mềm từ trên trái. Tượng có cổ hai tầng, đầu mũ nhọn và rãnh chéo sâu,
+  phân biệt rõ với đầu tròn của Tốt ở góc nhìn cao. Tái tạo bằng
   `npm run blender -- chess pieces`. `npm run blender -- chess board` kết xuất bàn;
   `npm run blender -- chess piece-white-knight` sửa riêng Mã rồi ghép lại atlas. PNG trung gian
   nằm ở `.blender/chess/`; cặp `assets/pieces.webp`/`pieces.normal.webp` và `pieces.json`
-  chứa 12 khung cùng điểm neo. Normal map raw, lossless, đục (không alpha) và hướng đèn trên trái. Bàn và nút vẫn
+  chứa 12 khung cùng điểm neo. Bake riêng hai màu Tượng bằng
+  `npm run blender -- chess piece-white-bishop piece-black-bishop`. Normal map raw, lossless, đục (không alpha) và hướng đèn trên trái. Bàn và nút vẫn
   dùng bộ đèn cũ (`LEGACY_RIG`) để kết xuất lại khớp hình đã có.
   Có thể dùng Python 3.13 với `bpy==5.1.2` qua `PSC_BLENDER_PYTHON`; xem
   [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Toạ độ, chấm nước đi và màu đánh dấu do Phaser vẽ.
