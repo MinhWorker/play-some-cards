@@ -1,9 +1,11 @@
-/**
- * Browser entry: the screens players see, loaded only when someone opens the game.
- * Want a "Tạo phòng" screen (room options, playing the computer)? `npm run new -- setup co-ca-ngua`,
- * then add `setup` here.
- */
 import { defineClient } from '@psc/sdk/client';
+import { CoCaNguaBackground } from './scenes/CoCaNguaBackground.js';
 import { CoCaNguaView } from './scenes/CoCaNguaView.js';
+import { Setup } from './scenes/Setup.js';
 
-export default defineClient({ scene: CoCaNguaView });
+export default defineClient({
+  scene: CoCaNguaView,
+  setup: Setup,
+  background: CoCaNguaBackground,
+  showsPlayers: true,
+});
