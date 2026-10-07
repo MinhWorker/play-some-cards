@@ -5,8 +5,8 @@
  *   onCreate  texts, buttons, the drawing layers   onFire   a splash, a hit, a ship going down
  *   onLayout  place everything (and on resize)     onState  redraw the seas, status, buttons
  *
- * Setting up, the big sea is yours: tap a ship to pick it, tap it again to turn it, tap a cell
- * to move it there; "Xếp lại" shuffles the fleet, "Sẵn sàng" starts. In battle the big sea is
+ * Setting up, the big sea is yours: drag a ship with a destination preview, or tap to pick,
+ * turn and move it; "Xếp lại" shuffles the fleet, "Sẵn sàng" starts. In battle the big sea is
  * the other side's (tap a cell to fire on your turn) and yours is the small one on the left.
  *
  * Naval sprites and scoped shot presentations preserve the server's hidden information.
@@ -57,6 +57,16 @@ interface SeaBox {
   cell: number;
 }
 
+interface SeaPress {
+  pointer: number;
+  x: number;
+  y: number;
+  ship: number | null;
+  offset: number;
+  moved: boolean;
+  target: { row: number; col: number; ship: Ship | null; valid: boolean } | null;
+}
+
 export class BattleshipView extends GameView<View, Options> {
   private big!: Phaser.GameObjects.Graphics;
   private small!: Phaser.GameObjects.Graphics;
@@ -66,6 +76,8 @@ export class BattleshipView extends GameView<View, Options> {
   private bigMarks!: Phaser.GameObjects.Graphics;
   private smallMarks!: Phaser.GameObjects.Graphics;
   private effects!: Phaser.GameObjects.Graphics;
+  private ghost!: Phaser.GameObjects.Container;
+  private ghostMarks!: Phaser.GameObjects.Graphics;
   private labels!: Phaser.GameObjects.Text[];
   private zone!: Phaser.GameObjects.Zone;
   private status!: Phaser.GameObjects.Text;
@@ -82,6 +94,7 @@ export class BattleshipView extends GameView<View, Options> {
   private draft: Ship[] = [];
   /** Setting up: the picked ship. */
   private picked: number | null = null;
+  private press: SeaPress | null = null;
   private resignArmed = false;
   private resignTimer?: FlowHandle;
 
@@ -92,6 +105,7 @@ export class BattleshipView extends GameView<View, Options> {
     this.resignArmed = false;
     this.draft = [];
     this.picked = null;
+    this.press = null;
     this.big = this.add.graphics();
     this.small = this.add.graphics();
     this.panels = this.add.graphics().setDepth(-1);
@@ -100,6 +114,8 @@ export class BattleshipView extends GameView<View, Options> {
     this.bigMarks = this.add.graphics().setDepth(2);
     this.smallMarks = this.add.graphics().setDepth(2);
     this.effects = this.add.graphics().setDepth(5);
+    this.ghost = this.add.container(0, 0).setDepth(3);
+    this.ghostMarks = this.add.graphics().setDepth(4);
     this.labels = Array.from({ length: SIZE * 2 }, () =>
       this.label('', { size: 18 }).setColor('#dff1ff'),
     );
@@ -107,7 +123,20 @@ export class BattleshipView extends GameView<View, Options> {
       .zone(0, 0, 10, 10)
       .setOrigin(0)
       .setInteractive({ useHandCursor: true })
-      .on('pointerup', (p: Phaser.Input.Pointer) => this.tap(p.worldX, p.worldY));
+      .on('pointerdown', (p: Phaser.Input.Pointer) => this.beginPress(p));
+    this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.movePress(p));
+    this.input.on('pointerup', (p: Phaser.Input.Pointer) => this.endPress(p));
+    this.input.on('pointerupoutside', (p: Phaser.Input.Pointer) => this.endPress(p, true));
+    const cancel = () => {
+      this.cancelPress();
+      this.redraw(this.ctx);
+    };
+    this.input.on('gameout', cancel);
+    this.game.events.on('blur', cancel);
+    this.events.once('shutdown', () => {
+      this.press = null;
+      this.game.events.off('blur', cancel);
+    });
     this.status = this.label('', { size: 30 });
     this.fleetLines = FLEET.map(() => this.label('', { size: 20 }).setOrigin(0.5, 0));
     this.names = [0, 1].map(() => this.label('', { size: 26 }).setOrigin(0, 0));
@@ -115,7 +144,7 @@ export class BattleshipView extends GameView<View, Options> {
     const opts = { image: 'button', size: 24 };
     this.buttons = {
       shuffle: this.button('Xếp lại', () => this.shuffle(), opts),
-      ready: this.button('Sẵn sàng', () => this.send('ready'), opts),
+      ready: this.button('Sẵn sàng', () => this.ready(), opts),
       resign: this.button('Đầu hàng', () => this.resign(), opts),
     };
   }
@@ -126,6 +155,7 @@ export class BattleshipView extends GameView<View, Options> {
    * column on its left; the status, the other fleet and the buttons on its right.
    */
   protected onLayout(ctx: Ctx) {
+    this.cancelPress();
     const { width, height, top, hud } = ctx.screen;
     const margin = 16;
     // The measured room/sandbox bar can be shorter than the shared corner controls.
@@ -184,6 +214,7 @@ export class BattleshipView extends GameView<View, Options> {
 
   /** A new game: the fleet on this screen comes from the server again. */
   protected onStart() {
+    this.cancelPress();
     this.resignTimer?.cancel();
     this.resignTimer = undefined;
     this.resignArmed = false;
@@ -330,6 +361,7 @@ export class BattleshipView extends GameView<View, Options> {
       if (!this.draft.length || this.picked === null)
         this.draft = theirs.map((s) => ({ cells: [...s.cells] }));
     } else {
+      this.cancelPress();
       this.draft = [];
       this.picked = null;
     }
@@ -365,6 +397,7 @@ export class BattleshipView extends GameView<View, Options> {
         ? { ...ctx.state.waters[big], ships: this.draft }
         : ctx.state.waters[big];
     this.drawSea(this.big, this.bigFleet, this.bigMarks, this.bigSea, bigWaters, ctx, big);
+    this.drawGhost();
     this.showStatus(ctx);
     this.showFleet(ctx);
     this.showPlayers(ctx);
@@ -441,6 +474,8 @@ export class BattleshipView extends GameView<View, Options> {
       const sunk = ship.cells.every((c) => shot.has(c));
       const sprite = this.shipImage(ship, box);
       if (sunk) sprite.setTint(0x657a83).setAlpha(0.6);
+      if (this.press?.moved && this.press.ship === i && seat === this.mySeat(ctx))
+        sprite.setAlpha(0.25);
       fleet.add(sprite);
       const picked = this.picked === i && seat === this.mySeat(ctx) && this.draft.length > 0;
       if (picked) {
@@ -604,7 +639,126 @@ export class BattleshipView extends GameView<View, Options> {
     });
   }
 
-  // ── Taps ────────────────────────────────────────────────────────────────────────────────
+  // ── Placement input ─────────────────────────────────────────────────────────────────────
+
+  /** A press is still a tap until it moves far enough to start dragging a ship. */
+  private beginPress(pointer: Phaser.Input.Pointer) {
+    if (this.press || (!pointer.wasTouch && !pointer.leftButtonDown())) return;
+    const at = this.cellAt(pointer.worldX, pointer.worldY);
+    const mine = this.mySeat(this.ctx);
+    if (at === null || mine === null || this.ctx.result || this.ctx.state.end) return;
+    const arranging = this.ctx.state.phase === 'setup' && !this.ctx.state.ready[mine];
+    const i = arranging ? this.draft.findIndex((s) => s.cells.includes(at)) : -1;
+    this.press = {
+      pointer: pointer.id,
+      x: pointer.worldX,
+      y: pointer.worldY,
+      ship: i < 0 ? null : i,
+      offset: i < 0 ? 0 : (this.draft[i]?.cells.indexOf(at) ?? 0),
+      moved: false,
+      target: null,
+    };
+  }
+
+  /** Snap the ghost to the grid, preserving the cell the player grabbed. */
+  private movePress(pointer: Phaser.Input.Pointer) {
+    const press = this.press;
+    if (!press || pointer.id !== press.pointer || press.ship === null) return;
+    pointer.updateWorldPoint(this.cameras.main);
+    if (!press.moved) {
+      const distance = Math.hypot(pointer.worldX - press.x, pointer.worldY - press.y);
+      if (distance < Math.max(6, this.bigSea.cell * 0.12)) return;
+      press.moved = true;
+      this.picked = press.ship;
+      this.runtime.cancelLane('placement');
+      this.effects.clear();
+      this.redraw(this.ctx);
+    }
+    const at = this.cellAt(pointer.worldX, pointer.worldY);
+    const ship = this.draft[press.ship];
+    if (at === null || !ship) {
+      press.target = null;
+    } else {
+      const vertical = isVertical(ship);
+      const row = rowOf(at) - (vertical ? press.offset : 0);
+      const col = colOf(at) - (vertical ? 0 : press.offset);
+      const target = shipAt(row, col, ship.cells.length, vertical);
+      const others = this.draft.filter((_, i) => i !== press.ship);
+      press.target = {
+        row,
+        col,
+        ship: target,
+        valid: target !== null && fits(target, others, this.ctx.options.spacing),
+      };
+    }
+    this.drawGhost();
+  }
+
+  /** Commit only a valid drop; a drag never also selects, rotates or fires. */
+  private endPress(pointer: Phaser.Input.Pointer, outside = false) {
+    const press = this.press;
+    if (!press || pointer.id !== press.pointer) return;
+    if (outside || pointer.wasCanceled) {
+      this.cancelPress();
+      this.redraw(this.ctx);
+      return;
+    }
+    this.movePress(pointer);
+    pointer.updateWorldPoint(this.cameras.main);
+    this.cancelPress();
+    if (press.moved) {
+      const target = press.target;
+      const original = press.ship === null ? undefined : this.draft[press.ship];
+      if (target?.valid && target.ship && original && press.ship !== null) {
+        if (target.ship.cells.some((cell, i) => cell !== original.cells[i]))
+          this.place(press.ship, target.ship);
+      }
+      this.redraw(this.ctx);
+    } else {
+      this.tap(pointer.worldX, pointer.worldY);
+    }
+  }
+
+  private cancelPress() {
+    this.press = null;
+    this.ghost.removeAll(true);
+    this.ghostMarks.clear();
+  }
+
+  /** A translucent ship and green/red cells show whether the destination is allowed. */
+  private drawGhost() {
+    this.ghost.removeAll(true);
+    const marks = this.ghostMarks.clear();
+    const press = this.press;
+    if (!press?.moved || press.ship === null || !press.target) return;
+    const target = press.target;
+    const ship = this.draft[press.ship];
+    if (!ship) return;
+    const { x0, y0, cell } = this.bigSea;
+    const vertical = isVertical(ship);
+    const length = ship.cells.length;
+    const color = target.valid ? 0x80edb0 : COLORS.bad;
+    const image = this.image(
+      x0 + (target.col + (vertical ? 0.5 : length / 2)) * cell,
+      y0 + (target.row + (vertical ? length / 2 : 0.5)) * cell,
+      `ship-${length}`,
+    )
+      .setDisplaySize(length * cell - cell * 0.1, cell * 0.88)
+      .setRotation(vertical ? Math.PI / 2 : 0)
+      .setTint(color)
+      .setAlpha(0.55);
+    this.ghost.add(image);
+    marks.fillStyle(color, 0.18).lineStyle(Math.max(2, cell * 0.05), color, 0.9);
+    for (let i = 0; i < length; i++) {
+      const row = target.row + (vertical ? i : 0);
+      const col = target.col + (vertical ? 0 : i);
+      if (row < 0 || row >= SIZE || col < 0 || col >= SIZE) continue;
+      const x = x0 + col * cell + 2;
+      const y = y0 + row * cell + 2;
+      marks.fillRoundedRect(x, y, cell - 4, cell - 4, 4);
+      marks.strokeRoundedRect(x, y, cell - 4, cell - 4, 4);
+    }
+  }
 
   private cellAt(x: number, y: number) {
     const { x0, y0, cell } = this.bigSea;
@@ -685,9 +839,18 @@ export class BattleshipView extends GameView<View, Options> {
   }
 
   private shuffle() {
+    if (this.press?.moved) return;
+    this.cancelPress();
     this.picked = null;
     this.draft = [];
     this.send('shuffle');
+  }
+
+  private ready() {
+    if (this.press?.moved) return;
+    this.cancelPress();
+    this.redraw(this.ctx);
+    this.send('ready');
   }
 
   private resign() {

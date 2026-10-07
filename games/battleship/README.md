@@ -24,8 +24,11 @@ Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc m�
 **Xếp tàu** (không sát nhau hoặc được sát nhau), **Bắn trúng** (được bắn tiếp hoặc đổi lượt) và
 **Lượt bắn** (bạn bắn trước hoặc đối thủ bắn trước).
 
-Lúc xếp tàu, biển lớn là của bạn: chạm một tàu để chọn, chạm lần nữa để xoay, chạm một ô trống
-để dời tàu tới đó; "Xếp lại" xếp ngẫu nhiên cả hạm đội. Vào trận, biển lớn là của đối phương
+Lúc xếp tàu, biển lớn là của bạn: kéo thả tàu bằng chuột hoặc cảm ứng, với hình tàu mờ ở vị trí
+đích. Vị trí hợp lệ hiện màu xanh; vị trí chồng tàu, sát tàu khi phòng cấm hoặc vượt mép biển
+hiện màu đỏ. Thả ở vị trí không hợp lệ hoặc ngoài biển giữ tàu ở chỗ cũ. Có thể chạm một tàu
+để chọn, chạm lần nữa để xoay, chạm một ô trống để dời tàu tới đó; "Xếp lại" xếp ngẫu nhiên cả
+hạm đội. Vào trận, biển lớn là của đối phương
 (chạm một ô để bắn khi tới lượt), biển của bạn thu nhỏ ở cột trái; cột phải liệt kê các tàu đối
 phương, tàu đã chìm bị làm mờ.
 

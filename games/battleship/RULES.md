@@ -7,7 +7,10 @@ Tàu sân bay (5 ô), Thiết giáp hạm (4), hai Tuần dương hạm (3) và 
 
 Hạm đội được xếp ngẫu nhiên sẵn. Mỗi tàu nằm ngang hoặc dọc, không ra ngoài biển và không
 chồng lên nhau. Mặc định tàu phải cách nhau ít nhất một ô, kể cả chéo; phòng có thể cho phép
-tàu sát nhau. Chọn tàu để di chuyển hoặc xoay, hoặc chọn **Xếp lại**, rồi bấm **Sẵn sàng**.
+tàu sát nhau. Kéo thả tàu để di chuyển: hình tàu mờ ở vị trí đích hiện màu xanh nếu hợp lệ,
+màu đỏ nếu không hợp lệ. Khi kéo, ô đang giữ trên tàu đi theo chuột hoặc ngón tay; thả ở vị
+trí không hợp lệ hoặc ngoài biển giữ nguyên tàu. Cũng có thể chạm tàu để chọn, chạm lần nữa
+để xoay, chạm ô trống để di chuyển, hoặc chọn **Xếp lại**, rồi bấm **Sẵn sàng**.
 Khi cả hai sẵn sàng, trận bắt đầu. Chủ phòng chọn bên bắn trước.
 
 ## Bắn và kết thúc
