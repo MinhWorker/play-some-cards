@@ -34,16 +34,12 @@ export default async function run(t) {
     const result = await page.evaluate(async () => (await window.__sandboxCancelled.done).status);
     if (result !== 'cancelled') throw new Error(`${id}: new round kept the old flow`);
   };
-  for (const id of ['co-ca-ngua']) {
-    await open(id);
-    await clickCanvas(page, id, (s) => s.buttons[0].container);
-    await page.waitForFunction((key) => {
-      const s = window.__phaser.scene.getScene(key);
-      return s.ctx.state.total > 0;
-    }, id);
-    await restart(id);
-    await page.screenshot({ path: t.shot(`${id}-new-round.png`) });
-  }
+  await open('co-ca-ngua');
+  await page.evaluate(() => window.__phaser.scene.getScene('co-ca-ngua').runtime.setSpeed(0.25));
+  await clickCanvas(page, 'co-ca-ngua', (s) => s.rollButton.container);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('co-ca-ngua').rolling);
+  await restart('co-ca-ngua');
+  await page.screenshot({ path: t.shot('co-ca-ngua-new-round.png') });
 
   await open('tic-tac-toe');
   await clickCanvas(page, 'tic-tac-toe', (s) => s.tiles.get('0,0'));

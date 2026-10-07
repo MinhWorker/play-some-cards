@@ -3,6 +3,7 @@
  */
 import { definePlugin } from '@psc/sdk';
 import { CoCaNguaGame } from './game/CoCaNguaGame.js';
+import { optionsSchema } from './game/model.js';
 
 export default definePlugin({
   meta: {
@@ -10,10 +11,10 @@ export default definePlugin({
     name: 'Cờ Cá Ngựa',
     minPlayers: 2,
     maxPlayers: 4,
-    // Locked in production until you change this to 'ready'.
-    status: 'wip',
+    status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
   },
   game: new CoCaNguaGame(),
+  room: { options: optionsSchema, bots: (options) => options.bots },
 });
