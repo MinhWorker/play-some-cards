@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "frame" text DEFAULT 'gold' NOT NULL;

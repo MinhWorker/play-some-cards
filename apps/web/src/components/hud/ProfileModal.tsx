@@ -1,19 +1,53 @@
-import type { Avatar } from '@psc/shared';
+import { AVATARS, type Avatar, FRAMES, type Frame } from '@psc/shared';
 import { useEffect, useState } from 'react';
+import { AvatarPicture } from '@/components/ui/AvatarPicture';
 import { Button } from '@/components/ui/Button';
-import { avatarImage, type Profile, randomSillyName } from '@/lib/profile';
-import './ProfileBadge.css';
 import { imageUrl } from '@/lib/assetUrl';
+import { type Profile, randomSillyName } from '@/lib/profile';
+import './ProfileBadge.css';
 
-const AVATARS: { id: Avatar; label: string }[] = [
-  { id: 'boy', label: 'Bạn nam' },
-  { id: 'girl', label: 'Bạn nữ' },
-  { id: 'long', label: 'Long' },
-];
+const AVATAR_LABELS: Record<Avatar, string> = {
+  boy: 'Bạn nam',
+  girl: 'Bạn nữ',
+  long: 'Long',
+  cat: 'Mèo',
+  dog: 'Cún',
+  fox: 'Cáo',
+  panda: 'Gấu trúc',
+  frog: 'Ếch',
+  tiger: 'Hổ',
+  rabbit: 'Thỏ',
+  bear: 'Gấu',
+  koala: 'Gấu túi',
+  monkey: 'Khỉ',
+  pig: 'Heo',
+  hamster: 'Chuột hamster',
+  lion: 'Sư tử',
+  unicorn: 'Kỳ lân',
+  penguin: 'Cánh cụt',
+  owl: 'Cú',
+  chick: 'Gà con',
+  octopus: 'Bạch tuộc',
+  alien: 'Người ngoài hành tinh',
+  ghost: 'Ma nhỏ',
+};
+
+const FRAME_LABELS: Record<Frame, string> = {
+  gold: 'Vàng',
+  silver: 'Bạc',
+  bronze: 'Đồng',
+  jade: 'Ngọc bích',
+  sapphire: 'Lam ngọc',
+  ruby: 'Hồng ngọc',
+  amethyst: 'Thạch anh tím',
+  rose: 'Hồng phấn',
+};
+
+type Tab = 'avatar' | 'frame';
 
 /**
- * Pick an avatar and a nickname (the dice suggests a silly one), or log out.
- * Opened from ProfileBadge.
+ * The player's profile: a big preview with the nickname (the dice suggests a silly one) on the
+ * left, and a grid of avatars or frames to pick from on the right. Opened from ProfileBadge.
  */
 export function ProfileModal({
   profile,
@@ -31,6 +65,8 @@ export function ProfileModal({
 }) {
   const [name, setName] = useState(profile.name);
   const [avatar, setAvatar] = useState(profile.avatar);
+  const [frame, setFrame] = useState(profile.frame);
+  const [tab, setTab] = useState<Tab>('avatar');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -43,62 +79,140 @@ export function ProfileModal({
   return (
     <div className="modal-backdrop">
       <form
-        className="hud panel modal"
+        className="hud panel modal profile-modal"
         aria-label="Hồ sơ"
         onSubmit={(e) => {
           e.preventDefault();
           if (!name.trim()) return;
           setBusy(true);
           setError('');
-          onSave({ name: name.trim(), avatar }).catch((err: Error) => {
+          onSave({ name: name.trim(), avatar, frame }).catch((err: Error) => {
             setError(err.message);
             setBusy(false);
           });
         }}
       >
-        <h2>Hồ sơ</h2>
-        <p className="muted">Tài khoản: {username}</p>
-        <div className="avatar-pick">
-          {AVATARS.map((a) => (
+        <section className="profile-card">
+          <div className="profile-preview">
+            <div className="profile-medal">
+              <div className="profile-medal-glow" />
+              <AvatarPicture avatar={avatar} frame={frame} />
+            </div>
+          </div>
+          <div className="name-row">
+            <input
+              aria-label="Tên"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={20}
+            />
             <button
-              key={a.id}
               type="button"
-              aria-label={a.label}
-              aria-pressed={avatar === a.id}
-              className={avatar === a.id ? 'selected' : ''}
-              onClick={() => setAvatar(a.id)}
+              className="icon-btn dice"
+              aria-label="Tên ngẫu nhiên"
+              onClick={() => setName((n) => randomSillyName(n))}
             >
-              <img src={avatarImage(a.id)} alt="" />
+              <img src={imageUrl('icon-dice')} alt="" />
             </button>
-          ))}
-        </div>
-        <div className="name-row">
-          <input
-            aria-label="Tên"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={20}
-          />
-          <button
-            type="button"
-            className="icon-btn dice"
-            aria-label="Tên ngẫu nhiên"
-            onClick={() => setName((n) => randomSillyName(n))}
-          >
-            <img src={imageUrl('icon-dice')} alt="" />
-          </button>
-        </div>
-        {error && <p className="error">{error}</p>}
-        <Button type="submit" disabled={!name.trim() || busy}>
-          Xong
-        </Button>
-        <Button variant="secondary" onClick={onClose}>
-          Đóng
-        </Button>
-        <Button variant="secondary" size="small" className="sign-out" onClick={onSignOut}>
-          Đăng xuất
-        </Button>
+          </div>
+          <p className="muted profile-username">@{username}</p>
+          {error && <p className="error">{error}</p>}
+          <div className="profile-actions">
+            <Button type="submit" disabled={!name.trim() || busy}>
+              Xong
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              Đóng
+            </Button>
+          </div>
+          <Button variant="secondary" size="small" className="sign-out" onClick={onSignOut}>
+            Đăng xuất
+          </Button>
+        </section>
+
+        <section className="profile-shelf">
+          <div className="profile-tabs" role="tablist">
+            <TabButton tab="avatar" current={tab} onPick={setTab}>
+              Ảnh đại diện
+            </TabButton>
+            <TabButton tab="frame" current={tab} onPick={setTab}>
+              Khung
+            </TabButton>
+          </div>
+          <div className="profile-grid" role="tabpanel">
+            {tab === 'avatar'
+              ? AVATARS.map((id) => (
+                  <PickButton
+                    key={id}
+                    label={AVATAR_LABELS[id]}
+                    selected={avatar === id}
+                    onPick={() => setAvatar(id)}
+                  >
+                    <AvatarPicture avatar={id} frame={frame} />
+                  </PickButton>
+                ))
+              : FRAMES.map((id) => (
+                  <PickButton
+                    key={id}
+                    label={FRAME_LABELS[id]}
+                    selected={frame === id}
+                    onPick={() => setFrame(id)}
+                  >
+                    <AvatarPicture avatar={avatar} frame={id} />
+                  </PickButton>
+                ))}
+          </div>
+        </section>
       </form>
     </div>
+  );
+}
+
+function TabButton({
+  tab,
+  current,
+  onPick,
+  children,
+}: {
+  tab: Tab;
+  current: Tab;
+  onPick: (tab: Tab) => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={tab === current}
+      className="profile-tab"
+      onClick={() => onPick(tab)}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PickButton({
+  label,
+  selected,
+  onPick,
+  children,
+}: {
+  label: string;
+  selected: boolean;
+  onPick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      className="pick"
+      aria-label={label}
+      aria-pressed={selected}
+      title={label}
+      onClick={onPick}
+    >
+      {children}
+    </button>
   );
 }

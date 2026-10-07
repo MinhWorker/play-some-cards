@@ -12,6 +12,8 @@ export const users = pgTable('users', {
   /** Display name shown in games; not unique, can change any time. */
   name: text('name').notNull(),
   avatar: text('avatar').notNull(),
+  /** The ring drawn around the avatar (`Frame` in @psc/shared). */
+  frame: text('frame').notNull().default('gold'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

@@ -22,8 +22,13 @@ export interface ClientHost {
   prepareSound(url: string): Promise<'ready' | 'unavailable'>;
   /** `duck` dips music during a jingle; resolves at playback start or when audio is unavailable. */
   playSound(url: string, options?: SoundOptions): SoundHandle;
-  /** Player pictures by avatar name (`boy`, `girl`, …, and `bot` for the computer). */
+  /**
+   * Player pictures by avatar name (`boy`, `girl`, …, and `bot` for the computer). They are
+   * round and frameless, except `bot` which comes in its own frame.
+   */
   avatars(): Record<string, string>;
+  /** Rings drawn around a picture, by frame name (`gold`, `silver`, …). */
+  frames(): Record<string, string>;
   /** The app's own button sounds, so buttons in games sound like the app's. */
   playUiSound(kind: 'click' | 'hover'): void;
 }

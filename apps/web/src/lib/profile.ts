@@ -1,10 +1,11 @@
-import type { Avatar } from '@psc/shared';
+import { AVATARS, type Avatar, DEFAULT_FRAME, type Frame } from '@psc/shared';
 import { imageUrl } from '@/lib/assetUrl';
 
-/** Display name + avatar (kept on the account, see `User` in @psc/shared). */
+/** Display name, avatar and its frame (kept on the account, see `User` in @psc/shared). */
 export interface Profile {
   name: string;
   avatar: Avatar;
+  frame: Frame;
 }
 
 /** Given to players who haven't picked a nickname yet (and by the dice in the profile modal). */
@@ -56,9 +57,11 @@ export function startingProfile(): Profile {
   try {
     name = localStorage.getItem('psc:name')?.trim().slice(0, 20) ?? '';
     const saved = localStorage.getItem('psc:avatar');
-    if (saved === 'boy' || saved === 'girl' || saved === 'long') avatar = saved;
+    if ((AVATARS as readonly (string | null)[]).includes(saved)) avatar = saved as Avatar;
   } catch {}
-  return { name: name || randomSillyName(), avatar };
+  return { name: name || randomSillyName(), avatar, frame: DEFAULT_FRAME };
 }
 
-export const avatarImage = (avatar: Avatar) => imageUrl(`avatar-${avatar}`);
+/** A round, frameless picture; `frameImage` is the ring drawn over it (see `AvatarPicture`). */
+export const avatarImage = (avatar: string) => imageUrl(`avatar-${avatar}`);
+export const frameImage = (frame: string) => imageUrl(`frame-${frame}`);

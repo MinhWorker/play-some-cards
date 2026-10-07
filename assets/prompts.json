@@ -117,7 +117,7 @@
       "maxSize": 640,
       "prompt": "A single straight vertical ivy vine rope: a thin twisted green-brown vine with small fresh green ivy leaves along its whole length, perfectly vertical, long and thin, running from the very top to the very bottom of the image."
     },
-    "avatar-frame": {
+    "frame-gold": {
       "transparent": true,
       "maxSize": 256,
       "prompt": "An empty round glossy golden medallion frame ring with four small diamond ornaments at top, bottom, left and right; the inside of the ring is completely empty and fully transparent."

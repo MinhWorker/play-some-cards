@@ -6,8 +6,50 @@ import { z } from 'zod';
  * Server and web both validate with these schemas so the error messages match.
  */
 
-export const AVATARS = ['boy', 'girl', 'long'] as const;
+/**
+ * Round, frameless pictures (`avatar-<id>.webp`); the app draws the player's frame over them.
+ * Append new ones at the end: the order is the order of the picker.
+ */
+export const AVATARS = [
+  'boy',
+  'girl',
+  'long',
+  'cat',
+  'dog',
+  'fox',
+  'panda',
+  'frog',
+  'tiger',
+  'rabbit',
+  'bear',
+  'koala',
+  'monkey',
+  'pig',
+  'hamster',
+  'lion',
+  'unicorn',
+  'penguin',
+  'owl',
+  'chick',
+  'octopus',
+  'alien',
+  'ghost',
+] as const;
 export type Avatar = (typeof AVATARS)[number];
+
+/** Rings drawn around any avatar (`frame-<id>.webp`), picked separately from it. */
+export const FRAMES = [
+  'gold',
+  'silver',
+  'bronze',
+  'jade',
+  'sapphire',
+  'ruby',
+  'amethyst',
+  'rose',
+] as const;
+export type Frame = (typeof FRAMES)[number];
+export const DEFAULT_FRAME: Frame = 'gold';
 
 /** Letters and digits only. Stored lowercase, so "Minh" and "minh" are the same account. */
 export const usernameSchema = z
@@ -30,12 +72,14 @@ export const displayNameSchema = z
   .max(20, 'Tên tối đa 20 ký tự');
 
 export const avatarSchema = z.enum(AVATARS);
+export const frameSchema = z.enum(FRAMES);
 
 export const registerSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
   name: displayNameSchema,
   avatar: avatarSchema,
+  frame: frameSchema.default(DEFAULT_FRAME),
 });
 
 export const loginSchema = z.object({
@@ -43,7 +87,12 @@ export const loginSchema = z.object({
   password: z.string(),
 });
 
-export const profileSchema = z.object({ name: displayNameSchema, avatar: avatarSchema });
+/** `frame` is optional so an older page that doesn't know frames keeps the player's frame. */
+export const profileSchema = z.object({
+  name: displayNameSchema,
+  avatar: avatarSchema,
+  frame: frameSchema.optional(),
+});
 
 export type RegisterRequest = z.input<typeof registerSchema>;
 export type LoginRequest = z.input<typeof loginSchema>;
@@ -55,6 +104,7 @@ export interface User {
   username: string;
   name: string;
   avatar: Avatar;
+  frame: Frame;
 }
 
 /** Reply of POST /api/auth/register and /api/auth/login. */

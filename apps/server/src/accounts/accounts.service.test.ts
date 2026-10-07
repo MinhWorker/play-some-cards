@@ -64,4 +64,22 @@ describe('AccountsService', () => {
       'Bạn cần nhập tên',
     );
   });
+
+  it('keeps the frame apart from the avatar', async () => {
+    const accounts = newService();
+    const { user } = await accounts.register(minh);
+    expect(user.frame).toBe('gold');
+    const framed = await accounts.updateProfile(user.id, {
+      name: 'Minh',
+      avatar: 'fox',
+      frame: 'jade',
+    });
+    expect(framed).toMatchObject({ avatar: 'fox', frame: 'jade' });
+    // A page that doesn't know frames yet sends none: the frame stays.
+    const kept = await accounts.updateProfile(user.id, { name: 'Minh', avatar: 'cat' });
+    expect(kept).toMatchObject({ avatar: 'cat', frame: 'jade' });
+    await expect(
+      accounts.updateProfile(user.id, { name: 'Minh', avatar: 'cat', frame: 'plastic' }),
+    ).rejects.toThrow();
+  });
 });

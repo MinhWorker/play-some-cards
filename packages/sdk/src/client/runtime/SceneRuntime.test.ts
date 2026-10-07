@@ -40,6 +40,7 @@ function harness(voice?: SoundHandle) {
     prepareSound: async () => 'ready',
     playSound: () => voice ?? skippedSound('muted'),
     avatars: () => ({}),
+    frames: () => ({}),
     playUiSound() {},
   };
   const scene = {

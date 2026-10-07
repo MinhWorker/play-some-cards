@@ -39,8 +39,9 @@ export interface ViewSeat {
   seat: number;
   bot: boolean;
   connected: boolean;
-  /** Their picture: draw it with `this.avatar(seat)`. */
+  /** Their picture and its frame: draw both with `this.avatar(seat)`. */
   avatar?: string;
+  frame?: string;
   /** Left the room during this game. */
   left: boolean;
 }
@@ -252,6 +253,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       bot: Boolean(p.bot),
       connected: p.connected,
       avatar: p.avatar,
+      frame: p.frame,
       left: Boolean(p.left),
     }));
     const { width, height } = this.view;

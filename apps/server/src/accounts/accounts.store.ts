@@ -1,4 +1,4 @@
-import { AVATARS, type Avatar, type User } from '@psc/shared';
+import { AVATARS, type Avatar, DEFAULT_FRAME, FRAMES, type Frame, type User } from '@psc/shared';
 import { eq } from 'drizzle-orm';
 import type { Db } from '../db/db.module.js';
 import { sessions, users } from '../db/schema.js';
@@ -8,6 +8,14 @@ export interface NewUser {
   passwordHash: string;
   name: string;
   avatar: Avatar;
+  frame: Frame;
+}
+
+/** What a player may change about themselves; a missing `frame` keeps the current one. */
+export interface ProfileChange {
+  name: string;
+  avatar: Avatar;
+  frame?: Frame;
 }
 
 /** Where accounts are kept: Postgres in real use, memory when there is no DATABASE_URL. */
@@ -18,7 +26,7 @@ export interface AccountsStore {
   createSession(tokenHash: string, userId: string): Promise<void>;
   userBySession(tokenHash: string): Promise<User | null>;
   deleteSession(tokenHash: string): Promise<void>;
-  updateProfile(userId: string, profile: { name: string; avatar: Avatar }): Promise<User | null>;
+  updateProfile(userId: string, profile: ProfileChange): Promise<User | null>;
 }
 
 type UserRow = typeof users.$inferSelect;
@@ -28,6 +36,7 @@ const toUser = (row: UserRow): User => ({
   username: row.username,
   name: row.name,
   avatar: (AVATARS as readonly string[]).includes(row.avatar) ? (row.avatar as Avatar) : 'boy',
+  frame: (FRAMES as readonly string[]).includes(row.frame) ? (row.frame as Frame) : DEFAULT_FRAME,
 });
 
 export class PgAccountsStore implements AccountsStore {
@@ -64,7 +73,7 @@ export class PgAccountsStore implements AccountsStore {
     await this.db.delete(sessions).where(eq(sessions.tokenHash, tokenHash));
   }
 
-  async updateProfile(userId: string, profile: { name: string; avatar: Avatar }) {
+  async updateProfile(userId: string, profile: ProfileChange) {
     const [row] = await this.db.update(users).set(profile).where(eq(users.id, userId)).returning();
     return row ? toUser(row) : null;
   }
@@ -101,10 +110,11 @@ export class MemoryAccountsStore implements AccountsStore {
     this.sessions.delete(tokenHash);
   }
 
-  async updateProfile(userId: string, profile: { name: string; avatar: Avatar }) {
+  async updateProfile(userId: string, profile: ProfileChange) {
     const found = this.users.get(userId);
     if (!found) return null;
-    Object.assign(found.user, profile);
+    const { frame, ...rest } = profile;
+    Object.assign(found.user, rest, frame && { frame });
     return { ...found.user };
   }
 }
