@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.20.0](https://github.com/MinhWorker/play-some-cards/compare/v0.19.0...v0.20.0) (2026-10-07)
+
+
+### Features
+
+* **co-ca-ngua:** release Vietnamese horse race with Blender artwork ([#94](https://github.com/MinhWorker/play-some-cards/issues/94)) ([1a63510](https://github.com/MinhWorker/play-some-cards/commit/1a635109439076d3152ed39dcc78fea10dd98ead))
+* **profile:** avatar grid with frames picked separately ([#91](https://github.com/MinhWorker/play-some-cards/issues/91)) ([d95c188](https://github.com/MinhWorker/play-some-cards/commit/d95c1883f6ffa4d436565f6819cd995035c564cd))
+* **profile:** match history with the last 20 games ([#93](https://github.com/MinhWorker/play-some-cards/issues/93)) ([043ace0](https://github.com/MinhWorker/play-some-cards/commit/043ace037eee57d32c8baa4f0fff706595213b50))
+
 ## [0.19.0](https://github.com/MinhWorker/play-some-cards/compare/v0.18.0...v0.19.0) (2026-10-06)
 
 
