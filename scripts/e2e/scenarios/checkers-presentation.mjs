@@ -1,6 +1,6 @@
 // A three-hop capture crowns the last piece, then the result waits for the animation.
 // Reopening the result, reconnecting and disabling effects keep the authoritative board.
-import { clickCanvas, cmd, DESKTOP, openRooms, PHONE, signUp } from '../lib.mjs';
+import { clickCanvas, cmd, DESKTOP, PHONE, signUp } from '../lib.mjs';
 
 export const games = ['checkers'];
 
@@ -30,15 +30,71 @@ async function position(page) {
   await page.waitForFunction(() => window.__phaser.scene.getScene('checkers').pieces.size === 4);
 }
 
+async function simplifiedRules(t, page) {
+  const cells = Array(64).fill('.');
+  cells[42] = 'b';
+  cells[46] = 'b';
+  cells[33] = 'w';
+  await cmd(
+    page,
+    `bot pause; state set board "${cells.join('')}"; state set turn "b"; state set last null`,
+  );
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('checkers');
+    return s.pieces.size === 3 && s.moves.some((m) => m.path[0] === 46);
+  });
+  const optional = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('checkers');
+    return s.moves.some((m) => m.captures.length) && !s.status.text.includes('Phải ăn quân');
+  });
+  if (!optional) throw new Error('The UI still requires a capture');
+  for (const sq of [46, 37]) await tapSquare(page, sq);
+  await page.waitForFunction(() => {
+    const state = window.__phaser.scene.getScene('checkers').ctx.state;
+    return state.board[37] === 'b' && state.board[33] === 'w' && !state.last.captures.length;
+  });
+  await idle(page);
+  await page.screenshot({ path: t.shot('optional-capture.png') });
+
+  cells.fill('.');
+  cells[56] = 'B';
+  cells[28] = 'w';
+  cells[1] = 'w';
+  await cmd(page, `state set board "${cells.join('')}"; state set turn "b"; state set last null`);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('checkers').pieces.has(56));
+  for (const sq of [56, 42]) await tapSquare(page, sq);
+  await page.waitForFunction(
+    () => window.__phaser.scene.getScene('checkers').ctx.state.board[42] === 'B',
+  );
+  await idle(page);
+  await cmd(page, `state set board "${cells.join('')}"; state set turn "b"; state set last null`);
+  await page.waitForFunction(() => window.__phaser.scene.getScene('checkers').pieces.has(56));
+  for (const sq of [56, 7]) await tapSquare(page, sq);
+  await page.waitForFunction(() => {
+    const state = window.__phaser.scene.getScene('checkers').ctx.state;
+    return state.board[7] === 'B' && state.board[28] === '.' && state.last.captures[0] === 28;
+  });
+  await idle(page);
+  const king = await page.evaluate(() => {
+    const s = window.__phaser.scene.getScene('checkers');
+    return (
+      s.pieces.size === 2 && s.pieces.get(7)?.image.texture.key === 'checkers/piece-black-king'
+    );
+  });
+  if (!king) throw new Error('Flying king presentation differs from the board');
+  await page.screenshot({ path: t.shot('flying-king.png') });
+  await cmd(page, 'state set taken {"w":0,"b":0}; state set plies 0; state set quiet 0');
+}
+
 export default async function run(t) {
   const page = await t.page(DESKTOP);
-  await signUp(t, page, 'Dam');
-  await openRooms(page, 'checkers');
+  await signUp({ ...t, url: `${t.url}/?game=checkers` }, page, 'Dam');
   await page.getByRole('button', { name: '+ Tạo phòng' }).click();
   await clickCanvas(page, 'checkers:setup', (s) => s.rows[0].chips[1].container);
   await clickCanvas(page, 'checkers:setup', (s) => s.submitButton.container);
   await page.getByRole('button', { name: 'Bắt đầu' }).click();
   await page.waitForFunction(() => window.__phaser.scene.getScene('checkers')?.pieces?.size === 24);
+  await simplifiedRules(t, page);
   await position(page);
   await page.evaluate(() => {
     const s = window.__phaser.scene.getScene('checkers');

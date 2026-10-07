@@ -1,6 +1,7 @@
 # Cờ Đam
 
-Cờ Đam cho hai người, chơi với bạn bè hoặc máy ở ba mức, dùng duy nhất bàn **8 × 8 theo luật Anh**.
+Cờ Đam cho hai người, chơi với bạn bè hoặc máy ở ba mức, dùng bàn **8 × 8 với luật đơn giản hóa**:
+không bắt buộc ăn quân, Vua đi nhiều ô trên cùng một đường chéo cả tiến lẫn lùi.
 Game ở trạng thái `ready`. Xem [luật chơi](RULES.md).
 
 ## Chơi
@@ -23,7 +24,7 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
 | Thành phần | File |
 | --- | --- |
 | Đăng ký game, tuỳ chọn phòng | `src/index.ts`, `src/game/model.ts` |
-| Luật đi quân, bắt buộc ăn và phong Vua | `src/game/rules.ts` |
+| Luật đi quân, ăn tùy chọn, Vua đi xa và phong Vua | `src/game/rules.ts` |
 | Máy chơi alpha-beta | `src/game/bot.ts` |
 | Lượt đi, xin hoà, đầu hàng | `src/game/CheckersGame.ts` |
 | Bàn, quân, thống kê, hiệu ứng và âm thanh | `src/scenes/CheckersView.ts` |
@@ -62,7 +63,7 @@ Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
 Chạy `npm run dev`, chơi thử http://localhost:5033/?play=checkers&players=2.
 Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
 `npm run shots -- --path '/?play=checkers&players=2' --audit`.
-Test gồm perft khai cuộc tới độ sâu 6 (36768), ăn liên tiếp, phong Vua, Vua đi lùi, hoà và máy chơi.
+Test gồm nước khai cuộc, ăn tùy chọn, ăn liên tiếp, phong Vua, Vua đi và ăn xa, hoà và máy chơi.
 Kịch bản trình duyệt ở `scripts/e2e/scenarios/checkers*.mjs`.
 
 Chuyển động, âm thanh và xác nhận đầu hàng dùng runtime SDK. Ván mới, kết nối lại, đổi người xem,

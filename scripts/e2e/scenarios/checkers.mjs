@@ -1,6 +1,6 @@
 // Cờ Đam against the computer on a phone: the one-form setup (8 × 8), a few moves by tapping a
 // ringed piece and then each square of its move, then "Đầu hàng" (tapped twice) ends the game.
-import { clickCanvas, openRooms, PHONE, signUp } from '../lib.mjs';
+import { clickCanvas, PHONE, signUp } from '../lib.mjs';
 
 export const games = ['checkers'];
 
@@ -13,8 +13,7 @@ const pointOf = (page, sq) =>
 
 export default async function run(t) {
   const page = await t.page(PHONE);
-  await signUp(t, page, 'Nam');
-  await openRooms(page, 'checkers');
+  await signUp({ ...t, url: `${t.url}/?game=checkers` }, page, 'Nam');
   await page.getByRole('button', { name: '+ Tạo phòng' }).click();
   await clickCanvas(page, 'checkers:setup', (s) => s.rows[0].chips[1].container);
   await clickCanvas(page, 'checkers:setup', (s) => s.rows[1].chips[0].container);

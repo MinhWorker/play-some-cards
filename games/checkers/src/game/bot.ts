@@ -15,7 +15,7 @@ const WIN = 100_000;
 const LEVELS: Record<BotLevel, { depth: number; noise: number }> = {
   easy: { depth: 2, noise: 60 },
   normal: { depth: 4, noise: 15 },
-  hard: { depth: 7, noise: 3 },
+  hard: { depth: 6, noise: 3 },
 };
 
 /** The board from `side`'s point of view. */
@@ -52,11 +52,17 @@ function search(
   alpha: number,
   beta: number,
 ): number {
-  const moves = legalMoves(board, side, rules);
+  let moves = legalMoves(board, side, rules);
   if (!moves.length) return -WIN - depth;
-  // Past the depth only captures go on (they are forced anyway).
-  if (depth <= 0 && (!moves[0]?.captures.length || depth < -6)) return evaluate(board, side, rules);
   let best = -Infinity;
+  // At the horizon, declining an optional capture is represented by the static score.
+  // Extend only captures, so quiet flying-king moves cannot keep the search going.
+  if (depth <= 0) {
+    best = evaluate(board, side, rules);
+    if (depth < -6 || best >= beta) return best;
+    alpha = Math.max(alpha, best);
+    moves = moves.filter((move) => move.captures.length > 0);
+  }
   for (const move of ordered(moves)) {
     const next = play(board, move, rules).board;
     const score = -search(next, other(side), rules, depth - 1, -beta, -alpha);
