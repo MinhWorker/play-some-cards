@@ -36,7 +36,7 @@ export default async function run(t) {
   };
   await open('co-ca-ngua');
   await page.evaluate(() => window.__phaser.scene.getScene('co-ca-ngua').runtime.setSpeed(0.25));
-  await clickCanvas(page, 'co-ca-ngua', (s) => s.rollButton.container);
+  await clickCanvas(page, 'co-ca-ngua', (s) => s.die);
   await page.waitForFunction(() => window.__phaser.scene.getScene('co-ca-ngua').rolling);
   await restart('co-ca-ngua');
   await page.screenshot({ path: t.shot('co-ca-ngua-new-round.png') });

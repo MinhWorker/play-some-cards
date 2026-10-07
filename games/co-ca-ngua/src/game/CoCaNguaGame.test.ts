@@ -1,7 +1,7 @@
 import { seededRng, testGame } from '@psc/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
-import { legalMoves, squareOf } from './model.js';
+import { legalMoves, optionsSchema, squareOf } from './model.js';
 
 const start = (players = ['a', 'b']) => testGame(plugin, players);
 const roll = (game: ReturnType<typeof start>, value: number) => game.command(`roll-dice ${value}`);
@@ -120,6 +120,84 @@ describe('co-ca-ngua', () => {
     expect(game.state.horses.flat().every((h) => h.position === -1 && !h.finished)).toBe(true);
   });
 
+  const ranked = (players = ['a', 'b', 'c', 'd']) =>
+    testGame(plugin, players, { options: { mode: 'ranked' } });
+  const complete = (game: ReturnType<typeof start>, seat: number) => {
+    for (const [horse, value] of [6, 5, 4, 3].entries()) {
+      game.state.turn = seat;
+      game.state.phase = 'roll';
+      game.command(`set-horse ${seat} ${horse} 51`);
+      roll(game, value).send(['a', 'b', 'c', 'd'][seat] ?? 'a', 'move', { horse });
+    }
+  };
+
+  it('defaults existing rooms to normal mode and validates the ranking option', () => {
+    expect(optionsSchema.parse({})).toEqual({ bots: 0, mode: 'normal' });
+    expect(optionsSchema.safeParse({ mode: 'other' }).success).toBe(false);
+  });
+
+  it('ranks finishers in order, continues their opponents, and assigns the last seat', () => {
+    const game = ranked();
+    complete(game, 2);
+    expect(game.state.rankings).toEqual([2]);
+    expect(game.result).toBeNull();
+    expect(game.state.winner).toBeNull();
+    expect(game.bot('c')).toBeNull();
+    game.fireTimer();
+    expect(game.state.turn).toBe(3);
+    roll(game, 2).fireTimer();
+    expect(game.state.turn).toBe(0);
+    expect(legalMoves(roll(game, 1).state)).toHaveLength(4);
+    game.send('a', 'move', { horse: 0 }).fireTimer();
+    expect(game.state.turn).toBe(1);
+    roll(game, 2).fireTimer();
+    expect(game.state.turn).toBe(3);
+    complete(game, 0);
+    expect(game.state.rankings).toEqual([2, 0]);
+    expect(game.result).toBeNull();
+    complete(game, 3);
+    expect(game.state.rankings).toEqual([2, 0, 3, 1]);
+    expect(game.state.winner).toBe(2);
+    expect(game.result).toEqual({ winners: ['c'] });
+    expect(game.timer).toBeNull();
+    game.newGame();
+    expect(game.state.rankings).toEqual([]);
+    expect(game.result).toBeNull();
+  });
+
+  it('ends a two-player ranked match once both places can be determined', () => {
+    const game = ranked(['a', 'b']);
+    complete(game, 1);
+    expect(game.state.rankings).toEqual([1, 0]);
+    expect(game.result).toEqual({ winners: ['b'] });
+  });
+
+  it('keeps a finisher’s rank and horses when they leave, without giving the survivor first place', () => {
+    const game = ranked(['a', 'b', 'c']);
+    complete(game, 0);
+    const parked = game.state.horses[0];
+    game.leave('a');
+    expect(game.result).toBeNull();
+    expect(game.state.horses[0]).toEqual(parked);
+    expect(game.state.rankings).toEqual([0]);
+    game.leave('b');
+    expect(game.state.rankings).toEqual([0, 2]);
+    expect(game.result).toEqual({ winners: ['a'] });
+    expect(game.state.horses[1]?.every((h) => h.position === -1)).toBe(true);
+  });
+
+  it('skips an unfinished leaver and ranks only the remaining players', () => {
+    const game = ranked();
+    game.leave('b');
+    complete(game, 0);
+    expect(game.result).toBeNull();
+    game.fireTimer();
+    expect(game.state.turn).toBe(2);
+    complete(game, 2);
+    expect(game.state.rankings).toEqual([0, 2, 3]);
+    expect(game.result).toEqual({ winners: ['a'] });
+  });
+
   it('uses the timeout for a roll or a legal move, and offers bots the same actions', () => {
     const game = start().command('set-horse 0 0 10');
     expect(game.bot('b')).toBeNull();
@@ -144,18 +222,22 @@ describe('co-ca-ngua', () => {
     expect(game.state.winner).toBe(1);
   });
 
-  it('can play a complete seeded match through bots and timers without an illegal or stuck turn', () => {
-    const game = start(['a', 'b', 'c', 'd']);
-    for (let events = 0; !game.result && events < 20_000; events++) {
-      const player = ['a', 'b', 'c', 'd'][game.state.turn] ?? 'a';
-      const action = game.bot(player);
-      if (action) game.send(player, action.event, action.payload as object);
-      else game.fireTimer();
-      for (const team of game.state.horses) {
-        const onBoard = team.filter((h) => h.position >= 0).map((h) => h.position);
-        expect(new Set(onBoard).size).toBe(onBoard.length);
+  it.each(['normal', 'ranked'] as const)(
+    'can play a complete seeded %s match through bots and timers',
+    (mode) => {
+      const game = testGame(plugin, ['a', 'b', 'c', 'd'], { options: { mode } });
+      for (let events = 0; !game.result && events < 20_000; events++) {
+        const player = ['a', 'b', 'c', 'd'][game.state.turn] ?? 'a';
+        const action = game.bot(player);
+        if (action) game.send(player, action.event, action.payload as object);
+        else game.fireTimer();
+        for (const team of game.state.horses) {
+          const onBoard = team.filter((h) => h.position >= 0).map((h) => h.position);
+          expect(new Set(onBoard).size).toBe(onBoard.length);
+        }
       }
-    }
-    expect(game.result?.winners).toHaveLength(1);
-  });
+      expect(game.result?.winners).toHaveLength(1);
+      if (mode === 'ranked') expect(new Set(game.state.rankings).size).toBe(4);
+    },
+  );
 });
