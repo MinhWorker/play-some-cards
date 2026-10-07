@@ -8,9 +8,16 @@
  * In dev the entry is /src/main.tsx in both, so it never fires.
  */
 
-type Listener = () => void;
+import { type DeploymentBuild, deploymentOf } from './deployment';
+
+export interface NewBuild {
+  entry: string;
+  build: DeploymentBuild | null;
+}
+
+type Listener = (build: NewBuild) => void;
 const listeners = new Set<Listener>();
-let found = false;
+let found: NewBuild | null = null;
 let checking: Promise<void> | null = null;
 let lastCheck = 0;
 /** Checks on coming back into view are spaced out by this much. */
@@ -26,7 +33,7 @@ const current = entryOf(document.documentElement.outerHTML);
 /** Calls `listener` once a newer build is found (right away if it already was). */
 export function onNewBuild(listener: Listener) {
   listeners.add(listener);
-  if (found) listener();
+  if (found) listener(found);
   return () => {
     listeners.delete(listener);
   };
@@ -34,14 +41,16 @@ export function onNewBuild(listener: Listener) {
 
 /** Looks for a newer build now (one check at a time); `listener`s hear about it. */
 export function checkForNewBuild() {
-  if (found || !current) return Promise.resolve();
-  checking ??= fetch('/', { cache: 'no-store' })
+  if (!current) return Promise.resolve();
+  checking ??= fetch('/', { cache: 'no-store', signal: AbortSignal.timeout(10_000) })
     .then((res) => (res.ok ? res.text() : ''))
     .then((html) => {
       const latest = entryOf(html);
-      if (!latest || latest === current) return;
-      found = true;
-      for (const listener of listeners) listener();
+      if (!latest || (latest === current && !found)) return;
+      const build = deploymentOf(html);
+      if (found?.entry === latest && JSON.stringify(found.build) === JSON.stringify(build)) return;
+      found = { entry: latest, build };
+      for (const listener of listeners) listener(found);
     })
     .catch(() => {})
     .finally(() => {

@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { PROTOCOL_VERSION } from '@psc/shared';
 import react from '@vitejs/plugin-react';
 import { defaultClientConditions, defineConfig } from 'vite';
 
@@ -23,11 +24,26 @@ function commit() {
   }
 }
 
+const deployment = {
+  commit: commit(),
+  protocol: PROTOCOL_VERSION,
+  waitForServer: process.env.VERCEL_ENV === 'production',
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'psc-build',
+      transformIndexHtml: () => [
+        { tag: 'meta', attrs: { name: 'psc-build', content: JSON.stringify(deployment) } },
+      ],
+    },
+  ],
   define: {
     __APP_VERSION__: JSON.stringify(version),
-    __APP_COMMIT__: JSON.stringify(commit()),
+    __APP_COMMIT__: JSON.stringify(deployment.commit),
+    __WAIT_FOR_SERVER__: JSON.stringify(deployment.waitForServer),
     // Work-in-progress games are locked on the production site only (not in dev or PR previews).
     __SHOW_WIP__: JSON.stringify(process.env.VERCEL_ENV !== 'production'),
     // The dev tools panel (lib/devTools.ts), also outside production only.
