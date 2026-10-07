@@ -44,11 +44,28 @@ hiệu ứng đang chờ không lật lại bài đã thay đổi.
 ## Hình và âm thanh
 
 Ba mức cược hiện bằng phỉnh xanh (5), đỏ (10), vàng (20), luôn có số để phân biệt. Nhà cái có
-dấu vàng “CÁI”; chủ phòng có vương miện. Bài úp dùng mặt sen đỏ. Kết quả ván con hiện tên bài
-và điểm được/mất cạnh từng bộ bài, đồng thời phỉnh bay từ người thua sang người thắng.
+dấu vàng “CÁI”; chủ phòng có vương miện. Bài úp dùng mặt lưới xanh của bộ bài tây thông thường,
+viền trắng. Kết quả ván con hiện tên bài và điểm được/mất cạnh từng bộ bài, đồng thời phỉnh bay từ người thua sang người thắng.
 
-Chạm hoặc kéo trên lá bài của mình để nặn; thao tác này chỉ tự xem, còn “Lật bài” mới công khai
-cả ba lá. Có âm thanh đặt cược, chia, nặn, lật bài, thắng/thua, Ba Tây và kết thúc trận. Ba giây
+Bàn có bố cục riêng cho 2–6 người trong khung ngang 960–1600 × 720: bạn ở dưới, tối đa ba ghế
+ở trên và hai ghế hai bên. Ghế trên trải theo chiều rộng; ghế hai bên và nút thao tác bám gần
+mép bàn. Ba lá của bạn rộng 116–128 đơn vị, bài đối thủ rộng 64–80 đơn vị tuỳ khung, tách nhau; nút “Lật bài” cao 88
+đơn vị nằm dưới bên phải. Tên, điểm, trạng thái và bài của mỗi ghế có vùng riêng.
+
+Bảng giữa bàn luôn hiện ván, **Cái: tên người chơi**, ba nhịp **Cược → Nặn bài → So bài**,
+số người đã cược/lật và đồng hồ với thanh thời gian. Ghế nhà cái có vòng vàng, dấu “CÁI” và
+nhãn “Nhà cái” (khi mở bài của đối thủ thì “Cái · số nút”). Khi bạn làm cái, lúc cược hiện
+“Bạn làm cái”; bạn không đặt cược. Dấu cái chuyển theo vòng bàn ở ván sau. Điểm cược là điểm
+trong trò chơi; mỗi người so bài với nhà cái.
+
+Kéo lá của mình lên hoặc sang phải để hé từ số/chất ở mép trên, mép gập đi theo ngón tay.
+Thả khi chưa hé quá nửa thì úp lại; kéo đủ hoặc chạm một lần thì mở riêng lá đó bằng animation
+nặn. Bộ đếm “Đã nặn x/3” theo dõi các lá đã xem; thao tác này không gửi sự kiện công khai.
+“Lật bài” công khai cả ba lá, kể cả lá chưa nặn. Chia từng lượt một lá vòng quanh bàn;
+lật công khai, hiện điểm và chuyển phỉnh có animation riêng. Tuỳ chọn hệ thống giảm chuyển
+động bỏ hiệu ứng bay/nghiêng nhưng giữ khả năng kéo hé bài.
+
+Có âm thanh đặt cược, chia, nặn, lật bài, thắng/thua, Ba Tây và kết thúc trận. Ba giây
 cuối có tiếng nhắc nếu mình còn phải cược hoặc lật. Âm thanh và nhạc tuân theo nút âm thanh của
 ứng dụng; kết nối lại và đổi kích thước dựng bàn ngay, không phát lại hiệu ứng tính điểm.
 

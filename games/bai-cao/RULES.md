@@ -4,7 +4,8 @@
   (người tạo phòng làm cái trước). Ai cũng bắt đầu với 0 điểm.
 - **Đặt cược**: mọi người trừ nhà cái cược 5, 10 hoặc 20 điểm (15 giây; không kịp thì cược 5).
 - **Chia bài**: mỗi người 3 lá từ bộ 52 lá. Bài của mình lúc đầu úp: chạm từng lá để tự xem
-  (nặn bài bằng chạm hoặc kéo); "Lật bài" lật cả ba cho mọi người thấy (20 giây; hết giờ thì tự lật).
+  (kéo lên hoặc sang phải để hé bài; thả sớm thì úp lại, kéo đủ hoặc chạm thì mở riêng lá đó);
+  "Lật bài" lật cả ba cho mọi người thấy (20 giây; hết giờ thì tự lật).
 - **Tính nút**: A là 1, 2–9 theo số, 10 J Q K là 0; cộng ba lá, lấy hàng đơn vị (0 là "bù",
   9 là cao nhất). **Ba Tây** (ba lá J, Q, K bất kỳ) lớn hơn mọi bài.
 - **So bài**: mỗi người so với nhà cái; bài lớn hơn ăn tiền cược, thắng bằng Ba Tây thì ăn gấp đôi.
