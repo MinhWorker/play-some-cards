@@ -31,8 +31,18 @@ Kiểm tra bằng `npm run check`. Hướng dẫn SDK và Dev Console:
 
 Hình bàn gỗ óc chó viền nổi mỏng và cảnh đình lúc hoàng hôn sinh bằng Image Gen từ prompt
 trong `sources/prompts.json`; đường bàn vẽ theo `src/scenes/theme.ts`.
-Quân cờ, bóng và chữ trên sông kết xuất bằng Blender. Quân dùng màu ngà dịu, kể cả khi di chuyển,
-vỡ quân và xuất hiện trên bảng kết quả. Nút dùng lại từ Tiến Lên.
+Quân cờ là model đĩa đá có cạnh vát, vòng màu và chữ Hán tô màu, dựng bằng Blender.
+Màu trắng ngà nằm ngay trong vật liệu, giữ nguyên khi di chuyển, vỡ quân, chiếu tướng và trên
+bảng kết quả. Cặp atlas `pieces.webp`/`pieces.normal.webp` cùng `pieces.json` chứa 14 quân
+Đỏ/Đen; normal map raw, lossless và đục dùng đèn mềm từ trên trái cùng đèn đi theo con trỏ
+như Cờ Vua. Tất cả bóng tiếp xúc nằm ở layer riêng dưới toàn bộ quân, kể cả khi nhấc quân
+hoặc ăn quân. Chữ trên sông kết xuất bằng Blender; nút dùng lại từ Tiến Lên.
+
+Tái tạo quân và bóng bằng `npm run blender -- xiangqi`; chỉ bake atlas bằng
+`npm run blender -- xiangqi pieces`. Cần phông Noto Sans CJK Bold (SIL Open Font License),
+mặc định ở `/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc`; có thể chọn phông CJK khác
+bằng `PSC_XIANGQI_FONT`. Script nằm ở `sources/render_pieces.py`, PNG trung gian ở
+`.blender/xiangqi/`; xem [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map).
 Tiếng di chuyển, vỡ quân và nhạc thắng tổng hợp bằng code.
 Thông báo chiếu tướng/chiếu bí theo lối tranh thủy mặc: cuộn giấy mở ra giữa hai trục gỗ, vệt
 mực nhạt quét ngang, quân đang chiếu hiện bên trái, rồi hai chữ ("CHIẾU", "TƯỚNG!" hoặc "BÍ!")

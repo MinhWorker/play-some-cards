@@ -47,17 +47,21 @@ def piece(kind, mat, trim, eye):
             block = cube('Battlement', (0.16, 0.17, 0.18), (0.255 * math.cos(a), 0.255 * math.sin(a), h + 0.32), mat)
             block.rotation_euler.z = a
     elif kind == 'bishop':
-        head = lathe('Bishop mitre', [(h, 0.13), (h + 0.11, 0.24), (h + 0.26, 0.23),
-                    (h + 0.43, 0.06), (h + 0.46, 0.025)], mat)
-        cut = cube('Mitre slit cutter', (0.075, 0.8, 0.42), (0.065, 0, h + 0.36), mat, 0)
-        cut.rotation_euler.y = -0.48
+        # Broad pointed mitre and a deep open slit remain legible from the high camera.
+        # The pawn has a round ball; the bishop's shoulders and apex form a teardrop.
+        lathe('Bishop double collar', [(h - 0.025, 0.23), (h + 0.025, 0.28),
+              (h + 0.07, 0.28), (h + 0.10, 0.17)], mat)
+        head = lathe('Bishop pointed mitre', [(h + 0.07, 0.12), (h + 0.16, 0.25),
+                    (h + 0.26, 0.30), (h + 0.34, 0.28), (h + 0.51, 0.15),
+                    (h + 0.66, 0.018)], mat)
+        cut = cube('Mitre slit cutter', (0.105, 0.9, 0.63), (0.045, 0, h + 0.49), mat, 0)
+        cut.rotation_euler.y = -0.55
         mod = head.modifiers.new('Diagonal mitre slit', 'BOOLEAN')
         mod.operation = 'DIFFERENCE'
         mod.object = cut
         bpy.context.view_layer.objects.active = head
         bpy.ops.object.modifier_apply(modifier=mod.name)
         bpy.data.objects.remove(cut, do_unlink=True)
-        sphere('Bishop finial', (0, 0, h + 0.48), (0.06,) * 3, mat)
     else:
         # Sculpted side-profile silhouette, facing right; same orientation for both colors.
         outline = [(-0.26, 0.73), (-0.31, 0.95), (-0.27, 1.23), (-0.20, 1.49),

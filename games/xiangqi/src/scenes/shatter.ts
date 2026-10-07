@@ -4,7 +4,7 @@ import type { GameScene } from '@psc/sdk/client';
  * it breaks, into jagged wedges around a point near its middle (an inner and an outer shard
  * per wedge). The shards fly apart, fall onto the table, bounce and fade.
  */
-import { DISC, PIECE_TINT } from './theme.js';
+import { DISC } from './theme.js';
 
 /** One shard: its texture, and where its middle sits from the image's center (image px). */
 interface Shard {
@@ -21,20 +21,36 @@ const cache = new Map<string, Shard[][]>();
 type Point = [number, number];
 
 /** Cuts image `key` into shards (once per pattern) and returns one pattern at random. */
-function shardsOf(scene: GameScene, key: string): Shard[] {
-  let patterns = cache.get(key);
+function shardsOf(scene: GameScene, key: string, frame: string): Shard[] {
+  const id = `${key}:${frame}`;
+  let patterns = cache.get(id);
   if (!patterns?.every((p) => p.every((s) => scene.textures.exists(s.key)))) {
-    patterns = Array.from({ length: PATTERNS }, (_, i) => cut(scene, key, `${key}.shard${i}`));
-    cache.set(key, patterns);
+    patterns = Array.from({ length: PATTERNS }, (_, i) =>
+      cut(scene, key, frame, `${id}.shard${i}`),
+    );
+    cache.set(id, patterns);
   }
   return patterns[Math.floor(Math.random() * patterns.length)] ?? [];
 }
 
-function cut(scene: GameScene, key: string, prefix: string): Shard[] {
-  const source = scene.textures.get(key).getSourceImage() as CanvasImageSource & {
-    width: number;
-    height: number;
-  };
+function cut(scene: GameScene, key: string, frameName: string, prefix: string): Shard[] {
+  const frame = scene.textures.getFrame(key, frameName);
+  const source = document.createElement('canvas');
+  source.width = frame.cutWidth;
+  source.height = frame.cutHeight;
+  source
+    .getContext('2d')
+    ?.drawImage(
+      frame.source.image as CanvasImageSource,
+      frame.cutX,
+      frame.cutY,
+      frame.cutWidth,
+      frame.cutHeight,
+      0,
+      0,
+      source.width,
+      source.height,
+    );
   const { width: w, height: h } = source;
   const disc = (w * DISC) / 2;
   const jitter = (n: number) => (Math.random() * 2 - 1) * n;
@@ -117,6 +133,7 @@ function draw(
 export interface ShatterOptions {
   /** The broken piece's image key, where its image is drawn, and its size on screen. */
   key: string;
+  frame: string;
   x: number;
   y: number;
   size: number;
@@ -134,14 +151,14 @@ export interface ShatterOptions {
 
 /** Breaks a piece at (x, y): its shards fly off along the blow, bounce on the table and fade. */
 export function shatter(scene: GameScene, o: ShatterOptions) {
-  const source = scene.textures.get(o.key).getSourceImage() as { width: number };
-  const scale = o.size / source.width;
+  const frame = scene.textures.getFrame(o.key, o.frame);
+  const scale = o.size / frame.cutWidth;
   const life = 1000;
   const gravity = 11 * o.gap;
   const turn = (o.angle * Math.PI) / 180;
   const cos = Math.cos(turn);
   const sin = Math.sin(turn);
-  const parts = shardsOf(scene, o.key).map((cutAt) => {
+  const parts = shardsOf(scene, o.key, o.frame).map((cutAt) => {
     const shard = {
       key: cutAt.key,
       ox: cutAt.ox * cos - cutAt.oy * sin,
@@ -156,7 +173,6 @@ export function shatter(scene: GameScene, o: ShatterOptions) {
     const image = scene.add
       .image(sx, sy, shard.key)
       .setScale(scale)
-      .setTint(PIECE_TINT)
       .setAngle(o.angle)
       .setDepth(o.depth + Math.random() * 0.1);
     return {

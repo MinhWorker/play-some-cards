@@ -6,7 +6,6 @@
  */
 import { type Button, FONT, type GameScene } from '@psc/sdk/client';
 import type Phaser from 'phaser';
-import { PIECE_TINT } from './theme.js';
 
 const PAPER = 0xfbf1dc;
 const LACQUER = 0x8b1d17;
@@ -16,7 +15,8 @@ const INK = '#5c2d12';
 export interface ResultData {
   title: string;
   reason: string;
-  /** Image keys of the generals shown on the banner (the winner's, or both for a draw). */
+  /** Atlas frame names of the generals shown on the banner (the winner's, or both for a draw). */
+  pieces: string;
   generals: string[];
   rows: [label: string, value: string][];
 }
@@ -94,12 +94,11 @@ export class ResultPanel {
 
     for (const img of this.generals) img.destroy();
     const icon = bannerH * 1.5;
-    this.generals = data.generals.map((key, i) => {
+    this.generals = data.generals.map((frame, i) => {
       const side = data.generals.length === 1 ? -1 : i === 0 ? -1 : 1;
       return scene.add
-        .image(side * (w / 2 - icon * 0.3), top + bannerH * 0.3, key)
+        .image(side * (w / 2 - icon * 0.3), top + bannerH * 0.3, data.pieces, frame)
         .setDisplaySize(icon, icon)
-        .setTint(PIECE_TINT)
         .setAngle(side * -12);
     });
     this.container.add(this.generals);

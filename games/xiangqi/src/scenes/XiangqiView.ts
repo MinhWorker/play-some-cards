@@ -12,7 +12,7 @@
  * The board image is plain wood in a narrow walnut frame (theme.ts BOARD has the points);
  * the lines are drawn here and 楚河 漢界 is an image. Pieces are renders seen a little from
  * the front: each is drawn a little above its point and over the pieces behind it, on a
- * shadow of its own (piece-shadow) that stays on the table when the piece is lifted.
+ * contact shadow that stays on the table in a separate layer below every piece.
  *
  * A capture is a little scene of its own per kind of attacker (`attack`); the taken piece is
  * struck, thrown and breaks into shards of itself (shatter.ts).
@@ -27,6 +27,7 @@ import {
   type FlowContext,
   type FlowHandle,
   GameView,
+  type LitLayer,
   type ViewContext,
   type ViewEvent,
 } from '@psc/sdk/client';
@@ -42,7 +43,6 @@ import {
   DISC,
   endText,
   PIECE_HOVER,
-  PIECE_TINT,
   pieceImage,
   reasonText,
   SIDES,
@@ -55,6 +55,7 @@ interface PieceObj {
   piece: string;
   container: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Image;
+  shadowRoot: Phaser.GameObjects.Container;
   image: Phaser.GameObjects.Image;
   /** Tweened by `lift` and `leap` (so `placePiece` can stop them): gaps up, and a leap's progress. */
   height: number;
@@ -80,6 +81,8 @@ const EFFECTS_KEY = 'xiangqi.effects';
 const DUST = 'xiangqi-dust';
 
 export class XiangqiView extends GameView<View, Options> {
+  private pieceLayer!: LitLayer;
+  private shadowLayer!: Phaser.GameObjects.Layer;
   private boardImage!: Phaser.GameObjects.Image;
   private lines!: Phaser.GameObjects.Graphics;
   private river!: Phaser.GameObjects.Image;
@@ -127,7 +130,7 @@ export class XiangqiView extends GameView<View, Options> {
   /** This device shows effects (saved in the browser). */
   private effects = loadEffects();
   /** Taken pieces not yet knocked off the board (their move's animation hasn't run). */
-  private leaving = new Set<Phaser.GameObjects.Container>();
+  private leaving = new Set<PieceObj>();
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
 
@@ -142,6 +145,10 @@ export class XiangqiView extends GameView<View, Options> {
     this.hovered = null;
     this.resignArmed = false;
     this.resignTimer = undefined;
+    this.lighting({ pointer: true });
+    this.shadowLayer = this.add.layer().setDepth(DEPTH.piece - 1);
+    this.pieceLayer = this.litLayer();
+    this.pieceLayer.layer.setDepth(DEPTH.piece);
     this.boardImage = this.sprite('board').setDepth(DEPTH.board);
     this.lines = this.add.graphics().setDepth(DEPTH.lines);
     this.river = this.sprite('river').setDepth(DEPTH.lines);
@@ -160,7 +167,7 @@ export class XiangqiView extends GameView<View, Options> {
     this.playerMarks = this.add.graphics();
     this.matchInfo = this.label('', { size: 24, color: '#cab79a' }).setStroke('#211a14', 2);
     this.score = {
-      icons: [0, 1].map(() => this.sprite(pieceImage('r', 'k'))),
+      icons: [0, 1].map(() => this.image(0, 0, 'pieces', pieceImage('r', 'k'))),
       names: [0, 1].map(() => this.label('', { size: 30 }).setStroke('#211a14', 3)),
       wins: [0, 1].map(() =>
         this.label('', { size: 24, color: '#cab79a' }).setStroke('#211a14', 2),
@@ -267,7 +274,7 @@ export class XiangqiView extends GameView<View, Options> {
     this.placeButtons();
 
     if (interrupted) {
-      for (const container of this.leaving) container.destroy();
+      for (const obj of this.leaving) obj.container.destroy();
       this.leaving.clear();
       this.endQueued = false;
       this.live = false;
@@ -282,7 +289,7 @@ export class XiangqiView extends GameView<View, Options> {
   protected onStart() {
     this.runtime.cancelLane('turn');
     for (const obj of this.pieces.values()) obj.container.destroy();
-    for (const container of this.leaving) container.destroy();
+    for (const obj of this.leaving) obj.container.destroy();
     this.pieces.clear();
     this.leaving.clear();
     this.deselect();
@@ -305,12 +312,12 @@ export class XiangqiView extends GameView<View, Options> {
     if (!moving) return; // onState draws whatever is missing
     this.pieces.delete(from);
     this.pieces.set(to, moving);
-    if (victim) this.leaving.add(victim.container);
+    if (victim) this.leaving.add(victim);
     const { state, result, me } = ctx;
     const after = {
       check: Boolean(state.check && !result),
       mate: state.end?.reason === 'checkmate',
-      attacker: moving.image.texture.key,
+      attacker: moving.image.frame.name,
       general: generalOf(state.board, state.turn),
       myTurn: Boolean(me && !result && state.turn === this.mySide(ctx)),
       heavy: Boolean(victim && kindOf(victim.piece) === 'r'),
@@ -339,6 +346,18 @@ export class XiangqiView extends GameView<View, Options> {
 
   protected onUpdate(ctx: Ctx) {
     this.updateMatchInfo(ctx);
+    for (const obj of this.pieces.values()) this.placeShadow(obj);
+    for (const obj of this.leaving) this.placeShadow(obj);
+  }
+
+  /** Shadows follow the animation transforms, always under the entire piece layer. */
+  private placeShadow(obj: PieceObj) {
+    const c = obj.container;
+    obj.shadowRoot
+      .setPosition(c.x, c.y)
+      .setScale(c.scaleX, c.scaleY)
+      .setAngle(c.angle)
+      .setAlpha(c.alpha);
   }
 
   private updateMatchInfo({ clock, state }: Ctx) {
@@ -352,7 +371,7 @@ export class XiangqiView extends GameView<View, Options> {
   protected onResync(ctx: Ctx) {
     this.runtime.cancelLane('turn');
     for (const obj of this.pieces.values()) obj.container.destroy();
-    for (const obj of this.leaving) obj.destroy();
+    for (const obj of this.leaving) obj.container.destroy();
     this.pieces.clear();
     this.leaving.clear();
     this.endQueued = false;
@@ -470,9 +489,16 @@ export class XiangqiView extends GameView<View, Options> {
 
   private makePiece(piece: string, sq: number): PieceObj {
     const shadow = this.sprite('piece-shadow');
-    const image = this.sprite(pieceImage(sideOf(piece), kindOf(piece)));
-    const container = this.add.container(0, 0, [shadow, image]);
-    const obj = { piece, container, shadow, image, height: 0, progress: 0 };
+    const image = this.image(0, 0, 'pieces', pieceImage(sideOf(piece), kindOf(piece))).setLighting(
+      true,
+    );
+    const container = this.add.container(0, 0, [image]);
+    const shadowRoot = this.add.container(0, 0, [shadow]);
+    this.shadowLayer.add(shadowRoot);
+    // Keep the container for capture transforms; its only child uses the lit atlas.
+    this.pieceLayer.layer.add(container);
+    container.once(Phaser.GameObjects.Events.DESTROY, () => shadowRoot.destroy());
+    const obj = { piece, container, shadow, shadowRoot, image, height: 0, progress: 0 };
     this.placePiece(obj, sq);
     return obj;
   }
@@ -483,8 +509,13 @@ export class XiangqiView extends GameView<View, Options> {
     this.runtime.cancelTweens([obj, obj.container, obj.image, obj.shadow]);
     obj.container.setPosition(x, y).setScale(1).setAlpha(1).setAngle(0).setDepth(this.depthAt(sq));
     const size = (this.grid.dx * BOARD.disc) / DISC;
-    obj.image.setDisplaySize(size, size).setPosition(0, 0).setTint(PIECE_TINT);
+    obj.image
+      .setDisplaySize(size, size)
+      .setPosition(0, 0)
+      .clearTint()
+      .setTintMode(Phaser.TintModes.MULTIPLY);
     obj.shadow.setDisplaySize(size, size).setPosition(0, 0).setAlpha(1);
+    this.placeShadow(obj);
     if (sq === this.selected && this.effects) this.setLift(obj, LIFT.picked);
   }
 
@@ -907,10 +938,11 @@ export class XiangqiView extends GameView<View, Options> {
         elapsed %= 28;
         const c = obj.container;
         const ghost = this.add
-          .image(c.x, c.y + obj.image.y * c.scaleY, obj.image.texture.key)
+          .image(c.x, c.y + obj.image.y * c.scaleY, obj.image.texture.key, obj.image.frame.name)
           .setScale(obj.image.scaleX * c.scaleX, obj.image.scaleY * c.scaleY)
           .setAlpha(0.35)
           .setDepth(DEPTH.moving - 0.1);
+        this.pieceLayer.add(ghost);
         this.runtime.run(async (child) => {
           child.defer(() => ghost.destroy());
           await child.tween({ targets: ghost, alpha: 0, duration: 180 });
@@ -956,7 +988,7 @@ export class XiangqiView extends GameView<View, Options> {
     c.setDepth(DEPTH.popup - 1);
     image.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.runtime.after(60, () => {
-      if (image.active) image.setTint(PIECE_TINT).setTintMode(Phaser.TintModes.MULTIPLY);
+      if (image.active) image.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
     });
     this.runtime.tween({
       targets: victim.shadow,
@@ -995,6 +1027,7 @@ export class XiangqiView extends GameView<View, Options> {
         this.sfx('xiangqi-shatter');
         shatter(this, {
           key: image.texture.key,
+          frame: image.frame.name,
           x: c.x,
           y: c.y + image.y,
           size: image.displayWidth * c.scaleX,
@@ -1022,7 +1055,8 @@ export class XiangqiView extends GameView<View, Options> {
       const { width, height, hud } = this.ctx.screen;
       await cutIn(this, fx, {
         text: after.mate ? 'CHIẾU BÍ!' : 'CHIẾU TƯỚNG!',
-        piece: after.attacker,
+        piece: this.texture('pieces'),
+        frame: after.attacker,
         width,
         height,
         hud,
@@ -1037,7 +1071,7 @@ export class XiangqiView extends GameView<View, Options> {
   }
 
   private gone(victim: PieceObj) {
-    this.leaving.delete(victim.container);
+    this.leaving.delete(victim);
     victim.container.destroy();
   }
 
@@ -1074,7 +1108,7 @@ export class XiangqiView extends GameView<View, Options> {
           ? 'Chiến thắng!'
           : 'Thua rồi'
         : `${SIDES[winner].name} thắng`;
-    const general = (side: Side) => this.texture(pieceImage(side, 'k'));
+    const general = (side: Side) => pieceImage(side, 'k');
     // Pieces each side took: Black's pieces (lower case) were taken by Red.
     const took = (side: Side) => state.captured.filter((p) => sideOf(p) !== side).length;
     const rows: [string, string][] = [];
@@ -1086,6 +1120,7 @@ export class XiangqiView extends GameView<View, Options> {
       {
         title,
         reason: reasonText(end.reason, winner ? this.nameOf(ctx, loser) : ''),
+        pieces: this.texture('pieces'),
         generals: winner ? [general(winner)] : [general('r'), general('b')],
         rows,
       },
@@ -1211,7 +1246,7 @@ export class XiangqiView extends GameView<View, Options> {
     const pickable = sq !== null && sq !== this.selected && this.canPick(this.ctx, sq);
     const next = pickable ? sq : null;
     if (next === this.hovered) return;
-    if (this.hovered !== null) this.pieces.get(this.hovered)?.image.setTint(PIECE_TINT);
+    if (this.hovered !== null) this.pieces.get(this.hovered)?.image.clearTint();
     this.hovered = next;
     if (next !== null) this.pieces.get(next)?.image.setTint(PIECE_HOVER);
   }
@@ -1344,10 +1379,10 @@ export class XiangqiView extends GameView<View, Options> {
       const side: Side = player ? (state.players[0] === player.id ? 'r' : 'b') : seat ? 'b' : 'r';
       const y = side === bottomSide ? col.bottom : col.top;
       img
-        .setTexture(this.texture(pieceImage(side, 'k')))
+        .setTexture(this.texture('pieces'), pieceImage(side, 'k'))
         .setDisplaySize(icon / DISC, icon / DISC)
         .setPosition(iconX, y)
-        .setTint(PIECE_TINT);
+        .clearTint();
       const active = !state.end && state.turn === side;
       if (active) {
         this.playerMarks.lineStyle(3, 0xe5bd72, 0.95).strokeCircle(iconX, y - 3 * hud, icon * 0.57);
