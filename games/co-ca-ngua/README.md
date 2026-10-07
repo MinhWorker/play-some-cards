@@ -2,6 +2,16 @@
 
 Cờ cá ngựa một xúc xắc cho 2–4 người, có thể chơi với 1–3 máy. Xem [luật chơi](RULES.md). Plugin có trạng thái `ready`.
 
+## Giao diện
+
+Điện thoại nằm ngang:
+
+![Bàn chơi trên điện thoại](../../docs/images/co-ca-ngua-phone.webp)
+
+Máy tính, bốn người:
+
+![Bàn chơi trên máy tính](../../docs/images/co-ca-ngua-desktop.webp)
+
 ## Mã nguồn
 
 - `src/game/model.ts`: dữ liệu ngựa, nước đi, chặn đường, đá ngựa và chuồng 6–5–4–3.
