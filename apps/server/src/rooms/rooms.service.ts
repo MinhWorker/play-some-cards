@@ -66,6 +66,23 @@ export interface Room {
   dev?: RoomDev;
 }
 
+/** A game that just ended, for whoever keeps a record of it (see `onFinished`). */
+export interface FinishedGame {
+  gameId: string;
+  startedAt: number;
+  endedAt: number;
+  /** Everyone seated when the game began, in seat order. */
+  seats: {
+    id: PlayerId;
+    name: string;
+    avatar?: string;
+    frame?: string;
+    bot: boolean;
+    left: boolean;
+  }[];
+  result: GameResult;
+}
+
 // No 0/O/1/I so codes are easy to read. Codes are internal ids; players pick rooms from a list.
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
@@ -79,9 +96,15 @@ const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 @Injectable()
 export class RoomsService {
   private readonly rooms = new Map<string, Room>();
+  private readonly finishedListeners: ((game: FinishedGame) => void)[] = [];
 
   constructor(@Optional() @Inject(DEV_MODE) readonly devEnabled = false) {
     if (devEnabled) new Logger('DevConsole').warn('PSC_DEV=1: Dev Console đang bật');
+  }
+
+  /** Calls `listener` each time a game ends with a result (not when it is stopped). */
+  onFinished(listener: (game: FinishedGame) => void) {
+    this.finishedListeners.push(listener);
   }
 
   /** Dev requests require an actual member, including spectators. */
@@ -400,6 +423,7 @@ export class RoomsService {
       room.timer = null;
       room.endedAt = Date.now();
       this.addToScore(room, room.result);
+      this.announceFinished(room, room.result);
       logRoom(room, {
         kind: 'room',
         level: 'info',
@@ -505,6 +529,32 @@ export class RoomsService {
   pruneEmptyRooms() {
     for (const [code, room] of this.rooms) {
       if (this.humans(room).every((m) => !m.connected)) this.rooms.delete(code);
+    }
+  }
+
+  private announceFinished(room: Room, result: GameResult) {
+    if (!this.finishedListeners.length || room.state === null) return;
+    const game: FinishedGame = {
+      gameId: room.game.id,
+      startedAt: room.startedAt ?? room.endedAt ?? Date.now(),
+      endedAt: room.endedAt ?? Date.now(),
+      seats: room.game.seats(room.state, this.context(room)).map((p) => ({
+        id: p.id,
+        name: p.name,
+        avatar: p.avatar,
+        frame: p.frame,
+        bot: p.bot,
+        left: p.left,
+      })),
+      result,
+    };
+    for (const listener of this.finishedListeners) {
+      try {
+        listener(game);
+      } catch (err) {
+        // Keeping a record must never break the room.
+        console.error(err);
+      }
     }
   }
 

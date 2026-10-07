@@ -4,6 +4,7 @@ export type { DevCommandInfo, DevConsoleSchema } from '@psc/sdk';
 
 import type { ProfileUpdate, User } from './account.js';
 import type { GameResult, PlayerId } from './game.js';
+import type { MatchRecord } from './history.js';
 
 /**
  * Socket.IO contract between web and server. Both sides import these types,
@@ -137,6 +138,8 @@ export interface ClientToServerEvents {
   ) => void;
   /** Change display name, avatar and frame (also updates your name in your current room). */
   'profile:update': (req: ProfileUpdate, ack: Ack<{ user: User }>) => void;
+  /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
+  'history:recent': (req: Record<string, never>, ack: Ack<{ matches: MatchRecord[] }>) => void;
   /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
   'lobby:watch': (req: { gameId: string }, ack: Ack<{ rooms: RoomSummary[] }>) => void;
   'lobby:unwatch': (req: Record<string, never>, ack: Ack) => void;

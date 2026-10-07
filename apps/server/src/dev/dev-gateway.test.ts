@@ -2,6 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AccountsService } from '../accounts/accounts.service.js';
 import { MemoryAccountsStore } from '../accounts/accounts.store.js';
+import { MatchesService } from '../matches/matches.service.js';
+import { MemoryMatchesStore } from '../matches/matches.store.js';
 import { RoomsGateway } from '../rooms/rooms.gateway.js';
 import { RoomsService } from '../rooms/rooms.service.js';
 import { DevConsoleService } from './dev-console.service.js';
@@ -16,6 +18,7 @@ function setup(dev: boolean) {
     rooms,
     new AccountsService(new MemoryAccountsStore()),
     new DevConsoleService(rooms, new DevSnapshots()),
+    new MatchesService(new MemoryMatchesStore()),
   );
   const socket = {
     data: { user: { id: 'a', name: 'A' }, roomCode: room.code },

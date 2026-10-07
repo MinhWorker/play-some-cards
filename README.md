@@ -30,7 +30,8 @@ npm install
 npm run dev        # mở http://localhost:5033
 ```
 
-Không cần tài khoản hay khoá bí mật nào: không có database thì server giữ tài khoản trong bộ nhớ.
+Không cần tài khoản hay khoá bí mật nào: không có database thì server giữ tài khoản và lịch sử
+đấu trong bộ nhớ.
 Mở thêm một cửa sổ trình duyệt (hoặc cửa sổ ẩn danh) để tự chơi với chính mình.
 
 `npm run dev` bật Dev Console trên server. Trong phòng thật, bật **DEV → Dev Console** rồi
