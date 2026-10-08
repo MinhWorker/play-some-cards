@@ -52,21 +52,28 @@ Phiên bản đang chạy hiện ở cuối bảng âm thanh (`v0.1.0 · <commit
 (`version`, `commit`, `protocol`).
 
 Web và server triển khai riêng (Render chậm hơn Vercel vài phút), nên chúng so `PROTOCOL_VERSION`
-khi socket kết nối. Trang cũ hơn server tự tải lại; trang mới hơn server hiện "Server đang cập
-nhật" và thử lại tới khi server theo kịp. Bản xem trước của PR nói chuyện với server thật, nên bản
-xem trước nào tăng protocol sẽ hiện dòng thông báo đó.
+khi socket kết nối. Trang cũ hơn server tự tải lại; trang mới hơn server hiện màn cập nhật
+và thử lại tới khi server theo kịp. Bản xem trước của PR nói chuyện với server thật, nên bản
+xem trước nào tăng protocol cũng chờ cập nhật.
 
 Mỗi bản build web đặt tên file theo mã băm, và Vercel chỉ phục vụ file của bản mới nhất. Một
 trang mở từ trước lần deploy web sẽ không tải được code của game (404) khi người chơi mở game.
 Web nhận ra điều này (`src/lib/newBuild.ts`: tải lại `index.html` và so file JS chính) khi tải
 code game thất bại hoặc khi người chơi quay lại tab, rồi hiện hộp "Đã có phiên bản mới" với nút
-"Tải lại". Bấm nút chuyển sang màn "Đang cập nhật…": web đọc commit và protocol của bản
+"Tải lại". Bấm nút bắt đầu chờ backend: web đọc commit và protocol của bản
 mới từ thẻ `psc-build` trong `index.html`, kiểm tra `/api/health` mỗi 3 giây và chỉ tải lại
 khi backend trả về đúng commit, đúng protocol và database không báo `down`. Vì các lần merge
 có thể dùng chung số phiên bản và protocol, hai trường đó không thay thế việc so commit.
-Request lỗi hoặc quá 10 giây vẫn giữ màn chờ và tự thử lại; nếu có bản web mới hơn trong lúc
-chờ, mục tiêu cập nhật chuyển sang bản đó. Nếu backend deploy thất bại, màn chờ giữ nguyên
-tới khi deploy được khắc phục hoặc có bản web khác thay thế.
+Chỉ mất kết nối, request lỗi hoặc quá 10 giây chưa đủ để kết luận backend đang deploy:
+khi chưa có phản hồi phiên bản, web dùng màn **hâm nóng server** hiện có (cold start/mất
+kết nối). Chỉ khi `/api/health` trả về commit/protocol khác bản cần dùng, hoặc socket báo
+backend có protocol cũ, web mới hiện **Đang cập nhật…**. Sau khi đã xác nhận lệch phiên
+bản, màn cập nhật giữ nguyên cả khi backend ngắt kết nối để khởi động lại. Nếu backend
+đã khớp bản nhưng database báo `down`, web trở về màn hâm nóng/chờ kết nối.
+
+Web tự thử lại; nếu có bản web mới hơn trong lúc chờ, mục tiêu cập nhật chuyển sang bản đó.
+Nếu backend deploy thất bại, màn chờ giữ nguyên tới khi deploy được khắc phục hoặc có bản
+web khác thay thế.
 Màn chờ phủ toàn màn hình, có hoạt ảnh bài và xúc xắc trên nền trời cùng các câu đùa luân
 phiên. Thanh "Nạp năng lượng" chỉ là tiến độ giả cho vui, tăng chậm tới tối đa 95%, không
 phải phần trăm deploy và không kéo dài thời gian chờ khi backend đã sẵn sàng. Thiết bị bật

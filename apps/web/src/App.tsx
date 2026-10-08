@@ -43,7 +43,9 @@ export function App() {
   const connected = useConnected();
   const version = useVersionGuard();
   const newBuild = useNewBuild();
-  const serverReady = useServerReady(currentBuild, !newBuild);
+  const serverReadiness = useServerReady(currentBuild, !newBuild);
+  const serverReady = serverReadiness === 'ready';
+  const deploying = serverReadiness === 'deploying' || version === 'older';
   const [notice, setNotice] = useState('');
   const [browsing, browse] = useBrowsingGame();
   /** The game's own settings screen is open: for a new room, or for the room we are in. */
@@ -159,15 +161,8 @@ export function App() {
     <>
       <DevConsoleLoader room={session ? snapshot : null} />
       <PhaserStage stage={stage} onReady={revealCurtain} />
-      <main className="ui" inert={!serverReady || !!newBuild}>
-        {version === 'newer' ? (
-          <Banner>Đã có phiên bản mới, đang tải lại…</Banner>
-        ) : version === 'older' ? (
-          <Banner>Server đang cập nhật, chờ chút nhé…</Banner>
-        ) : null}
-        <WarmupOverlay
-          shown={serverReady && version === 'ok' && !connected && account.status !== 'guest'}
-        />
+      <main className="ui" inert={!serverReady || deploying || !!newBuild}>
+        {version === 'newer' ? <Banner>Đã có phiên bản mới, đang tải lại…</Banner> : null}
         {account.status === 'guest' ? (
           <Login onSignIn={signIn} />
         ) : account.status === 'loading' ? null : session && editing ? (
@@ -203,7 +198,19 @@ export function App() {
         {notice && <Toast>{notice}</Toast>}
         <SoundControl />
       </main>
-      {newBuild ? <NewVersionDialog target={newBuild} /> : !serverReady ? <UpdateLoading /> : null}
+      <WarmupOverlay
+        shown={
+          !newBuild &&
+          !deploying &&
+          (serverReadiness === 'waiting' ||
+            (version === 'ok' && !connected && account.status !== 'guest'))
+        }
+      />
+      {newBuild ? (
+        <NewVersionDialog target={newBuild} deploying={version === 'older'} />
+      ) : deploying ? (
+        <UpdateLoading />
+      ) : null}
       <CloudCurtain />
       <VersionTag />
     </>
