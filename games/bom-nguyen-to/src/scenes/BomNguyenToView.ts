@@ -310,12 +310,12 @@ export class BomNguyenToView extends GameView<State, Options> {
       r.container.setPosition(x, rosterY).setScale(small ? 0.78 : 0.93);
     });
     const boardW = Math.min(w - (small ? 220 : touchLayout ? 310 : 280), touchLayout ? 1010 : 930);
-    const boardH = available - 175;
-    this.tw = Math.min(boardW / 12, boardH / 6.5);
-    this.th = this.tw * 0.5;
+    const boardH = available - 160;
+    this.tw = Math.min(boardW / WIDTH, boardH / (HEIGHT * 0.82));
+    this.th = this.tw * 0.82;
     const cx = w / 2 + (small ? 15 : 35);
-    this.ox = cx - ((WIDTH - HEIGHT) * this.tw) / 4;
-    this.oy = top + 102 + (available - 175 - this.th * 12) / 2;
+    this.ox = cx - ((WIDTH - 1) * this.tw) / 2;
+    this.oy = top + 102 + (boardH - this.th * HEIGHT) / 2 + this.th / 2;
     this.platform.clear();
     const outline = [
       this.project({ x: -0.7, y: -0.7 }),
@@ -372,9 +372,9 @@ export class BomNguyenToView extends GameView<State, Options> {
     this.layoutActors(ctx);
     this.renderTransient(ctx);
   }
-  /** Orthographic isometric projection of world grid coordinates. */
+  /** Top-down projection with a slight forward tilt; grid axes stay screen-aligned. */
   project(p: Point): Point {
-    return { x: this.ox + ((p.x - p.y) * this.tw) / 2, y: this.oy + ((p.x + p.y) * this.th) / 2 };
+    return { x: this.ox + p.x * this.tw, y: this.oy + p.y * this.th };
   }
   private renderBoard({ state }: Ctx) {
     for (let y = 0; y < HEIGHT; y++)
@@ -385,12 +385,12 @@ export class BomNguyenToView extends GameView<State, Options> {
           tile = tileAt(state, p);
         let image = this.tiles.get(key);
         if (!image) {
-          image = this.sprite('tile').setOrigin(0.5, 0.4).setDepth(0);
+          image = this.sprite('tile').setOrigin(0.5, 0.45).setDepth(0);
           this.tiles.set(key, image);
         }
         image
           .setPosition(pos.x, pos.y)
-          .setDisplaySize(this.tw * 1.05, this.th * 1.45)
+          .setDisplaySize(this.tw, this.th * 1.12)
           .setTint(tile === 'wall' ? 0x93b7b4 : 0xffffff);
         const border = x === 0 || y === 0 || x === WIDTH - 1 || y === HEIGHT - 1;
         const wanted = !border && tile !== 'floor' ? (tile === 'wall' ? 'pillar' : 'crate') : null;
@@ -401,13 +401,13 @@ export class BomNguyenToView extends GameView<State, Options> {
           continue;
         }
         if (!prop) {
-          prop = this.sprite(wanted).setOrigin(0.5, 0.88);
+          prop = this.sprite(wanted).setOrigin(0.5, 0.47);
           this.obstacles.set(key, prop);
         }
         prop
           .setTexture(this.texture(wanted))
           .setPosition(pos.x, pos.y)
-          .setDisplaySize(this.tw * 0.85, this.tw * (wanted === 'pillar' ? 0.92 : 0.8))
+          .setDisplaySize(this.tw * 0.85, this.tw * (wanted === 'pillar' ? 0.91 : 0.88))
           .setDepth(10 + pos.y);
       }
   }
@@ -739,22 +739,22 @@ export class BomNguyenToView extends GameView<State, Options> {
         const imminent = windows.some((w) => w.start - now < 700);
         const color =
           b.frozenUntil > now ? 0xa0efff : imminent ? 0xff6c50 : ELEMENT_INFO[b.element].color;
-        const diamond = [
-          { x: pos.x, y: pos.y - this.th * 0.43 },
-          { x: pos.x + this.tw * 0.43, y: pos.y },
-          { x: pos.x, y: pos.y + this.th * 0.43 },
-          { x: pos.x - this.tw * 0.43, y: pos.y },
-        ];
         this.warnings
           .fillStyle(color, imminent ? 0.32 + Math.sin(this.time.now / 70) * 0.1 : 0.13)
-          .fillPoints(
-            diamond.map((p) => new Phaser.Math.Vector2(p.x, p.y)),
-            true,
+          .fillRoundedRect(
+            pos.x - this.tw * 0.43,
+            pos.y - this.th * 0.43,
+            this.tw * 0.86,
+            this.th * 0.86,
+            3,
           )
           .lineStyle(1.5, color, imminent ? 1 : 0.6)
-          .strokePoints(
-            diamond.map((p) => new Phaser.Math.Vector2(p.x, p.y)),
-            true,
+          .strokeRoundedRect(
+            pos.x - this.tw * 0.43,
+            pos.y - this.th * 0.43,
+            this.tw * 0.86,
+            this.th * 0.86,
+            3,
           );
       }
     }

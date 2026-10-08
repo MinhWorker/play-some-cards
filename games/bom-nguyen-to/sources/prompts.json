@@ -15,6 +15,11 @@
       "transparent": false,
       "maxSize": 1920,
       "prompt": "Đền nổi trong hang xanh ngọc, thác nước, dây leo, đèn vàng; vùng giữa trống để đặt đấu trường. Không chữ, nhân vật hay UI."
+    },
+    "topdown-props": {
+      "transparent": true,
+      "maxSize": 1920,
+      "prompt": "Atlas 3 ô riêng trên nền trong suốt: ô đá sa thạch, tường đá xanh ngọc, thùng gỗ. Camera top-down nghiêng nhẹ về trước, hàng ô ngang/dọc, không xoay chéo. Mặt trên vuông hơi nén dọc, mặt trước hẹp, phong cách 3D vẽ tay khớp nhân vật. Cắt thành tile, pillar và crate thay bản isometric ban đầu."
     }
   }
 }

@@ -1,6 +1,6 @@
 # Bom Nguyên Tố
 
-Đấu trường isometric 13 × 11 ô cho 1–4 nhân vật. Một nhân vật là chế độ luyện tập;
+Đấu trường top-down nghiêng nhẹ 13 × 11 ô cho 1–4 nhân vật. Một nhân vật là chế độ luyện tập;
 **Sinh tồn đơn** có người sống sót cuối cùng thắng. **Đấu đội 2v2** có đội còn người
 sống sót thắng. Các ghế 1 và 3 thuộc đội A, ghế 2 và 4 thuộc đội B. Thành viên
 đã bị loại vẫn được tính thắng nếu đồng đội giành chiến thắng. Thiếu người

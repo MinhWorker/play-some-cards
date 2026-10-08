@@ -13,6 +13,22 @@ export default async function run(t) {
   const sandbox = await t.page(DESKTOP);
   await sandbox.goto(`${t.url}/?play=${id}&players=1`);
   await ready(sandbox);
+  const cameraAligned = await sandbox.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('bom-nguyen-to');
+    const center = scene.project({ x: 1, y: 1 });
+    const right = scene.project({ x: 2, y: 1 });
+    const down = scene.project({ x: 1, y: 2 });
+    return (
+      right.x > center.x &&
+      right.y === center.y &&
+      down.y > center.y &&
+      down.x === center.x &&
+      scene.th / scene.tw > 0.75 &&
+      scene.th / scene.tw < 1
+    );
+  });
+  if (!cameraAligned)
+    throw new Error('Camera must remain top-down with a slight tilt, without diagonal rotation');
   await clickCanvas(sandbox, id, (s) => s.selectChoices[1].container);
   await sandbox.waitForFunction(
     () => window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.fighters[0].element === 'water',

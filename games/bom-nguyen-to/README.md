@@ -10,7 +10,7 @@ Minigame đặt bom nguyên tố, 1–4 nhân vật, sinh tồn hoặc đấu đ
 - `src/game/bot.ts`: BFS theo không gian/thời gian và dự đoán phản ứng dây chuyền.
 - `src/game/BomNguyenToGame.ts`: mô phỏng server với timer 100 ms, chọn nhân vật,
   sự kiện điều khiển, loại người chơi và kết quả đội.
-- `src/scenes/BomNguyenToView.ts`: phép chiếu isometric, nội suy và dự đoán di chuyển,
+- `src/scenes/BomNguyenToView.ts`: góc top-down nghiêng nhẹ, không xoay chéo, nội suy và dự đoán di chuyển,
   sprite có chiều sâu, HUD, chọn nhân vật, kết quả và điều khiển nhiều ngón.
 - `src/scenes/Setup.ts`: chế độ, số nhân vật, ghế máy, độ khó và nguyên tố ban đầu.
 - `src/scenes/theme.ts`: màu xanh đậm, giấy kem, viền vàng và chữ Baloo 2.
@@ -18,7 +18,7 @@ Minigame đặt bom nguyên tố, 1–4 nhân vật, sinh tồn hoặc đấu đ
 - `sources/synthesize.py`: tạo lại bốn âm thanh gốc.
 
 Đấu trường và nhân vật có hình ảnh 3D dựng sẵn, được Phaser ghép thành thế giới
-isometric bằng sprite và sắp lớp theo chiều sâu; không dùng engine 3D thời gian thực.
+top-down nghiêng nhẹ bằng sprite và sắp lớp theo chiều sâu; không dùng engine 3D thời gian thực.
 Luật chơi và bots chạy trên server, cùng luật trong sandbox. Máy bổ sung vào
 đấu trường khi thiếu ghế không chiếm ghế phòng dành cho người thật.
 
