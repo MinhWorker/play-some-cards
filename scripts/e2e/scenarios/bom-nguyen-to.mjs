@@ -14,6 +14,9 @@ const controlsClear = (page) =>
   page.waitForFunction(
     () => {
       const s = window.__phaser.scene.getScene('bom-nguyen-to');
+      const topWidth = s.project({ x: 12, y: 0 }).x - s.project({ x: 0, y: 0 }).x;
+      const bottomWidth = s.project({ x: 12, y: 10 }).x - s.project({ x: 0, y: 10 }).x;
+      if (Math.abs(topWidth - bottomWidth) > 0.01) return false;
       return [...s.pad, ...s.actions].every((c) => {
         const b = c.container.getBounds();
         if (
@@ -35,6 +38,178 @@ const controlsClear = (page) =>
     undefined,
     { timeout: 10000 },
   );
+
+// Observe rendered atlas frames during real gameplay, rather than accepting position tweens
+// as character animation. This listener belongs only to the browser scenario.
+const observeActor = (page) =>
+  page.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('bom-nguyen-to');
+    const sprite = scene.actors.get(scene.ctx.me.id).sprite;
+    if (sprite.type !== 'Sprite' || sprite.texture.getFrameNames().length < 20)
+      throw new Error('Fighters must use a real multi-state sprite atlas');
+    window.__bomAnimationFrames = [];
+    sprite.on('animationupdate', (animation) => {
+      window.__bomAnimationFrames.push({
+        animation: animation.key,
+        frame: sprite.frame.name,
+        texture: sprite.texture.key,
+      });
+    });
+  });
+
+const renderedFrames = async (page, state, direction, minimum = 2) => {
+  await page.waitForFunction(
+    ({ state, direction, minimum }) => {
+      const statePattern = new RegExp(`(^|[-:.])${state}([-:.]|$)`);
+      const directionPattern = direction && new RegExp(`(^|[-:.])${direction}([-:.]|$)`);
+      const frames = window.__bomAnimationFrames.filter(
+        (f) =>
+          statePattern.test(f.animation) && (!directionPattern || directionPattern.test(f.frame)),
+      );
+      return new Set(frames.map((f) => `${f.texture}:${f.frame}`)).size >= minimum;
+    },
+    { state, direction, minimum },
+    { timeout: 10000 },
+  );
+};
+
+const clearAnimationFrames = (page) =>
+  page.evaluate(() => {
+    window.__bomAnimationFrames = [];
+  });
+
+async function spriteLifecycle(t) {
+  const page = await t.page(DESKTOP);
+  await page.goto(`${t.url}/?play=${id}&players=1`);
+  await ready(page);
+  // Practice removes random bot combat from the animation and freeze checks.
+  await page.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+  await clickCanvas(page, `${id}:setup`, (s) => s.choices[2].container);
+  await clickCanvas(page, `${id}:setup`, (s) => s.choices[16].container);
+  await clickCanvas(page, `${id}:setup`, (s) => s.submitButton.container);
+  await ready(page);
+  await clickCanvas(page, id, (s) => s.readyButton.container);
+  await playing(page);
+  await observeActor(page);
+  await renderedFrames(page, 'idle');
+  for (const [key, direction, axis, outward] of [
+    ['s', 'down', 'y', true],
+    ['w', 'up', 'y', false],
+    ['d', 'right', 'x', true],
+    ['a', 'left', 'x', false],
+  ]) {
+    await clearAnimationFrames(page);
+    await page.keyboard.down(key);
+    await renderedFrames(page, 'walk', direction);
+    // Travel a full safe spawn corridor before returning. Short frame-dependent holds can
+    // leave too little room for the opposite-direction clip on a slow browser.
+    await page.waitForFunction(
+      ({ axis, outward }) => {
+        const p = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.fighters[0];
+        return outward ? p[axis] >= 2.1 : p[axis] <= 1.1;
+      },
+      { axis, outward },
+    );
+    await page.keyboard.up(key);
+    await renderedFrames(page, 'idle', direction);
+  }
+  await clearAnimationFrames(page);
+  await page.keyboard.press('e');
+  await renderedFrames(page, 'skill');
+  await renderedFrames(page, 'idle');
+  await clearAnimationFrames(page);
+  await page.keyboard.press('Space');
+  await renderedFrames(page, 'place');
+  // A live bomb must animate its actual fuse frames while remaining anchored to its cell.
+  const bombFrames = await page.evaluate(async () => {
+    const s = window.__phaser.scene.getScene('bom-nguyen-to');
+    const bomb = [...s.bombs.values()][0].image;
+    const frames = new Set(),
+      positions = new Set();
+    const start = performance.now();
+    while (performance.now() - start < 500) {
+      await new Promise(requestAnimationFrame);
+      if (!bomb.scene) break;
+      frames.add(bomb.frame.name);
+      positions.add(`${bomb.x.toFixed(2)},${bomb.y.toFixed(2)}`);
+    }
+    return { sprite: bomb.type === 'Sprite', frames: frames.size, positions: positions.size };
+  });
+  if (!bombFrames.sprite || bombFrames.frames < 2 || bombFrames.positions !== 1)
+    throw new Error('Bomb fuse must use atlas frames without moving the bomb off its cell');
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state;
+    return s.fighters[0].hp === 65 && s.fighters[0].frozenUntil > s.time;
+  });
+  const frozenPosition = await page.evaluate(() => {
+    const p = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.fighters[0];
+    return { x: p.x, y: p.y, time: p.frozenUntil };
+  });
+  await page.keyboard.down('s');
+  await page.waitForFunction(({ x, y, time }) => {
+    const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state,
+      p = s.fighters[0];
+    return s.time < time && p.dir === 'down' && p.x === x && p.y === y;
+  }, frozenPosition);
+  await page.keyboard.up('s');
+  const explosionFrames = await page.evaluate(async () => {
+    const scene = window.__phaser.scene.getScene('bom-nguyen-to');
+    const effect = [...scene.flames.values()][0];
+    if (effect?.type !== 'Sprite') return 0;
+    const frames = new Set();
+    const start = performance.now();
+    while (performance.now() - start < 250) {
+      await new Promise(requestAnimationFrame);
+      if (!effect.scene) break;
+      frames.add(effect.frame.name);
+    }
+    return frames.size;
+  });
+  if (explosionFrames < 2) throw new Error('Explosions must advance genuine atlas frames');
+  await renderedFrames(page, 'frozen');
+  await page.screenshot({ path: t.shot('08-ice-freeze-atlas.png') });
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state;
+    return s.fighters[0].frozenUntil <= s.time;
+  });
+  await clearAnimationFrames(page);
+  await renderedFrames(page, 'idle');
+  // Let empowerment expire: the next hit must play hit rather than the higher-priority freeze.
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state;
+    return s.fighters[0].skillUntil <= s.time;
+  });
+  for (const hp of [30, 0]) {
+    await clearAnimationFrames(page);
+    await page.keyboard.press('Space');
+    await page.waitForFunction(
+      (hp) => window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.fighters[0].hp === hp,
+      hp,
+    );
+    await renderedFrames(page, hp > 0 ? 'hit' : 'ko');
+    if (hp > 0) await renderedFrames(page, 'idle');
+  }
+  await page.waitForFunction(() => {
+    const scene = window.__phaser.scene.getScene('bom-nguyen-to');
+    return scene.ctx.state.phase === 'ended' && !scene.actors.get('p1').sprite.visible;
+  });
+  await page.screenshot({ path: t.shot('09-practice-result.png') });
+  // New snapshots must show clean idle characters, with no KO, blasts, or old one-shots replayed.
+  await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
+  await ready(page);
+  await page.waitForFunction(() => {
+    const scene = window.__phaser.scene.getScene('bom-nguyen-to');
+    return (
+      scene.ctx.state.phase === 'select' &&
+      scene.ctx.state.fighters[0].hp === 100 &&
+      scene.actors.get('p1').sprite.visible &&
+      /(^|[-:.])idle([-:.]|$)/.test(scene.actors.get('p1').sprite.anims.currentAnim?.key ?? '') &&
+      scene.bombs.size === 0 &&
+      scene.flames.size === 0
+    );
+  });
+  await page.context().close();
+}
 
 export default async function run(t) {
   const sandbox = await t.page(DESKTOP);
@@ -192,4 +367,8 @@ export default async function run(t) {
     );
   });
   await leaveRoom(host);
+  await guest.context().close();
+  await fan.context().close();
+  await host.context().close();
+  await spriteLifecycle(t);
 }

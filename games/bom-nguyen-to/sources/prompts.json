@@ -1,5 +1,5 @@
 {
-  "$comment": "Hình riêng cho Bom Nguyên Tố, tạo bằng OpenAI Image Gen. sprites là atlas cắt thành assets riêng; concept chỉ làm tham chiếu.",
+  "$comment": "Hình môi trường riêng cho Bom Nguyên Tố, tạo bằng OpenAI Image Gen; nhân vật và animation được vẽ từng tư thế trong bake-cartoon-sprites.mjs. Các concept cũ lưu mô tả tham chiếu.",
   "assets": {
     "concept": {
       "transparent": false,
@@ -14,12 +14,27 @@
     "background": {
       "transparent": false,
       "maxSize": 1920,
-      "prompt": "Đền nổi trong hang xanh ngọc, thác nước, dây leo, đèn vàng; vùng giữa trống để đặt đấu trường. Không chữ, nhân vật hay UI."
+      "prompt": "Original cute pastel storybook toy garden background matching cartoon-concept. Quiet pale mint central85% with subtle broad tint; decorative leaves, cream daisies, puffy clouds, pastel pennants, pinwheels and flowerpots only around perimeter. No arena, text, UI or characters."
     },
     "topdown-props": {
       "transparent": true,
       "maxSize": 1920,
       "prompt": "Atlas 3 ô riêng trên nền trong suốt: ô đá sa thạch, tường đá xanh ngọc, thùng gỗ. Camera top-down nghiêng nhẹ về trước, hàng ô ngang/dọc, không xoay chéo. Mặt trên vuông hơi nén dọc, mặt trước hẹp, phong cách 3D vẽ tay khớp nhân vật. Cắt thành tile, pillar và crate thay bản isometric ban đầu."
+    },
+    "cartoon-concept": {
+      "transparent": false,
+      "maxSize": 1920,
+      "prompt": "Ảnh concept hoàn chỉnh cho Bom Nguyên Tố: minigame vườn đồ chơi hoạt hình màu pastel, linh thú tự thiết kế gồm cáo Hỏa màu đào, hải cẩu Thủy xanh lam, thỏ Lôi tím nhạt, chim cánh cụt Băng và mèo Phong xanh bạc hà. Đấu trường 13 × 11 ô chiếm phần lớn màn hình, camera top-down nghiêng nhẹ, lưới ngang/dọc rõ ràng, không xoay chéo. HUD giấy kem gọn ở bên trái, trạng thái bốn người chơi và đồng hồ phía trên; D-pad bên trái phía dưới, ba nút Bom/Kỹ năng/Lướt xếp dọc bên phải. Ô đi được là mặt cỏ bạc hà phẳng với hoa/lá đơn giản, không mặt trước cao; cột đá xanh, thùng quà màu đào và tường viền nổi cao, mặt trước tối hơn và có bóng tiếp đất. Viền mềm màu mận ấm, chi tiết tròn như đồ chơi, không khí truyện tranh vui tươi gợi game trình duyệt 2010–2016. Không dùng tài sản hay nhân vật trích xuất của Genshin Impact."
+    },
+    "garden-props": {
+      "transparent": true,
+      "maxSize": 1920,
+      "prompt": "Atlas sáu sprite môi trường tự thiết kế, 3 cột × 2 hàng trên nền trong suốt. Hàng trên: mặt cỏ bạc hà có lá cỏ ba lá; mặt cỏ xanh sáng; mặt cỏ bạc hà có hoa cúc. Ba ô sàn hoàn toàn phẳng, vuông bo nhẹ, không có mặt trước cao hay khối đế. Hàng dưới: cột đá xanh lam bo tròn với cỏ ba lá/hoa cúc; thùng quà màu đào với nơ kem; tường viền màu kem với dấu lá. Ba vật cản nổi cao rõ ràng, mặt trên sáng, mặt trước tối hơn chiếm khoảng phần ba chiều cao, bóng tiếp đất mềm. Camera top-down nghiêng nhẹ theo trục ngang/dọc; cạnh trên ngang, cạnh bên thẳng, không hình thoi hay xoay chéo. Màu pastel sáng, viền mận ấm mềm, bề mặt hoạt hình đơn giản, không vật liệu hiện thực. Cắt sáu ô theo thứ tự tile/tile-light/tile-flower/pillar/crate/border bằng prepare-garden-art.mjs."
+    },
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "Original portal thumbnail of floating toy garden3x3 tabletop with mint/honeyyellowtiles, blue daisy stoneblock, peachribbon giftcrate, chubbycreamfaced peachfox and purple smilingbomb withsparkle, mintleafcat peeking atbackcorner. Honeywoodborder with daisies/leaves, warmplum outline, cute pastelstorybooksimple cartoonshading, near topdown orthogonal grid slightly forwardtilted. Transparent, no text/UI or copiedgamecharacters."
     }
   }
 }
