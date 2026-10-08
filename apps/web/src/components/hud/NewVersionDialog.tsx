@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useServerReady } from '@/hooks/useServerReady';
 import type { NewBuild } from '@/lib/newBuild';
+import { WarmupOverlay } from './WarmupOverlay';
 import './NewVersionDialog.css';
 
 const UPDATE_JOKES = [
@@ -80,15 +81,22 @@ export function UpdateLoading() {
  * The old page cannot open newly deployed game chunks. After confirmation, wait for the
  * matching backend before reloading; existing in-memory rooms cannot survive its restart.
  */
-export function NewVersionDialog({ target }: { target: NewBuild }) {
+export function NewVersionDialog({
+  target,
+  deploying = false,
+}: {
+  target: NewBuild;
+  deploying?: boolean;
+}) {
   const reload = useRef<HTMLButtonElement>(null);
   const [updating, setUpdating] = useState(false);
-  const ready = useServerReady(target.build, updating);
+  const readiness = useServerReady(target.build, updating);
   useEffect(() => reload.current?.focus(), []);
   useEffect(() => {
-    if (updating && ready) window.location.reload();
-  }, [updating, ready]);
-  if (updating) return <UpdateLoading />;
+    if (updating && readiness === 'ready') window.location.reload();
+  }, [updating, readiness]);
+  if (updating)
+    return readiness === 'waiting' && !deploying ? <WarmupOverlay shown /> : <UpdateLoading />;
   return (
     <div className="modal-backdrop">
       <div

@@ -6,9 +6,12 @@ import { checkForNewBuild } from '@/lib/newBuild';
 const RETRY_MS = 3000;
 const REQUEST_MS = 10_000;
 
+/** No health response is a connection wait, not evidence of a deployment. */
+export type ServerReadiness = 'waiting' | 'deploying' | 'ready';
+
 /** Wait for the running backend, not just an old healthy process with the same protocol. */
 export function useServerReady(build: DeploymentBuild | null, enabled = true) {
-  const [ready, setReady] = useState<DeploymentBuild | null>(null);
+  const [result, setResult] = useState<{ build: DeploymentBuild | null; state: ServerReadiness }>();
   const bypass = build?.waitForServer === false;
 
   useEffect(() => {
@@ -16,6 +19,16 @@ export function useServerReady(build: DeploymentBuild | null, enabled = true) {
     let stopped = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let request: AbortController | undefined;
+    const unavailable = () => {
+      if (stopped) return;
+      // Once a mismatch is observed, a restart is part of that update. Keep the evidence
+      // for this target until the running backend reports a matching build.
+      setResult((previous) =>
+        previous?.build === build && previous.state === 'deploying'
+          ? previous
+          : { build, state: 'waiting' },
+      );
+    };
     const poll = async () => {
       // Deploys may supersede the target while Render is still building it. Also recovers
       // an already-open page when the backend deploys before Vercel does.
@@ -30,19 +43,30 @@ export function useServerReady(build: DeploymentBuild | null, enabled = true) {
             signal: request.signal,
           });
           const health = res.ok ? await res.json() : null;
+          if (stopped) return;
           if (
-            !stopped &&
             health?.ok === true &&
-            health.db !== 'down' &&
-            health.commit === build.commit &&
-            health.protocol === build.protocol
+            typeof health.commit === 'string' &&
+            health.commit.length > 0 &&
+            Number.isInteger(health.protocol)
           ) {
-            setReady(build);
-            return;
+            if (health.commit !== build.commit || health.protocol !== build.protocol) {
+              setResult({ build, state: 'deploying' });
+            } else if (health.db === 'down') {
+              // The target backend is already running; its DB outage is not a deploy.
+              setResult({ build, state: 'waiting' });
+            } else {
+              setResult({ build, state: 'ready' });
+              return;
+            }
+          } else {
+            unavailable();
           }
+        } else {
+          unavailable();
         }
       } catch {
-        // A restart or temporarily unavailable network keeps the update screen in place.
+        unavailable();
       } finally {
         clearTimeout(timeout);
       }
@@ -56,5 +80,5 @@ export function useServerReady(build: DeploymentBuild | null, enabled = true) {
     };
   }, [build, enabled, bypass]);
 
-  return bypass || (build !== null && ready === build);
+  return bypass ? 'ready' : result?.build === build ? result.state : 'waiting';
 }
