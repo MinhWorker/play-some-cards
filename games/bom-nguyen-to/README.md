@@ -50,6 +50,8 @@ python games/bom-nguyen-to/sources/synthesize.py
 ```
 
 Mỗi atlas nhân vật có 164 khung hình; atlas hiệu ứng có 260 khung hình.
+Chân dung chọn nhân vật được raster hóa từ SVG ở 320×320 để giữ nét trên màn
+hình mật độ cao; khung hoạt hình dùng kích thước gốc 160×160.
 Các ảnh được cắt phần alpha trống và đóng gói cùng `sourceSize`/`spriteSourceSize`
 để giữ vị trí chân ổn định khi đổi khung. `animations.ts` xác định tốc độ,
 chuỗi lặp và các động tác chạy một lần; tải lại trạng thái dựng lại cảnh hiện tại

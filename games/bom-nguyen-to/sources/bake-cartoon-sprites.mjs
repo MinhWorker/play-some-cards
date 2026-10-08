@@ -670,7 +670,8 @@ async function pack(name, frames) {
 }
 
 async function still(name, content) {
-  await sharp(Buffer.from(content))
+  // Render menu portraits at 2× for high-density screens.
+  await sharp(Buffer.from(content), { density: Object.hasOwn(PALETTES, name) ? 144 : 72 })
     .webp({ quality: 95, alphaQuality: 100 })
     .toFile(path.join(assets, `${name}.webp`));
 }
