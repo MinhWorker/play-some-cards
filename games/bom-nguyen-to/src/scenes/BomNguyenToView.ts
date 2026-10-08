@@ -309,11 +309,13 @@ export class BomNguyenToView extends GameView<State, Options> {
       const x = w / 2 + offset * (small ? 0.85 : 1);
       r.container.setPosition(x, rosterY).setScale(small ? 0.78 : 0.93);
     });
-    const boardW = Math.min(w - (small ? 220 : touchLayout ? 310 : 280), touchLayout ? 1010 : 930);
-    const boardH = available - 160;
+    const boardLeft = small ? 270 : 280;
+    const boardRight = w - 38;
+    const boardW = Math.min(boardRight - boardLeft, touchLayout ? 1010 : 930);
+    const boardH = available - 195;
     this.tw = Math.min(boardW / WIDTH, boardH / (HEIGHT * 0.82));
     this.th = this.tw * 0.82;
-    const cx = w / 2 + (small ? 15 : 35);
+    const cx = (boardLeft + boardRight) / 2;
     this.ox = cx - ((WIDTH - 1) * this.tw) / 2;
     this.oy = top + 102 + (boardH - this.th * HEIGHT) / 2 + this.th / 2;
     this.platform.clear();

@@ -9,6 +9,33 @@ const playing = (page) =>
     () => window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.phase === 'playing',
   );
 
+// Controls must stay within the viewport and clear every potentially walkable grid center.
+const controlsClear = (page) =>
+  page.waitForFunction(
+    () => {
+      const s = window.__phaser.scene.getScene('bom-nguyen-to');
+      return [...s.pad, ...s.actions].every((c) => {
+        const b = c.container.getBounds();
+        if (
+          b.left < 0 ||
+          b.right > s.ctx.screen.width ||
+          b.top < s.ctx.screen.top ||
+          b.bottom > s.ctx.screen.height
+        )
+          return false;
+        for (let y = 1; y < 10; y++)
+          for (let x = 1; x < 12; x++) {
+            if (x % 2 === 0 && y % 2 === 0) continue;
+            const p = s.project({ x, y });
+            if (b.contains(p.x, p.y)) return false;
+          }
+        return true;
+      });
+    },
+    undefined,
+    { timeout: 10000 },
+  );
+
 export default async function run(t) {
   const sandbox = await t.page(DESKTOP);
   await sandbox.goto(`${t.url}/?play=${id}&players=1`);
@@ -87,19 +114,7 @@ export default async function run(t) {
   await sandbox.waitForFunction(
     () => window.__phaser.scene.getScene('bom-nguyen-to').direction === 'none',
   );
-  const bounds = await sandbox.evaluate(() => {
-    const s = window.__phaser.scene.getScene('bom-nguyen-to');
-    return [...s.pad, ...s.actions].every((c) => {
-      const b = c.container.getBounds();
-      return (
-        b.left >= 0 &&
-        b.right <= s.ctx.screen.width &&
-        b.top >= s.ctx.screen.top &&
-        b.bottom <= s.ctx.screen.height
-      );
-    });
-  });
-  if (!bounds) throw new Error('Mobile controls clipped');
+  await controlsClear(sandbox);
   await sandbox.screenshot({ path: t.shot('03-match-phone.png') });
   await clickCanvas(sandbox, id, (s) => s.helpButton.container);
   await sandbox.waitForFunction(
@@ -121,6 +136,7 @@ export default async function run(t) {
   });
   if (!teams) throw new Error('2v2 missing filled seats');
   await sandbox.setViewportSize({ width: 1024, height: 768 });
+  await controlsClear(sandbox);
   await sandbox.screenshot({ path: t.shot('05-teams-tablet.png') });
   await sandbox.context().close();
 
