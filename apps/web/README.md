@@ -74,6 +74,9 @@ Thanh phòng chỉ giữ các góc: nút ← (về danh sách phòng) và 🏠 �
 (👑 cạnh chủ phòng) khi bàn không tự vẽ danh sách đó, nút cài đặt ở góc phải. Không ghi tên game
 hay "Phòng của …"; màn chờ ghi tên chủ phòng. Thanh của sandbox cũng không còn nhãn "Chơi thử",
 chỉ hiện ai thắng khi ván kết thúc nếu game không có panel tổng kết riêng (`showsResult`).
+Sandbox dùng cùng luật và timer của server. Mỗi sự kiện Phaser và timer lấy trạng thái
+mới nhất ngay tại lúc xử lý, để giữ phím di chuyển trong game thời gian thực không ghi đè
+nhịp mô phỏng hoặc đưa đồng hồ về trạng thái cũ.
 Cờ Vây tự vẽ HUD người chơi và tổng kết; các nút "Chơi ván mới"/"Tuỳ chỉnh" của phòng
 nằm giữa thanh trên, không có khung kết quả phụ hay che người chơi ở góc dưới phải.
 

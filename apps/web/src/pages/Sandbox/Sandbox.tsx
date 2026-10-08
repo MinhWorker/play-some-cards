@@ -41,6 +41,13 @@ export function Sandbox({ gameId, players: count }: Props) {
       options,
     ),
   );
+  // Phaser input and timers can arrive before React commits the next render. Keep one
+  // synchronous current snapshot so an input never restores an older timer or position.
+  const stateRef = useRef(state);
+  const replaceState = useCallback((next: unknown) => {
+    stateRef.current = next;
+    setState(next);
+  }, []);
   const client = useGameClient(gameId);
   const hasSetup = Boolean(client?.setup);
   const [settingUp, setSettingUp] = useState(false);
@@ -81,11 +88,11 @@ export function Sandbox({ gameId, players: count }: Props) {
     if (!game || timerKey === null) return;
     setTimerEnd(Date.now() + timerMs);
     const handle = setTimeout(
-      () => setState((s: unknown) => game.fireTimer(s, Math.random, roomRef.current)),
+      () => replaceState(game.fireTimer(stateRef.current, Math.random, roomRef.current)),
       timerMs,
     );
     return () => clearTimeout(handle);
-  }, [game, timerKey, timerMs]);
+  }, [game, timerKey, timerMs, replaceState]);
 
   // How long the game has lasted, like the server's `played`.
   const [startedAt, setStartedAt] = useState(Date.now);
@@ -100,7 +107,7 @@ export function Sandbox({ gameId, players: count }: Props) {
       if (!game) return;
       // Like the server: the next game hears how this one ended (e.g. the winner leads).
       setLastResult(result);
-      setState(
+      replaceState(
         game.setup(
           seats.map((s) => s.id),
           Math.random,
@@ -113,7 +120,7 @@ export function Sandbox({ gameId, players: count }: Props) {
       setLast(null);
       setError('');
     },
-    [game, seats, options, room, result],
+    [game, seats, options, room, result, replaceState],
   );
 
   // The setup screen's options are checked like on the server, then a new game starts with them.
@@ -145,14 +152,15 @@ export function Sandbox({ gameId, players: count }: Props) {
   // Moves from the board go through the same checks as on the server.
   useEffect(() => {
     const onMove = (move: unknown) => {
-      if (!game || state === undefined || !me) return;
+      const current = stateRef.current;
+      if (!game || current === undefined || !me) return;
       const parsed = game.moveSchema.safeParse(move);
       const problem = parsed.success
-        ? game.validateMove(state, parsed.data, me, room)
+        ? game.validateMove(current, parsed.data, me, room)
         : 'Nước đi sai dạng';
       if (problem) return setError(problem);
       setError('');
-      const next = game.applyMove(state, parsed.data, me, Math.random, room);
+      const next = game.applyMove(current, parsed.data, me, Math.random, room);
       setLast((l) => ({ seq: (l?.seq ?? 0) + 1, player: me, move: parsed.data }));
       const end = game.getResult(next, room);
       if (end) {
@@ -161,13 +169,13 @@ export function Sandbox({ gameId, players: count }: Props) {
           draws: s.draws + (end.winners.length ? 0 : 1),
         }));
       }
-      setState(next);
+      replaceState(next);
     };
     bridge.on('board:move', onMove);
     return () => {
       bridge.off('board:move', onMove);
     };
-  }, [game, state, me, seats, room]);
+  }, [game, me, seats, room, replaceState]);
 
   useEffect(() => {
     const el = bar.current;

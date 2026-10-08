@@ -1,0 +1,20 @@
+{
+  "$comment": "Hình riêng cho Bom Nguyên Tố, tạo bằng OpenAI Image Gen. sprites là atlas cắt thành assets riêng; concept chỉ làm tham chiếu.",
+  "assets": {
+    "concept": {
+      "transparent": false,
+      "maxSize": 1920,
+      "prompt": "Bom Nguyên Tố · đấu trường isometric đền nổi xanh ngọc, đá sa thạch, HUD xanh đậm viền vàng; nhân vật chibi nguyên tố tự thiết kế. Giao diện Việt, điều khiển WASD/Space/E/Shift và cảm ứng."
+    },
+    "sprites": {
+      "transparent": true,
+      "maxSize": 1920,
+      "prompt": "Atlas nền trong suốt: năm nhà phiêu lưu Hỏa/Thủy/Lôi/Băng/Phong; ô đá, cột xanh ngọc, thùng gỗ, bom, bình hồi máu; năm hiệu ứng nguyên tố. Ánh sáng trên trái, góc nhìn isometric. Cắt thành assets WebP riêng."
+    },
+    "background": {
+      "transparent": false,
+      "maxSize": 1920,
+      "prompt": "Đền nổi trong hang xanh ngọc, thác nước, dây leo, đèn vàng; vùng giữa trống để đặt đấu trường. Không chữ, nhân vật hay UI."
+    }
+  }
+}
