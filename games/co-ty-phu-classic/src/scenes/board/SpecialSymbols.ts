@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 import { BOARD } from '../../game/model.js';
-import { BOARD_CELLS } from './boardGeometry.js';
+import { BOARD_CELLS, BOARD_FACES } from './boardGeometry.js';
 import { type SymbolAnimation, SymbolAtlas } from './SymbolAtlas.js';
 
 type SourceImage = CanvasImageSource & { width: number; height: number };
@@ -307,6 +307,7 @@ export class SpecialSymbols {
    */
   private inkOf(pixels: ImageData, square: number): Ink {
     const cell = BOARD_CELLS[square]!;
+    const face = BOARD_FACES[square]!;
     const xs = cell.map(([x]) => x * this.width);
     const ys = cell.map(([, y]) => y * this.height);
     const [minX, maxX, minY, maxY] = [
@@ -322,6 +323,13 @@ export class SpecialSymbols {
     const y0 = Math.ceil(minY + insetY);
     const y1 = Math.floor(maxY - insetY);
     const coverage = (x: number, y: number) => {
+      const u = x / this.width;
+      const v = y / this.height;
+      const distances = face.map(([ax, ay], i) => {
+        const [bx, by] = face[(i + 1) % 4]!;
+        return (bx - ax) * (v - ay) - (by - ay) * (u - ax);
+      });
+      if (!distances.every((d) => d >= 0) && !distances.every((d) => d <= 0)) return 0;
       const o = (y * this.width + x) * 4;
       const [r, g, b, a] = [
         pixels.data[o]!,
@@ -344,6 +352,72 @@ export class SpecialSymbols {
           by0 = Math.min(by0, y);
           by1 = Math.max(by1, y);
         }
+    const candidateWidth = x1 - x0 + 1;
+    const candidateHeight = y1 - y0 + 1;
+    const visited = new Uint8Array(candidateWidth * candidateHeight);
+    let best: number[] = [];
+    let bestDistance = Number.POSITIVE_INFINITY;
+    if (BOARD[square]!.kind === 'chance') {
+      for (let row = 0; row < candidateHeight; row++) {
+        for (let col = 0; col < candidateWidth; col++) {
+          const start = row * candidateWidth + col;
+          if (visited[start] || coverage(x0 + col, y0 + row) <= 0.2) continue;
+          const component = [start];
+          visited[start] = 1;
+          for (let next = 0; next < component.length; next++) {
+            const index = component[next]!;
+            const cx = index % candidateWidth;
+            const cy = Math.floor(index / candidateWidth);
+            for (const [dx, dy] of [
+              [-1, 0],
+              [1, 0],
+              [0, -1],
+              [0, 1],
+            ]) {
+              const nx = cx + dx!;
+              const ny = cy + dy!;
+              const neighbor = ny * candidateWidth + nx;
+              if (
+                nx < 0 ||
+                ny < 0 ||
+                nx >= candidateWidth ||
+                ny >= candidateHeight ||
+                visited[neighbor]
+              )
+                continue;
+              if (coverage(x0 + nx, y0 + ny) <= 0.2) continue;
+              visited[neighbor] = 1;
+              component.push(neighbor);
+            }
+          }
+          if (component.length < 12) continue;
+          const distance = Math.min(
+            ...component.map((index) => {
+              const dx = (index % candidateWidth) / candidateWidth - 0.5;
+              const dy = Math.floor(index / candidateWidth) / candidateHeight - 0.5;
+              return dx * dx + dy * dy;
+            }),
+          );
+          if (distance < bestDistance) {
+            best = component;
+            bestDistance = distance;
+          }
+        }
+      }
+    }
+    // Chance is one connected star; other icons can contain intentionally detached detail.
+    const star = BOARD[square]!.kind === 'chance' ? new Set(best) : null;
+    if (star) {
+      [bx0, by0, bx1, by1] = [x1, y1, x0, y0];
+      for (const index of star) {
+        const x = x0 + (index % candidateWidth);
+        const y = y0 + Math.floor(index / candidateWidth);
+        bx0 = Math.min(bx0, x);
+        bx1 = Math.max(bx1, x);
+        by0 = Math.min(by0, y);
+        by1 = Math.max(by1, y);
+      }
+    }
     const pad = 2;
     const x = Math.max(0, bx0 - pad);
     const y = Math.max(0, by0 - pad);
@@ -351,7 +425,12 @@ export class SpecialSymbols {
     const h = Math.max(1, Math.min(this.height - y, by1 - by0 + 1 + pad * 2));
     const alpha = new Uint8ClampedArray(w * h);
     for (let row = 0; row < h; row++)
-      for (let col = 0; col < w; col++) alpha[row * w + col] = coverage(x + col, y + row) * 255;
+      for (let col = 0; col < w; col++) {
+        const px = x + col;
+        const py = y + row;
+        const index = (py - y0) * candidateWidth + px - x0;
+        alpha[row * w + col] = star && !star.has(index) ? 0 : coverage(px, py) * 255;
+      }
     return { x, y, w, h, alpha };
   }
 

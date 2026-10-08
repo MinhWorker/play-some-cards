@@ -209,7 +209,8 @@ Nếu không chọn cách đó, gieo để thử ra đôi:
 
 - Ra đôi thì ra tù và đi theo tổng xúc xắc, nhưng không được gieo thêm vì lần đôi này.
 - Hai lần thử đầu không ra đôi thì vẫn ở tù và kết thúc lượt.
-- Lần thử thứ ba không ra đôi phải trả 50 rồi đi theo tổng vừa gieo; thiếu tiền thì xử lý nợ trước khi đi.
+- Lần thử thứ ba không ra đôi được ra tù vì mãn hạn, không trả phí, rồi đi theo tổng vừa gieo.
+- Phí 50 chỉ áp dụng khi chủ động trả để ra tù sớm; nút trả phí bị khóa nếu không đủ tiền.
 
 Người ở tù vẫn được quản lý tài sản nhưng không thu tiền thuê cho tới khi ra tù.
 Khi ra tù, người chơi thấy hai cửa song sắt mở ra cùng âm thanh mở khóa.

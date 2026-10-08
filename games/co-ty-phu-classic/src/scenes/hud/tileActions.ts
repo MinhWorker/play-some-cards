@@ -11,7 +11,7 @@ export type TileAction = {
   label: string;
   event: string;
   payload: Record<string, number>;
-  /** Absent means enabled; unavailable construction remains visible on owned streets. */
+  /** Absent means enabled; unaffordable purchases and construction stay visible. */
   enabled?: boolean;
 };
 
@@ -24,7 +24,7 @@ export function tileActions(state: View, seat: number | null, square: number): T
   if (state.phase === 'buy' && state.turn === seat && state.pending === square) {
     return state.players[seat]!.cash >= cell.price!
       ? [{ label: `Mua ${cell.price} ₫`, event: 'buy', payload: {} }]
-      : [];
+      : [{ label: 'Ko đủ ₫', event: 'buy', payload: {}, enabled: false }];
   }
   if (state.phase === 'auction') {
     const auction = state.auction;
@@ -64,7 +64,10 @@ export function tileActions(state: View, seat: number | null, square: number): T
   const cash = state.players[seat]!.cash;
   if (cell.kind === 'street') {
     actions.push({
-      label: `${deed.houses >= 4 ? 'Xây khách sạn' : 'Xây nhà'} ${cell.houseCost!.toLocaleString('vi-VN')} ₫`,
+      label:
+        cash < cell.houseCost!
+          ? 'Ko đủ ₫'
+          : `${deed.houses >= 4 ? 'Xây khách sạn' : 'Xây nhà'} ${cell.houseCost!.toLocaleString('vi-VN')} ₫`,
       event: 'build',
       payload,
       enabled:

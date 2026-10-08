@@ -30,6 +30,67 @@ describe('Cờ tỷ phú Classic', () => {
     expect(game.view(null)).not.toHaveProperty('chest');
   });
 
+  it.each([0, 49, 1000])(
+    'releases an expired jail term without bail, even with %s cash',
+    (cash) => {
+      const game = testGame(plugin, ['a', 'b']);
+      const player = game.state.players[0]!;
+      player.position = 10;
+      player.jailed = true;
+      player.jailRolls = 2;
+      player.cash = cash;
+      game.state.devDice = [2, 3];
+      game.send('a', 'roll');
+      expect(game.state.players[0]).toMatchObject({
+        jailed: false,
+        jailRolls: 0,
+        position: 15,
+        cash,
+      });
+      expect(game.state.debt).toBeNull();
+      expect(game.state.transfers).toEqual([]);
+      expect(game.state.after).toBe('end');
+    },
+  );
+
+  it('keeps the first two failed attempts in jail and only charges voluntary early bail', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.state.players[0]!.position = 10;
+    game.state.players[0]!.jailed = true;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      game.state.turn = 0;
+      game.state.phase = 'roll';
+      game.state.devDice = [2, 3];
+      game.send('a', 'roll');
+      expect(game.state.players[0]).toMatchObject({
+        jailed: true,
+        jailRolls: attempt,
+        position: 10,
+        cash: 1000,
+      });
+    }
+    game.state.phase = 'roll';
+    game.state.players[0]!.cash = 49;
+    expect(game.error('a', 'pay-bail')).toBe('Không đủ tiền bảo lãnh');
+    expect(game.state.players[0]!.jailed).toBe(true);
+    game.state.players[0]!.cash = 50;
+    game.send('a', 'pay-bail');
+    expect(game.state.players[0]).toMatchObject({ jailed: false, jailRolls: 0, cash: 0 });
+    expect(game.state.phase).toBe('roll');
+    expect(game.state.transfers).toHaveLength(1);
+  });
+
+  it('releases a double without bail or a bonus roll during a jail attempt', () => {
+    const game = testGame(plugin, ['a', 'b']);
+    game.state.players[0]!.position = 10;
+    game.state.players[0]!.jailed = true;
+    game.state.devDice = [3, 3];
+    game.send('a', 'roll');
+    expect(game.state.players[0]).toMatchObject({ jailed: false, position: 16, cash: 1000 });
+    expect(game.state.after).toBe('end');
+    expect(game.state.transfers).toEqual([]);
+  });
+
   it('reveals tax before charging, rejects other seats and applies it once', () => {
     const game = at(38);
     game.send('a', 'roll');

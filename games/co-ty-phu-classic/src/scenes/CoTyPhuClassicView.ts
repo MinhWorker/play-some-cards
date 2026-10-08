@@ -30,8 +30,9 @@ import { BoardTileEffect } from './board/BoardTileEffect.js';
 import { BOARD_CELLS, BOARD_IMAGE_RATIO, PLAYER_PANEL } from './board/boardGeometry.js';
 import { planePoint } from './board/boardPlane.js';
 import { DeedLayers } from './board/DeedLayers.js';
-import { MonopolyBorders } from './board/MonopolyBorders.js';
+import { MonopolySymbols } from './board/MonopolySymbols.js';
 import { SpecialSymbols } from './board/SpecialSymbols.js';
+import { StationBidMarks } from './board/StationBidMarks.js';
 import { TileOwnerSymbols } from './board/TileOwnerSymbols.js';
 import { Backdrop } from './effects/Backdrop.js';
 import { addGlow } from './effects/glow.js';
@@ -191,6 +192,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     | 'rolling'
     | 'result'
     | 'moving'
+    | 'releasing'
     | 'landing'
     | 'drawing'
     | 'reveal'
@@ -246,7 +248,8 @@ export class CoTyPhuClassicView extends GameView<View> {
   private mortgagePanel!: MortgagePanel;
   private auctionConfirm!: AuctionConfirmPanel;
   private jailGate!: JailGateEffect;
-  private monopolyBorders!: MonopolyBorders;
+  private monopolySymbols!: MonopolySymbols;
+  private stationBidMarks!: StationBidMarks;
   private victory!: VictoryEffect;
   private selected: number | null = null;
   private tileActionCount = 0;
@@ -315,7 +318,8 @@ export class CoTyPhuClassicView extends GameView<View> {
     this.boardPrices = new BoardPrices(this, this.boardImage.texture.key, PLAYER_COLORS);
     this.eventDeck = new EventDeck(this);
     this.jailGate = new JailGateEffect(this);
-    this.monopolyBorders = new MonopolyBorders(this);
+    this.monopolySymbols = new MonopolySymbols(this);
+    this.stationBidMarks = new StationBidMarks(this);
     this.victory = new VictoryEffect(
       this,
       PLAYER_PAWNS.map((pawn) => this.texture(pawn.replace('pawn-', 'pawn-front-'))),
@@ -559,12 +563,12 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setPosition(cx, this.fieldY(0.16))
       .setFontSize(22 * this.k)
       .setAlign('center')
-      .setWordWrapWidth(Math.min(size * 0.52, 410), true);
+      .setWordWrapWidth(Math.min(size * 0.56, 440), false);
     this.card
       .setPosition(cx, this.fieldY(0.36))
       .setFontSize(20 * this.k)
       .setAlign('center')
-      .setWordWrapWidth(Math.min(size * 0.52, 410), true);
+      .setWordWrapWidth(Math.min(size * 0.56, 440), false);
     this.dice.setPosition(cx, this.fieldY(0.58), tile);
     this.layoutReady(ctx);
     this.mortgagePanel.layout(ctx.screen);
@@ -966,15 +970,16 @@ export class CoTyPhuClassicView extends GameView<View> {
       );
       const deed = this.shownProperties[i] ?? ctx.state.properties[i]!;
       if (isDeed(cell)) this.drawDeedState(i, deed);
-      if (ctx.state.stationAuctions[i] && cell.kind === 'station') {
-        ctx.state.stationAuctions[i]!.bids.forEach((amount, seat) => {
-          if (!amount) return;
-          const point = this.surfacePoint(i, 0.22 + seat * 0.18, 0.85);
-          this.board.fillStyle(PLAYER_COLORS[seat]!).fillCircle(point.x, point.y, tile * 0.09);
-        });
-      }
     });
-    this.monopolyBorders.layout(
+    this.stationBidMarks.layout(
+      ctx.state.stationAuctions,
+      PLAYER_COLORS,
+      this.geometry.left,
+      this.geometry.top,
+      this.geometry.size,
+      this.geometry.imageH,
+    );
+    this.monopolySymbols.layout(
       this.shownProperties,
       this.geometry.left,
       this.geometry.top,
@@ -1137,6 +1142,8 @@ export class CoTyPhuClassicView extends GameView<View> {
     enabled = true,
     icon: PropertyActionIcon | null = null,
   ) {
+    const insufficient = text === 'Ko đủ ₫';
+    if (insufficient) text = 'Ko đủ';
     const roll = cardStyle === 'roll';
     const nativeHeight = roll ? 192 : cardStyle ? 112 : 133;
     const scale = height / nativeHeight;
@@ -1180,23 +1187,30 @@ export class CoTyPhuClassicView extends GameView<View> {
       .setVisible(true)
       .setPosition(x + (roll ? height * 0.32 : 0), y - (roll ? 2 : 0))
       .setFontSize(roll ? 30 : height < 62 ? 20 : 22);
-    const iconSize = icon ? Math.min(34, height - 16, width < 150 ? 28 : 34) : 0;
+    const compactIcon = (icon === 'buy' || icon === 'build') && width < 240;
+    const iconSize =
+      icon || insufficient
+        ? Math.min(compactIcon ? 26 : 34, height - 16, width < 150 ? 28 : 34)
+        : 0;
     this.fitText(
       button.text,
       text,
-      width - (roll ? height * 1.2 : icon ? iconSize + 16 : 14),
-      roll ? 24 : 16,
+      width - (roll ? height * 1.2 : icon || insufficient ? iconSize + 16 : 14),
+      roll ? 24 : compactIcon ? 14 : 16,
     );
-    if (icon) {
+    if (icon || insufficient) {
       const size = iconSize;
       const groupWidth = size + (text ? 7 + button.text.width : 0);
       const left = x - groupWidth / 2;
       button.icon
-        .setTexture(propertyActionIcon(this, icon))
+        .setTexture(insufficient ? this.texture('hud-money') : propertyActionIcon(this, icon!))
         .setDisplaySize(size, size)
-        .setPosition(left + size / 2, y)
+        .setPosition(insufficient ? left + button.text.width + 7 + size / 2 : left + size / 2, y)
         .setVisible(true);
-      button.text.setPosition(left + size + 7 + button.text.width / 2, y);
+      button.text.setPosition(
+        insufficient ? left + button.text.width / 2 : left + size + 7 + button.text.width / 2,
+        y,
+      );
     }
     button.action = enabled ? action : () => {};
   }
@@ -1339,7 +1353,7 @@ export class CoTyPhuClassicView extends GameView<View> {
     ];
   }
 
-  private actions(ctx: Ctx): [string, () => void][] {
+  private actions(ctx: Ctx): [string, () => void, boolean?][] {
     const { state, me } = ctx;
     if (!me || ctx.result) return [];
     if (state.phase === 'trade' && state.trade) {
@@ -1369,9 +1383,14 @@ export class CoTyPhuClassicView extends GameView<View> {
     if (state.turn !== me.seat) return [];
     if (state.phase === 'event') return [['Xác nhận', () => this.send('confirm-event')]];
     if (state.phase === 'roll') {
-      const actions: [string, () => void][] = [];
+      const actions: [string, () => void, boolean?][] = [];
       if (state.players[me.seat]!.jailed) {
-        actions.push(['Trả 50 ra tù', () => this.send('pay-bail')]);
+        const enoughCash = state.players[me.seat]!.cash >= 50;
+        actions.push([
+          enoughCash ? 'Trả 50 ra tù' : 'Ko đủ ₫',
+          () => this.send('pay-bail'),
+          enoughCash,
+        ]);
         if (state.players[me.seat]!.freeCards.length)
           actions.push(['Dùng thẻ ra tù', () => this.send('use-card')]);
       }
@@ -1725,6 +1744,15 @@ export class CoTyPhuClassicView extends GameView<View> {
         fx.checkpoint();
         this.activeRoll = beat;
         this.lastLandedSquare = null;
+        if (beat.releasing && beat.seat === this.ctx.me?.seat) {
+          this.visualPhase = 'releasing';
+          this.dice.hide();
+          this.onState(this.ctx);
+          await fx.parallel(
+            (sound) => sound.sound('tycoon-release'),
+            (gate) => this.jailGate.open(gate),
+          );
+        }
         if (dice) {
           this.visualPhase = 'rolling';
           this.dice.roll(...beat.dice);
@@ -1742,12 +1770,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         fx.checkpoint();
         this.visualPhase = 'moving';
         this.onState(this.ctx);
-        if (beat.releasing && beat.seat === this.ctx.me?.seat) {
-          await fx.parallel(
-            (sound) => sound.sound('tycoon-release'),
-            (gate) => this.jailGate.open(gate),
-          );
-        }
+
         if (!dice && BOARD[beat.from]!.kind === 'airport' && beat.from !== beat.to)
           await this.airlift(fx, beat.seat, beat.to);
         else
@@ -2185,12 +2208,34 @@ export class CoTyPhuClassicView extends GameView<View> {
    * `lines` lines, the font shrinking (down to 15) until the text fits them.
    */
   private compact(text: Phaser.GameObjects.Text, size: number, lines: number) {
+    // Keep currency attached to its amount; Phaser's advanced wrapping splits Vietnamese words.
+    const copy = text.text.replace(/(\d[\d.]*) ₫/g, '$1\u00a0₫');
+    text.setText(copy);
     let px = Math.round(size);
     const set = () => text.setFontSize(px).setLineSpacing(-Math.round(px * 0.2));
     set();
     while (text.getWrappedText().length > lines && px > 15) {
       px--;
       set();
+    }
+    if (text.getWrappedText().length === 2 && !copy.includes('\n')) {
+      const words = copy.split(' ');
+      const width = text.style.wordWrapWidth ?? Number.POSITIVE_INFINITY;
+      let best = '';
+      let score = Number.POSITIVE_INFINITY;
+      for (let split = 1; split < words.length; split++) {
+        const first = words.slice(0, split).join(' ');
+        const second = words.slice(split).join(' ');
+        const firstWidth = text.context.measureText(first).width;
+        const secondWidth = text.context.measureText(second).width;
+        if (Math.max(firstWidth, secondWidth) > width) continue;
+        const difference = Math.abs(firstWidth - secondWidth);
+        if (difference < score) {
+          best = `${first}\n${second}`;
+          score = difference;
+        }
+      }
+      if (best) text.setText(best);
     }
   }
 
@@ -2263,7 +2308,6 @@ export class CoTyPhuClassicView extends GameView<View> {
     }
     this.drawAuctionAttention(delta);
     this.specialSymbols.update(this.time.now);
-    this.monopolyBorders.update(this.time.now);
     this.playerPanel.update(this.geometry);
     const event = this.ctx.state.specialEvent;
     if (
@@ -2452,29 +2496,31 @@ export class CoTyPhuClassicView extends GameView<View> {
           ? this.landingBeat?.deck === 'chance'
             ? 'Cơ hội'
             : 'Khí vận'
-          : this.visualPhase === 'thinking'
-            ? `${players[this.activeMoney?.beat.transfer.from ?? this.shownTurn]?.name ?? ''} đang cân nhắc`
-            : result
-              ? 'KẾT THÚC'
-              : this.visualPhase === 'landing' && this.lastLandedSquare !== null
-                ? landingHeading(
-                    this.lastLandedSquare,
-                    BOARD[this.lastLandedSquare]!.name,
-                    this.landingBeat?.jailed ?? false,
-                  )
-                : this.visualPhase === 'rolling'
-                  ? `${rollingName} gieo xúc xắc`
-                  : this.visualPhase === 'result'
-                    ? `${this.activeRoll?.dice[0]} + ${this.activeRoll?.dice[1]} = ${(this.activeRoll?.dice[0] ?? 0) + (this.activeRoll?.dice[1] ?? 0)}`
-                    : this.visualPhase === 'moving'
-                      ? this.activeRoll?.jailed
-                        ? `Đưa ${rollingName} vào tù`
-                        : `${rollingName} đang đi`
-                      : state.phase === 'auction' && state.auction
-                        ? `Đấu giá · lượt ${players[state.auction.bidder]?.name ?? ''}`
-                        : state.phase === 'debt'
-                          ? `${players[decisionSeat(state)]?.name ?? ''} trả nợ`
-                          : `Lượt ${turn}`,
+          : this.visualPhase === 'releasing'
+            ? `${rollingName} ra tù`
+            : this.visualPhase === 'thinking'
+              ? `${players[this.activeMoney?.beat.transfer.from ?? this.shownTurn]?.name ?? ''} đang cân nhắc`
+              : result
+                ? 'KẾT THÚC'
+                : this.visualPhase === 'landing' && this.lastLandedSquare !== null
+                  ? landingHeading(
+                      this.lastLandedSquare,
+                      BOARD[this.lastLandedSquare]!.name,
+                      this.landingBeat?.jailed ?? false,
+                    )
+                  : this.visualPhase === 'rolling'
+                    ? `${rollingName} gieo xúc xắc`
+                    : this.visualPhase === 'result'
+                      ? `${this.activeRoll?.dice[0]} + ${this.activeRoll?.dice[1]} = ${(this.activeRoll?.dice[0] ?? 0) + (this.activeRoll?.dice[1] ?? 0)}`
+                      : this.visualPhase === 'moving'
+                        ? this.activeRoll?.jailed
+                          ? `Đưa ${rollingName} vào tù`
+                          : `${rollingName} đang đi`
+                        : state.phase === 'auction' && state.auction
+                          ? `Đấu giá · lượt ${players[state.auction.bidder]?.name ?? ''}`
+                          : state.phase === 'debt'
+                            ? `${players[decisionSeat(state)]?.name ?? ''} trả nợ`
+                            : `Lượt ${turn}`,
     );
     if (!presenting && state.specialEvent) {
       const event = state.specialEvent;
@@ -2513,33 +2559,39 @@ export class CoTyPhuClassicView extends GameView<View> {
           )
         : '';
     this.notice.setText(
-      this.visualPhase === 'thinking'
-        ? 'Tính một chút, lời một chút…'
-        : this.activeMoney
-          ? eventNotice(this.activeMoney.beat.transfer.reason, null, '')
-          : presenting
-            ? this.visualPhase === 'rolling'
-              ? 'Lắc nhẹ tay, mong vận may…'
-              : this.visualPhase === 'result'
-                ? `${rollingName} gieo được`
-                : this.visualPhase === 'moving'
-                  ? this.activeRoll?.jailed
-                    ? 'Không nhận thưởng Xuất phát.'
-                    : `Đang đến ${BOARD[this.activeRoll?.to ?? 0]!.name}.`
-                  : this.visualPhase === 'landing'
-                    ? this.landingBeat?.to === 10 && this.landingBeat.jailed
-                      ? this.landingBeat.notice === 'Ba lần xúc xắc đôi: vào tù!'
-                        ? 'Tung đôi 3 lần liên tiếp.'
+      this.visualPhase === 'releasing'
+        ? 'Cửa nhà tù đã mở.'
+        : this.visualPhase === 'thinking'
+          ? 'Tính một chút, lời một chút…'
+          : this.activeMoney
+            ? eventNotice(this.activeMoney.beat.transfer.reason, null, '')
+            : presenting
+              ? this.visualPhase === 'rolling'
+                ? 'Lắc nhẹ tay, mong vận may…'
+                : this.visualPhase === 'result'
+                  ? `${rollingName} gieo được`
+                  : this.visualPhase === 'moving'
+                    ? this.activeRoll?.jailed
+                      ? 'Không nhận thưởng Xuất phát.'
+                      : `Đang đến ${BOARD[this.activeRoll?.to ?? 0]!.name}.`
+                    : this.visualPhase === 'landing'
+                      ? this.landingBeat?.to === 10 && this.landingBeat.jailed
+                        ? this.landingBeat.notice === 'Ba lần xúc xắc đôi: vào tù!'
+                          ? 'Tung đôi 3 lần liên tiếp.'
+                          : ''
+                        : landedNotice
+                      : this.visualPhase === 'reveal' && this.landingBeat
+                        ? eventNotice(
+                            this.landingBeat.notice,
+                            this.landingBeat.card,
+                            BOARD[this.landingBeat.to]!.name,
+                          )
                         : ''
-                      : landedNotice
-                    : this.visualPhase === 'reveal' && this.landingBeat
-                      ? eventNotice(
-                          this.landingBeat.notice,
-                          this.landingBeat.card,
-                          BOARD[this.landingBeat.to]!.name,
-                        )
-                      : ''
-            : eventNotice(notice, state.lastCard, BOARD[state.players[state.turn]!.position]!.name),
+              : eventNotice(
+                  notice,
+                  state.lastCard,
+                  BOARD[state.players[state.turn]!.position]!.name,
+                ),
     );
     if (this.runtime.pending('turn') > 2 && this.visualPhase === 'rolling')
       this.notice.setText(`${this.notice.text} · Theo kịp ván…`);
@@ -2827,7 +2879,9 @@ export class CoTyPhuClassicView extends GameView<View> {
                   ? this.openAuctionConfirm(action.payload.square!)
                   : this.send(action.event, action.payload),
             action.enabled !== false,
-            action.event === 'auction' || action.event === 'mortgage' ? action.event : null,
+            action.event === 'auction' || action.event === 'mortgage' || action.event === 'build'
+              ? action.event
+              : null,
           ]),
       );
       const manager = me && (state.phase === 'debt' ? decisionSeat(state) : state.turn) === me.seat;
@@ -2899,10 +2953,13 @@ export class CoTyPhuClassicView extends GameView<View> {
       (state.phase === 'auction' && state.auction?.square === selected);
     const tileChoices =
       state.phase === 'buy' || state.phase === 'auction'
-        ? tileActions(state, me?.seat ?? null, selected).map((action): [string, () => void] => [
-            action.label,
-            () => this.send(action.event, action.payload),
-          ])
+        ? tileActions(state, me?.seat ?? null, selected).map(
+            (action): [string, () => void, boolean?] => [
+              action.label,
+              () => this.send(action.event, action.payload),
+              action.enabled,
+            ],
+          )
         : actions;
     const tileButtons = [
       ...controls.map(([label, action, enabled, icon], i) => ({
@@ -2911,17 +2968,17 @@ export class CoTyPhuClassicView extends GameView<View> {
         action,
         enabled,
         icon,
-        primary: label.startsWith('Xây '),
+        primary: icon === 'build',
       })),
       ...(contextualActions
-        ? tileChoices.map(([label, action], i) => ({
+        ? tileChoices.map(([label, action, enabled], i) => ({
             // Reserve the turn controls while the purchase stays on the tile's card.
             button: this.main[i + (state.phase === 'buy' ? actions.length : 0)]!,
             label,
             action,
-            enabled: true,
-            icon: null,
-            primary: label.startsWith('Mua ') || (state.phase === 'auction' && i === 0),
+            enabled: enabled !== false,
+            icon: state.phase === 'buy' ? ('buy' as const) : null,
+            primary: state.phase === 'buy' || (state.phase === 'auction' && i === 0),
           }))
         : []),
     ];
@@ -2966,7 +3023,12 @@ export class CoTyPhuClassicView extends GameView<View> {
     const buttons =
       state.phase === 'auction'
         ? []
-        : actions.map(([label, action], i) => ({ button: this.main[i]!, label, action }));
+        : actions.map(([label, action, enabled], i) => ({
+            button: this.main[i]!,
+            label,
+            action,
+            enabled,
+          }));
     const bottom = ctx.screen.height - 24;
     // The speed button takes the column's bottom-left corner.
     const buttonW = Math.min(190, sideW - 66);
@@ -2980,7 +3042,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         ? left + size * 0.76
         : ctx.screen.width - 12;
     let row = 0;
-    buttons.forEach(({ button, label, action }) => {
+    buttons.forEach(({ button, label, action, enabled }) => {
       if (state.phase === 'roll' && label === 'Gieo xúc xắc') {
         this.put(
           button,
@@ -3008,7 +3070,7 @@ export class CoTyPhuClassicView extends GameView<View> {
         return;
       }
       const x = turnRight - buttonW / 2;
-      this.put(button, label, x, startY + row++ * 70, buttonW, action);
+      this.put(button, label, x, startY + row++ * 70, buttonW, action, 62, null, enabled !== false);
     });
   }
 }

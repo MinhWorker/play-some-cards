@@ -42,15 +42,17 @@ export default async function run(t) {
     };
     s.playbackSpeed = 2;
     s.runtime.setSpeed(2);
-    const clear = s.board.clear.bind(s.board);
-    const circle = s.board.fillCircle.bind(s.board);
-    s.board.clear = () => {
+    const shape = s.stationBidMarks.surface.shape.bind(s.stationBidMarks.surface);
+    const layout = s.stationBidMarks.surface.layout.bind(s.stationBidMarks.surface);
+    s.stationBidMarks.surface.layout = (...args) => {
       s.bidDots = [];
-      return clear();
+      return layout(...args);
     };
-    s.board.fillCircle = (x, y, radius) => {
-      if (Math.abs(radius - s.geometry.tile * 0.09) < 0.001) s.bidDots.push({ x, y });
-      return circle(x, y, radius);
+    s.stationBidMarks.surface.shape = (square, along, depth, points, color, alpha = 1) => {
+      // One opaque colored imprint per seat; the dark rim and soft highlight are separate.
+      if (alpha === 1)
+        s.bidDots.push({ square, along, depth, kind: points.length === 3 ? 'triangle' : 'circle' });
+      return shape(square, along, depth, points, color, alpha);
     };
     s.economyGame = game;
     s.economyArrive = (seat, square = 5) => {
@@ -133,11 +135,21 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return {
       dots: s.bidDots.length,
+      marks: s.bidDots,
       cash: s.ctx.state.players.map((p) => p.cash),
       bids: s.ctx.state.stationAuctions[5].bids,
     };
   });
-  if (preview.dots !== 3 || JSON.stringify(preview.cash) !== '[950,900,850,1000]')
+  if (
+    preview.dots !== 3 ||
+    preview.marks.map((mark) => mark.kind).join() !== 'circle,circle,triangle' ||
+    Math.abs(
+      preview.marks[1].along -
+        preview.marks[0].along -
+        (preview.marks[2].along - preview.marks[1].along),
+    ) > 0.001 ||
+    JSON.stringify(preview.cash) !== '[950,900,850,1000]'
+  )
     throw new Error(`Station deposits or dots are incorrect: ${JSON.stringify(preview)}`);
   await page.screenshot({ path: t.shot('station-deposits-phone.png') });
   await arrive(3);
@@ -165,6 +177,7 @@ export default async function run(t) {
       cash: s.ctx.state.players.map((p) => p.cash),
       auction: s.ctx.state.stationAuctions[5],
       dots: s.bidDots.length,
+      marks: s.bidDots,
     };
   });
   if (

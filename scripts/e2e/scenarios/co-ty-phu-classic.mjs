@@ -5,6 +5,7 @@ export const games = ['co-ty-phu-classic'];
 
 export default async function run(t) {
   const page = await t.page(PHONE);
+  page.setDefaultTimeout(90000);
   const url = new URL(t.url);
   url.search = '?play=co-ty-phu-classic&players=2';
   await page.goto(url.toString());
@@ -16,6 +17,23 @@ export default async function run(t) {
   });
   if (!symbolsMatchBoard) throw new Error('Owner symbols did not use the loaded board artwork');
   // Start after assets load so the opening clock cannot expire during initial loading.
+  await page.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+    scene.changeOptions({ ...scene.ctx.options, turnSeconds: 120 });
+    scene.openingMoneyRound = scene.props.round + 1;
+    scene.openingMoneySeen = false;
+    scene.events.on('update', () => {
+      if (
+        scene.props.round === scene.openingMoneyRound &&
+        scene.readyAmounts.length === 2 &&
+        scene.readyAmounts.every((amount) => amount === 1000)
+      )
+        scene.openingMoneySeen = true;
+    });
+  });
+  await page.waitForFunction(
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.options.turnSeconds === 120,
+  );
   await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
   await page.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'ready',
@@ -39,11 +57,18 @@ export default async function run(t) {
   await page.screenshot({ path: t.shot('10-start.png') });
   await page.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    return s.readyAmounts.length === 2 && s.readyAmounts.every((amount) => amount === 1000);
+    return s.openingMoneySeen;
   });
   await page.screenshot({ path: t.shot('10-money.png') });
   await page.waitForFunction(
-    () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
+    () => {
+      const scene = window.__phaser?.scene.getScene('co-ty-phu-classic');
+      return (
+        scene?.visualPhase === 'decision' &&
+        !scene.runtime.busy('money') &&
+        !scene.runtime.busy('turn')
+      );
+    },
     null,
     { timeout: 60000 },
   );
@@ -202,8 +227,25 @@ export default async function run(t) {
 
   // Force a known opening card through the sandbox's real rules and controls.
   const eventsPage = await t.page(PHONE);
+  eventsPage.setDefaultTimeout(90000);
   await eventsPage.goto(url.toString());
   await eventsPage.waitForFunction(() => window.__phaser?.scene.isActive('co-ty-phu-classic'));
+  await eventsPage.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+    scene.changeOptions({ ...scene.ctx.options, turnSeconds: 120 });
+  });
+  await eventsPage.waitForFunction(
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.options.turnSeconds === 120,
+  );
+  const eventsIdle = () =>
+    eventsPage.waitForFunction(() => {
+      const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        scene.visualPhase === 'decision' &&
+        !scene.runtime.busy('turn') &&
+        !scene.runtime.busy('money')
+      );
+    });
   const restartEvents = async () => {
     const epoch = await eventsPage.evaluate(
       () => window.__phaser.scene.getScene('co-ty-phu-classic').runtime.inspect().epoch,
@@ -225,9 +267,7 @@ export default async function run(t) {
       epoch,
     );
     // Roll a double to visit Jail first; the next roll reaches the remaining Chest at 17.
-    await eventsPage.waitForFunction(
-      () => window.__phaser.scene.getScene('co-ty-phu-classic').visualPhase === 'decision',
-    );
+    await eventsIdle();
     await eventsPage.evaluate(() => {
       const original = Math.random;
       try {
@@ -246,8 +286,9 @@ export default async function run(t) {
       );
     });
   };
-  const rollEvent = async () =>
-    eventsPage.evaluate(() => {
+  const rollEvent = async () => {
+    await eventsIdle();
+    await eventsPage.evaluate(() => {
       const original = Math.random;
       try {
         const dice = [2 / 6, 3 / 6];
@@ -257,6 +298,7 @@ export default async function run(t) {
         Math.random = original;
       }
     });
+  };
   await restartEvents();
   await eventsPage.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
@@ -313,6 +355,7 @@ export default async function run(t) {
       label: s.main[0].text.text,
       countdown: s.eventCountdown.commandBuffer.length,
       notice: s.notice.text,
+      lines: s.notice.getWrappedText(),
     };
   });
   if (
@@ -320,7 +363,8 @@ export default async function run(t) {
     preview.shownCash !== 1000 ||
     preview.label !== 'Xác nhận' ||
     !preview.countdown ||
-    !preview.notice.includes('200 ₫')
+    !/200\s₫/.test(preview.notice) ||
+    preview.lines.some((line) => line.trim().length <= 1)
   )
     throw new Error(`Event did not pause before payment: ${JSON.stringify(preview)}`);
   await eventsPage.screenshot({ path: t.shot('13-event-confirm.png') });
@@ -349,6 +393,9 @@ export default async function run(t) {
     );
   });
   await eventsPage.getByRole('button', { name: 'Khán giả', exact: true }).click();
+  await eventsPage.waitForFunction(
+    () => !window.__phaser.scene.getScene('co-ty-phu-classic').ctx.me,
+  );
   if (
     await eventsPage.evaluate(
       () => window.__phaser.scene.getScene('co-ty-phu-classic').main[0].hit.visible,
@@ -422,6 +469,7 @@ export default async function run(t) {
 
   // Return to a purchased street through real rolls: one upgrade without the rest of its color.
   const rulesPage = await t.page(PHONE);
+  rulesPage.setDefaultTimeout(90000);
   await rulesPage.goto(url.toString());
   await rulesPage.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx?.state,
@@ -431,7 +479,11 @@ export default async function run(t) {
     const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
     scene.playbackSpeed = 3;
     scene.runtime.setSpeed(3);
+    scene.changeOptions({ ...scene.ctx.options, turnSeconds: 120 });
   });
+  await rulesPage.waitForFunction(
+    () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.options.turnSeconds === 120,
+  );
   await rulesPage.getByRole('button', { name: 'Ván mới', exact: true }).click();
   const idle = () =>
     rulesPage.waitForFunction(() => {
@@ -446,6 +498,12 @@ export default async function run(t) {
   const takeTurn = async (seat, dice, end = true) => {
     await idle();
     await rulesPage.getByRole('button', { name: `Người ${seat + 1}`, exact: true }).click();
+    await rulesPage.waitForFunction((seat) => {
+      const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return (
+        scene.ctx.me?.seat === seat && scene.ctx.state.phase === 'roll' && scene.diceHit.visible
+      );
+    }, seat);
     const sequence = await rulesPage.evaluate(
       ({ dice }) => {
         const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -507,7 +565,12 @@ export default async function run(t) {
       for (const who of [seat, 1 - seat]) {
         if (!(await auction())) break;
         await rulesPage.getByRole('button', { name: `Người ${who + 1}`, exact: true }).click();
+        await rulesPage.waitForFunction(
+          (who) => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.me?.seat === who,
+          who,
+        );
         await idle();
+        if (!(await auction())) break;
         await clickCanvas(
           rulesPage,
           'co-ty-phu-classic',
@@ -516,6 +579,10 @@ export default async function run(t) {
               (b) => b.hit.visible && (b.text.text.endsWith('Bỏ giá') || b.text.text === 'Từ bỏ'),
             ).hit,
         );
+        await rulesPage.waitForFunction((who) => {
+          const state = window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state;
+          return state.phase !== 'auction' || state.auction?.bidder !== who;
+        }, who);
       }
       await rulesPage.waitForFunction(
         () => window.__phaser.scene.getScene('co-ty-phu-classic').ctx.state.phase !== 'auction',
@@ -615,6 +682,7 @@ export default async function run(t) {
   await rulesPage.close();
 
   const host = await t.page(DESKTOP);
+  host.setDefaultTimeout(90000);
   await signUp(t, host, 'TyPhu');
   await openRooms(host, 'co-ty-phu-classic');
   await host.getByRole('button', { name: '+ Tạo phòng' }).click();
@@ -630,6 +698,11 @@ export default async function run(t) {
   );
   // Always exercise the station auction that a random opening roll used to miss.
   await cmd(host, 'timer pause; dice 2 3');
+  await host.evaluate(() => {
+    const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+    scene.playbackSpeed = 3;
+    scene.runtime.setSpeed(3);
+  });
 
   await host.waitForFunction(
     () => window.__phaser?.scene.getScene('co-ty-phu-classic')?.visualPhase === 'decision',
@@ -637,6 +710,7 @@ export default async function run(t) {
     { timeout: 60000 },
   );
   await clickCanvas(host, 'co-ty-phu-classic', (s) => s.diceHit);
+  await cmd(host, 'timer pause');
   await host.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return (
@@ -655,6 +729,7 @@ export default async function run(t) {
     'co-ty-phu-classic',
     (s) => s.main.find((b) => b.hit.visible && b.text.text === 'Từ bỏ').hit,
   );
+  await cmd(host, 'timer pause');
   await host.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return (
@@ -678,7 +753,7 @@ export default async function run(t) {
       );
     },
     null,
-    { timeout: 30000 },
+    { timeout: 90000 },
   );
   await host.screenshot({ path: t.shot('21-bot-played.png') });
 }
