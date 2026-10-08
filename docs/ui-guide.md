@@ -106,18 +106,6 @@ hay khung trang trí ăn chỗ.
   hơn không làm hình to ra.
 - Nền nút, nền bảng cần ghi độ dày viền (để đặt `slice`) khi làm hình.
 
-## Chuyển động
-
-- Mục tiêu 60 khung hình mỗi giây trên điện thoại tầm trung.
-- Hiệu ứng dùng tween đổi vị trí, tỉ lệ, độ trong suốt. Tránh đổi chữ hay cỡ chữ trong lúc chạy
-  hiệu ứng: chữ phải vẽ lại mỗi lần đổi.
-- Đo trên máy thật: cắm điện thoại, mở `chrome://inspect` trên máy tính, dùng tab Performance.
-
-## Kiểm tra
-
-- `npm run shots -- --path '/?play=<id>'` chụp một màn trên nhiều máy thật (xoay ngang, đúng mật độ
-  điểm ảnh). Dòng in ra so mật độ canvas với màn hình; soi độ nét ở các file `-crop.png`.
-- Thử cả khung hẹp nhất (iPad, 4:3) và rộng nhất (điện thoại 20:9).
 ## Lưu Graphics tĩnh thành texture
 
 `rasterizeGraphics` từ `@psc/sdk/client` lưu khung, nền hoặc nút vẽ bằng Phaser
@@ -141,4 +129,15 @@ rasterizeGraphics(this, shape, 'stats-panel', {
 }, paper);
 ```
 
+## Chuyển động
 
+- Mục tiêu 60 khung hình mỗi giây trên điện thoại tầm trung.
+- Hiệu ứng dùng tween đổi vị trí, tỉ lệ, độ trong suốt. Tránh đổi chữ hay cỡ chữ trong lúc chạy
+  hiệu ứng: chữ phải vẽ lại mỗi lần đổi.
+- Đo trên máy thật: cắm điện thoại, mở `chrome://inspect` trên máy tính, dùng tab Performance.
+
+## Kiểm tra
+
+- `npm run shots -- --path '/?play=<id>'` chụp một màn trên nhiều máy thật (xoay ngang, đúng mật độ
+  điểm ảnh). Dòng in ra so mật độ canvas với màn hình; soi độ nét ở các file `-crop.png`.
+- Thử cả khung hẹp nhất (iPad, 4:3) và rộng nhất (điện thoại 20:9).

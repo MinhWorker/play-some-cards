@@ -91,6 +91,9 @@ games/<id>/          Only index.ts + client.ts are required
   build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
+  - `rasterizeGraphics(scene, graphics, key, bounds, image?)` from the client SDK caches static
+    Graphics as an image with scene-owned textures. Include outlines/shadows in local bounds;
+    refresh only when the drawing changes, never on every frame.
 - **Backgrounds**: optional `defineClient({ background: false | MyBackground })` hides/replaces
   the app sky for boards/sandboxes. `GameBackgroundScene` has scene lifetime, no room state/input,
   and `onCreate`, `onLayout`, `onUpdate(dt)` hooks; `this.tiled(name)` covers the bleed with a

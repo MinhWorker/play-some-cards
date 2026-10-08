@@ -13,7 +13,7 @@
   dọn khi scene đóng. Âm thanh hành động và kết quả được tổng hợp riêng.
 - Luật chơi, timer server, bots và các kỹ năng giữ nguyên.
 
-## Bằng chứng hiện có
+## Bằng chứng tại checkpoint ban đầu
 
 - Biome và typecheck riêng game đã đạt trước chỉnh sửa cuối của viền/nút.
 - 20 unit tests của game đã đạt trong lượt polish.
@@ -26,14 +26,19 @@
 - CI đầy đủ của bản gameplay trước polish (`c1b2b11`) đã đạt; không áp dụng kết quả
   đó cho các thay đổi đồ họa mới.
 
-## Cần hoàn tất để nghiệm thu polish
+## Nghiệm thu ở code head `7584aab`
 
-- Chạy xong `npm run check`, production build và CI tại commit mới.
-- Chạy lại toàn bộ kịch bản `bom-nguyen-to`, gồm phòng thật và vòng đời atlas.
-- Kiểm tra lại viền bằng nhau, nút hành động và các khung Lôi vừa sửa.
-- Xem crop ở DPR 2/3 và kiểm tra gameplay trên renderer có tốc độ đủ để đo hoạt ảnh.
-- Đối chiếu hình cuối với concept: màu pastel, bàn gỗ, nền phẳng, khối nổi,
-  linh thú, HUD và nút; ghi rõ sai khác còn lại trong PR.
+- CI: `npm run check`, production build và 40/40 kịch bản e2e đạt; tổng 46 checks đạt.
+- Kịch bản WebGL của Bom Nguyên Tố qua chọn nhân vật, camera, cảm ứng, kỹ năng,
+  đồng bộ phòng thật, kết quả đội, atlas bốn hướng, đóng băng, trúng đòn, bị loại và chơi lại.
+- Kịch bản đầy đủ cũng đạt cục bộ trên Canvas fallback bằng UI và socket thật,
+  không sửa trạng thái game để vượt qua bước kiểm tra.
+- SDK/game typecheck, 38 SDK tests, 20 game tests, Biome và production build cục bộ đạt.
+- Hai ngưỡng tốc độ có sẵn của Checkers/Go không đạt trên máy cục bộ 2 CPU;
+  cùng kiểm tra toàn repo đã đạt trên CI.
+- SwiftShader vẫn chậm ở desktop; không có GPU phần cứng trong môi trường này
+  nên chưa xác nhận FPS trên thiết bị thật. Không đổi độ phân giải hoặc chất lượng
+  của app để che giới hạn đó.
 
 Mã nguồn dựng atlas, âm thanh và cắt hình môi trường nằm trong `sources/`;
 các lệnh tạo lại được ghi trong [README](README.md).
@@ -47,7 +52,7 @@ các lệnh tạo lại được ghi trong [README](README.md).
   kỹ năng, đặt bom, ngòi bom, vụ nổ, đóng băng, trúng đòn, bị loại và chơi lại.
 - CI WebGL đã qua các luồng phòng thật và hoạt ảnh tới đòn cuối. Bài kiểm tra đặt
   bom trong lửa cũ khiến bom nổ dây chuyền ngay lúc còn miễn sát thương; đã sửa
-  để đợi vùng nổ và miễn sát thương kết thúc. Đang chạy lại CI tại head mới.
+  để đợi vùng nổ và miễn sát thương kết thúc. CI WebGL tại head mới đã đạt.
 - `rasterizeGraphics` được chuyển vào `@psc/sdk/client` để game khác có thể tái sử
   dụng, có `RasterBounds`, giới hạn texture và dọn tài nguyên theo scene.
 - Thử tắt MSAA không cải thiện đáng kể SwiftShader, nên giữ cấu hình render của app.
