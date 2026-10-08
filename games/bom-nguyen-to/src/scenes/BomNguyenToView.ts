@@ -1,4 +1,4 @@
-import { GameView, type ViewContext } from '@psc/sdk/client';
+import { GameView, rasterizeGraphics, type ViewContext } from '@psc/sdk/client';
 import Phaser from 'phaser';
 import { blastCells, moveFighter } from '../game/arena.js';
 import { dangerMap } from '../game/bot.js';
@@ -28,7 +28,6 @@ import {
   effectFrame,
   registerAnimations,
 } from './animations.js';
-import { rasterizeGraphics } from './paper.js';
 import { THEME, textStyle } from './theme.js';
 
 type Ctx = ViewContext<State, Options>;

@@ -37,3 +37,17 @@
 
 Mã nguồn dựng atlas, âm thanh và cắt hình môi trường nằm trong `sources/`;
 các lệnh tạo lại được ghi trong [README](README.md).
+
+## Tiếp tục sau checkpoint `141ed9d`
+
+- Biome toàn repo, typecheck SDK/game và production build đạt. Kiểm tra toàn repo
+  cục bộ vướng hai ngưỡng tốc độ có sẵn của Checkers/Go trên máy 2 CPU; CI `check`
+  của `141ed9d` đã qua toàn bộ unit tests và build.
+- Vòng đời atlas đã qua bằng input thật trên Canvas fallback: nghỉ, đi bốn hướng,
+  kỹ năng, đặt bom, ngòi bom, vụ nổ, đóng băng, trúng đòn, bị loại và chơi lại.
+- CI WebGL đã qua các luồng phòng thật và hoạt ảnh tới đòn cuối. Bài kiểm tra đặt
+  bom trong lửa cũ khiến bom nổ dây chuyền ngay lúc còn miễn sát thương; đã sửa
+  để đợi vùng nổ và miễn sát thương kết thúc. Đang chạy lại CI tại head mới.
+- `rasterizeGraphics` được chuyển vào `@psc/sdk/client` để game khác có thể tái sử
+  dụng, có `RasterBounds`, giới hạn texture và dọn tài nguyên theo scene.
+- Thử tắt MSAA không cải thiện đáng kể SwiftShader, nên giữ cấu hình render của app.

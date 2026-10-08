@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 
-export interface PaperBounds {
+export interface RasterBounds {
   x: number;
   y: number;
   width: number;
@@ -18,7 +18,7 @@ export function rasterizeGraphics(
   scene: Phaser.Scene,
   graphics: Phaser.GameObjects.Graphics,
   key: string,
-  bounds: PaperBounds,
+  bounds: RasterBounds,
   existingImage?: Phaser.GameObjects.Image,
 ): Phaser.GameObjects.Image {
   let keys = owned.get(scene);

@@ -12,6 +12,7 @@ export * from './frame.js';
 export * from './GameBackgroundScene.js';
 export * from './GameScene.js';
 export * from './GameView.js';
+export * from './graphics.js';
 export * from './host.js';
 export * from './props.js';
 export * from './RoomSetupScene.js';

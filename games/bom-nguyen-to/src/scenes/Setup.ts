@@ -1,4 +1,4 @@
-import { RoomSetupScene } from '@psc/sdk/client';
+import { RoomSetupScene, rasterizeGraphics } from '@psc/sdk/client';
 import type Phaser from 'phaser';
 import {
   ELEMENT_INFO,
@@ -7,7 +7,6 @@ import {
   type Options,
   optionsSchema,
 } from '../game/model.js';
-import { rasterizeGraphics } from './paper.js';
 import { THEME, textStyle } from './theme.js';
 
 interface Choice {

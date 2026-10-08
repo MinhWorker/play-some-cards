@@ -180,6 +180,12 @@ async function spriteLifecycle(t) {
     return s.fighters[0].skillUntil <= s.time;
   });
   for (const hp of [30, 0]) {
+    // Placing the next bomb inside the previous lingering blast chains it immediately.
+    // Wait until the real danger and hit protection end before testing another self-hit.
+    await page.waitForFunction(() => {
+      const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state;
+      return !s.bombs.length && !s.blasts.length && s.fighters[0].invulnerableUntil <= s.time;
+    });
     await clearAnimationFrames(page);
     await page.keyboard.press('Space');
     await page.waitForFunction(
@@ -187,7 +193,10 @@ async function spriteLifecycle(t) {
       hp,
     );
     await renderedFrames(page, hp > 0 ? 'hit' : 'ko');
-    if (hp > 0) await renderedFrames(page, 'idle');
+    if (hp > 0) {
+      await clearAnimationFrames(page);
+      await renderedFrames(page, 'idle');
+    }
   }
   await page.waitForFunction(() => {
     const scene = window.__phaser.scene.getScene('bom-nguyen-to');

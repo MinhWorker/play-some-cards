@@ -118,3 +118,27 @@ hay khung trang trí ăn chỗ.
 - `npm run shots -- --path '/?play=<id>'` chụp một màn trên nhiều máy thật (xoay ngang, đúng mật độ
   điểm ảnh). Dòng in ra so mật độ canvas với màn hình; soi độ nét ở các file `-crop.png`.
 - Thử cả khung hẹp nhất (iPad, 4:3) và rộng nhất (điện thoại 20:9).
+## Lưu Graphics tĩnh thành texture
+
+`rasterizeGraphics` từ `@psc/sdk/client` lưu khung, nền hoặc nút vẽ bằng Phaser
+Graphics thành ảnh, tránh dựng lại đường bo mỗi khung hình. `bounds` dùng tọa độ
+cục bộ và cần chứa cả viền lẫn bóng. Ảnh giữ vị trí, scale, depth và container cha;
+Graphics gốc được ẩn. Texture có mật độ tối đa 3×, giới hạn cạnh 4096 px và được
+dọn khi scene đóng. Chỉ gọi lại khi hình thay đổi, dùng cùng key và ảnh cũ để cập nhật.
+
+```ts
+import { rasterizeGraphics } from '@psc/sdk/client';
+
+const shape = this.add.graphics()
+  .fillStyle(0xfff6e7)
+  .fillRoundedRect(-100, -40, 200, 80, 16);
+const paper = rasterizeGraphics(this, shape, 'stats-panel', {
+  x: -103, y: -43, width: 206, height: 90,
+});
+// Khi bố cục hoặc nội dung Graphics đổi:
+rasterizeGraphics(this, shape, 'stats-panel', {
+  x: -103, y: -43, width: 206, height: 90,
+}, paper);
+```
+
+

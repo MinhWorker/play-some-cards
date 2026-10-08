@@ -15,7 +15,7 @@ Minigame đặt bom nguyên tố, 1–4 nhân vật, sinh tồn hoặc đấu đ
   nút hành động xếp dọc bên phải, chọn nhân vật và điều khiển nhiều ngón.
 - `src/scenes/animations.ts`: đăng ký các chuỗi khung hình và thời gian chuyển trạng thái
   cho nhân vật, bom, kỹ năng, vụ nổ, thùng và vật phẩm.
-- `src/scenes/paper.ts`: lưu hình nền, bảng và nút vẽ bằng Graphics thành texture
+- `rasterizeGraphics` từ `@psc/sdk/client`: lưu hình nền, bảng và nút vẽ bằng Graphics thành texture
   tối đa 3×, chỉ vẽ lại khi thay đổi và giải phóng texture khi đóng cảnh.
 - `src/scenes/Setup.ts`: chế độ, số nhân vật, ghế máy, độ khó và nguyên tố ban đầu.
 - `src/scenes/theme.ts`: màu pastel, giấy kem, viền mềm và chữ Baloo 2.
