@@ -1,6 +1,7 @@
 # Xóm Đảo: kế hoạch
 
-> Mục tiêu và lý do: [vision.md](vision.md), [adr/0001-godot-client.md](adr/0001-godot-client.md).
+> Mục tiêu và lý do: [vision.md](vision.md), [adr/0001-godot-client.md](adr/0001-godot-client.md),
+> [adr/0002-modules.md](adr/0002-modules.md).
 > Không có hạn chót. Mỗi phase xong khi đạt điều kiện ghi ở cuối phase đó.
 
 Trọng tâm của kế hoạch là **môi trường làm việc**: chủ dự án mô tả một trò hay một sự kiện, agent
@@ -13,7 +14,7 @@ apps/server/          NestJS: giữ, thêm cổng WebSocket thuần và các d�
 apps/client/          Dự án Godot duy nhất
   project.godot
   core/                 Autoload: Net, Session, Wallet, ContentLoader
-  hub/                  Bản đồ đảo, hồ sơ, túi đồ, xếp hạng
+  hub/                  Sảnh và màn của từng khối nền tảng: hub/<khối>/ (Nhà, Chợ, xếp hạng…)
   ui/                   Theme chung: nút, bảng gỗ, font
   addons/xomdao_sdk/    SDK GDScript cho trò: phòng, send(), on_state()
   content/              Symlink tới games/*/godot do script tạo (gitignore)
@@ -98,9 +99,11 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 ## Phase 2: hub v1
 
-- [ ] Danh sách thể loại trong lõi (tên, ảnh đảo, vị trí); plugin khai báo `kind` (`table`,
-      `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
-- [ ] Sảnh: Xóm + đảo thể loại + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
+- [ ] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự, chính/phụ): bản đầu chỉ có hai thể
+      loại chính Cờ và Bài; plugin
+      khai báo `kind` (`table`, `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
+- [ ] Sảnh: Xóm + hai đảo lớn Cờ, Bài ở chỗ cố định + thể loại phụ gom vào khoảng trống còn lại
+      (lúc đầu là đảo Sắp có) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
       tải ngầm `.pck` của trò
 - [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
 - [ ] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
@@ -122,8 +125,9 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 Làm dần, theo thứ tự chủ dự án muốn:
 
-- Chuyển các trò còn lại (trò đơn giản trước, Cờ tỷ phú sau cùng)
-- Khung `event`: ngày mở/đóng, phần thưởng riêng; `npm run new:event`
+- Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
+- Thể loại phụ đầu tiên thay đảo Sắp có, kèm Bom Nguyên Tố
+- Khung `event`: ngày mở/đóng, phần thưởng riêng, đảo Sự kiện là một thể loại phụ; `npm run new:event`
 - Danh mục vật phẩm, túi đồ, cửa hàng đồ trang trí
 - Thống kê, thành tích, xếp hạng
 - Nhiều loại tài nguyên
@@ -134,6 +138,8 @@ Làm dần, theo thứ tự chủ dự án muốn:
 | Việc | Chọn |
 | --- | --- |
 | Hướng màn hình | Ngang |
+| Thể loại | Cờ và Bài là hai thể loại chính, có chỗ riêng trên sảnh; thể loại khác là phụ, gom vào khoảng trống còn lại |
+| Mở rộng | Gắn thêm khối: trò/sự kiện trong `games/<id>/`; tính năng nền tảng là một module server + một màn hub, không sửa khối khác ([ADR 0002](adr/0002-modules.md)) |
 | Ngôn ngữ Godot | GDScript, có kiểu |
 | Test và lint Godot | GUT, gdtoolkit |
 | Kinh tế | Tiền chỉ mua đồ trang trí |

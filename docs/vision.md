@@ -2,7 +2,8 @@
 
 > Trạng thái: Phase 0 (làm rõ ý tưởng). Tài liệu này mô tả nơi dự án sẽ đi tới, chưa phải cách
 > nó đang chạy. Kế hoạch từng bước: [roadmap.md](roadmap.md). Lý do đổi engine:
-> [adr/0001-godot-client.md](adr/0001-godot-client.md). Giao diện và trải nghiệm chung:
+> [adr/0001-godot-client.md](adr/0001-godot-client.md). Cách gắn thêm trò và tính năng:
+> [adr/0002-modules.md](adr/0002-modules.md). Giao diện và trải nghiệm chung:
 > [experience.md](experience.md).
 
 ## Một câu
@@ -36,8 +37,9 @@ thể thành một hòn đảo, không chỉ bài và cờ.
 ## Thế giới gồm những gì
 
 Thế giới có ba tầng, học từ game mobile (sảnh chờ → chế độ chơi → bản đồ): **Sảnh** là đảo Xóm
-với nhân vật của bạn; quanh đó là các **đảo thể loại** (Cờ, Bài, Tiệc, Đối Kháng, Sự kiện); mỗi
-thể loại có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
+với nhân vật của bạn; quanh đó là các **đảo thể loại**. **Cờ** và **Bài** là hai thể loại chính,
+mỗi cái một đảo lớn có chỗ riêng; các thể loại khác gom vào khoảng trống còn lại (lúc đầu chỉ có một
+đảo **Sắp có**). Mỗi thể loại có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
 
 Mọi nội dung đều là plugin, mỗi cái một thư mục trong `games/<id>/`:
 
@@ -77,6 +79,10 @@ kết quả, server kiểm tra rồi ghi lại.
 | Túi đồ | Vật phẩm người chơi đang có |
 | Thống kê và thành tích | Trò phát sự kiện thống kê (`win`, `bomb_played`); thành tích là luật khai báo dựa trên chúng |
 | Xếp hạng | Tính từ thống kê |
+
+Mỗi dịch vụ trên là một **khối** riêng: bảng dữ liệu riêng, lệnh riêng, màn hình riêng trong hub.
+Thêm một tính năng là gắn thêm một khối, không sửa khối khác hay luật các trò. Chi tiết:
+[adr/0002-modules.md](adr/0002-modules.md).
 
 Trò nói chuyện với nền tảng qua `ctx` của SDK, ví dụ `ctx.reward(playerId, 'core:coin', 50)` hay
 `ctx.stat('win')`. Server từ chối phần thưởng vượt mức trò đã khai báo.

@@ -47,6 +47,10 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 
 ## Changing things
 
+- New platform features (wallet, shop, inventory, achievements…) are separate Nest modules
+  (`docs/adr/0002-modules.md`). A module owns its tables and never reads another module's tables:
+  it calls that module's service, or listens to events such as `RoomsService.onFinished`.
+
 - Nest DI needs the runtime value, so `import` classes that Nest injects as values.
 - The server typechecks against built packages. Root scripts run `npm run build -w @psc/shared`
   (= `scripts/libs.mjs`) first.
