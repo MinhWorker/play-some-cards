@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.22.0](https://github.com/MinhWorker/xom-dao/compare/v0.21.0...v0.22.0) (2026-10-09)
+
+
+### Features
+
+* **co-ty-phu:** update jail rules and polish board controls ([#105](https://github.com/MinhWorker/xom-dao/issues/105)) ([06d4194](https://github.com/MinhWorker/xom-dao/commit/06d41943dcbf864ffa49fc5a0d16b33e2966d3cb))
+
+
+### Bug fixes
+
+* **web:** distinguish cold starts from deployment waits ([#102](https://github.com/MinhWorker/xom-dao/issues/102)) ([61e73d5](https://github.com/MinhWorker/xom-dao/commit/61e73d5bd454e4441ee52e00d855cc1a9bb52ef2))
+
 ## [0.21.0](https://github.com/MinhWorker/play-some-cards/compare/v0.20.0...v0.21.0) (2026-10-07)
 
 
