@@ -8,9 +8,9 @@ Read `../AGENTS.md` for the shared game/SDK rules. The Vietnamese component map 
 - `src/scenes/Setup.ts`: room setup/options.
 - `src/scenes/board/`: projected tile geometry, prices, ownership and special-square symbols;
   `SymbolAtlas.ts` packs their baked animation frames for upload once at scene creation.
-  `MonopolyBorders.ts` merges only touching same-owner group tiles; `monopolyShader.ts`
-  draws antialiased double inlaid rails, diamond stitches and flowing fire inward on the GPU,
-  below owner badges and clipped to `BOARD_FACES`. `DeedLayers.ts` selects baked
+  `MonopolySymbols.ts` prints moon/sun pairs for same-owner group members, including separated
+  tiles; `SurfaceMarks.ts` projects all ink inside `BOARD_FACES`. `StationBidMarks.ts` uses fixed
+  seat spacing and a triangle for the latest station contributor. `DeedLayers.ts` selects baked
   enamel owner strips and porcelain building frames; no runtime flat badge polygons.
 - `src/scenes/effects/`: backdrop, small-object glow, money animations, money audio the scoped private jail-door effect (`JailGateEffect.ts`), and the victory celebration (`VictoryEffect.ts`).
 - `src/scenes/hud/`: player-panel projection (`PlayerPanel.ts`) and pattern (`PlayerPanelPattern.ts`), tooltips, rent tables, bulk mortgage selection/confirmation (`MortgagePanel.ts`), auction confirmation (`AuctionConfirmPanel.ts`), cached action icons (`PropertyActionIcons.ts`) and property action availability.

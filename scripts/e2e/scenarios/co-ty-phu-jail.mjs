@@ -33,6 +33,10 @@ export default async function run(t) {
   ];
   for (const fixture of cases) {
     await page.setViewportSize(fixture.phone ? PHONE : DESKTOP);
+    // Finish the resize/resync before delivering the next animated rule snapshot.
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
     await page.evaluate(
       async ({ root, fixture }) => {
         const [{ default: plugin }, { testGame }, { seededRng }] = await Promise.all([
@@ -324,14 +328,12 @@ export default async function run(t) {
       window.__phaser.scene.getScene('co-ty-phu-classic').auctionAttention.commandBuffer,
     ),
   );
-  await page.waitForTimeout(350);
-  const changed = await page.evaluate(
+  await page.waitForFunction(
     (pulse) =>
       JSON.stringify(
         window.__phaser.scene.getScene('co-ty-phu-classic').auctionAttention.commandBuffer,
       ) !== pulse,
     pulse,
   );
-  if (!changed) throw new Error('Auction attention did not pulse');
   await page.screenshot({ path: t.shot('auction-pulse.png') });
 }

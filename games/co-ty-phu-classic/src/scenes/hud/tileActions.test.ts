@@ -27,7 +27,9 @@ it('marks only the pending purchase and respects the buyer balance', () => {
   game.state.phase = 'buy';
   game.state.pending = 3;
   game.state.players[0]!.cash = 20;
-  expect(tileActions(game.state, 0, 3)).toEqual([]);
+  expect(tileActions(game.state, 0, 3)).toEqual([
+    { label: 'Ko đủ ₫', event: 'buy', payload: {}, enabled: false },
+  ]);
   game.state.players[0]!.cash = 1000;
   expect(
     tileActions(game.state, 0, 3)
@@ -121,19 +123,19 @@ it('uses the same 20% bid steps for resale of streets and owned stations', () =>
   }
 });
 
-it('keeps the Hanoi construction price visible when short of cash and unlocks it at the exact price', () => {
+it('keeps unaffordable Hanoi construction disabled and unlocks it at the exact price', () => {
   const game = testGame(plugin, ['a', 'b']);
   game.state.properties[9]!.owner = 0;
   game.state.players[0]!.cash = 158;
   move(game.state, 0, 9, false, 9);
   const build = () => tileActions(game.state, 0, 9).find((action) => action.event === 'build');
-  expect(build()).toMatchObject({ label: 'Xây nhà 175 ₫', enabled: false });
+  expect(build()).toMatchObject({ label: 'Ko đủ ₫', enabled: false });
   expect(() => game.send('a', 'build', { square: 9 })).toThrow('Không đủ tiền xây');
   game.state.players[0]!.cash = 175;
   expect(build()?.enabled).toBe(true);
   game.send('a', 'build', { square: 9 });
   expect(game.state.properties[9]!.houses).toBe(1);
-  expect(build()).toMatchObject({ label: 'Xây nhà 175 ₫', enabled: false });
+  expect(build()).toMatchObject({ label: 'Ko đủ ₫', enabled: false });
 });
 
 it('keeps construction visible but disabled for off-turn, remote, mortgaged and exhausted-bank deeds', () => {

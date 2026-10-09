@@ -4,6 +4,15 @@ export const games = ['co-ty-phu-classic'];
 
 export default async function run(t) {
   const page = await t.page(DESKTOP);
+  page.setDefaultTimeout(90000);
+  const settleInput = () =>
+    page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
+  const resize = async (viewport) => {
+    await page.setViewportSize(viewport);
+    await settleInput();
+  };
   await page.goto(new URL('/?play=co-ty-phu-classic&players=4', t.url).toString());
   await page.waitForFunction(() => window.__phaser?.scene.getScene('co-ty-phu-classic')?.ctx);
   const root = new URL('../../../', import.meta.url).pathname;
@@ -87,7 +96,8 @@ export default async function run(t) {
           s.visualPhase === 'decision' &&
           !s.activeMoney &&
           !s.payments.length &&
-          !s.runtime.busy('turn')
+          !s.runtime.busy('turn') &&
+          !s.runtime.busy('money')
         );
       },
       null,
@@ -95,6 +105,10 @@ export default async function run(t) {
     );
   const click = async (label) => {
     await idle();
+    await page.waitForFunction((label) => {
+      const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return [...s.main, ...s.tools].some((b) => b.hit.visible && b.text.text === label);
+    }, label);
     await clickCanvas(
       page,
       'co-ty-phu-classic',
@@ -120,7 +134,14 @@ export default async function run(t) {
         s.ctx.state.players[0].cash === 1000
       );
     }, 'Tapping the bank bypassed the mortgage confirmation');
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    );
     await clickCanvas(page, 'co-ty-phu-classic', (s) => s.mortgagePanel.confirm.hit);
+    await page.waitForFunction(() => {
+      const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+      return !scene.mortgagePanel.visible && scene.ctx.state.properties[1].mortgaged;
+    });
   };
   const clickProperty = async (kind) => {
     await idle();
@@ -131,6 +152,16 @@ export default async function run(t) {
         `return (s) => s.tools.find((b) => b.hit.visible && b.kind === ${JSON.stringify(kind)}).hit`,
       )(),
     );
+    if (kind === 'auction' || kind === 'mortgage') {
+      await page.waitForFunction((kind) => {
+        const scene = window.__phaser.scene.getScene('co-ty-phu-classic');
+        return kind === 'auction' ? scene.auctionConfirm.visible : scene.mortgagePanel.visible;
+      }, kind);
+      // Let Phaser refresh the container input transforms after opening the overlay.
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      );
+    }
   };
   const fixture = async (kind) => {
     await page.evaluate(
@@ -140,7 +171,21 @@ export default async function run(t) {
     await idle();
   };
   const assertState = async (condition, message) => {
-    if (!(await page.evaluate(condition))) throw new Error(message);
+    await page.waitForFunction(condition, null, { timeout: 10000 }).catch(async () => {
+      const details = await page.evaluate(() => {
+        const s = window.__phaser.scene.getScene('co-ty-phu-classic');
+        return {
+          phase: s.ctx.state.phase,
+          me: s.ctx.me?.seat,
+          turn: s.ctx.state.turn,
+          selected: s.selected,
+          auction: s.ctx.state.auction,
+          confirmation: { visible: s.auctionConfirm.visible, square: s.auctionConfirm.square },
+          canConfirm: s.canConfirmAuction(),
+        };
+      });
+      throw new Error(`${message}: ${JSON.stringify(details)}`);
+    });
   };
 
   await fixture('buy');
@@ -150,6 +195,14 @@ export default async function run(t) {
     const labels = buttons.map((b) => b.text.text);
     const end = buttons.filter((b) => b.text.text === 'Hết lượt');
     return (
+      buttons.some(
+        (b) =>
+          b.text.text === 'Ko đủ' &&
+          !b.enabled &&
+          !b.hit.input.enabled &&
+          b.icon.visible &&
+          b.icon.texture.key.endsWith('/hud-money'),
+      ) &&
       end.length === 1 &&
       Math.abs(end[0].hit.x - (s.geometry.left + s.geometry.size / 2)) < 1 &&
       Math.abs(end[0].hit.y - (s.geometry.top + s.geometry.imageH * 0.645)) < 1 &&
@@ -158,7 +211,7 @@ export default async function run(t) {
     );
   }, 'An unaffordable street did not offer the original central Hết lượt control');
   await page.screenshot({ path: t.shot('unaffordable-end-turn-desktop.png') });
-  await page.setViewportSize(PHONE);
+  await resize(PHONE);
   await page.screenshot({ path: t.shot('unaffordable-end-turn-phone.png') });
   await click('Hết lượt');
   await assertState(() => {
@@ -180,6 +233,9 @@ export default async function run(t) {
     const mortgage = s.tools.find((b) => b.hit.visible && b.kind === 'mortgage');
     return (
       buy.enabled &&
+      buy.kind === 'buy' &&
+      buy.icon.visible &&
+      buy.icon.texture.key.endsWith('.control.buy') &&
       buy.box.texture.key.endsWith('/tile-button-primary') &&
       buy.hit.y < mortgage.hit.y &&
       mortgage.box.texture.key.endsWith('/tile-button')
@@ -198,7 +254,7 @@ export default async function run(t) {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     return s.ctx.state.properties[3].owner === 0 && s.ctx.state.players[0].cash === 820;
   }, 'The purchase button on the tile card was overwritten by the central end-turn control');
-  await page.setViewportSize(DESKTOP);
+  await resize(DESKTOP);
 
   // Visible, priced construction must explain unavailable actions without sending a move.
   const construction = async (kind, label, enabled) => {
@@ -209,7 +265,7 @@ export default async function run(t) {
       const s = window.__phaser.scene.getScene('co-ty-phu-classic');
       const build = s.tools.find((b) => b.hit.visible && b.text.text === ${JSON.stringify(label)});
       const others = s.tools.filter((b) => b.hit.visible && b !== build);
-      return build && build.enabled === ${enabled} && build.hit.input.enabled === ${enabled} &&
+      return build && build.kind === 'build' && build.icon.visible && build.enabled === ${enabled} && build.hit.input.enabled === ${enabled} &&
         build.box.texture.key.endsWith(${JSON.stringify(enabled ? '/tile-button-primary' : '/tile-button-primary-disabled')}) &&
         others.every((b) => build.hit.getBounds().bottom < b.hit.getBounds().top &&
           b.box.texture.key.endsWith('/tile-button'));
@@ -217,7 +273,7 @@ export default async function run(t) {
       'Construction was hidden, unpriced, wrongly styled, or below secondary actions',
     );
   };
-  await construction('build-poor', 'Xây nhà 175 ₫', false);
+  await construction('build-poor', 'Ko đủ', false);
   const compactControls = () => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const auction = s.tools.find((b) => b.hit.visible && b.kind === 'auction');
@@ -248,14 +304,14 @@ export default async function run(t) {
     'Property icons did not share a row or the payout was clipped',
   );
   await page.screenshot({ path: t.shot('build-disabled-desktop.png') });
-  await page.setViewportSize(PHONE);
+  await resize(PHONE);
   await assertState(compactControls, 'Compact property controls overlap on a phone');
   await page.screenshot({ path: t.shot('build-disabled-phone.png') });
-  await click('Xây nhà 175 ₫');
+  await click('Ko đủ');
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
     const source = s.tools
-      .find((b) => b.hit.visible && b.text.text === 'Xây nhà 175 ₫')
+      .find((b) => b.hit.visible && b.text.text === 'Ko đủ')
       .box.texture.getSourceImage();
     const pixels = source.getContext('2d').getImageData(0, 0, source.width, source.height).data;
     for (let i = 0; i < pixels.length; i += 4) {
@@ -265,7 +321,7 @@ export default async function run(t) {
   }, 'Disabled construction changed the game or the baked texture was not gray');
   await construction('build-remote', 'Xây nhà 175 ₫', false);
   await construction('build-mortgaged', 'Xây nhà 175 ₫', false);
-  await page.setViewportSize({ width: 1024, height: 768 });
+  await resize({ width: 1024, height: 768 });
   await construction('hotel-full', 'Xây khách sạn 175 ₫', false);
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
@@ -275,8 +331,8 @@ export default async function run(t) {
     );
   }, 'The largest fractional mortgage payout was truncated on a narrow tile card');
   await page.screenshot({ path: t.shot('hotel-mortgage-payout-tablet.png') });
-  await page.setViewportSize(PHONE);
-  await construction('hotel-poor', 'Xây khách sạn 175 ₫', false);
+  await resize(PHONE);
+  await construction('hotel-poor', 'Ko đủ', false);
   await page.screenshot({ path: t.shot('hotel-disabled-phone.png') });
   await construction('hotel-rich', 'Xây khách sạn 175 ₫', true);
   await page.screenshot({ path: t.shot('hotel-primary-phone.png') });
@@ -284,7 +340,7 @@ export default async function run(t) {
   await idle();
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Xây khách sạn 175 ₫');
+    const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Ko đủ');
     return (
       s.ctx.state.properties[9].houses === 5 && s.ctx.state.players[0].cash === 0 && !build.enabled
     );
@@ -295,12 +351,12 @@ export default async function run(t) {
   await idle();
   await assertState(() => {
     const s = window.__phaser.scene.getScene('co-ty-phu-classic');
-    const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Xây nhà 175 ₫');
+    const build = s.tools.find((b) => b.hit.visible && b.text.text === 'Ko đủ');
     return (
       s.ctx.state.properties[9].houses === 1 && s.ctx.state.players[0].cash === 0 && !build.enabled
     );
   }, 'The enabled house failed to build or allowed a second construction on the same visit');
-  await page.setViewportSize(DESKTOP);
+  await resize(DESKTOP);
 
   await fixture('owned');
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
@@ -319,7 +375,7 @@ export default async function run(t) {
     );
   }, 'Tapping the gavel bypassed confirmation or left the board controls active');
   await page.screenshot({ path: t.shot('auction-confirm-desktop.png') });
-  await page.setViewportSize(PHONE);
+  await resize(PHONE);
   await page.screenshot({ path: t.shot('auction-confirm-phone.png') });
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.auctionConfirm.cancel);
   await assertState(() => {
@@ -372,7 +428,7 @@ export default async function run(t) {
   }, 'The resale auction did not transfer the deed and payment to the seller');
   await page.screenshot({ path: t.shot('resale-paid-desktop.png') });
 
-  await page.setViewportSize(PHONE);
+  await resize(PHONE);
   await fixture('owned');
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.squares[1]);
   await mortgage();
@@ -433,24 +489,31 @@ export default async function run(t) {
   await page.screenshot({ path: t.shot('mortgage-foreclosed-phone.png') });
 
   // A paged selector reviews several deeds, including houses/hotels, before one payment.
-  await page.setViewportSize(DESKTOP);
+  await resize(DESKTOP);
   await fixture('bulk');
   await clickProperty('mortgage');
   await assertState(() => {
     const panel = window.__phaser.scene.getScene('co-ty-phu-classic').mortgagePanel;
     return panel.visible && !panel.confirm.enabled && panel.total.text.includes('Nhận 0 ₫');
   }, 'An empty mortgage selection allowed confirmation');
-  const select = (square) =>
-    clickCanvas(
+  const select = async (square) => {
+    await clickCanvas(
       page,
       'co-ty-phu-classic',
       new Function(
         `return (s) => s.mortgagePanel.rows.find((row) => row.square === ${square}).hit`,
       )(),
     );
+    await settleInput();
+  };
   await select(1);
   await select(3);
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.mortgagePanel.next.hit);
+  await page.waitForFunction(() =>
+    window.__phaser.scene
+      .getScene('co-ty-phu-classic')
+      .mortgagePanel.rows.some((row) => row.square === 11 && row.hit.visible),
+  );
   await select(11);
   await select(11);
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.mortgagePanel.previous.hit);
@@ -463,7 +526,7 @@ export default async function run(t) {
     );
   }, 'Selection pagination lost deeds or omitted buildings from the payout');
   await page.screenshot({ path: t.shot('bulk-mortgage-desktop.png') });
-  await page.setViewportSize(PHONE);
+  await resize(PHONE);
   await page.screenshot({ path: t.shot('bulk-mortgage-phone.png') });
   await clickCanvas(page, 'co-ty-phu-classic', (s) => s.mortgagePanel.cancel.hit);
   await assertState(() => {

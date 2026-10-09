@@ -1,4 +1,4 @@
-"""Synthesize an unlocking latch, sliding steel bars and a bright release chime."""
+"""Make a dry key turn, two latch clicks and steel gate rollers, without a pitched cry."""
 import math
 import random
 import struct
@@ -6,16 +6,33 @@ import wave
 from pathlib import Path
 
 rng = random.Random(23)
-rate, duration = 44100, 1.05
+rate, duration = 44100, 0.82
 samples = []
+filtered = 0.0
 for i in range(round(rate * duration)):
     t = i / rate
-    latch = math.exp(-45 * t) * (math.sin(2 * math.pi * 740 * t) + rng.uniform(-1, 1)) * 0.22
-    slide = rng.uniform(-1, 1) * 0.14 * max(0, math.sin(math.pi * min(1, t / 0.72)))
-    chime = sum(math.sin(2 * math.pi * f * max(0, t - delay)) *
-                math.exp(-9 * max(0, t - delay)) * 0.15 if t >= delay else 0
-                for f, delay in [(660, 0.25), (880, 0.36), (1320, 0.49)])
-    samples.append((latch + slide + chime) * min(1, t * 180) * min(1, (duration - t) * 30))
+    noise = rng.uniform(-1, 1)
+    filtered += 0.16 * (noise - filtered)
+    # Short low clunks with metallic overtones, separated like a released deadbolt.
+    latch = 0.0
+    for delay, gain in [(0.025, 0.48), (0.105, 0.36)]:
+        dt = t - delay
+        if dt >= 0:
+            latch += gain * math.exp(-70 * dt) * (
+                0.65 * math.sin(2 * math.pi * 180 * dt)
+                + 0.22 * math.sin(2 * math.pi * 1270 * dt)
+                + 0.25 * noise
+            ) * min(1, dt * 1800)
+    # A rolling scrape follows the latch while the two gate halves open.
+    progress = max(0.0, min(1.0, (t - 0.13) / 0.62))
+    envelope = math.sin(math.pi * progress) ** 0.8
+    rollers = envelope * (filtered * 0.25 + noise * 0.025)
+    for delay in [0.20, 0.31, 0.43, 0.56, 0.69]:
+        dt = t - delay
+        if dt >= 0:
+            rollers += math.exp(-130 * dt) * math.sin(2 * math.pi * 320 * dt) * 0.035
+    fade = min(1, t * 160, (duration - t) * 80)
+    samples.append((latch + rollers) * fade)
 path = Path(__file__).resolve().parents[1] / 'assets' / 'tycoon-release.wav'
 with wave.open(str(path), 'wb') as audio:
     audio.setparams((1, 2, rate, 0, 'NONE', 'not compressed'))

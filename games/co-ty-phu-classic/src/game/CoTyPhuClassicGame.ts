@@ -205,15 +205,6 @@ export class CoTyPhuClassicGame extends Game<State, Options, View> {
           s.notice = `Chưa ra tù: ${a} + ${b}.`;
           return this.complete(s, ctx, true);
         }
-        if (p.cash < 50) {
-          s.after = 'end';
-          charge(s, seat, 50, null, 'Tiền bảo lãnh ra tù');
-          s.debt!.moveAfter = (p.position + a + b) % BOARD.length;
-          p.jailed = false;
-          p.jailRolls = 0;
-          return this.complete(s, ctx, true);
-        }
-        transferMoney(s, s.turn, null, 50, 'Tiền bảo lãnh ra tù');
       }
       p.jailed = false;
       p.jailRolls = 0;

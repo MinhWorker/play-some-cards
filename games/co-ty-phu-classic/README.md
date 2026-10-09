@@ -27,13 +27,13 @@ sources/                       Script kết xuất và nguồn ảnh
 | Tiền khởi điểm, địa danh, giá mua/xây/thuê, nhóm màu | `src/game/model.ts` |
 | Bảng chọn một/nhiều tài sản và tổng tiền thế chấp | `src/scenes/hud/MortgagePanel.ts` |
 | Xác nhận mở đấu giá tài sản | `src/scenes/hud/AuctionConfirmPanel.ts` |
-| Icon búa đấu giá và ngân hàng trên nút quản lý đất | `src/scenes/hud/PropertyActionIcons.ts` |
+| Icon giấy sở hữu, nhà/búa xây dựng, đấu giá và ngân hàng trên nút đất | `src/scenes/hud/PropertyActionIcons.ts` |
 | Mua/xây/thế chấp/trao đổi | `src/game/CoTyPhuClassicGame.ts` |
 | Thuế, di chuyển, tiền thuê và hiệu lực thẻ | `src/game/rules.ts` |
 | Nội dung thẻ | `src/game/cards.ts` |
 | Vị trí ô và biểu tượng in trên bàn | `sources/render_board_25d.py` → `src/scenes/board/boardGeometry.ts` |
 | Giá hiện trên bàn | `src/scenes/board/BoardPrices.ts`, `boardAmounts.ts` |
-| Viền bộ màu, gộp khung và lửa monopoly | `src/scenes/board/MonopolyBorders.ts`, `monopolyFrames.ts`, `monopolyShader.ts` |
+| Trăng/mặt trời nối bộ đất, dấu góp bến xe | `src/scenes/board/MonopolySymbols.ts`, `StationBidMarks.ts`, `SurfaceMarks.ts` |
 | Badge men màu và nhà/khách sạn sứ trắng | `sources/render_deed_layers.py` → `src/scenes/board/DeedLayers.ts`, `deedLayerGeometry.ts` |
 | Biểu tượng điện/nước và các ô đặc biệt | `src/scenes/board/SpecialSymbols.ts` |
 | Ăn mừng, pháo hoa và đếm tổng tài sản | `src/scenes/effects/VictoryEffect.ts`, `src/game/rules.ts` |
@@ -80,13 +80,14 @@ blender -b -t 4 --python games/co-ty-phu-classic/sources/render_deed_layers.py
 
 Màu bộ dùng than chì, cyan, tím lan, tím violet, magenta, bạc, tím mận và xanh dầu,
 xa các tông đỏ san hô, xanh dương, xanh lá và vàng của người chơi.
-Viền có hai nét khảm mảnh và hoa văn hình thoi,
-khác với dải men đặc màu chủ đất.
-Viền bộ nằm dưới badge, được khử răng cưa trong shader GPU và cắt trong `BOARD_FACES`,
-phần mặt ô bên trong gờ in sẵn. Quầng sáng/lửa hướng vào trong, không tràn khỏi mặt ô.
-Badge men nằm phẳng và được cắt theo cùng giới hạn bề mặt. Hai ô cùng chủ có quầng sáng nhẹ;
-đủ bộ thì nhiễu liên tục tạo lửa chạy quanh viền. Chỉ các ô chạm nhau được gộp khung;
-các thành viên cách nhau vẫn cùng hưởng hiệu ứng và hệ số thuê.
+Mỗi liên kết trong bộ đất dùng một cặp trăng–mặt trời tối màu in trên mặt ô.
+Khi sở hữu từ hai ô cùng bộ, các cặp tương ứng sáng vàng; đủ ba ô thì cả hai cặp sáng.
+Các ô cùng bộ cách nhau bởi ô đặc biệt vẫn thể hiện liên kết. Dấu góp bến xe dùng bốn
+vị trí cố định, có khoảng trống đều; người góp gần nhất hiện tam giác, các người khác hiện chấm tròn.
+Cả hai loại dấu được chiếu theo phối cảnh và nằm trong `BOARD_FACES`.
+Nút mua có icon giấy sở hữu; nút xây có icon nhà và búa xây dựng.
+Nút mua/xây thiếu tiền vẫn hiện nhưng bị khóa, ghi “Ko đủ” kèm icon tiền; nút trả 50 ra tù cũng vậy.
+Thông báo giữa bàn xuống dòng theo từ và cân độ dài dòng, tránh tách riêng một ký tự.
 `sources/render_pawns.py`, `render_plane.py` và `render_hud_icons.py` kết xuất các đối tượng.
 Thêm `-- --front` khi chạy `render_pawns.py` bằng Blender để kết xuất bốn pawn chính diện,
 nền trong suốt, dùng riêng cho màn nhảy chiến thắng (`pawn-front-*.webp`).
@@ -99,6 +100,8 @@ Cả bốn kiểu tung dùng một lần tiếng lăn gốc `tycoon-dice.wav`; �
 Tiếng rút/lật thẻ dùng lại từ Tiến Lên; nhạc thắng dùng lại `mau-binh-standings.mp3` của Mậu Binh.
 Tiếng nhận tiền, mua và vào tù dùng các nguồn Pixabay trong `sources/audio-preview/`;
 tiếng máy bay cắt từ `assets/audio/sfx/pixabay-plane.mp3` ở gốc repo.
-`sources/make_release_audio.py` tự tổng hợp tiếng mở khóa/song sắt cho `tycoon-release.wav`.
+`sources/make_release_audio.py` tự tổng hợp hai tiếng chốt khóa và tiếng bánh lăn cửa thép
+cho `tycoon-release.wav`. Hiệu ứng mở cửa chạy xong trước animation xúc xắc của lượt ra tù;
+mãn hạn ở lần thử thứ ba không thu phí 50.
 Hai tiếng thông báo trao đổi/nhận thẻ dùng các file Freesound trong `assets/audio/sfx/`.
 Nguồn bên thứ ba và giấy phép: [LICENSE-ASSETS.md](../../LICENSE-ASSETS.md).

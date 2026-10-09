@@ -1,6 +1,6 @@
 import type Phaser from 'phaser';
 
-export type PropertyActionIcon = 'auction' | 'mortgage';
+export type PropertyActionIcon = 'auction' | 'mortgage' | 'buy' | 'build';
 
 /** Bake each small control icon once; button redraws only reposition an image. */
 export function propertyActionIcon(scene: Phaser.Scene, icon: PropertyActionIcon) {
@@ -33,6 +33,71 @@ export function propertyActionIcon(scene: Phaser.Scene, icon: PropertyActionIcon
     ink.restore();
     block(20, 101, 67, 12);
     block(29, 92, 49, 10);
+  } else if (icon === 'buy') {
+    // A deed sheet with a folded corner, property lines and a wax seal.
+    ink.fillStyle = '#f4dfaa';
+    ink.beginPath();
+    ink.moveTo(24, 14);
+    ink.lineTo(78, 14);
+    ink.lineTo(104, 40);
+    ink.lineTo(104, 114);
+    ink.lineTo(24, 114);
+    ink.closePath();
+    ink.fill();
+    ink.stroke();
+    ink.fillStyle = '#d8ad61';
+    ink.beginPath();
+    ink.moveTo(78, 14);
+    ink.lineTo(78, 40);
+    ink.lineTo(104, 40);
+    ink.closePath();
+    ink.fill();
+    ink.stroke();
+    ink.lineWidth = 6;
+    for (const [y, end] of [
+      [49, 67],
+      [63, 87],
+      [77, 63],
+    ]) {
+      ink.beginPath();
+      ink.moveTo(37, y!);
+      ink.lineTo(end!, y!);
+      ink.stroke();
+    }
+    ink.fillStyle = '#9b572b';
+    ink.beginPath();
+    ink.arc(77, 94, 15, 0, Math.PI * 2);
+    ink.fill();
+    ink.stroke();
+    ink.fillStyle = '#ffe5a5';
+    ink.beginPath();
+    ink.arc(77, 94, 7, 0, Math.PI * 2);
+    ink.fill();
+  } else if (icon === 'build') {
+    // A solid house silhouette with a small construction hammer across its right side.
+    ink.fillStyle = '#d8ad61';
+    block(17, 55, 69, 59);
+    ink.fillStyle = '#684422';
+    ink.beginPath();
+    ink.moveTo(8, 59);
+    ink.lineTo(51, 19);
+    ink.lineTo(95, 59);
+    ink.closePath();
+    ink.fill();
+    ink.stroke();
+    block(45, 83, 17, 31);
+    ink.fillStyle = '#fff0c6';
+    block(27, 70, 13, 15);
+    ink.save();
+    ink.translate(94, 65);
+    ink.rotate(Math.PI / 5);
+    ink.fillStyle = '#684422';
+    block(-5, -3, 10, 48);
+    ink.fillStyle = '#9c9b8a';
+    block(-20, -19, 40, 18);
+    ink.fillStyle = '#f4dfaa';
+    ink.fillRect(-16, -16, 30, 4);
+    ink.restore();
   } else {
     // Classical bank: pediment, three columns and stepped base.
     ink.beginPath();
