@@ -45,11 +45,13 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 ## Phase 0: tầm nhìn
 
 - [x] [vision.md](vision.md), [ADR 0001](adr/0001-godot-client.md), kế hoạch này
+- [x] [experience.md](experience.md): khung trải nghiệm chung (HUD, cách vào trò, kết quả, Nhà,
+      sự kiện) kèm ảnh concept
 - [ ] `docs/art-direction.md`: phong cách, bảng màu, ánh sáng, ảnh mẫu, cách viết prompt. Hub phải
       trông như game, không như app (xem [vision.md](vision.md#ba-trụ-cột))
-- [ ] Concept hub theo hướng nghệ thuật mới
+- [ ] Làm lại bằng Codex ba ảnh concept Nhà, sự kiện, bộ thành phần
 
-**Xong khi:** chủ dự án duyệt ba tài liệu và hướng nghệ thuật.
+**Xong khi:** chủ dự án duyệt các tài liệu trên và hướng nghệ thuật.
 
 ## Phase 1: móng
 

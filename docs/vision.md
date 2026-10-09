@@ -2,7 +2,8 @@
 
 > Trạng thái: Phase 0 (làm rõ ý tưởng). Tài liệu này mô tả nơi dự án sẽ đi tới, chưa phải cách
 > nó đang chạy. Kế hoạch từng bước: [roadmap.md](roadmap.md). Lý do đổi engine:
-> [adr/0001-godot-client.md](adr/0001-godot-client.md).
+> [adr/0001-godot-client.md](adr/0001-godot-client.md). Giao diện và trải nghiệm chung:
+> [experience.md](experience.md).
 
 ## Một câu
 
