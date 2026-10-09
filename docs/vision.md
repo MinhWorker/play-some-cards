@@ -23,9 +23,9 @@ thể thành một hòn đảo, không chỉ bài và cờ.
 
 ## Ba trụ cột
 
-1. **Hub là một game, không phải một app.** Không có thanh tab hay nút phẳng kiểu ứng dụng. Menu
-   nằm trong thế giới: bến cảng là danh sách phòng, căn nhà là hồ sơ, bảng gỗ là xếp hạng. Thế giới
-   có chuyển động và cho thấy bạn bè đang chơi ở đâu.
+1. **Hub là một game, không phải một app.** Bố cục học từ sảnh chờ của game mobile nổi tiếng (MOBA,
+   bắn súng sinh tồn), vẽ lại bằng hoạt hình văn hoá Việt: gỗ, tre, sơn mài, giấy dó, nón lá, đèn
+   lồng. Không nút phẳng kiểu ứng dụng.
 2. **Mỗi trò là một hòn đảo, có thể là một dự án riêng.** Giống cách các game lớn liên tục thêm
    trò phụ và sự kiện: mỗi sự kiện có luật, hình ảnh và phần thưởng riêng, nhưng dùng chung tài
    khoản, tiền và túi đồ. Thêm một đảo không phải sửa phần lõi.
@@ -35,6 +35,10 @@ thể thành một hòn đảo, không chỉ bài và cờ.
 
 ## Thế giới gồm những gì
 
+Thế giới có ba tầng, học từ game mobile (sảnh chờ → chế độ chơi → bản đồ): **Sảnh** là đảo Xóm
+với nhân vật của bạn; quanh đó là các **đảo thể loại** (Cờ, Bài, Tiệc, Đối Kháng, Sự kiện); mỗi
+thể loại có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
+
 Mọi nội dung đều là plugin, mỗi cái một thư mục trong `games/<id>/`:
 
 | Loại | Ví dụ | Đặc điểm |
@@ -43,8 +47,8 @@ Mọi nội dung đều là plugin, mỗi cái một thư mục trong `games/<id
 | `event`: sự kiện | "Trung Thu: câu cá 7 ngày" | Có ngày mở và đóng, có thể chơi một mình, phần thưởng riêng |
 | `place`: địa điểm | Cửa hàng, bảng xếp hạng, bến cảng | Một phần của hub, không có luật chơi |
 
-Plugin khai báo dữ liệu (vị trí trên bản đồ, biểu tượng đảo, thời gian mở, trạng thái `wip` hay
-`ready`, phần thưởng tối đa). Hub đọc dữ liệu đó để tự dựng bản đồ.
+Plugin khai báo dữ liệu (thể loại, tranh thẻ trò, thời gian mở, trạng thái `wip` hay `ready`,
+phần thưởng tối đa). Sảnh và màn chọn trò đọc dữ liệu đó để tự dựng.
 
 Các đảo là của chung: mọi người cùng thấy một quần đảo.
 

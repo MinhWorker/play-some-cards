@@ -49,7 +49,8 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
       sự kiện) kèm ảnh concept
 - [ ] `docs/art-direction.md`: phong cách, bảng màu, ánh sáng, ảnh mẫu, cách viết prompt. Hub phải
       trông như game, không như app (xem [vision.md](vision.md#ba-trụ-cột))
-- [ ] Làm lại bằng Codex ba ảnh concept Nhà, sự kiện, bộ thành phần
+- [ ] Làm lại bằng Codex các ảnh concept làm bằng `agy` (sảnh, chọn trò, Nhà, sự kiện, bộ
+      thành phần)
 
 **Xong khi:** chủ dự án duyệt các tài liệu trên và hướng nghệ thuật.
 
@@ -97,16 +98,17 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 ## Phase 2: hub v1
 
-- [ ] Plugin khai báo `kind` (`table`, `event`, `place`), vị trí trên bản đồ, biểu tượng đảo,
-      thời gian mở, phần thưởng tối đa
-- [ ] Bản đồ quần đảo dựng từ registry; vào đảo thì tải `.pck` của trò
+- [ ] Danh sách thể loại trong lõi (tên, ảnh đảo, vị trí); plugin khai báo `kind` (`table`,
+      `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
+- [ ] Sảnh: Xóm + đảo thể loại + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
+      tải ngầm `.pck` của trò
 - [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
 - [ ] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
       khai báo của trò. Bảng dữ liệu thiết kế sẵn cho nhiều loại tài nguyên
 - [ ] Art hub theo `docs/art-direction.md`
 - [ ] `npm run new:game` tạo cả luật TS, thư mục `godot/`, kịch bản e2e, RULES.md
 
-**Xong khi:** từ hub vào đảo Caro, chơi với bot, thắng thì được cộng tiền và thấy số dư mới.
+**Xong khi:** ở sảnh chọn Caro, bấm CHƠI, chơi với bot, thắng thì được cộng tiền và thấy số dư mới.
 
 ## Phase 3: trò thật đầu tiên
 

@@ -10,70 +10,91 @@
 >
 > Tầm nhìn: [vision.md](vision.md). Kế hoạch: [roadmap.md](roadmap.md).
 >
-> Bốn ảnh hub, cận cảnh đảo, ván đấu và kết quả làm bằng Codex, đúng hướng nghệ thuật nhất. Ba ảnh
-> Nhà, sự kiện và bộ thành phần làm bằng `agy` khi Codex hết quota: chúng phẳng hơn và ít chi tiết
-> hơn, chỉ dùng để xem bố cục; sẽ làm lại bằng Codex.
+> Ảnh ván đấu, kết quả, danh sách phòng và ảnh mẫu phong cách làm bằng Codex, đúng hướng nghệ
+> thuật nhất. Các ảnh còn lại làm bằng `agy` khi Codex hết quota: phẳng hơn, ít chi tiết hơn, chỉ
+> dùng để xem bố cục; sẽ làm lại bằng Codex.
 
 ## Nguyên tắc
 
-1. **Là game, không phải app.** Không thanh tab, không thanh ngang phủ kín mép trên, không nút
-   phẳng. Menu là những nơi chốn trong thế giới; bảng là biển gỗ; tiền là đồng xu.
-2. **Trò chơi làm chủ phần giữa màn hình.** Phần khung (shell) chỉ dùng bốn góc. Trò không vẽ lại
-   những gì phần khung đã có.
-3. **Hai lần chạm để vào chơi.** Từ hub: chạm đảo → "Chơi nhanh". Hoặc một lần: nút "Chơi nhanh"
-   ở hub vào trò chơi gần nhất.
-4. **Một ngôn ngữ hình ảnh.** Mọi trò, mọi sự kiện dùng chung vật liệu, bảng màu, font, nút và âm
-   thanh giao diện. Mỗi đảo được có "chất" riêng trong phần thế giới của nó, không phải trong HUD.
-5. **Mọi chuyển cảnh đều có chuyển động.** Không màn trắng, không vòng xoay tải giữa màn hình. Lúc
-   tải gói của trò là lúc camera bay tới đảo.
+1. **Học bố cục từ game mobile nổi tiếng, vẽ lại bằng văn hoá Việt.** Sảnh chờ, chọn chế độ, chọn
+   bản đồ, nút "Chơi" to ở góc dưới phải: người chơi game mobile (MOBA, bắn súng sinh tồn) đã quen
+   tay. Nhưng mọi thứ là gỗ, tre, dây thừng, sơn mài, giấy dó, nón lá, đèn lồng.
+2. **Là game, không phải app.** Nút nhiều cũng được, nhưng mỗi nút là một đồ vật có khối, có chuyển
+   động, có chấm đỏ thông báo; không thanh tab phẳng, không nút kiểu Material.
+3. **Trò chơi làm chủ phần giữa màn hình.** Trong ván, phần khung (shell) chỉ dùng bốn góc. Trò không
+   vẽ lại những gì phần khung đã có.
+4. **Một lần chạm để vào chơi.** Nút **CHƠI** ở sảnh luôn mang trò đang chọn (mặc định là trò vừa
+   chơi). Đổi trò là việc riêng, không chặn đường vào chơi.
+5. **Một ngôn ngữ hình ảnh.** Mọi trò, mọi sự kiện dùng chung vật liệu, bảng màu, font, nút và âm
+   thanh giao diện. Mỗi trò có "chất" riêng trong thẻ trò và bàn chơi của nó, không phải trong HUD.
+6. **Mọi chuyển cảnh đều có chuyển động.** Không màn trắng, không vòng xoay tải giữa màn hình.
 
-## Thế giới: Xóm và các đảo
+## Sảnh: Xóm và các đảo thể loại
 
-![Hub: quần đảo với Xóm ở giữa](concepts/hub-world.webp)
+![Sảnh chờ: Xóm ở giữa, các đảo thể loại xung quanh](concepts/lobby.webp)
 
-Hub là một quần đảo nhìn từ trên xuống, hơi nghiêng. Người chơi kéo để di chuyển, chụm hai ngón
-để phóng to thu nhỏ, chạm để chọn.
+Thế giới có ba tầng, giống "chế độ chơi" và "bản đồ" của game mobile:
 
-| Phần | Là gì | Chứa |
+| Tầng | Giống trong game mobile | Ở Xóm Đảo |
 | --- | --- | --- |
-| **Xóm** (đảo giữa) | Đảo cố định, luôn ở trung tâm | Các nơi chốn (`place`) của nền tảng |
-| **Đảo trò chơi** | Mỗi trò (`table`) một đảo nhỏ | Một diorama đồ chơi nói lên trò đó + biển tên gỗ |
-| **Đảo sự kiện** | Mỗi sự kiện (`event`) một đảo, chỉ có khi đang mở | Phát sáng, có cờ hiệu và số ngày còn lại |
-| **Đảo sương mù** | Trò `wip` hoặc chỗ trống cho trò sau | Sương và ổ khoá, không chạm vào được |
+| **Sảnh** | Sảnh chờ có nhân vật ở giữa | Đảo **Xóm**, nhân vật của bạn đứng giữa |
+| **Thể loại** | Chế độ chơi (Cổ điển, Giải trí…) | Một **đảo thể loại** quanh Xóm: Cờ, Bài, Tiệc, Đối Kháng, Sự kiện |
+| **Trò** | Bản đồ trong một chế độ | Một **thẻ trò** trong danh sách kéo ngang của thể loại |
 
-Các nơi chốn trong Xóm:
+Thể loại ban đầu, xếp từ các trò đang có:
 
-| Nơi | Thay cho | Mở ra |
-| --- | --- | --- |
-| **Nhà** | Tab "Hồ sơ" | Hồ sơ, túi đồ, thành tích, xếp hạng |
-| **Chợ** | Cửa hàng | Mua đồ trang trí bằng xu |
-| **Đình** | Bảng tin | Tin tức, sự kiện, bảng xếp hạng chung |
-| **Bến** | Tab "Phòng", "Bạn bè" | Bạn bè đang online, lời mời, mọi phòng đang mở |
+| Đảo | Trò |
+| --- | --- |
+| **Cờ** | Cờ Tướng, Cờ Vua, Cờ Vây, Cờ Đam, Caro |
+| **Bài** | Tiến Lên, Mậu Binh, Bài Cào |
+| **Tiệc** | Cờ Cá Ngựa, Cờ tỷ phú |
+| **Đối Kháng** | Bom Nguyên Tố, Bắn Tàu |
+| **Sự kiện** | Chỉ hiện khi có sự kiện đang mở |
 
-Vị trí các đảo do plugin khai báo (ô trên lưới bản đồ). Thêm trò là thêm một đảo; không ai vẽ lại
-bản đồ. Biển tên đảo chỉ có tên ngắn; số người đang chơi hiện khi chọn đảo.
+- Danh sách thể loại là dữ liệu của phần lõi (tên, ảnh đảo, vị trí, thứ tự). Thêm một thể loại là
+  thêm một đảo; hiếm khi xảy ra.
+- Mỗi trò khai báo nó thuộc thể loại nào. Thêm một trò là thêm một thẻ; không ai vẽ lại sảnh.
+- Thể loại chưa có trò nào `ready` hiện là đảo sương mù có ổ khoá.
+
+Bố cục HUD ở sảnh:
+
+| Vùng | Chứa |
+| --- | --- |
+| Trên trái | Ảnh đại diện, tên, cấp → **Nhà** |
+| Trên phải | Xu, ngọc, hộp thư, ⚙ |
+| Cột trái | Sự kiện, Nhiệm vụ, Bạn bè |
+| Cột phải | Chợ, Túi đồ |
+| Dưới trái | Hàng nút: Nhà, Xếp hạng, Thành tích, Bến (phòng) |
+| Dưới phải | Thẻ trò đang chọn (đổi được) + nút **CHƠI** thật to + **Tạo phòng** |
+| Giữa | Xóm, nhân vật của bạn, các đảo thể loại |
+
+Các nơi chốn của Xóm vẫn giữ tên làng: **Nhà** (hồ sơ, túi đồ), **Chợ** (cửa hàng), **Đình**
+(tin tức, xếp hạng chung), **Bến** (phòng đang mở, bạn bè online, lời mời). Chúng là nút trên HUD,
+và cũng là công trình bấm được trên đảo Xóm.
 
 ## Đường đi của người chơi
 
 ```
-Mở game ─► Hub (quần đảo)
-              │ chạm đảo                      │ chạm nơi chốn trong Xóm
-              ▼                               ▼
-          Cận cảnh đảo + biển gỗ         Nhà / Chợ / Đình / Bến
-              │ Chơi nhanh / Tạo phòng / Vào
-              ▼
-          Bàn chơi (ván đấu)
-              │ hết ván
-              ▼
-          Kết quả + phần thưởng ─► Chơi tiếp (ván mới, cùng phòng)
-              │ Về đảo
-              ▼
-          Cận cảnh đảo ─► ← về Hub
+Mở game ─► Sảnh (Xóm)
+  │
+  ├─ CHƠI ──────────────────────────► Ghép phòng ─► Ván đấu ─► Kết quả ─┬─► Chơi tiếp
+  │   (trò đang chọn)                                                     └─► về Sảnh
+  │
+  ├─ chạm đảo thể loại / thẻ trò đang chọn
+  │      ▼
+  │   Chọn trò: tab thể loại + danh sách thẻ kéo ngang
+  │      ├─ Chọn ──────► về Sảnh, thẻ dưới phải đổi thành trò mới
+  │      ├─ Tạo phòng ─► tuỳ chỉnh phòng ─► phòng chờ ─► Ván đấu
+  │      └─ Danh sách phòng ─► vào phòng
+  │
+  ├─ Tạo phòng (ở Sảnh) ─► tuỳ chỉnh phòng của trò đang chọn
+  └─ Nhà / Chợ / Bến / Sự kiện …  ─► màn nơi chốn ─► ← về Sảnh
 ```
 
-- Nút ← luôn về đúng một bước. Không có nút "Trang chủ" riêng: từ ván đấu về hub là hai lần ←
-  (có hỏi xác nhận nếu đang giữa ván).
-- Link mời bạn bè mở thẳng vào phòng, bỏ qua hub. Thoát ra thì về cận cảnh đảo của trò đó.
+- **CHƠI** = ghép nhanh: vào phòng còn chỗ của trò đang chọn, không có thì mở phòng mới, chờ một
+  lúc rồi cho máy ngồi ghế trống.
+- Nút ← luôn về đúng một bước. Từ ván đấu về sảnh có hỏi xác nhận nếu đang giữa ván.
+- Link mời bạn bè mở thẳng vào phòng. Thoát ra thì về sảnh, với trò đó đang được chọn.
 
 ## Khung hình
 
@@ -86,7 +107,7 @@ Bầu trời / mặt biển lấp phần thừa, vẽ tràn dưới tai thỏ; H
 Cỡ tối thiểu (vùng chạm 88, chữ nhỏ nhất 24…) theo bảng
 [Đơn vị và cỡ tối thiểu](ui-guide.md#đơn-vị-và-cỡ-tối-thiểu).
 
-## HUD: bốn góc
+## HUD trong ván: bốn góc
 
 ![HUD trong ván đấu](concepts/in-game-hud.webp)
 
@@ -96,17 +117,16 @@ Cỡ tối thiểu (vùng chạm 88, chữ nhỏ nhất 24…) theo bảng
 
 Màn hình chia ba lớp:
 
-1. **Thế giới / bàn chơi**: cả màn hình. Thuộc về trò (hoặc hub).
+1. **Thế giới / bàn chơi**: cả màn hình. Thuộc về trò (hoặc sảnh).
 2. **HUD góc**: bốn góc, do phần khung vẽ. Trò không vẽ lại và không đặt gì đè lên.
-3. **Bảng**: biển gỗ hiện trên thế giới (cận cảnh đảo, kết quả, cài đặt). Do phần khung vẽ, trò chỉ
+3. **Bảng**: biển gỗ hiện trên thế giới (chi tiết trò, kết quả, cài đặt). Do phần khung vẽ, trò chỉ
    cung cấp nội dung bên trong khi được phép.
 
-Nội dung bốn góc theo từng màn:
+Sảnh có HUD đầy đủ (xem [Sảnh](#sảnh-xóm-và-các-đảo-thể-loại)). Mọi màn khác chỉ dùng bốn góc:
 
 | Màn | Trên trái | Trên phải | Dưới trái | Dưới phải |
 | --- | --- | --- | --- | --- |
-| Hub | Ảnh đại diện + tên + cấp → Nhà | Xu, ngọc, ⚙ | (trống) | **Chơi nhanh** |
-| Cận cảnh đảo | ← | Xu, ⚙ | (trống) | (bảng gỗ chiếm bên phải) |
+| Chọn trò | ← | Xu, ⚙ | (trống) | (bảng chi tiết chiếm bên phải) |
 | Nơi chốn (Nhà, Chợ…) | ← | Xu, ⚙ | (trống) | (trống) |
 | Ván đấu | ← | 🔊, ⚙ | Biểu cảm | **Thuộc về trò** |
 | Kết quả | (trống) | Xu (để thấy xu bay vào), ⚙ | (trống) | (trống) |
@@ -119,23 +139,28 @@ Nội dung bốn góc theo từng màn:
 - Cài đặt (⚙) là một bảng chung: âm thanh, cỡ giao diện, lề màn hình, chất lượng hình, rời phòng.
   Trò có thể thêm một mục "Luật chơi" vào đó, không thêm gì khác.
 
-## Vào một trò
+## Chọn trò
 
-![Cận cảnh đảo Tiến Lên](concepts/island-enter.webp)
+![Chọn trò trong thể loại Bài](concepts/genre-select.webp)
 
-1. Chạm đảo ở hub → camera bay tới, đảo chiếm hai phần ba bên trái. Trong lúc bay, gói `.pck` của
-   trò tải ngầm; nếu chưa xong thì thuyền nhỏ chạy quanh đảo thay cho thanh tải.
-2. Biển gỗ bên phải, cùng một bố cục cho mọi trò:
-   - tên trò, số người đang chơi;
-   - **Chơi nhanh** (vào phòng còn chỗ hoặc chơi với máy);
-   - **Tạo phòng** (mở màn tuỳ chỉnh của trò nếu có);
-   - danh sách phòng đang mở, mỗi dòng: tên phòng, số ghế, nút "Vào";
-   - "Luật" (mở `RULES.md` của trò dưới dạng cuộn giấy).
-3. Đảo ở cận cảnh có chuyển động riêng (người nhỏ chơi bài, thuyền neo ở bến): đây là chỗ trò thể
-   hiện chất riêng.
+- Trên cùng là **tab thể loại** hình biển đảo nhỏ, để đổi thể loại mà không quay ra sảnh.
+- Giữa là **danh sách thẻ kéo ngang**. Mỗi thẻ: tranh minh hoạ, tên, số người, số người đang chơi.
+  Thẻ đang chọn to hơn, viền vàng. Trò sắp có là thẻ mờ sương có ổ khoá ở cuối danh sách.
+- Bên phải là **bảng chi tiết** của thẻ đang chọn, cùng một bố cục cho mọi trò:
+  - tên, một câu giới thiệu, số người, số phòng đang mở;
+  - **Chọn** (đặt làm trò của nút CHƠI);
+  - **Tạo phòng** (mở màn tuỳ chỉnh của trò nếu có);
+  - **Danh sách phòng**;
+  - **Luật** (mở `RULES.md` của trò dưới dạng cuộn giấy).
+- Gói `.pck` của trò được tải ngầm ngay khi thẻ được chọn, để lúc bấm CHƠI là vào luôn.
 
 Màn tuỳ chỉnh khi tạo phòng (số người, luật phụ, bot) là một bảng gỗ do trò điền nội dung, dùng ô
 lựa chọn và nút chung.
+
+Danh sách phòng (từ bảng chi tiết hoặc từ **Bến**) là một bảng gỗ, mỗi dòng: tên phòng, trò, số
+ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng phòng:
+
+![Danh sách phòng trên biển gỗ (concept cũ)](concepts/island-enter.webp)
 
 ## Kết thúc ván và phần thưởng
 
@@ -146,13 +171,13 @@ lựa chọn và nút chung.
   và vẫn phải kết thúc bằng phần phần thưởng chung.
 - Phần thưởng do server tính (sổ cái). Xu và tài nguyên **bay** từ bảng vào góc trên phải, số dư
   đếm lên. Có âm thanh xu rơi.
-- Hai nút: **Chơi tiếp** (ván mới, cùng phòng) và **Về đảo**.
+- Hai nút: **Chơi tiếp** (ván mới, cùng phòng) và **Về sảnh**. Ảnh concept còn ghi "Về đảo".
 
 ## Nhà: hồ sơ, túi đồ, thành tích, xếp hạng
 
 ![Trong Nhà](concepts/home-profile.webp)
 
-- Mở từ ảnh đại diện ở góc trên trái hoặc chạm Nhà trong Xóm.
+- Mở từ ảnh đại diện ở góc trên trái, nút Nhà ở hàng dưới trái, hoặc chạm ngôi nhà trên Xóm.
 - Thẻ hồ sơ bên trái: ảnh đại diện, tên, cấp và thanh tiến độ, vài con số tổng.
 - Bên phải là kệ gỗ, chia theo **thẻ đánh dấu** (bookmark) gỗ: Túi đồ, Thành tích, Xếp hạng.
 - Túi đồ là các ô trên kệ. Vật phẩm nào cũng có biểu tượng vuông, nền trong suốt, để đặt được vào ô.
@@ -162,12 +187,14 @@ lựa chọn và nút chung.
 
 ![Đảo sự kiện Trung Thu](concepts/event-island.webp)
 
-- Sự kiện là một đảo xuất hiện ở hub trong thời gian mở, có cờ hiệu và số ngày còn lại.
-- Bảng sự kiện có cùng bố cục với biển gỗ của đảo trò chơi, nhưng **được đổi màu** (ví dụ sơn mài
-  đỏ viền vàng cho Trung Thu) và có thêm **dải phần thưởng** theo mốc.
+- Khi có sự kiện đang mở, đảo thể loại **Sự kiện** sáng lên ở sảnh, có cờ hiệu và số ngày còn lại;
+  nút Sự kiện ở cột trái có chấm đỏ. Mỗi sự kiện là một thẻ trong thể loại Sự kiện.
+- Bảng chi tiết của sự kiện có cùng bố cục với bảng chi tiết trò, nhưng **được đổi màu** (ví dụ
+  sơn mài đỏ viền vàng cho Trung Thu) và có thêm **dải phần thưởng** theo mốc.
 - Nút chính là **Tham gia**. Bên trong, sự kiện là một trò bình thường và theo mọi quy tắc HUD ở
   trên.
-- Khi sự kiện đóng, đảo chìm vào sương; vật phẩm đã nhận vẫn ở trong túi đồ.
+- Khi sự kiện đóng, thẻ của nó biến mất; vật phẩm đã nhận vẫn ở trong túi đồ. Không còn sự kiện nào
+  thì đảo Sự kiện chìm vào sương.
 
 ## Ngôn ngữ hình ảnh
 
@@ -175,9 +202,13 @@ lựa chọn và nút chung.
 
 > Chữ tiếng Anh trên bảng này do công cụ tạo ảnh viết sai; chỉ xem hình dạng và màu.
 
+Ảnh mẫu phong cách (concept cũ, bố cục đã bỏ, nhưng đây là mức chi tiết và ánh sáng cần đạt):
+
+![Ảnh mẫu phong cách](concepts/hub-world.webp)
+
 **Thế giới:** xóm chài Việt Nam kiểu đồ chơi: tre, dây thừng, thúng, thuyền thúng, mái ngói đỏ,
-đèn lồng. 2.5D, khối mềm, bóng ngắn, nắng chiều từ trên trái. Đảo trò chơi là diorama nhỏ; không
-đảo nào lấn át Xóm.
+đèn lồng. 2.5D, khối mềm, bóng ngắn, nắng chiều từ trên trái. Đảo thể loại là diorama nhỏ; không
+đảo nào lấn át Xóm và nhân vật ở giữa.
 
 **Vật liệu giao diện:**
 
@@ -189,6 +220,8 @@ lựa chọn và nút chung.
 | Nút biểu tượng | Tròn, gỗ, 88 × 88 |
 | Ảnh đại diện | Vòng tre; khung khác là vật phẩm trang trí |
 | Tiền | Đồng **xu** đồng có lỗ vuông; tài nguyên phụ là **ngọc** xanh lá |
+| Thẻ trò | Khung gỗ dọc bo góc, tranh minh hoạ trên, bảng tên giấy dưới |
+| Chấm thông báo | Chấm đỏ đèn lồng ở góc trên phải của nút |
 | Thông báo nhanh | Mẩu giấy dó trượt xuống từ trên giữa |
 
 **Bảng màu** (giá trị sẽ chốt trong `docs/art-direction.md`):
@@ -210,15 +243,15 @@ dấu tiếng Việt.
 khi nhận thưởng. Không có chuyển động nào chặn người chơi quá 0,6 giây.
 
 **Âm thanh giao diện:** tiếng gỗ khi chạm, tiếng giấy khi mở bảng, tiếng xu khi nhận thưởng, sóng
-biển nền ở hub. Mỗi trò có nhạc nền riêng; âm thanh giao diện là của chung.
+biển nền ở sảnh. Mỗi trò có nhạc nền riêng; âm thanh giao diện là của chung.
 
 ## Khế ước cho mọi trò và sự kiện
 
 Một trò hay sự kiện **phải**:
 
-- [ ] Khai báo: tên, loại (`table` / `event`), ô trên bản đồ, ảnh đảo (diorama, nền trong suốt),
-      số người, phần thưởng tối đa; sự kiện thêm ngày mở/đóng và dải phần thưởng.
-- [ ] Có cận cảnh đảo với chuyển động riêng.
+- [ ] Khai báo: tên, thể loại, một câu giới thiệu, số người, phần thưởng tối đa; sự kiện thêm ngày
+      mở/đóng và dải phần thưởng.
+- [ ] Có tranh thẻ trò (dọc, theo khung chung) và tranh nhỏ cho thẻ "trò đang chọn" ở sảnh.
 - [ ] Dùng thành phần chung từ `xomdao_sdk`: nút, bảng, ô người chơi, ô lựa chọn, thông báo.
 - [ ] Đặt nút hành động của trò ở góc dưới phải; để trống ba góc còn lại.
 - [ ] Trả thứ hạng khi hết ván và để phần khung hiện kết quả, phần thưởng.
@@ -234,9 +267,9 @@ Một trò hay sự kiện **không được**:
 
 ## Còn để ngỏ
 
-- Avatar: chỉ là ảnh trong vòng tre, hay một **nhân vật** dân xóm (như ảnh ván đấu) ngồi quanh
-  bàn và đi lại trong Xóm? Nhân vật đẹp hơn nhiều nhưng mỗi trang phục, mỗi tư thế đều phải làm
-  bằng Blender.
+- Avatar: bố cục sảnh kiểu game mobile đặt **nhân vật** của bạn ở giữa, và ảnh ván đấu cho đối thủ
+  ngồi quanh bàn như nhân vật thật. Đây là hướng đề xuất. Cái giá: mỗi trang phục, mỗi tư thế phải
+  làm bằng Blender. Nếu chỉ dùng ảnh tròn, giữa sảnh sẽ là ngôi nhà của bạn trên Xóm.
 - Cấp người chơi tính từ đâu (tổng ván, kinh nghiệm riêng)?
 - Ngọc (tài nguyên thứ hai) dùng vào việc gì.
 - Có chat chữ hay chỉ biểu cảm.
