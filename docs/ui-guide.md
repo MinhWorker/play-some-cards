@@ -54,6 +54,9 @@ khung, nhân với cỡ HUD người chơi chọn. Cỡ chữ và nút nhân v�
 
 - **Góc trên trái**: nút quay lại (←, chỉ biểu tượng) và 🏠, hoặc hồ sơ ở trang chủ. **Góc trên
   phải**: âm thanh, cài đặt. Hai góc cao 88, cách mép một **lề** (mặc định 24).
+- Game tự vẽ HUD riêng (`hud` trong `client.ts`, xem `docs/making-a-game.md`) vẫn phải có đủ
+  nút rời phòng, về trang chủ và cài đặt, vùng chạm không nhỏ hơn quy định ở trên. Gom chúng vào
+  một nút menu ở góc cũng được.
 - Không ghi tên game hay tên phòng trong ván: người chơi biết mình đang ở đâu, chỗ đó dành cho bàn.
   Chủ phòng có 👑 trong danh sách người chơi; game tự vẽ người chơi thì tự thể hiện chủ phòng.
 - Giữa hai góc để trống cho bàn chơi: HUD không phủ ngang cả màn hình. `ctx.screen.gap` cho biết
@@ -105,6 +108,29 @@ hay khung trang trí ăn chỗ.
   nhất). Đặt kích thước hình theo đơn vị thiết kế (không theo điểm ảnh của ảnh), để xuất ảnh to
   hơn không làm hình to ra.
 - Nền nút, nền bảng cần ghi độ dày viền (để đặt `slice`) khi làm hình.
+
+## Lưu Graphics tĩnh thành texture
+
+`rasterizeGraphics` từ `@psc/sdk/client` lưu khung, nền hoặc nút vẽ bằng Phaser
+Graphics thành ảnh, tránh dựng lại đường bo mỗi khung hình. `bounds` dùng tọa độ
+cục bộ và cần chứa cả viền lẫn bóng. Ảnh giữ vị trí, scale, depth và container cha;
+Graphics gốc được ẩn. Texture có mật độ tối đa 3×, giới hạn cạnh 4096 px và được
+dọn khi scene đóng. Chỉ gọi lại khi hình thay đổi, dùng cùng key và ảnh cũ để cập nhật.
+
+```ts
+import { rasterizeGraphics } from '@psc/sdk/client';
+
+const shape = this.add.graphics()
+  .fillStyle(0xfff6e7)
+  .fillRoundedRect(-100, -40, 200, 80, 16);
+const paper = rasterizeGraphics(this, shape, 'stats-panel', {
+  x: -103, y: -43, width: 206, height: 90,
+});
+// Khi bố cục hoặc nội dung Graphics đổi:
+rasterizeGraphics(this, shape, 'stats-panel', {
+  x: -103, y: -43, width: 206, height: 90,
+}, paper);
+```
 
 ## Chuyển động
 

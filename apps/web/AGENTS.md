@@ -9,6 +9,12 @@ Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`
     Optional client `background` sleeps the default sky and starts `<id>:background` behind
     boards/sandboxes; setup/hub/sky restore the default. SceneDirector owns both lifecycles.
   - Phaser emits events on `bridge`.
+  - A board with its own room HUD (`hud` in the game's client.ts) emits 'board:room' actions;
+    `Room` and `Sandbox` act on them, hide the room bar/result panel it replaces, and send
+    `hud:top` `null` so `ctx.screen.top` is the frame's top. `lib/roomControls.ts` decides which
+    room buttons a viewer may use, for both the React panels and `ctx.room`.
+  - A React dialog over a board calls `useDialogKeys(open)` (hooks/): Phaser's keyboard pauses
+    while it is open, so Esc or Space meant for the dialog never reaches the game.
   - Anything game-like (pieces, cards, animation, drag and drop) is Phaser.
 - **File placement**:
   - A component's CSS sits next to it.

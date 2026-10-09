@@ -2,6 +2,7 @@ import {
   BOARD_MOVE,
   BOARD_OPTIONS,
   BOARD_PROPS,
+  BOARD_ROOM,
   FRAME,
   type Frame,
   SceneDirector,
@@ -39,8 +40,12 @@ function stageRequest(stage: Stage) {
   };
 }
 
-/** The room bar's bottom edge (CSS px from the top of the page) in design units, or undefined. */
-function hudTopUnits(px: number | undefined, frame: Frame) {
+/**
+ * The room bar's bottom edge (CSS px from the top of the page) in design units: 0 for `null`
+ * (no bar: the board draws its own), undefined when unknown.
+ */
+function hudTopUnits(px: number | null | undefined, frame: Frame) {
+  if (px === null) return 0;
   return px === undefined ? undefined : (px - frame.css.top) / frame.css.unit;
 }
 
@@ -63,7 +68,7 @@ function hudGapUnits(gap: HudGap, frame: Frame) {
 function applyFrame(
   game: Phaser.Game,
   frame: Frame,
-  hud: { top: number | undefined; gap: HudGap },
+  hud: { top: number | null | undefined; gap: HudGap },
 ) {
   const { width, height } = frame.canvas;
   if (game.scale.width !== width || game.scale.height !== height) game.scale.resize(width, height);
@@ -81,7 +86,8 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
   const parent = useRef<HTMLDivElement>(null);
   const game = useRef<Phaser.Game | null>(null);
   const ready = useRef(false);
-  const consoleTyping = useRef(false);
+  /** Who holds the board's keys: the Dev Console while typing, and open app dialogs. */
+  const keyHolds = useRef({ typing: false, dialogs: 0 });
   const keyboardBefore = useRef<boolean | null>(null);
   const director = useRef<SceneDirector<Stage> | null>(null);
   const [sceneError, setSceneError] = useState(false);
@@ -92,9 +98,12 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
 
   // The room bar's height and the free middle of its row, kept in the registry (in design
   // units) so game screens can leave room for the bar and use the rest of its row.
-  const hud = useRef<{ top: number | undefined; gap: HudGap }>({ top: undefined, gap: undefined });
+  const hud = useRef<{ top: number | null | undefined; gap: HudGap }>({
+    top: undefined,
+    gap: undefined,
+  });
   useEffect(() => {
-    const onHudTop = (px: number | undefined) => {
+    const onHudTop = (px: number | null | undefined) => {
       hud.current.top = px;
       game.current?.registry.set('hudTop', hudTopUnits(px, currentAppFrame()));
     };
@@ -102,11 +111,11 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       hud.current.gap = gap;
       game.current?.registry.set('hudGap', hudGapUnits(gap, currentAppFrame()));
     };
-    const onTyping = (typing: boolean) => {
-      consoleTyping.current = typing;
+    const holdKeys = () => {
       const keyboard = game.current?.input.keyboard;
       if (!keyboard) return;
-      if (typing) {
+      const { typing, dialogs } = keyHolds.current;
+      if (typing || dialogs > 0) {
         keyboardBefore.current ??= keyboard.enabled;
         keyboard.enabled = false;
       } else if (keyboardBefore.current !== null) {
@@ -114,7 +123,17 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
         keyboardBefore.current = null;
       }
     };
+    const onTyping = (typing: boolean) => {
+      keyHolds.current.typing = typing;
+      holdKeys();
+    };
+    // An app dialog over the board (settings, "leave mid-game?") keeps keys from the game.
+    const onDialog = (open: boolean) => {
+      keyHolds.current.dialogs = Math.max(0, keyHolds.current.dialogs + (open ? 1 : -1));
+      holdKeys();
+    };
     bridge.on('dev:typing', onTyping);
+    bridge.on('ui:dialog', onDialog);
     bridge.on('hud:top', onHudTop);
     bridge.on('hud:gap', onHudGap);
     const offFrame = onFrame((frame) => {
@@ -122,7 +141,9 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
     });
     return () => {
       bridge.off('dev:typing', onTyping);
-      onTyping(false);
+      bridge.off('ui:dialog', onDialog);
+      keyHolds.current = { typing: false, dialogs: 0 };
+      holdKeys();
       bridge.off('hud:top', onHudTop);
       bridge.off('hud:gap', onHudGap);
       offFrame();
@@ -157,13 +178,16 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
       // Moves made on a game's board go to React (useBoardMoves), which sends them.
       g.events.on(BOARD_MOVE, (move: unknown) => bridge.emit('board:move', move));
       g.events.on(BOARD_OPTIONS, (options: unknown) => bridge.emit('board:options', options));
+      // Room controls a board draws itself (`hud` in its client.ts): Room or Sandbox acts.
+      g.events.on(BOARD_ROOM, (action: unknown) => bridge.emit('board:room', action));
       // A game's setup screen hands its room options to React (RoomSetup), which creates the room.
       g.events.on(SETUP_SUBMIT, (options: unknown) => bridge.emit('setup:submit', options));
       g.events.on(SETUP_CANCEL, () => bridge.emit('setup:cancel'));
       // Before any scene starts: they read it in create().
       g.registry.set(FRAME, frame);
       g.events.once('booted', () => {
-        if (consoleTyping.current && g.input.keyboard) {
+        const { typing, dialogs } = keyHolds.current;
+        if ((typing || dialogs > 0) && g.input.keyboard) {
           keyboardBefore.current = g.input.keyboard.enabled;
           g.input.keyboard.enabled = false;
         }

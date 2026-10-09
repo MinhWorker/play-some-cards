@@ -19,6 +19,11 @@
   border: 3px solid var(--wood);
 }
 
+/* A toast only informs: taps go through it to the board or panel underneath. */
+.ui > .toast {
+  pointer-events: none;
+}
+
 .banner {
   top: 110px;
   background: var(--paper);

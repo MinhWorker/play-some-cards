@@ -7,8 +7,10 @@ interface Props {
   /** Label of the back button, for screen readers. */
   backLabel: string;
   onBack: () => void;
-  /** Straight to the home map (creating a room; not while changing the room's options). */
+  /** Straight to the home map. */
   onHome?: () => void;
+  /** The setup scene's own cancel ('setup:cancel'); `onBack` when left out. */
+  onCancel?: () => void;
   /** Creates the room or changes its options; rejects with the message to show. */
   onSubmit: (options: unknown) => Promise<unknown>;
 }
@@ -17,7 +19,7 @@ interface Props {
  * While a game's own settings screen runs on the canvas (its `setup` scene, for "Tạo phòng" or
  * "Tuỳ chỉnh"): a back button, and whatever options the scene hands over go to `onSubmit`.
  */
-export function RoomSetup({ backLabel, onBack, onHome, onSubmit }: Props) {
+export function RoomSetup({ backLabel, onBack, onHome, onCancel, onSubmit }: Props) {
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -25,13 +27,14 @@ export function RoomSetup({ backLabel, onBack, onHome, onSubmit }: Props) {
       setError('');
       onSubmit(options).catch((err: Error) => setError(err.message));
     };
+    const cancel = onCancel ?? onBack;
     bridge.on('setup:submit', submit);
-    bridge.on('setup:cancel', onBack);
+    bridge.on('setup:cancel', cancel);
     return () => {
       bridge.off('setup:submit', submit);
-      bridge.off('setup:cancel', onBack);
+      bridge.off('setup:cancel', cancel);
     };
-  }, [onBack, onSubmit]);
+  }, [onBack, onCancel, onSubmit]);
 
   return (
     <>

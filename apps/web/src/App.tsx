@@ -19,12 +19,14 @@ import { useAccount } from '@/hooks/useAccount';
 import { useBoardMoves } from '@/hooks/useBoardMoves';
 import { useBrowsingGame } from '@/hooks/useBrowsingGame';
 import { useConnected } from '@/hooks/useConnected';
+import { useGameClient } from '@/hooks/useGameClient';
 import { useGameEndSound } from '@/hooks/useGameEndSound';
 import { useNewBuild } from '@/hooks/useNewBuild';
 import { useRoom } from '@/hooks/useRoom';
 import { useServerReady } from '@/hooks/useServerReady';
 import { useVersionGuard } from '@/hooks/useVersionGuard';
 import { currentBuild } from '@/lib/deployment';
+import { roomControls } from '@/lib/roomControls';
 import { request } from '@/lib/socket';
 import { appMusic, installButtonSounds, setMusicScene } from '@/lib/sound';
 import { GameRooms } from '@/pages/GameRooms/GameRooms';
@@ -64,6 +66,8 @@ export function App() {
   );
   const { session, snapshot, enter, resume, leave } = useRoom(onClosed);
   const { account, signIn, signOut, updateProfile } = useAccount(resume);
+  const roomClient = useGameClient(snapshot?.gameId ?? '');
+  const hasSetup = Boolean(roomClient?.setup);
 
   useEffect(installButtonSounds, []);
   useGameEndSound(session, snapshot);
@@ -105,8 +109,9 @@ export function App() {
       last: snapshot.last,
       timer: snapshot.timer,
       played: snapshot.played,
+      room: roomControls(snapshot, session.playerId, hasSetup),
     };
-  }, [account.status, session, snapshot, browsing, settingUp, editing, sceneInstance]);
+  }, [account.status, session, snapshot, browsing, settingUp, editing, sceneInstance, hasSetup]);
 
   // Only the host edits the room, and only between games.
   const canEdit =
@@ -166,7 +171,15 @@ export function App() {
         {account.status === 'guest' ? (
           <Login onSignIn={signIn} />
         ) : account.status === 'loading' ? null : session && editing ? (
-          <RoomSetup backLabel="Về phòng" onBack={closeEditing} onSubmit={changeOptions} />
+          // ← leaves the room like the room bar's (only between games); the setup scene's own
+          // cancel goes back to the room.
+          <RoomSetup
+            backLabel="Về danh sách phòng"
+            onBack={() => onLeave(false)}
+            onHome={() => onLeave(true)}
+            onCancel={closeEditing}
+            onSubmit={changeOptions}
+          />
         ) : session ? (
           <Room
             session={session}
@@ -196,7 +209,7 @@ export function App() {
           <ProfileBadge user={account.user} onChange={updateProfile} onSignOut={signOut} />
         )}
         {notice && <Toast>{notice}</Toast>}
-        <SoundControl />
+        <SoundControl button={!(stage.mode === 'board' && roomClient?.hud?.settings)} />
       </main>
       <WarmupOverlay
         shown={

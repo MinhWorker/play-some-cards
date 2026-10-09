@@ -1,0 +1,909 @@
+{
+  "$comment": "Hình Codex của Bom Nguyên Tố (npm run gen:asset -- bom-nguyen-to/<tên>). Khung hình nhân vật actor-<nguyên tố>-<tư thế> vẽ lại từ chân dung rồi từ tư thế đứng (from); cùng bom, vụ nổ và vật phẩm, chúng ghi ra sources/frames/ và được sources/pack-sprites.py gộp thành atlas.",
+  "assets": {
+    "island": {
+      "transparent": true,
+      "maxSize": 640,
+      "prompt": "Original portal thumbnail of floating toy garden3x3 tabletop with mint/honeyyellowtiles, blue daisy stoneblock, peachribbon giftcrate, chubbycreamfaced peachfox and purple smilingbomb withsparkle, mintleafcat peeking atbackcorner. Honeywoodborder with daisies/leaves, warmplum outline, cute pastelstorybooksimple cartoonshading, near topdown orthogonal grid slightly forwardtilted. Transparent, no text/UI or copiedgamecharacters."
+    },
+    "garden": {
+      "transparent": false,
+      "maxSize": 1920,
+      "prompt": "Wide 16:9 backdrop for a cute garden arena game, seen from above at a gentle angle. The middle 70 percent is a calm, even lawn of soft fresh green grass with faint clover texture and nothing else on it. Decorations only along the borders: leafy green bushes, clover patches, white daisies and pink blossoms along the left and right edges; pastel bunting pennant flags strung across the top-left and top-right corners; puffy pastel pink and white flower bushes in both bottom corners; a pink and yellow pinwheel near the bottom-left; a coral watering can beside a flower pot on the right edge; a short cream stone-slab path entering from the bottom center. Cheerful pastel storybook palette, soft painted shading, gentle warm-brown outlines. No characters, no board, no UI."
+    },
+    "logo": {
+      "transparent": true,
+      "plain": true,
+      "maxSize": 1024,
+      "prompt": "Cute casual mobile game title logo that reads exactly \"Bom Nguyên Tố\" on two lines. Top line \"Bom\": big chunky rounded bubbly letters with a warm yellow-to-orange gradient, the letter o drawn as a cute round glossy navy bomb with a lit fuse and a tiny yellow spark. Bottom line \"Nguyên Tố\": chunky rounded letters with a sky-blue to teal gradient and correct Vietnamese diacritics (the ê has a circumflex, the ố has a circumflex plus an acute accent). Thick dark-brown outline around every letter, a white inner rim, one cream sticker backing behind the whole title, a few small green leaves and white daisies tucked around its edges. Polished cartoon game logo, saturated colors, soft glossy highlights. Single isolated logo on a fully transparent background, centered with generous margin."
+    },
+    "portrait-fire": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "Fire baby fox. Original chibi animal mascot, full body, standing, three-quarter view facing slightly to the viewer's right, huge round head about as big as its body, tiny limbs, big glossy dark eyes with two white sparkles, rosy pink blush, small happy open smile. Thick warm dark-brown outline, soft painted cel shading with gentle gradients, glossy highlights, vibrant candy colors, sticker-like cute mobile game art. Bright orange fur, cream-white muzzle, cheeks and chest fluff, large pointed ears with cream insides and dark-brown tips, a big fluffy orange tail with a white tip curling behind it, a small green leaf sprout on top of its head, a tiny flame-shaped orange tuft on its forehead. One paw raised waving."
+    },
+    "portrait-water": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "Water baby seal. Original chibi animal mascot, full body, standing, three-quarter view facing slightly to the viewer's right, huge round head about as big as its body, tiny limbs, big glossy dark eyes with two white sparkles, rosy pink blush, small happy open smile. Thick warm dark-brown outline, soft painted cel shading with gentle gradients, glossy highlights, vibrant candy colors, sticker-like cute mobile game art. Smooth sky-blue body, white muzzle and round white belly, three tiny whisker dots on each cheek, small rounded flippers, little tail flippers, a light-cyan knitted scarf, a small water-droplet curl on top of its head. One flipper raised waving."
+    },
+    "portrait-lightning": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "Lightning baby bunny. Original chibi animal mascot, full body, standing, three-quarter view facing slightly to the viewer's right, huge round head about as big as its body, tiny limbs, big glossy dark eyes with two white sparkles, rosy pink blush, small happy open smile. Thick warm dark-brown outline, soft painted cel shading with gentle gradients, glossy highlights, vibrant candy colors, sticker-like cute mobile game art. Soft lavender-purple fur, white muzzle and belly, two long upright ears with pink insides (one ear slightly bent at the tip), a small yellow lightning-bolt hair clip on one ear, a round white cotton tail. Cheerful wink with one eye, one paw raised in a peace sign."
+    },
+    "portrait-ice": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "Ice baby penguin. Original chibi animal mascot, full body, standing, three-quarter view facing slightly to the viewer's right, huge round head about as big as its body, tiny limbs, big glossy dark eyes with two white sparkles, rosy pink blush, small happy open smile. Thick warm dark-brown outline, soft painted cel shading with gentle gradients, glossy highlights, vibrant candy colors, sticker-like cute mobile game art. Deep navy-blue body, white heart-shaped face and white round belly, small orange beak and orange feet, little flipper wings, a light-blue knitted scarf with a tiny white snowflake charm. One flipper raised waving."
+    },
+    "portrait-wind": {
+      "transparent": true,
+      "maxSize": 1024,
+      "prompt": "Wind baby kitten. Original chibi animal mascot, full body, standing, three-quarter view facing slightly to the viewer's right, huge round head about as big as its body, tiny limbs, big glossy dark eyes with two white sparkles, rosy pink blush, small happy open smile. Thick warm dark-brown outline, soft painted cel shading with gentle gradients, glossy highlights, vibrant candy colors, sticker-like cute mobile game art. Fresh mint-green fur, cream muzzle and belly, ears shaped like pointed leaves, a small two-leaf sprout on top of its head, a long curly tail ending in a leaf, a soft white breeze swirl curling around it. One paw raised waving."
+    },
+    "icon-heart": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a plump glossy red heart with a white shine highlight and a dark-brown outline."
+    },
+    "icon-bomb": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a round glossy navy-purple cartoon bomb with a white shine, a short brass cap, a curled fuse and a bright yellow-orange star spark at its tip, dark-brown outline."
+    },
+    "icon-blast": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a chunky cartoon explosion star burst, bright yellow center fading to orange and red spiky tips, dark-brown outline."
+    },
+    "icon-clock": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a cute round red-orange alarm clock with two brass bells on top and little feet, white face with two dark hands and small tick marks only, no numbers, dark-brown outline."
+    },
+    "icon-book": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a small closed storybook with an orange-brown leather cover, cream pages visible at the side, a little green bookmark ribbon, dark-brown outline."
+    },
+    "icon-gear": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a chunky rounded cream-and-tan settings gear with a round hole in the middle, soft 3D bevel, dark-brown outline."
+    },
+    "icon-skill": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a sparkly five-point star, pale lilac to white gradient with a pink glow and two tiny twinkles beside it, dark-brown outline."
+    },
+    "icon-dash": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI icon: a fast white and sky-blue wind swoosh, a curling gust with three speed lines trailing to the left, dark-brown outline."
+    },
+    "button-orange": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "Game UI button base: a big rounded-square candy button, glossy warm orange face with a soft top highlight, thick white rim, a darker orange-brown bottom edge giving 3D thickness, dark-brown outline. Completely blank face, no icon, no text."
+    },
+    "button-purple": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "Game UI button base: a big rounded-square candy button, glossy lilac-purple face with a soft top highlight, thick white rim, a darker violet bottom edge giving 3D thickness, dark-brown outline. Completely blank face, no icon, no text."
+    },
+    "button-blue": {
+      "transparent": true,
+      "maxSize": 512,
+      "prompt": "Game UI button base: a big rounded-square candy button, glossy sky-blue face with a soft top highlight, thick white rim, a darker blue bottom edge giving 3D thickness, dark-brown outline. Completely blank face, no icon, no text."
+    },
+    "dpad": {
+      "transparent": true,
+      "maxSize": 768,
+      "prompt": "Game UI touch pad base seen straight from above: a round wooden plate made of warm honey-brown wood with a carved raised rim and visible wood grain, a few small green clover leaves and two white daisies tucked at its lower-left and upper-right edges. Empty flat center. No buttons, no arrows, no text."
+    },
+    "dpad-key": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game UI key seen straight from above: one square cream-white keycap with generously rounded corners, a soft top highlight, a slightly darker beige bottom edge giving 3D thickness, thin dark-brown outline. Completely blank, no arrow, no text."
+    },
+    "timer-board": {
+      "transparent": true,
+      "maxSize": 768,
+      "prompt": "Game UI timer sign: a horizontal wooden signboard about three times wider than tall, chunky warm brown wood frame with rounded corners around a darker recessed brown center panel, two short ropes rising from its top corners, a few green leaves on the top edge. Blank center, no text, no numbers."
+    },
+    "actor-fire-down": {
+      "from": "portrait-fire",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-down.webp",
+      "prompt": "Redraw this exact same character as an in-game sprite for a top-down arena game: full body, standing straight and facing the viewer (front view), both arms relaxed at its sides, feet slightly apart, cheerful closed-mouth smile. Centered horizontally, feet near the bottom of the canvas, the character filling about 80 percent of the canvas height. Keep its design, proportions, colors, markings, accessories, outline and painted shading identical."
+    },
+    "actor-fire-blink": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-blink.webp",
+      "prompt": "Close both eyes in a happy blink: each eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-fire-walk1": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-walk1.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its left foot steps forward and is lifted a little, its right foot is back, its right arm swings forward and its left arm back. Same front view, same size."
+    },
+    "actor-fire-walk2": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-walk2.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its right foot steps forward and is lifted a little, its left foot is back, its left arm swings forward and its right arm back. Same front view, same size."
+    },
+    "actor-fire-place": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-place.webp",
+      "prompt": "Crouching down low and reaching both arms forward toward the ground in front of it, as if setting something down, focused happy face. Front view, same size."
+    },
+    "actor-fire-skill": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-skill.webp",
+      "prompt": "Power-up pose: hopping up with both arms raised high, eyes shining, a swirl of small orange flames around its paws. Front view, same size."
+    },
+    "actor-fire-hit": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-hit.webp",
+      "prompt": "Hurt flinch: eyes squeezed shut like > and <, mouth open in a small yelp, leaning back with both arms raised near its face, one small sweat drop. Front view, same size."
+    },
+    "actor-fire-frozen": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-frozen.webp",
+      "prompt": "Frozen stiff with cold: its whole body tinted pale icy blue, a thin layer of frost and tiny icicles on its ears and arms, shivering with teeth clenched. Front view, same pose and size."
+    },
+    "actor-fire-ko": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-ko.webp",
+      "prompt": "Knocked out: sitting slumped on the ground, eyes turned into dizzy spirals, three tiny stars circling above its head. Front view, same size."
+    },
+    "actor-fire-up": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-up.webp",
+      "prompt": "Turn the character around to a back view: it stands straight facing away from the viewer, so we see the back of its head, its ears, its back and its tail, and no face. Same size and position."
+    },
+    "actor-fire-right": {
+      "from": "actor-fire-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-right.webp",
+      "prompt": "Turn the character to a side view facing right (profile): it stands straight looking toward the right edge of the canvas, one eye visible. Same size and position."
+    },
+    "actor-fire-up-walk1": {
+      "from": "actor-fire-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-up-walk1.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its left foot steps forward and is lifted a little, its right arm swings forward and its left arm back. Same back view, same size."
+    },
+    "actor-fire-up-walk2": {
+      "from": "actor-fire-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-up-walk2.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its right foot steps forward and is lifted a little, its left arm swings forward and its right arm back. Same back view, same size."
+    },
+    "actor-fire-right-blink": {
+      "from": "actor-fire-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-right-blink.webp",
+      "prompt": "Close its visible eye in a happy blink: the eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-fire-right-walk1": {
+      "from": "actor-fire-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-right-walk1.webp",
+      "prompt": "Walking to the right, mid-stride: its front foot reaches forward and is lifted a little, its back foot pushes off behind, its arms swing in opposition. Same side view, same size."
+    },
+    "actor-fire-right-walk2": {
+      "from": "actor-fire-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-fire-right-walk2.webp",
+      "prompt": "Walking to the right, mid-stride: its back foot swings forward past the other and is lifted a little, the front foot now behind, its arms swing the other way. Same side view, same size."
+    },
+    "actor-water-down": {
+      "from": "portrait-water",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-down.webp",
+      "prompt": "Redraw this exact same character as an in-game sprite for a top-down arena game: full body, standing straight and facing the viewer (front view), both arms relaxed at its sides, feet slightly apart, cheerful closed-mouth smile. Centered horizontally, feet near the bottom of the canvas, the character filling about 80 percent of the canvas height. Keep its design, proportions, colors, markings, accessories, outline and painted shading identical."
+    },
+    "actor-water-blink": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-blink.webp",
+      "prompt": "Close both eyes in a happy blink: each eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-water-walk1": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-walk1.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its left foot steps forward and is lifted a little, its right foot is back, its right arm swings forward and its left arm back. Same front view, same size."
+    },
+    "actor-water-walk2": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-walk2.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its right foot steps forward and is lifted a little, its left foot is back, its left arm swings forward and its right arm back. Same front view, same size."
+    },
+    "actor-water-place": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-place.webp",
+      "prompt": "Crouching down low and reaching both arms forward toward the ground in front of it, as if setting something down, focused happy face. Front view, same size."
+    },
+    "actor-water-skill": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-skill.webp",
+      "prompt": "Power-up pose: hopping up with both arms raised high, eyes shining, splashing water droplets and bubbles around its paws. Front view, same size."
+    },
+    "actor-water-hit": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-hit.webp",
+      "prompt": "Hurt flinch: eyes squeezed shut like > and <, mouth open in a small yelp, leaning back with both arms raised near its face, one small sweat drop. Front view, same size."
+    },
+    "actor-water-frozen": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-frozen.webp",
+      "prompt": "Frozen stiff with cold: its whole body tinted pale icy blue, a thin layer of frost and tiny icicles on its ears and arms, shivering with teeth clenched. Front view, same pose and size."
+    },
+    "actor-water-ko": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-ko.webp",
+      "prompt": "Knocked out: sitting slumped on the ground, eyes turned into dizzy spirals, three tiny stars circling above its head. Front view, same size."
+    },
+    "actor-water-up": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-up.webp",
+      "prompt": "Turn the character around to a back view: it stands straight facing away from the viewer, so we see the back of its head, its ears, its back and its tail, and no face. Same size and position."
+    },
+    "actor-water-right": {
+      "from": "actor-water-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-right.webp",
+      "prompt": "Turn the character to a side view facing right (profile): it stands straight looking toward the right edge of the canvas, one eye visible. Same size and position."
+    },
+    "actor-water-up-walk1": {
+      "from": "actor-water-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-up-walk1.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its left foot steps forward and is lifted a little, its right arm swings forward and its left arm back. Same back view, same size."
+    },
+    "actor-water-up-walk2": {
+      "from": "actor-water-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-up-walk2.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its right foot steps forward and is lifted a little, its left arm swings forward and its right arm back. Same back view, same size."
+    },
+    "actor-water-right-blink": {
+      "from": "actor-water-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-right-blink.webp",
+      "prompt": "Close its visible eye in a happy blink: the eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-water-right-walk1": {
+      "from": "actor-water-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-right-walk1.webp",
+      "prompt": "Walking to the right, mid-stride: its front foot reaches forward and is lifted a little, its back foot pushes off behind, its arms swing in opposition. Same side view, same size."
+    },
+    "actor-water-right-walk2": {
+      "from": "actor-water-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-water-right-walk2.webp",
+      "prompt": "Walking to the right, mid-stride: its back foot swings forward past the other and is lifted a little, the front foot now behind, its arms swing the other way. Same side view, same size."
+    },
+    "actor-lightning-down": {
+      "from": "portrait-lightning",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-down.webp",
+      "prompt": "Redraw this exact same character as an in-game sprite for a top-down arena game: full body, standing straight and facing the viewer (front view), both arms relaxed at its sides, feet slightly apart, cheerful closed-mouth smile. Centered horizontally, feet near the bottom of the canvas, the character filling about 80 percent of the canvas height. Keep its design, proportions, colors, markings, accessories, outline and painted shading identical."
+    },
+    "actor-lightning-blink": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-blink.webp",
+      "prompt": "Close both eyes in a happy blink: each eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-lightning-walk1": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-walk1.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its left foot steps forward and is lifted a little, its right foot is back, its right arm swings forward and its left arm back. Same front view, same size."
+    },
+    "actor-lightning-walk2": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-walk2.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its right foot steps forward and is lifted a little, its left foot is back, its left arm swings forward and its right arm back. Same front view, same size."
+    },
+    "actor-lightning-place": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-place.webp",
+      "prompt": "Crouching down low and reaching both arms forward toward the ground in front of it, as if setting something down, focused happy face. Front view, same size."
+    },
+    "actor-lightning-skill": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-skill.webp",
+      "prompt": "Power-up pose: hopping up with both arms raised high, eyes shining, crackling yellow lightning sparks around its paws. Front view, same size."
+    },
+    "actor-lightning-hit": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-hit.webp",
+      "prompt": "Hurt flinch: eyes squeezed shut like > and <, mouth open in a small yelp, leaning back with both arms raised near its face, one small sweat drop. Front view, same size."
+    },
+    "actor-lightning-frozen": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-frozen.webp",
+      "prompt": "Frozen stiff with cold: its whole body tinted pale icy blue, a thin layer of frost and tiny icicles on its ears and arms, shivering with teeth clenched. Front view, same pose and size."
+    },
+    "actor-lightning-ko": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-ko.webp",
+      "prompt": "Knocked out: sitting slumped on the ground, eyes turned into dizzy spirals, three tiny stars circling above its head. Front view, same size."
+    },
+    "actor-lightning-up": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-up.webp",
+      "prompt": "Turn the character around to a back view: it stands straight facing away from the viewer, so we see the back of its head, its ears, its back and its tail, and no face. Same size and position."
+    },
+    "actor-lightning-right": {
+      "from": "actor-lightning-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-right.webp",
+      "prompt": "Turn the character to a side view facing right (profile): it stands straight looking toward the right edge of the canvas, one eye visible. Same size and position."
+    },
+    "actor-lightning-up-walk1": {
+      "from": "actor-lightning-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-up-walk1.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its left foot steps forward and is lifted a little, its right arm swings forward and its left arm back. Same back view, same size."
+    },
+    "actor-lightning-up-walk2": {
+      "from": "actor-lightning-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-up-walk2.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its right foot steps forward and is lifted a little, its left arm swings forward and its right arm back. Same back view, same size."
+    },
+    "actor-lightning-right-blink": {
+      "from": "actor-lightning-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-right-blink.webp",
+      "prompt": "Close its visible eye in a happy blink: the eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-lightning-right-walk1": {
+      "from": "actor-lightning-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-right-walk1.webp",
+      "prompt": "Walking to the right, mid-stride: its front foot reaches forward and is lifted a little, its back foot pushes off behind, its arms swing in opposition. Same side view, same size."
+    },
+    "actor-lightning-right-walk2": {
+      "from": "actor-lightning-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-lightning-right-walk2.webp",
+      "prompt": "Walking to the right, mid-stride: its back foot swings forward past the other and is lifted a little, the front foot now behind, its arms swing the other way. Same side view, same size."
+    },
+    "actor-ice-down": {
+      "from": "portrait-ice",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-down.webp",
+      "prompt": "Redraw this exact same character as an in-game sprite for a top-down arena game: full body, standing straight and facing the viewer (front view), both arms relaxed at its sides, feet slightly apart, cheerful closed-mouth smile. Centered horizontally, feet near the bottom of the canvas, the character filling about 80 percent of the canvas height. Keep its design, proportions, colors, markings, accessories, outline and painted shading identical."
+    },
+    "actor-ice-blink": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-blink.webp",
+      "prompt": "Close both eyes in a happy blink: each eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-ice-walk1": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-walk1.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its left foot steps forward and is lifted a little, its right foot is back, its right arm swings forward and its left arm back. Same front view, same size."
+    },
+    "actor-ice-walk2": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-walk2.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its right foot steps forward and is lifted a little, its left foot is back, its left arm swings forward and its right arm back. Same front view, same size."
+    },
+    "actor-ice-place": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-place.webp",
+      "prompt": "Crouching down low and reaching both arms forward toward the ground in front of it, as if setting something down, focused happy face. Front view, same size."
+    },
+    "actor-ice-skill": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-skill.webp",
+      "prompt": "Power-up pose: hopping up with both arms raised high, eyes shining, sparkling snowflakes and small ice crystals around its paws. Front view, same size."
+    },
+    "actor-ice-hit": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-hit.webp",
+      "prompt": "Hurt flinch: eyes squeezed shut like > and <, mouth open in a small yelp, leaning back with both arms raised near its face, one small sweat drop. Front view, same size."
+    },
+    "actor-ice-frozen": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-frozen.webp",
+      "prompt": "Frozen stiff with cold: its whole body tinted pale icy blue, a thin layer of frost and tiny icicles on its ears and arms, shivering with teeth clenched. Front view, same pose and size."
+    },
+    "actor-ice-ko": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-ko.webp",
+      "prompt": "Knocked out: sitting slumped on the ground, eyes turned into dizzy spirals, three tiny stars circling above its head. Front view, same size."
+    },
+    "actor-ice-up": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-up.webp",
+      "prompt": "Turn the character around to a back view: it stands straight facing away from the viewer, so we see the back of its head, its ears, its back and its tail, and no face. Same size and position."
+    },
+    "actor-ice-right": {
+      "from": "actor-ice-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-right.webp",
+      "prompt": "Turn the character to a side view facing right (profile): it stands straight looking toward the right edge of the canvas, one eye visible. Same size and position."
+    },
+    "actor-ice-up-walk1": {
+      "from": "actor-ice-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-up-walk1.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its left foot steps forward and is lifted a little, its right arm swings forward and its left arm back. Same back view, same size."
+    },
+    "actor-ice-up-walk2": {
+      "from": "actor-ice-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-up-walk2.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its right foot steps forward and is lifted a little, its left arm swings forward and its right arm back. Same back view, same size."
+    },
+    "actor-ice-right-blink": {
+      "from": "actor-ice-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-right-blink.webp",
+      "prompt": "Close its visible eye in a happy blink: the eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-ice-right-walk1": {
+      "from": "actor-ice-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-right-walk1.webp",
+      "prompt": "Walking to the right, mid-stride: its front foot reaches forward and is lifted a little, its back foot pushes off behind, its arms swing in opposition. Same side view, same size."
+    },
+    "actor-ice-right-walk2": {
+      "from": "actor-ice-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-ice-right-walk2.webp",
+      "prompt": "Walking to the right, mid-stride: its back foot swings forward past the other and is lifted a little, the front foot now behind, its arms swing the other way. Same side view, same size."
+    },
+    "actor-wind-down": {
+      "from": "portrait-wind",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-down.webp",
+      "prompt": "Redraw this exact same character as an in-game sprite for a top-down arena game: full body, standing straight and facing the viewer (front view), both arms relaxed at its sides, feet slightly apart, cheerful closed-mouth smile. Centered horizontally, feet near the bottom of the canvas, the character filling about 80 percent of the canvas height. Keep its design, proportions, colors, markings, accessories, outline and painted shading identical."
+    },
+    "actor-wind-blink": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-blink.webp",
+      "prompt": "Close both eyes in a happy blink: each eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-wind-walk1": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-walk1.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its left foot steps forward and is lifted a little, its right foot is back, its right arm swings forward and its left arm back. Same front view, same size."
+    },
+    "actor-wind-walk2": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-walk2.webp",
+      "prompt": "Walking toward the viewer, mid-stride: its right foot steps forward and is lifted a little, its left foot is back, its left arm swings forward and its right arm back. Same front view, same size."
+    },
+    "actor-wind-place": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-place.webp",
+      "prompt": "Crouching down low and reaching both arms forward toward the ground in front of it, as if setting something down, focused happy face. Front view, same size."
+    },
+    "actor-wind-skill": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-skill.webp",
+      "prompt": "Power-up pose: hopping up with both arms raised high, eyes shining, a swirling pale-green breeze with tiny leaves around its paws. Front view, same size."
+    },
+    "actor-wind-hit": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-hit.webp",
+      "prompt": "Hurt flinch: eyes squeezed shut like > and <, mouth open in a small yelp, leaning back with both arms raised near its face, one small sweat drop. Front view, same size."
+    },
+    "actor-wind-frozen": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-frozen.webp",
+      "prompt": "Frozen stiff with cold: its whole body tinted pale icy blue, a thin layer of frost and tiny icicles on its ears and arms, shivering with teeth clenched. Front view, same pose and size."
+    },
+    "actor-wind-ko": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-ko.webp",
+      "prompt": "Knocked out: sitting slumped on the ground, eyes turned into dizzy spirals, three tiny stars circling above its head. Front view, same size."
+    },
+    "actor-wind-up": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-up.webp",
+      "prompt": "Turn the character around to a back view: it stands straight facing away from the viewer, so we see the back of its head, its ears, its back and its tail, and no face. Same size and position."
+    },
+    "actor-wind-right": {
+      "from": "actor-wind-down",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-right.webp",
+      "prompt": "Turn the character to a side view facing right (profile): it stands straight looking toward the right edge of the canvas, one eye visible. Same size and position."
+    },
+    "actor-wind-up-walk1": {
+      "from": "actor-wind-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-up-walk1.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its left foot steps forward and is lifted a little, its right arm swings forward and its left arm back. Same back view, same size."
+    },
+    "actor-wind-up-walk2": {
+      "from": "actor-wind-up",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-up-walk2.webp",
+      "prompt": "Walking away from the viewer, mid-stride: its right foot steps forward and is lifted a little, its left arm swings forward and its right arm back. Same back view, same size."
+    },
+    "actor-wind-right-blink": {
+      "from": "actor-wind-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-right-blink.webp",
+      "prompt": "Close its visible eye in a happy blink: the eye becomes a short curved dark line. Change nothing else at all."
+    },
+    "actor-wind-right-walk1": {
+      "from": "actor-wind-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-right-walk1.webp",
+      "prompt": "Walking to the right, mid-stride: its front foot reaches forward and is lifted a little, its back foot pushes off behind, its arms swing in opposition. Same side view, same size."
+    },
+    "actor-wind-right-walk2": {
+      "from": "actor-wind-right",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 512,
+      "path": "games/bom-nguyen-to/sources/frames/actor-wind-right-walk2.webp",
+      "prompt": "Walking to the right, mid-stride: its back foot swings forward past the other and is lifted a little, the front foot now behind, its arms swing the other way. Same side view, same size."
+    },
+    "tile-grass": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game asset for a top-down arena game. One square floor tile seen straight from above: lush bright green lawn with a few tiny clover leaves, softly rounded corners, a slightly darker green rim and a gentle soft bevel at the edges. Completely flat, no thickness, no shadow. The tile fills the whole canvas edge to edge.",
+      "path": "games/bom-nguyen-to/sources/frames/tile-grass.webp"
+    },
+    "tile-dirt": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game asset for a top-down arena game. One square floor tile seen straight from above: warm honey-tan garden soil with a fine sandy texture and two tiny pebbles, softly rounded corners, a slightly darker caramel rim and a gentle soft bevel at the edges. Completely flat, no thickness, no shadow. The tile fills the whole canvas edge to edge.",
+      "path": "games/bom-nguyen-to/sources/frames/tile-dirt.webp"
+    },
+    "block-stone": {
+      "transparent": true,
+      "maxSize": 384,
+      "prompt": "Game asset for a top-down arena game. One chunky cube-shaped stone block of smooth blue-gray rock with softly rounded edges; its top face is dotted with patches of green moss, little clover leaves and two tiny white daisies. Seen from a high camera tilted slightly forward and looking straight ahead: the flat square top face fills the upper three quarters of the image, and below it only the front face shows as a darker band about one quarter of the image height. No side faces, not isometric, not rotated."
+    },
+    "block-crate": {
+      "transparent": true,
+      "maxSize": 384,
+      "prompt": "Game asset for a top-down arena game. One cube-shaped gift box wrapped in peach-orange paper with softly rounded edges, a cream ribbon crossing over its top face and running down the front, and a big fluffy cream bow in the middle of the top. Seen from a high camera tilted slightly forward and looking straight ahead: the flat square top face fills the upper three quarters of the image, and below it only the front face shows as a darker band about one quarter of the image height. No side faces, not isometric, not rotated."
+    },
+    "fence-post": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game asset for a top-down arena game. One short chunky wooden garden fence post with a rounded top, warm honey-brown wood with a soft highlight, a small green vine leaf wrapped around it, seen from the front and a little above."
+    },
+    "item-heal": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game pickup icon: a small round glass potion bottle full of glowing pink-red liquid with a white heart on its belly, a cork stopper and a tiny sparkle.",
+      "path": "games/bom-nguyen-to/sources/frames/item-heal.webp",
+      "preserveCanvas": true
+    },
+    "item-range": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game pickup icon: a chunky glowing flame gem, a rounded orange-yellow fire crystal with a bright core and two tiny sparkles.",
+      "path": "games/bom-nguyen-to/sources/frames/item-range.webp",
+      "preserveCanvas": true
+    },
+    "item-capacity": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game pickup icon: two tiny round navy cartoon bombs side by side with short lit fuses, on a small golden star badge.",
+      "path": "games/bom-nguyen-to/sources/frames/item-capacity.webp",
+      "preserveCanvas": true
+    },
+    "item-speed": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game pickup icon: a cute sky-blue sneaker with two small white feathered wings and three short speed lines behind it.",
+      "path": "games/bom-nguyen-to/sources/frames/item-speed.webp",
+      "preserveCanvas": true
+    },
+    "bomb": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game sprite: a round glossy navy-purple cartoon bomb with a white shine highlight, a short brass cap, a curled fuse and a bright yellow-orange star spark at its tip, dark-brown outline, seen from the front and a little above.",
+      "path": "games/bom-nguyen-to/sources/frames/bomb.webp",
+      "preserveCanvas": true
+    },
+    "bomb-spark1": {
+      "from": "bomb",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Make only the spark at the fuse tip bigger and brighter with longer rays and two flying embers. Change nothing else.",
+      "path": "games/bom-nguyen-to/sources/frames/bomb-spark1.webp"
+    },
+    "bomb-spark2": {
+      "from": "bomb",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Make only the spark at the fuse tip smaller, rounder and redder, like a flicker. Change nothing else.",
+      "path": "games/bom-nguyen-to/sources/frames/bomb-spark2.webp"
+    },
+    "blast-fire": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game explosion effect seen from above: a chunky round cartoon puff shaped like a plump five-petal flower, bright yellow core with orange petals tipped in red, a few embers. Soft glow, no background.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-fire.webp",
+      "preserveCanvas": true
+    },
+    "blast-fire-2": {
+      "from": "blast-fire",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next flicker frame of the same explosion puff: the petals turned a little and slightly puffier, the sparks in new places. Same size, colors and center.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-fire-2.webp"
+    },
+    "blast-water": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game explosion effect seen from above: a chunky round cartoon puff shaped like a plump five-petal flower, a splash of sky-blue water with a white foamy core and round droplets. Soft glow, no background.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-water.webp",
+      "preserveCanvas": true
+    },
+    "blast-water-2": {
+      "from": "blast-water",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next flicker frame of the same explosion puff: the petals turned a little and slightly puffier, the sparks in new places. Same size, colors and center.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-water-2.webp"
+    },
+    "blast-lightning": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game explosion effect seen from above: a chunky round cartoon puff shaped like a plump five-petal flower, a crackling burst of lilac-purple energy with a bright yellow core and small zigzag sparks. Soft glow, no background.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-lightning.webp",
+      "preserveCanvas": true
+    },
+    "blast-lightning-2": {
+      "from": "blast-lightning",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next flicker frame of the same explosion puff: the petals turned a little and slightly puffier, the sparks in new places. Same size, colors and center.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-lightning-2.webp"
+    },
+    "blast-ice": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game explosion effect seen from above: a chunky round cartoon puff shaped like a plump five-petal flower, an icy pale-cyan burst with a white frosty core and little ice crystals. Soft glow, no background.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-ice.webp",
+      "preserveCanvas": true
+    },
+    "blast-ice-2": {
+      "from": "blast-ice",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next flicker frame of the same explosion puff: the petals turned a little and slightly puffier, the sparks in new places. Same size, colors and center.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-ice-2.webp"
+    },
+    "blast-wind": {
+      "transparent": true,
+      "maxSize": 256,
+      "prompt": "Game explosion effect seen from above: a chunky round cartoon puff shaped like a plump five-petal flower, a swirling mint-green gust with a pale core and two tiny leaves. Soft glow, no background.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-wind.webp",
+      "preserveCanvas": true
+    },
+    "blast-wind-2": {
+      "from": "blast-wind",
+      "transparent": true,
+      "preserveCanvas": true,
+      "maxSize": 256,
+      "prompt": "Next flicker frame of the same explosion puff: the petals turned a little and slightly puffier, the sparks in new places. Same size, colors and center.",
+      "path": "games/bom-nguyen-to/sources/frames/blast-wind-2.webp"
+    }
+  }
+}

@@ -16,7 +16,7 @@ games/<id>/          Only index.ts + client.ts are required
   RULES.md             Current Vietnamese gameplay rules (non-starter games)
   README.md            Component map, development commands and asset credits
   src/index.ts         export default definePlugin({ meta, game: new MyGame(), room? }); server
-  src/client.ts        export default defineClient({ scene, setup?, background?, leaveConfirm?, showsResult?, showsPlayers? }); browser, lazy
+  src/client.ts        export default defineClient({ scene, setup?, background?, leaveConfirm?, showsResult?, showsPlayers?, hud? }); browser, lazy
   src/game/            Pure logic, no Phaser or DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
   src/scenes/          Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (a RoomSetupScene for "Tạo phòng")
   assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'));
@@ -91,6 +91,13 @@ games/<id>/          Only index.ts + client.ts are required
   build them from `GameScene` helpers:
   - `label`, `button`, `sprite` and `avatar(player)`;
   - `hudScale()`, `fitText` and `boardArea()`.
+  - `rasterizeGraphics(scene, graphics, key, bounds, image?)` from the client SDK caches static
+    Graphics as an image with scene-owned textures. Include outlines/shadows in local bounds;
+    refresh only when the drawing changes, never on every frame.
+- **Room HUD**: optional `defineClient({ hud: { nav, settings, result } })` lets the board draw the
+  room bar, settings button and result buttons in its own art. The board reads `ctx.room` and
+  calls `leaveRoom`, `openSettings`, `newGame`, `customize`, `takeSeat` (GameView header). The app
+  hides its versions while the board shows; errors and the leave question stay the app's.
 - **Backgrounds**: optional `defineClient({ background: false | MyBackground })` hides/replaces
   the app sky for boards/sandboxes. `GameBackgroundScene` has scene lifetime, no room state/input,
   and `onCreate`, `onLayout`, `onUpdate(dt)` hooks; `this.tiled(name)` covers the bleed with a

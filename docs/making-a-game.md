@@ -419,11 +419,36 @@ export class MyView extends GameView<State, Options> {
   bàn). Đổi chữ trong `client.ts`:
   `defineClient({ scene, leaveConfirm: { title, message, stay, leave } })` (chỗ nào không ghi thì
   giữ chữ mặc định), hoặc `leaveConfirm: false` để tắt.
+- Game muốn tự vẽ cả các nút của phòng bằng hình và vị trí riêng (như một HUD game mobile hoàn
+  chỉnh) thì đặt `hud` trong `client.ts`; ứng dụng ẩn phần tương ứng của mình trong lúc bàn chơi
+  hiện:
+
+  ```ts
+  export default defineClient({
+    scene: MyView,
+    hud: { nav: true, settings: true, result: true },
+  });
+  ```
+
+  | Phần | Ứng dụng ẩn | Bàn chơi gọi |
+  | --- | --- | --- |
+  | `nav` | Thanh phòng (←, 🏠, người chơi, người xem). `ctx.screen.top` gần 0: bàn được cả chiều cao | `this.leaveRoom()`, `this.leaveRoom('home')` |
+  | `settings` | Nút bánh răng | `this.openSettings()` mở bảng cài đặt ở giữa màn hình |
+  | `result` | Bảng sau ván | `this.newGame()`, `this.customize()`, `this.takeSeat()` |
+
+  `ctx.room` cho biết người đang xem được dùng nút nào lúc này: `newGame` (chủ phòng, ván đã
+  xong), `customize` (chủ phòng, giữa hai ván, game có màn cài đặt), `sit` (người xem, giữa hai
+  ván, còn ghế trống) và `watchers` (số người đang xem). Chỉ hiện nút khi được phép; người khác
+  thì ghi "Chờ … mở ván mới". Rời phòng giữa ván vẫn được hỏi lại như nút của ứng dụng, và lỗi
+  vẫn hiện bằng thông báo của ứng dụng. Trong sandbox, các nút chọn ghế gập vào nút "Chơi thử" ở
+  giữa mép dưới để bàn chơi hiện đúng như trong phòng thật. Ví dụ: `games/bom-nguyen-to`.
 
 ## Tuỳ chọn phòng và chơi với máy (tuỳ chọn)
 
 Một game có thể có màn cài đặt riêng (ví dụ "chơi với bạn hay với máy?") khi ai đó bấm
-"Tạo phòng", và mở lại khi chủ phòng bấm "Tuỳ chỉnh" trong phòng giữa các ván. Thiết kế bằng
+"Tạo phòng", và mở lại khi chủ phòng bấm "Tuỳ chỉnh" trong phòng giữa các ván. Ở màn mở lại đó,
+nút ← rời phòng (như nút ← của thanh phòng) và 🏠 về trang chủ; xác nhận tuỳ chọn thì quay lại
+phòng, còn `this.cancel()` của màn cài đặt quay lại phòng mà không đổi gì. Thiết kế bằng
 Phaser tuỳ thích, rồi trao lại một object: object đó là tuỳ chọn của phòng. Không có màn cài đặt
 thì phòng được tạo ngay. `npm run new -- setup <id>` tạo sẵn khung.
 

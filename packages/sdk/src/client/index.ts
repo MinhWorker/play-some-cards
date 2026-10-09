@@ -1,6 +1,6 @@
 /**
  * @psc/sdk/client: what a game's screens (browser only) may use.
- * `games/<id>/src/client.ts` does `export default defineClient({ scene: MyView, setup?, background? })`.
+ * `games/<id>/src/client.ts` does `export default defineClient({ scene: MyView, setup?, background?, hud? })`.
  */
 
 import type { GameBackgroundScene } from './GameBackgroundScene.js';
@@ -12,6 +12,7 @@ export * from './frame.js';
 export * from './GameBackgroundScene.js';
 export * from './GameScene.js';
 export * from './GameView.js';
+export * from './graphics.js';
 export * from './host.js';
 export * from './props.js';
 export * from './RoomSetupScene.js';
@@ -50,6 +51,30 @@ export interface GameClient {
    * list of players while a game is on.
    */
   showsPlayers?: boolean;
+  /**
+   * Room controls the board draws itself, with its own art and placement. The app hides its
+   * own while the board is shown; the board reads `ctx.room` and calls the `GameView` room
+   * actions (`leaveRoom`, `openSettings`, `newGame`, `customize`, `takeSeat`).
+   */
+  hud?: BoardHud;
+}
+
+/** Which of the app's room controls a board replaces (see `GameClient.hud`). */
+export interface BoardHud {
+  /**
+   * The room bar: "←" (`leaveRoom()`), "🏠" (`leaveRoom('home')`), the players and the
+   * spectators (`ctx.room.watchers`). The board gets the whole height: `ctx.screen.top` is
+   * near 0.
+   */
+  nav?: boolean;
+  /** The settings button in the top-right corner: `openSettings()` opens its panel. */
+  settings?: boolean;
+  /**
+   * The panel after a game: "Chơi ván mới" (`newGame()`), "Tuỳ chỉnh" (`customize()`),
+   * "Vào chơi" (`takeSeat()`) and "waiting for the host" for the others. Errors and the
+   * "leave mid-game?" question stay the app's.
+   */
+  result?: boolean;
 }
 
 /** Texts of the "leave mid-game?" question; the ones left out keep the app's. */

@@ -1,7 +1,8 @@
 // A room against the computer: Tuan picks "Máy", then "Khó" on the setup screen. "Tuỳ chỉnh"
 // swaps the computer out and back without leaving the room, the computer answers a move, and
-// leaving mid-game asks first. This is the shortest walk through the whole app (account, island
-// map, room list, setup, a game, leaving), so it runs for every change that runs e2e at all.
+// leaving mid-game asks first; the in-room settings screen's ← leaves the room. This is the
+// shortest walk through the whole app (account, island map, room list, setup, a game, leaving),
+// so it runs for every change that runs e2e at all.
 import { caroPlay, caroSetup, DESKTOP, leaveRoom, openRooms, signUp } from '../lib.mjs';
 
 export const games = ['tic-tac-toe'];
@@ -54,6 +55,14 @@ export default async function run(t) {
   await host.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
   if (await host.locator('.room-row', { hasText: 'Phòng của Tuan' }).count())
     throw new Error('The computer room stayed open after Tuan left');
+
+  // In a room, the settings screen's ← leaves the room like the room bar's ←.
+  await host.getByRole('button', { name: '+ Tạo phòng' }).click();
+  await caroSetup(host, 'opponents[1]');
+  await caroSetup(host, 'levels[0]');
+  await host.getByRole('button', { name: 'Tuỳ chỉnh' }).click();
+  await host.getByRole('button', { name: 'Về danh sách phòng' }).click();
+  await host.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
 
   // A second Caro game on the same page reuses the board scene: it must draw a fresh board.
   await host.getByRole('button', { name: '+ Tạo phòng' }).click();
