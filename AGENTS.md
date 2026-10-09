@@ -7,6 +7,11 @@ Board games to play with friends in the browser. This is an npm-workspaces monor
 
 Humans start with README.md and CONTRIBUTING.md.
 
+**Direction:** the project is becoming Xóm Đảo, a hub of islands with a Godot client while game
+rules stay in TypeScript on the server. Read `docs/vision.md`, `docs/roadmap.md` and
+`docs/adr/` before planning work on the hub, the client or shared player data. Until Phase 1
+lands, the layout and commands below describe the current React + Phaser app.
+
 ## Read first when working on
 
 | Working on | Read |
