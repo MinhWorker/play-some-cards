@@ -35,28 +35,47 @@
 
 ![Sảnh chờ: Xóm ở giữa, các đảo thể loại xung quanh](concepts/lobby.webp)
 
+> Ảnh concept vẽ năm đảo quanh Xóm. Bản đầu chỉ có hai thể loại xếp thành một hàng ngang, như mô tả
+> dưới đây.
+
 Thế giới có ba tầng, giống "chế độ chơi" và "bản đồ" của game mobile:
 
 | Tầng | Giống trong game mobile | Ở Xóm Đảo |
 | --- | --- | --- |
 | **Sảnh** | Sảnh chờ có nhân vật ở giữa | Đảo **Xóm**, nhân vật của bạn đứng giữa |
-| **Thể loại** | Chế độ chơi (Cổ điển, Giải trí…) | Một **đảo thể loại** quanh Xóm: Cờ, Bài, Tiệc, Đối Kháng, Sự kiện |
+| **Thể loại** | Chế độ chơi (Cổ điển, Giải trí…) | Một **đảo thể loại** trong hàng đảo sau Xóm: Cờ, Bài |
 | **Trò** | Bản đồ trong một chế độ | Một **thẻ trò** trong danh sách kéo ngang của thể loại |
 
-Thể loại ban đầu, xếp từ các trò đang có:
+Bản đầu chỉ có hai thể loại, xếp từ các trò đang có:
 
 | Đảo | Trò |
 | --- | --- |
-| **Cờ** | Cờ Tướng, Cờ Vua, Cờ Vây, Cờ Đam, Caro |
+| **Cờ** | Cờ Tướng, Cờ Vua, Cờ Vây, Cờ Đam, Caro, Cờ Cá Ngựa, Cờ tỷ phú, Bắn Tàu |
 | **Bài** | Tiến Lên, Mậu Binh, Bài Cào |
-| **Tiệc** | Cờ Cá Ngựa, Cờ tỷ phú |
-| **Đối Kháng** | Bom Nguyên Tố, Bắn Tàu |
-| **Sự kiện** | Chỉ hiện khi có sự kiện đang mở |
+| **Sắp có** | Đảo sương mù có ổ khoá, chưa có trò |
 
-- Danh sách thể loại là dữ liệu của phần lõi (tên, ảnh đảo, vị trí, thứ tự). Thêm một thể loại là
-  thêm một đảo; hiếm khi xảy ra.
+Bom Nguyên Tố không hợp với Cờ hay Bài. Nó chờ thể loại thứ ba và tới lúc đó vẫn chơi trên client
+Phaser.
+
+**Hàng đảo nối dài sang ngang.** Thêm thể loại là việc của tương lai, nên sảnh được dựng để thêm đảo
+mà không vẽ lại:
+
+- Các đảo thể loại xếp thành **một hàng ngang** trên mặt biển sau Xóm, theo thứ tự trong danh sách
+  thể loại. Khoảng cách giữa các đảo cố định; vị trí của một đảo tính từ thứ tự, không đặt tay.
+- Mọi đảo vẽ trong cùng một khung (cùng cỡ, cùng đường mặt biển), nên đảo nào cũng đặt được vào bất
+  kỳ ô nào trong hàng.
+- **Sắp có** luôn đứng cuối hàng. Khi có thể loại mới, đảo mới đứng vào chỗ đó và Sắp có lùi sang
+  phải một ô. Chạm Sắp có chỉ hiện thông báo nhanh "Sắp có".
+- Hàng dài hơn màn hình thì **kéo ngang** để xem tiếp: chỉ hàng đảo trượt, Xóm và HUD đứng yên. Màn
+  rộng thấy nhiều đảo hơn. Với ba đảo hiện nay, cả hàng vừa trong lõi 960 × 720, không cần kéo.
+- Tab thể loại ở màn chọn trò cũng là một hàng kéo ngang, cùng thứ tự với hàng đảo.
+
+Quy tắc dữ liệu:
+
+- Danh sách thể loại là dữ liệu của phần lõi (id, tên, ảnh đảo, thứ tự). Thêm một thể loại là thêm
+  một dòng và một ảnh đảo; không sửa code sảnh.
 - Mỗi trò khai báo nó thuộc thể loại nào. Thêm một trò là thêm một thẻ; không ai vẽ lại sảnh.
-- Thể loại chưa có trò nào `ready` hiện là đảo sương mù có ổ khoá.
+- Thể loại chưa có trò nào `ready` cũng hiện là đảo sương mù có ổ khoá.
 
 Bố cục HUD ở sảnh:
 
@@ -131,8 +150,8 @@ Trò chọn một trong hai bố cục mẫu, để các trò cùng loại trôn
 
 | Bố cục | Giữa | Góc và hai bên | Dưới |
 | --- | --- | --- | --- |
-| **Bàn** (cờ, bài, tiệc) | Bàn chơi vuông, cao gần trọn khung | Ô người chơi của đối thủ ở các góc hoặc hai bên, sát chỗ ngồi của họ (như Ludo King) | Người chơi trên máy: bài trên tay hoặc ô của mình; nút hành động (Đánh, Bỏ lượt) ở dưới phải |
-| **Hành động** (đối kháng, sự kiện) | Cảnh chơi | Mục tiêu trên trái (dưới nút ☰), bộ đếm/thời gian trên phải | Cần điều khiển dưới trái, nút hành động dưới phải |
+| **Bàn** (cờ, bài) | Bàn chơi vuông, cao gần trọn khung | Ô người chơi của đối thủ ở các góc hoặc hai bên, sát chỗ ngồi của họ (như Ludo King) | Người chơi trên máy: bài trên tay hoặc ô của mình; nút hành động (Đánh, Bỏ lượt) ở dưới phải |
+| **Hành động** (Bom Nguyên Tố, sự kiện) | Cảnh chơi | Mục tiêu trên trái (dưới nút ☰), bộ đếm/thời gian trên phải | Cần điều khiển dưới trái, nút hành động dưới phải |
 
 - Ô người chơi dùng thành phần chung: ảnh đại diện, tên, cấp, vòng thời gian vàng cho người đang
   tới lượt, 👑 cho chủ phòng. Thông tin riêng của trò (số lá bài, xúc xắc) nằm trong ô đó.
@@ -143,7 +162,8 @@ Trò chọn một trong hai bố cục mẫu, để các trò cùng loại trôn
 
 ![Chọn trò trong thể loại Bài](concepts/genre-select.webp)
 
-- Trên cùng là **tab thể loại** hình biển đảo nhỏ, để đổi thể loại mà không quay ra sảnh.
+- Trên cùng là **tab thể loại** hình biển đảo nhỏ, để đổi thể loại mà không quay ra sảnh. Hàng tab
+  kéo ngang được khi có nhiều thể loại.
 - Giữa là **danh sách thẻ dọc kéo ngang**. Mỗi thẻ: tranh minh hoạ, tên, số người, thời lượng một
   ván ("5–10 phút"), số người đang chơi, nút **?** mở bảng giới thiệu ngắn có hình. Thẻ đang chọn
   to hơn, viền vàng. Trò sắp có là thẻ mờ có ổ khoá ở cuối danh sách.
@@ -188,8 +208,10 @@ ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng p
 
 ![Đảo sự kiện Trung Thu](concepts/event-island.webp)
 
-- Khi có sự kiện đang mở, đảo thể loại **Sự kiện** sáng lên ở sảnh, có cờ hiệu và số ngày còn lại;
-  nút Sự kiện ở cột trái có chấm đỏ. Mỗi sự kiện là một thẻ trong thể loại Sự kiện.
+- Bản đầu chưa có sự kiện. Khi khung sự kiện ra đời, **Sự kiện** thành một đảo trong hàng đảo, theo
+  cùng quy tắc nối dài sang ngang ở trên.
+- Khi có sự kiện đang mở, đảo Sự kiện sáng lên ở sảnh, có cờ hiệu và số ngày còn lại; nút Sự kiện ở
+  cột trái có chấm đỏ. Mỗi sự kiện là một thẻ trong thể loại Sự kiện.
 - Bảng chi tiết của sự kiện có cùng bố cục với bảng chi tiết trò, nhưng **được đổi màu** (ví dụ
   sơn mài đỏ viền vàng cho Trung Thu) và có thêm **dải phần thưởng** theo mốc.
 - Nút chính là **Tham gia**. Bên trong, sự kiện là một trò bình thường và theo mọi quy tắc HUD ở

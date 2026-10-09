@@ -98,9 +98,10 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 ## Phase 2: hub v1
 
-- [ ] Danh sách thể loại trong lõi (tên, ảnh đảo, vị trí); plugin khai báo `kind` (`table`,
-      `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
-- [ ] Sảnh: Xóm + đảo thể loại + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
+- [ ] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự): bản đầu chỉ có Cờ và Bài; plugin
+      khai báo `kind` (`table`, `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
+- [ ] Sảnh: Xóm + hàng đảo thể loại nối dài sang ngang (Cờ, Bài, đảo Sắp có ở cuối; kéo ngang khi
+      hàng dài hơn màn hình) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
       tải ngầm `.pck` của trò
 - [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
 - [ ] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
@@ -122,8 +123,9 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 Làm dần, theo thứ tự chủ dự án muốn:
 
-- Chuyển các trò còn lại (trò đơn giản trước, Cờ tỷ phú sau cùng)
-- Khung `event`: ngày mở/đóng, phần thưởng riêng; `npm run new:event`
+- Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
+- Thể loại thứ ba thay đảo Sắp có, kèm Bom Nguyên Tố
+- Khung `event`: ngày mở/đóng, phần thưởng riêng, đảo Sự kiện trong hàng đảo; `npm run new:event`
 - Danh mục vật phẩm, túi đồ, cửa hàng đồ trang trí
 - Thống kê, thành tích, xếp hạng
 - Nhiều loại tài nguyên
@@ -134,6 +136,7 @@ Làm dần, theo thứ tự chủ dự án muốn:
 | Việc | Chọn |
 | --- | --- |
 | Hướng màn hình | Ngang |
+| Thể loại ban đầu | Cờ, Bài, và một đảo Sắp có; thêm thể loại là thêm đảo ở cuối hàng ngang |
 | Ngôn ngữ Godot | GDScript, có kiểu |
 | Test và lint Godot | GUT, gdtoolkit |
 | Kinh tế | Tiền chỉ mua đồ trang trí |

@@ -36,8 +36,9 @@ thể thành một hòn đảo, không chỉ bài và cờ.
 ## Thế giới gồm những gì
 
 Thế giới có ba tầng, học từ game mobile (sảnh chờ → chế độ chơi → bản đồ): **Sảnh** là đảo Xóm
-với nhân vật của bạn; quanh đó là các **đảo thể loại** (Cờ, Bài, Tiệc, Đối Kháng, Sự kiện); mỗi
-thể loại có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
+với nhân vật của bạn; phía sau là một hàng **đảo thể loại** nối dài sang ngang. Lúc đầu chỉ có
+**Cờ** và **Bài**, cùng một đảo **Sắp có**; thể loại mới là một đảo mới ở cuối hàng. Mỗi thể loại
+có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
 
 Mọi nội dung đều là plugin, mỗi cái một thư mục trong `games/<id>/`:
 
