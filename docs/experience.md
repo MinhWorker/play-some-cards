@@ -10,9 +10,9 @@
 >
 > Tầm nhìn: [vision.md](vision.md). Kế hoạch: [roadmap.md](roadmap.md).
 >
-> Ảnh ván đấu, kết quả, danh sách phòng và ảnh mẫu phong cách làm bằng Codex, đúng hướng nghệ
-> thuật nhất. Các ảnh còn lại làm bằng `agy` khi Codex hết quota: phẳng hơn, ít chi tiết hơn, chỉ
-> dùng để xem bố cục; sẽ làm lại bằng Codex.
+> **Hướng nghệ thuật là hoạt hình phẳng**, như ảnh sảnh, chọn trò, Nhà, sự kiện và bộ thành phần.
+> Ảnh ván đấu, kết quả, danh sách phòng và ảnh hub cũ quá chi tiết, nhiều texture: chỉ xem bố cục,
+> không xem phong cách; sẽ vẽ lại.
 
 ## Nguyên tắc
 
@@ -202,12 +202,11 @@ ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng p
 
 > Chữ tiếng Anh trên bảng này do công cụ tạo ảnh viết sai; chỉ xem hình dạng và màu.
 
-Ảnh mẫu phong cách (concept cũ, bố cục đã bỏ, nhưng đây là mức chi tiết và ánh sáng cần đạt):
-
-![Ảnh mẫu phong cách](concepts/hub-world.webp)
+Ảnh mẫu phong cách là [ảnh sảnh](concepts/lobby.webp): hoạt hình phẳng, mảng màu sạch, viền mềm,
+bóng đơn giản, ít texture. Không vẽ vân gỗ, rêu, hạt nước hay ánh sáng điện ảnh chi tiết.
 
 **Thế giới:** xóm chài Việt Nam kiểu đồ chơi: tre, dây thừng, thúng, thuyền thúng, mái ngói đỏ,
-đèn lồng. 2.5D, khối mềm, bóng ngắn, nắng chiều từ trên trái. Đảo thể loại là diorama nhỏ; không
+đèn lồng. Hoạt hình phẳng 2.5D, khối mềm, bóng ngắn, nắng từ trên trái. Đảo thể loại là diorama nhỏ; không
 đảo nào lấn át Xóm và nhân vật ở giữa.
 
 **Vật liệu giao diện:**
