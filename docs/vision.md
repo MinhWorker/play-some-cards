@@ -36,9 +36,9 @@ thể thành một hòn đảo, không chỉ bài và cờ.
 ## Thế giới gồm những gì
 
 Thế giới có ba tầng, học từ game mobile (sảnh chờ → chế độ chơi → bản đồ): **Sảnh** là đảo Xóm
-với nhân vật của bạn; phía sau là một hàng **đảo thể loại** nối dài sang ngang. Lúc đầu chỉ có
-**Cờ** và **Bài**, cùng một đảo **Sắp có**; thể loại mới là một đảo mới ở cuối hàng. Mỗi thể loại
-có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
+với nhân vật của bạn; quanh đó là các **đảo thể loại**. **Cờ** và **Bài** là hai thể loại chính,
+mỗi cái một đảo lớn có chỗ riêng; các thể loại khác gom vào khoảng trống còn lại (lúc đầu chỉ có một
+đảo **Sắp có**). Mỗi thể loại có một **danh sách trò** kéo ngang. Chi tiết: [experience.md](experience.md).
 
 Mọi nội dung đều là plugin, mỗi cái một thư mục trong `games/<id>/`:
 
@@ -78,6 +78,10 @@ kết quả, server kiểm tra rồi ghi lại.
 | Túi đồ | Vật phẩm người chơi đang có |
 | Thống kê và thành tích | Trò phát sự kiện thống kê (`win`, `bomb_played`); thành tích là luật khai báo dựa trên chúng |
 | Xếp hạng | Tính từ thống kê |
+
+Server chạy được nhiều bản song song khi người chơi đông lên (mở rộng theo chiều ngang): dữ liệu bền
+ở Postgres, mỗi phòng có một bản server làm chủ. Chi tiết:
+[adr/0002-horizontal-scale.md](adr/0002-horizontal-scale.md).
 
 Trò nói chuyện với nền tảng qua `ctx` của SDK, ví dụ `ctx.reward(playerId, 'core:coin', 50)` hay
 `ctx.stat('win')`. Server từ chối phần thưởng vượt mức trò đã khai báo.

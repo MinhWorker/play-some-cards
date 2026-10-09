@@ -1,6 +1,7 @@
 # Xóm Đảo: kế hoạch
 
-> Mục tiêu và lý do: [vision.md](vision.md), [adr/0001-godot-client.md](adr/0001-godot-client.md).
+> Mục tiêu và lý do: [vision.md](vision.md), [adr/0001-godot-client.md](adr/0001-godot-client.md),
+> [adr/0002-horizontal-scale.md](adr/0002-horizontal-scale.md).
 > Không có hạn chót. Mỗi phase xong khi đạt điều kiện ghi ở cuối phase đó.
 
 Trọng tâm của kế hoạch là **môi trường làm việc**: chủ dự án mô tả một trò hay một sự kiện, agent
@@ -74,7 +75,8 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 - [ ] `npm run godot:export`: bản web đơn luồng + PWA, mỗi trò một `.pck` đặt tên theo mã băm
 
 **Mạng và protocol**
-- [ ] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO
+- [ ] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO, viết trên các giao diện danh
+      bạ phòng, kênh tin và khoá của [ADR 0002](adr/0002-horizontal-scale.md) (bản bộ nhớ trước)
 - [ ] `npm run gen:protocol`: schema zod → class GDScript trong `xomdao_sdk`; CI báo lỗi nếu file
       sinh ra không khớp
 - [ ] `addons/xomdao_sdk`: kết nối lại, đăng nhập, tạo/vào phòng, `send()`, tín hiệu `state_changed`
@@ -98,10 +100,11 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 ## Phase 2: hub v1
 
-- [ ] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự): bản đầu chỉ có Cờ và Bài; plugin
+- [ ] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự, chính/phụ): bản đầu chỉ có hai thể
+      loại chính Cờ và Bài; plugin
       khai báo `kind` (`table`, `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
-- [ ] Sảnh: Xóm + hàng đảo thể loại nối dài sang ngang (Cờ, Bài, đảo Sắp có ở cuối; kéo ngang khi
-      hàng dài hơn màn hình) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
+- [ ] Sảnh: Xóm + hai đảo lớn Cờ, Bài ở chỗ cố định + thể loại phụ gom vào khoảng trống còn lại
+      (lúc đầu là đảo Sắp có) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
       tải ngầm `.pck` của trò
 - [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
 - [ ] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
@@ -124,11 +127,13 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 Làm dần, theo thứ tự chủ dự án muốn:
 
 - Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
-- Thể loại thứ ba thay đảo Sắp có, kèm Bom Nguyên Tố
-- Khung `event`: ngày mở/đóng, phần thưởng riêng, đảo Sự kiện trong hàng đảo; `npm run new:event`
+- Thể loại phụ đầu tiên thay đảo Sắp có, kèm Bom Nguyên Tố
+- Khung `event`: ngày mở/đóng, phần thưởng riêng, đảo Sự kiện là một thể loại phụ; `npm run new:event`
 - Danh mục vật phẩm, túi đồ, cửa hàng đồ trang trí
 - Thống kê, thành tích, xếp hạng
 - Nhiều loại tài nguyên
+- Chạy nhiều bản server: bản Redis của danh bạ phòng, kênh tin và khoá; nhận lại phòng khi một bản
+  chết; test hai bản cục bộ ([ADR 0002](adr/0002-horizontal-scale.md))
 - Khi không còn trò nào dùng Phaser: xoá `apps/web` và cổng Socket.IO
 
 ## Các mặc định đã chốt
@@ -136,7 +141,8 @@ Làm dần, theo thứ tự chủ dự án muốn:
 | Việc | Chọn |
 | --- | --- |
 | Hướng màn hình | Ngang |
-| Thể loại ban đầu | Cờ, Bài, và một đảo Sắp có; thêm thể loại là thêm đảo ở cuối hàng ngang |
+| Thể loại | Cờ và Bài là hai thể loại chính, có chỗ riêng trên sảnh; thể loại khác là phụ, gom vào khoảng trống còn lại |
+| Server | Mở rộng theo chiều ngang: nhiều bản giống nhau, mỗi phòng một bản chủ, Redis khi có nhiều bản ([ADR 0002](adr/0002-horizontal-scale.md)) |
 | Ngôn ngữ Godot | GDScript, có kiểu |
 | Test và lint Godot | GUT, gdtoolkit |
 | Kinh tế | Tiền chỉ mua đồ trang trí |
