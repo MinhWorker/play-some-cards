@@ -15,9 +15,6 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 ## Rooms
 
 - Rooms belong to one game and live in memory, so a restart wipes them.
-- Direction: the server must scale horizontally (`docs/adr/0002-horizontal-scale.md`). New code
-  keeps durable data in Postgres and reaches other rooms only through the room directory and
-  message bus interfaces, never through process memory.
 - From a game's room list you can:
   - create a room;
   - join as a player, when a seat is free and no game is running;
@@ -49,6 +46,10 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   the caller's own `outcome`.
 
 ## Changing things
+
+- New platform features (wallet, shop, inventory, achievements…) are separate Nest modules
+  (`docs/adr/0002-modules.md`). A module owns its tables and never reads another module's tables:
+  it calls that module's service, or listens to events such as `RoomsService.onFinished`.
 
 - Nest DI needs the runtime value, so `import` classes that Nest injects as values.
 - The server typechecks against built packages. Root scripts run `npm run build -w @psc/shared`

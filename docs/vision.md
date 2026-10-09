@@ -2,7 +2,8 @@
 
 > Trạng thái: Phase 0 (làm rõ ý tưởng). Tài liệu này mô tả nơi dự án sẽ đi tới, chưa phải cách
 > nó đang chạy. Kế hoạch từng bước: [roadmap.md](roadmap.md). Lý do đổi engine:
-> [adr/0001-godot-client.md](adr/0001-godot-client.md). Giao diện và trải nghiệm chung:
+> [adr/0001-godot-client.md](adr/0001-godot-client.md). Cách gắn thêm trò và tính năng:
+> [adr/0002-modules.md](adr/0002-modules.md). Giao diện và trải nghiệm chung:
 > [experience.md](experience.md).
 
 ## Một câu
@@ -79,9 +80,9 @@ kết quả, server kiểm tra rồi ghi lại.
 | Thống kê và thành tích | Trò phát sự kiện thống kê (`win`, `bomb_played`); thành tích là luật khai báo dựa trên chúng |
 | Xếp hạng | Tính từ thống kê |
 
-Server chạy được nhiều bản song song khi người chơi đông lên (mở rộng theo chiều ngang): dữ liệu bền
-ở Postgres, mỗi phòng có một bản server làm chủ. Chi tiết:
-[adr/0002-horizontal-scale.md](adr/0002-horizontal-scale.md).
+Mỗi dịch vụ trên là một **khối** riêng: bảng dữ liệu riêng, lệnh riêng, màn hình riêng trong hub.
+Thêm một tính năng là gắn thêm một khối, không sửa khối khác hay luật các trò. Chi tiết:
+[adr/0002-modules.md](adr/0002-modules.md).
 
 Trò nói chuyện với nền tảng qua `ctx` của SDK, ví dụ `ctx.reward(playerId, 'core:coin', 50)` hay
 `ctx.stat('win')`. Server từ chối phần thưởng vượt mức trò đã khai báo.

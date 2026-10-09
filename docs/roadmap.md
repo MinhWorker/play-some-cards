@@ -1,7 +1,7 @@
 # Xóm Đảo: kế hoạch
 
 > Mục tiêu và lý do: [vision.md](vision.md), [adr/0001-godot-client.md](adr/0001-godot-client.md),
-> [adr/0002-horizontal-scale.md](adr/0002-horizontal-scale.md).
+> [adr/0002-modules.md](adr/0002-modules.md).
 > Không có hạn chót. Mỗi phase xong khi đạt điều kiện ghi ở cuối phase đó.
 
 Trọng tâm của kế hoạch là **môi trường làm việc**: chủ dự án mô tả một trò hay một sự kiện, agent
@@ -14,7 +14,7 @@ apps/server/          NestJS: giữ, thêm cổng WebSocket thuần và các d�
 apps/client/          Dự án Godot duy nhất
   project.godot
   core/                 Autoload: Net, Session, Wallet, ContentLoader
-  hub/                  Bản đồ đảo, hồ sơ, túi đồ, xếp hạng
+  hub/                  Sảnh và màn của từng khối nền tảng: hub/<khối>/ (Nhà, Chợ, xếp hạng…)
   ui/                   Theme chung: nút, bảng gỗ, font
   addons/xomdao_sdk/    SDK GDScript cho trò: phòng, send(), on_state()
   content/              Symlink tới games/*/godot do script tạo (gitignore)
@@ -75,8 +75,7 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 - [ ] `npm run godot:export`: bản web đơn luồng + PWA, mỗi trò một `.pck` đặt tên theo mã băm
 
 **Mạng và protocol**
-- [ ] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO, viết trên các giao diện danh
-      bạ phòng, kênh tin và khoá của [ADR 0002](adr/0002-horizontal-scale.md) (bản bộ nhớ trước)
+- [ ] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO
 - [ ] `npm run gen:protocol`: schema zod → class GDScript trong `xomdao_sdk`; CI báo lỗi nếu file
       sinh ra không khớp
 - [ ] `addons/xomdao_sdk`: kết nối lại, đăng nhập, tạo/vào phòng, `send()`, tín hiệu `state_changed`
@@ -132,8 +131,6 @@ Làm dần, theo thứ tự chủ dự án muốn:
 - Danh mục vật phẩm, túi đồ, cửa hàng đồ trang trí
 - Thống kê, thành tích, xếp hạng
 - Nhiều loại tài nguyên
-- Chạy nhiều bản server: bản Redis của danh bạ phòng, kênh tin và khoá; nhận lại phòng khi một bản
-  chết; test hai bản cục bộ ([ADR 0002](adr/0002-horizontal-scale.md))
 - Khi không còn trò nào dùng Phaser: xoá `apps/web` và cổng Socket.IO
 
 ## Các mặc định đã chốt
@@ -142,7 +139,7 @@ Làm dần, theo thứ tự chủ dự án muốn:
 | --- | --- |
 | Hướng màn hình | Ngang |
 | Thể loại | Cờ và Bài là hai thể loại chính, có chỗ riêng trên sảnh; thể loại khác là phụ, gom vào khoảng trống còn lại |
-| Server | Mở rộng theo chiều ngang: nhiều bản giống nhau, mỗi phòng một bản chủ, Redis khi có nhiều bản ([ADR 0002](adr/0002-horizontal-scale.md)) |
+| Mở rộng | Gắn thêm khối: trò/sự kiện trong `games/<id>/`; tính năng nền tảng là một module server + một màn hub, không sửa khối khác ([ADR 0002](adr/0002-modules.md)) |
 | Ngôn ngữ Godot | GDScript, có kiểu |
 | Test và lint Godot | GUT, gdtoolkit |
 | Kinh tế | Tiền chỉ mua đồ trang trí |
