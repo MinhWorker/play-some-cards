@@ -20,6 +20,8 @@ const seatName = (i: number) => `Người ${i + 1}`;
  * previews only). The rules run right here in the browser, and the seat buttons switch whose
  * eyes you see the board with ("Khán giả" = a spectator). "Tuỳ chỉnh" opens the game's own
  * settings screen, if it has one, and starts over with its options. Saving a file hot-reloads it.
+ * A board that draws its own room bar (`hud.nav`) keeps the whole height: the seat buttons fold
+ * into a "Chơi thử" button at the bottom.
  */
 export function Sandbox({ gameId, players: count }: Props) {
   const game = games[gameId];
@@ -50,6 +52,8 @@ export function Sandbox({ gameId, players: count }: Props) {
   }, []);
   const client = useGameClient(gameId);
   const hasSetup = Boolean(client?.setup);
+  const boardNav = Boolean(client?.hud?.nav);
+  const [docked, setDocked] = useState(false);
   const [settingUp, setSettingUp] = useState(false);
   const [me, setMe] = useState<string | null>(seats[0]?.id ?? null);
   const [error, setError] = useState('');
@@ -179,13 +183,32 @@ export function Sandbox({ gameId, players: count }: Props) {
 
   useEffect(() => {
     const el = bar.current;
+    if (boardNav) {
+      bridge.emit('hud:top', null);
+      return () => {
+        bridge.emit('hud:top', undefined);
+      };
+    }
     if (!el) return;
     const report = () => bridge.emit('hud:top', el.getBoundingClientRect().bottom);
     report();
     const observer = new ResizeObserver(report);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [boardNav]);
+
+  // A board's own room controls: no room to leave here, so leaving goes to the app.
+  useEffect(() => {
+    const onRoom = (action: unknown) => {
+      if (action === 'leave' || action === 'home') window.location.assign('/');
+      else if (action === 'new-game') restart();
+      else if (action === 'customize') setSettingUp(true);
+    };
+    bridge.on('board:room', onRoom);
+    return () => {
+      bridge.off('board:room', onRoom);
+    };
+  }, [restart]);
 
   const stage = useMemo<Stage>(() => {
     if (!game || state === undefined) return { mode: 'sky' };
@@ -211,8 +234,16 @@ export function Sandbox({ gameId, players: count }: Props) {
         left: Math.max(0, timerEnd - Date.now()),
       },
       played: { ms: (endedAt ?? Date.now()) - startedAt, running: endedAt === null },
+      // Whoever you look through is the host; nobody else watches.
+      room: {
+        newGame: me !== null && Boolean(result),
+        customize: me !== null && hasSetup && Boolean(result),
+        sit: false,
+        watchers: 0,
+      },
     };
   }, [
+    hasSetup,
     game,
     gameId,
     state,
@@ -230,50 +261,75 @@ export function Sandbox({ gameId, players: count }: Props) {
     endedAt,
   ]);
 
+  const winner = result && !client?.showsResult && (
+    <div className="room-title">
+      {result.winners.length
+        ? `${result.winners.map((id) => seats.find((s) => s.id === id)?.name).join(', ')} thắng!`
+        : 'Hoà!'}
+    </div>
+  );
+  const controls = (
+    <div className="sandbox-seats">
+      {[
+        ...seats.map((s) => ({ id: s.id as string | null, name: s.name })),
+        { id: null, name: 'Khán giả' },
+      ].map((s) => (
+        <Button
+          key={s.name}
+          size="small"
+          variant={s.id === me ? 'primary' : 'secondary'}
+          onClick={() => setMe(s.id)}
+        >
+          {s.name}
+        </Button>
+      ))}
+      <Button size="small" variant="secondary" onClick={() => restart()}>
+        Ván mới
+      </Button>
+      {hasSetup && (
+        <Button
+          size="small"
+          variant={settingUp ? 'primary' : 'secondary'}
+          onClick={() => setSettingUp((open) => !open)}
+        >
+          Tuỳ chỉnh
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <>
       <PhaserStage stage={stage} />
       <main className="ui">
-        <header ref={bar} className="hud hud-top room-bar sandbox-bar">
-          {/* No "Chơi thử" or game name: the seat buttons say it is the sandbox. */}
-          {result && !client?.showsResult && (
-            <div className="room-title">
-              {result.winners.length
-                ? `${result.winners.map((id) => seats.find((s) => s.id === id)?.name).join(', ')} thắng!`
-                : 'Hoà!'}
-            </div>
-          )}
-          <div className="sandbox-seats">
-            {[
-              ...seats.map((s) => ({ id: s.id as string | null, name: s.name })),
-              { id: null, name: 'Khán giả' },
-            ].map((s) => (
-              <Button
-                key={s.name}
-                size="small"
-                variant={s.id === me ? 'primary' : 'secondary'}
-                onClick={() => setMe(s.id)}
-              >
-                {s.name}
-              </Button>
-            ))}
-            <Button size="small" variant="secondary" onClick={() => restart()}>
-              Ván mới
-            </Button>
-            {hasSetup && (
-              <Button
-                size="small"
-                variant={settingUp ? 'primary' : 'secondary'}
-                onClick={() => setSettingUp((open) => !open)}
-              >
-                Tuỳ chỉnh
-              </Button>
+        {boardNav ? (
+          <div className="hud sandbox-dock">
+            {docked && winner}
+            {/* Picking a seat or an action folds the buttons away again. */}
+            {docked && (
+              // biome-ignore lint/a11y/noStaticElementInteractions: the buttons inside are the controls
+              // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard presses on them bubble as clicks
+              <div onClick={() => setDocked(false)}>{controls}</div>
             )}
+            <Button
+              size="small"
+              variant={docked ? 'primary' : 'secondary'}
+              aria-expanded={docked}
+              onClick={() => setDocked((open) => !open)}
+            >
+              Chơi thử
+            </Button>
           </div>
-        </header>
+        ) : (
+          <header ref={bar} className="hud hud-top room-bar sandbox-bar">
+            {/* No "Chơi thử" or game name: the seat buttons say it is the sandbox. */}
+            {winner}
+            {controls}
+          </header>
+        )}
         {!game && <Toast>Không có game "{gameId}"</Toast>}
         {error && <Toast>{error}</Toast>}
-        <SoundControl />
+        <SoundControl button={!(client?.hud?.settings && !settingUp)} />
       </main>
     </>
   );

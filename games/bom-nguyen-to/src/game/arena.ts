@@ -70,24 +70,87 @@ export function walkable(s: State, p: Point, fighter?: Fighter, ignoreBomb = fal
   );
 }
 
-/** Circular actor footprint, swept in small steps so dash cannot tunnel through walls. */
+/** Half the side of a fighter's square footprint, in cells (for walking off a bomb). */
+const BODY = 0.26;
+const corners = ({ x, y }: Point) => [
+  { x: x - BODY, y: y - BODY },
+  { x: x + BODY, y: y - BODY },
+  { x: x - BODY, y: y + BODY },
+  { x: x + BODY, y: y + BODY },
+];
+
+/** Whether any part of a fighter at `p` stands on `cell`. */
+export const touches = (p: Point, cell: Point) =>
+  corners(p).some((corner) => distance(cellOf(corner), cell) === 0);
+
+const EPS = 1e-6;
+
+/**
+ * Fighters walk the grid's lanes, one lane wide: walking along a row keeps them centred in it, so
+ * they never wobble between the walls of a corridor. A turn first lines them up with the nearer
+ * lane whose next cell is open (corner assist), so a corner never catches them. They advance cell
+ * by cell and stop at the centre before a wall, crate or bomb, so a dash cannot tunnel.
+ */
 export function moveFighter(s: State, p: Fighter, dx: number, dy: number) {
-  const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 0.12));
-  for (let i = 0; i < steps; i++) {
-    const x = p.x + dx / steps;
-    const y = p.y + dy / steps;
-    const r = 0.26;
-    if (
-      ![
-        { x: x - r, y: y - r },
-        { x: x + r, y: y - r },
-        { x: x - r, y: y + r },
-        { x: x + r, y: y + r },
-      ].every((corner) => walkable(s, cellOf(corner), p))
-    )
-      break;
-    p.x = x;
-    p.y = y;
+  const horizontal = Math.abs(dx) >= Math.abs(dy);
+  const amount = horizontal ? dx : dy;
+  if (!amount) return;
+  const sign = Math.sign(amount);
+  let budget = Math.abs(amount);
+  let along = horizontal ? p.x : p.y;
+  let cross = horizontal ? p.y : p.x;
+  const open = (a: number, c: number) =>
+    walkable(s, horizontal ? { x: a, y: c } : { x: c, y: a }, p);
+  const near = Math.round(cross);
+  if (Math.abs(cross - near) > EPS) {
+    const far = cross > near ? near + 1 : near - 1;
+    const ahead = Math.round(along) + sign;
+    const lane = open(ahead, near) || !open(ahead, far) ? near : far;
+    const shift = Math.min(budget, Math.abs(lane - cross));
+    cross += Math.sign(lane - cross) * shift;
+    budget -= shift;
+  }
+  if (Math.abs(cross - Math.round(cross)) <= EPS) {
+    cross = Math.round(cross);
+    while (budget > EPS) {
+      const cell = Math.round(along);
+      const toCentre = (cell - along) * sign;
+      if (toCentre > EPS) {
+        const step = Math.min(budget, toCentre);
+        along += sign * step;
+        budget -= step;
+        continue;
+      }
+      if (!open(cell + sign, cross)) break;
+      const step = Math.min(budget, 1 + toCentre);
+      along += sign * step;
+      budget -= step;
+    }
+  }
+  p.x = horizontal ? along : cross;
+  p.y = horizontal ? cross : along;
+}
+
+/** How far a player's own screen may be from the server when it reports where they are. */
+const FOLLOW_LIMIT = 1.6;
+
+/**
+ * Take the position a player's screen shows (sent with their input), when they could have walked
+ * there along open lanes: the server and their view stay in step, without pulling them back.
+ */
+export function follow(s: State, p: Fighter, to: Point) {
+  if (p.hp <= 0 || p.frozenUntil > s.time || p.stunUntil > s.time) return;
+  if (Math.abs(to.x - p.x) + Math.abs(to.y - p.y) > FOLLOW_LIMIT) return;
+  for (const xFirst of [true, false]) {
+    const probe = { ...p };
+    for (const leg of xFirst ? ['x', 'y'] : ['y', 'x'])
+      if (leg === 'x') moveFighter(s, probe, to.x - probe.x, 0);
+      else moveFighter(s, probe, 0, to.y - probe.y);
+    if (Math.abs(probe.x - to.x) + Math.abs(probe.y - to.y) < 0.01) {
+      p.x = to.x;
+      p.y = to.y;
+      return;
+    }
   }
 }
 
@@ -106,7 +169,7 @@ export function makeBomb(s: State, p: Fighter): Bomb {
     explodeAt: s.time + FUSE,
     frozenUntil: 0,
     pass: s.fighters
-      .filter((other) => other.hp > 0 && distance(cellOf(other), cellOf(p)) === 0)
+      .filter((other) => other.hp > 0 && touches(other, cellOf(p)))
       .map((other) => other.id),
   };
 }
@@ -344,14 +407,32 @@ export function collectPickups(s: State, p: Fighter) {
   });
 }
 
+/** The arena first shrinks after 2 minutes of play, then one ring every 12 seconds. */
+export const SHRINK_START = 120000;
+export const SHRINK_EVERY = 12000;
+const SMALLEST_RING = 4;
+
+/** Whether `p` lies in ring `ring` or further out (ring 1 = the cells along the fence). */
+export const inRing = (p: Point, ring: number) =>
+  p.x <= ring || p.y <= ring || p.x >= WIDTH - 1 - ring || p.y >= HEIGHT - 1 - ring;
+
+/** The ring that closes next and when (play time, `s.elapsed`), or null at the smallest arena. */
+export function nextRing(s: State): { ring: number; at: number } | null {
+  const ring = s.ring + 1;
+  return ring > SMALLEST_RING ? null : { ring, at: SHRINK_START + (ring - 1) * SHRINK_EVERY };
+}
+
 export function shrinkArena(s: State) {
-  const ring = s.elapsed < 120000 ? 0 : Math.min(4, 1 + Math.floor((s.elapsed - 120000) / 12000));
+  const ring =
+    s.elapsed < SHRINK_START
+      ? 0
+      : Math.min(SMALLEST_RING, 1 + Math.floor((s.elapsed - SHRINK_START) / SHRINK_EVERY));
   if (ring === s.ring) return;
   s.ring = ring;
   for (let y = 1; y < HEIGHT - 1; y++)
     for (let x = 1; x < WIDTH - 1; x++) {
       const p = { x, y };
-      if (x <= ring || y <= ring || x >= WIDTH - 1 - ring || y >= HEIGHT - 1 - ring) {
+      if (inRing(p, ring)) {
         s.cells[indexOf(p)] = 'wall';
         for (const f of s.fighters) if (distance(cellOf(f), p) === 0) f.hp = 0;
       }

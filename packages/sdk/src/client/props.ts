@@ -42,9 +42,30 @@ export interface BoardProps<View = unknown, Options = unknown> {
   timer: { event: string; ms: number; left: number } | null;
   /** How long this game has lasted when sent (`running` until it ends); `null`: no game. */
   played: { ms: number; running: boolean } | null;
+  /** The room controls this viewer may use now (for a board that draws its own, `hud`). */
+  room: RoomControls;
 }
+
+/**
+ * What this viewer may do with the room right now. A board that draws the room's controls
+ * itself (`hud` in client.ts) shows a control only while it is allowed here.
+ */
+export interface RoomControls {
+  /** The host, after a game: start the next one (`newGame()`). */
+  newGame: boolean;
+  /** The host, between games, in a game with a setup screen: change the options (`customize()`). */
+  customize: boolean;
+  /** A spectator, between games, while a seat is free: sit down (`takeSeat()`). */
+  sit: boolean;
+  /** Spectators watching now. */
+  watchers: number;
+}
+
+/** A room control the board asks the app for (`BOARD_ROOM`). */
+export type RoomAction = 'leave' | 'home' | 'settings' | 'new-game' | 'customize' | 'sit';
 
 /** Events between the app and the running game screen (on `game.events`). */
 export const BOARD_PROPS = 'board:props';
 export const BOARD_MOVE = 'board:move';
 export const BOARD_OPTIONS = 'board:options';
+export const BOARD_ROOM = 'board:room';

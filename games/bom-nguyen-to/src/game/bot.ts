@@ -1,4 +1,13 @@
-import { activateDash, activateSkill, blastCells, makeBomb, placeBomb, walkable } from './arena.js';
+import {
+  activateDash,
+  activateSkill,
+  blastCells,
+  inRing,
+  makeBomb,
+  nextRing,
+  placeBomb,
+  walkable,
+} from './arena.js';
 import {
   cellOf,
   DIRECTIONS,
@@ -7,11 +16,13 @@ import {
   enemies,
   type Fighter,
   FUSE,
+  HEIGHT,
   keyOf,
   type Options,
   type Point,
   type State,
   tileAt,
+  WIDTH,
 } from './model.js';
 
 export interface DangerWindow {
@@ -53,6 +64,15 @@ export function dangerMap(s: State, fighter?: Fighter): Map<string, DangerWindow
   for (const b of s.blasts)
     if (b.damage && hurts(b.owner, b.team))
       for (const c of b.cells) add(c, { start: s.time - 100, end: b.expires + 150 });
+  // A fighter also keeps clear of the ring that the arena closes next, for good.
+  const next = fighter && s.phase === 'playing' ? nextRing(s) : null;
+  if (next) {
+    const closes = s.time + next.at - s.elapsed;
+    for (let y = 1; y < HEIGHT - 1; y++)
+      for (let x = 1; x < WIDTH - 1; x++)
+        if (inRing({ x, y }, next.ring) && !inRing({ x, y }, next.ring - 1))
+          add({ x, y }, { start: closes - 400, end: Number.POSITIVE_INFINITY });
+  }
   return map;
 }
 export const safeDuring = (
@@ -116,17 +136,27 @@ export function escapePath(s: State, p: Fighter): Point[] | null {
 export function canEscapeBomb(s: State, p: Fighter): Point[] | null {
   return escapePath({ ...s, bombs: [...s.bombs, makeBomb(s, p)] }, p);
 }
+/**
+ * The way to the next cell: first line up on the smaller offset, so a turn never clips the
+ * corner of a wall or crate beside the corridor.
+ */
 function aim(p: Fighter, c: Point): Direction {
-  if (Math.abs(c.x - p.x) > 0.03) return c.x > p.x ? 'right' : 'left';
-  if (Math.abs(c.y - p.y) > 0.03) return c.y > p.y ? 'down' : 'up';
+  const dx = c.x - p.x;
+  const dy = c.y - p.y;
+  const horizontal = Math.abs(dx) > 0.03 && (Math.abs(dy) <= 0.03 || Math.abs(dx) < Math.abs(dy));
+  if (horizontal) return dx > 0 ? 'right' : 'left';
+  if (Math.abs(dy) > 0.03) return dy > 0 ? 'down' : 'up';
   return 'none';
 }
 export function thinkBot(s: State, p: Fighter, options: Options, rng: () => number) {
   const interval = options.level === 'easy' ? 450 : options.level === 'normal' ? 220 : 100;
   const danger = dangerMap(s, p);
   const c = cellOf(p);
-  const imminent = !safeDuring(danger, c, s.time, s.time + (options.level === 'easy' ? 650 : 1600));
-  if (p.target && distance(p.target, p) > 0.03 && !(imminent && p.nextThink <= s.time)) {
+  // Any blast still to come over this cell (a bomb's whole fuse plus its flames) is a threat:
+  // leaving at the last moment fails once the way out is long or another bomb lands.
+  const horizon = s.time + FUSE + 1000;
+  const threatened = !safeDuring(danger, c, s.time, horizon);
+  if (p.target && distance(p.target, p) > 0.03 && !(threatened && p.nextThink <= s.time)) {
     p.dir = aim(p, p.target);
     return;
   }
@@ -134,13 +164,15 @@ export function thinkBot(s: State, p: Fighter, options: Options, rng: () => numb
     p.x = p.target.x;
     p.y = p.target.y;
     p.target = null;
+    // Keep running out of a blast without waiting for the next think.
+    if (threatened) p.nextThink = s.time;
   }
   if (p.nextThink > s.time) {
     p.dir = 'none';
     return;
   }
   p.nextThink = s.time + interval;
-  if (imminent) {
+  if (threatened) {
     const route = escapePath(s, p);
     const dest = route?.[0];
     p.target = dest ?? null;
@@ -198,14 +230,25 @@ export function thinkBot(s: State, p: Fighter, options: Options, rng: () => numb
         (p.hp <= 50 ? Number(b.kind === 'heal') - Number(a.kind === 'heal') : 0) ||
         distance(a, p) - distance(b, p),
     )[0];
-  let path = pickup ? findPath(s, p, (tile) => distance(tile, pickup) === 0, danger, 14) : null;
+  // Never walk somewhere to stand in a blast that is still to come.
+  const safe = (tile: Point, at: number) => safeDuring(danger, tile, at, horizon);
+  let path = pickup
+    ? findPath(s, p, (tile, at) => distance(tile, pickup) === 0 && safe(tile, at), danger, 14)
+    : null;
   if (!path && target)
-    path = findPath(s, p, (tile) => distance(tile, cellOf(target)) <= 1, danger, 16);
+    path = findPath(
+      s,
+      p,
+      (tile, at) => distance(tile, cellOf(target)) <= 1 && safe(tile, at),
+      danger,
+      16,
+    );
   if (!path)
     path = findPath(
       s,
       p,
-      (tile) =>
+      (tile, at) =>
+        safe(tile, at) &&
         ['up', 'down', 'left', 'right'].some((dir) => {
           const d = DIRECTIONS[dir as Direction];
           return tileAt(s, { x: tile.x + d.x, y: tile.y + d.y }) === 'crate';

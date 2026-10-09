@@ -20,3 +20,23 @@
   border-radius: 12px;
   padding: 4px 14px;
 }
+
+/* A board with its own room bar (`hud.nav`): the seat buttons fold into the bottom middle. */
+.sandbox-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap-reverse;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: max-content;
+  max-width: calc(100% - 24px);
+}
+
+.sandbox-dock .sandbox-seats {
+  margin-left: 0;
+  justify-content: center;
+}

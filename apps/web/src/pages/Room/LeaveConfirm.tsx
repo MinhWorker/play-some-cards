@@ -1,6 +1,7 @@
 import type { LeaveConfirm as Texts } from '@psc/sdk/client';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
+import { useDialogKeys } from '@/hooks/useDialogKeys';
 
 interface Props {
   /** The game's own texts (client.ts `leaveConfirm`); missing ones keep these defaults. */
@@ -21,6 +22,7 @@ export function LeaveConfirm({ texts, onStay, onLeave }: Props) {
     leave = 'Rời phòng',
   } = texts;
   const stay = useRef<HTMLButtonElement>(null);
+  useDialogKeys();
 
   useEffect(() => {
     stay.current?.focus();

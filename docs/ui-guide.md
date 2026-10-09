@@ -54,6 +54,9 @@ khung, nhân với cỡ HUD người chơi chọn. Cỡ chữ và nút nhân v�
 
 - **Góc trên trái**: nút quay lại (←, chỉ biểu tượng) và 🏠, hoặc hồ sơ ở trang chủ. **Góc trên
   phải**: âm thanh, cài đặt. Hai góc cao 88, cách mép một **lề** (mặc định 24).
+- Game tự vẽ HUD riêng (`hud` trong `client.ts`, xem `docs/making-a-game.md`) vẫn phải có đủ
+  nút rời phòng, về trang chủ và cài đặt, vùng chạm không nhỏ hơn quy định ở trên. Gom chúng vào
+  một nút menu ở góc cũng được.
 - Không ghi tên game hay tên phòng trong ván: người chơi biết mình đang ở đâu, chỗ đó dành cho bàn.
   Chủ phòng có 👑 trong danh sách người chơi; game tự vẽ người chơi thì tự thể hiện chủ phòng.
 - Giữa hai góc để trống cho bàn chơi: HUD không phủ ngang cả màn hình. `ctx.screen.gap` cho biết

@@ -1,6 +1,6 @@
 import { GameView, rasterizeGraphics, type ViewContext } from '@psc/sdk/client';
 import Phaser from 'phaser';
-import { blastCells, moveFighter } from '../game/arena.js';
+import { blastCells, inRing, moveFighter, nextRing } from '../game/arena.js';
 import { dangerMap } from '../game/bot.js';
 import {
   DIRECTIONS,
@@ -23,35 +23,46 @@ import {
   type ActorAnimation,
   actorAnimation,
   actorFrame,
+  arenaAnimation,
+  arenaFrame,
   type EffectAnimation,
   effectAnimation,
   effectFrame,
   registerAnimations,
 } from './animations.js';
-import { THEME, textStyle } from './theme.js';
+import { boldStyle, CHARACTER, THEME, textStyle } from './theme.js';
 
 type Ctx = ViewContext<State, Options>;
+type Skin = 'orange' | 'purple' | 'blue' | 'cream';
+type Bake = (g: Phaser.GameObjects.Graphics) => void;
+
+/** A pressable HUD button: `container` takes the taps, `face` sinks while pressed. */
 interface Control {
   container: Phaser.GameObjects.Container;
-  bg: Phaser.GameObjects.Graphics;
+  face: Phaser.GameObjects.Container;
+  bg?: Phaser.GameObjects.NineSlice;
   label: Phaser.GameObjects.Text;
   icon?: Phaser.GameObjects.Image;
+  ring?: Phaser.GameObjects.Image;
   width: number;
   height: number;
   enabled: boolean;
   hovered: boolean;
   pressed: boolean;
   selected: boolean;
-  accent: number;
-  fill: number;
-  paper?: Phaser.GameObjects.Image;
-  paint?: string;
+}
+/** One arrow of the D-pad; the whole pad plate takes the touches. */
+interface PadKey {
+  container: Phaser.GameObjects.Container;
+  key: Phaser.GameObjects.Image;
+  arrow: Phaser.GameObjects.Image;
+  dir: Direction;
 }
 interface Actor {
   sprite: Phaser.GameObjects.Sprite;
   shadow: Phaser.GameObjects.Ellipse;
+  ring: Phaser.GameObjects.Ellipse;
   name: Phaser.GameObjects.Text;
-  hp: Phaser.GameObjects.Graphics;
   position: Point;
   correction: Point;
   element: Element;
@@ -66,14 +77,32 @@ interface Actor {
   frozenBefore: number;
   status: Phaser.GameObjects.Sprite | null;
   lastDust: number;
-  hpPaint: string;
 }
-const PASTEL: Record<Element, number> = {
-  fire: 0xffd5bd,
-  water: 0xc5eaff,
-  lightning: 0xe8d5ff,
-  ice: 0xd7f3fc,
-  wind: 0xc9f1dc,
+interface Card {
+  container: Phaser.GameObjects.Container;
+  paper?: Phaser.GameObjects.Image;
+  width: number;
+  height: number;
+  portrait: Phaser.GameObjects.Image;
+  name: Phaser.GameObjects.Text;
+  bar: Phaser.GameObjects.Graphics;
+  hp: Phaser.GameObjects.Text;
+  team: Phaser.GameObjects.Text;
+  paint: string;
+}
+interface StatRow {
+  icon: Phaser.GameObjects.Image;
+  label: Phaser.GameObjects.Text;
+  pill: Phaser.GameObjects.Graphics;
+  value: Phaser.GameObjects.Text;
+  paint: string;
+}
+
+const SKIN_IMAGE: Record<Skin, string> = {
+  orange: 'button-orange',
+  purple: 'button-purple',
+  blue: 'button-blue',
+  cream: 'dpad-key',
 };
 const KEY_DIR: Record<string, Direction> = {
   KeyW: 'up',
@@ -85,23 +114,39 @@ const KEY_DIR: Record<string, Direction> = {
   KeyD: 'right',
   ArrowRight: 'right',
 };
+const PAD_DIRS = ['up', 'left', 'down', 'right'] as const;
+const ACTIONS = [
+  { action: 'bomb', name: 'Bom', key: 'Space', icon: 'icon-bomb', skin: 'orange' },
+  { action: 'skill', name: 'Kỹ năng', key: 'E', icon: 'icon-skill', skin: 'purple' },
+  { action: 'dash', name: 'Lướt', key: 'Shift', icon: 'icon-dash', skin: 'blue' },
+] as const;
+const ITEM_LABEL = { heal: '+30 HP', range: 'Tầm nổ +1', capacity: 'Bom +1', speed: 'Tốc độ +' };
+const STAT_PILL = { width: 84, height: 26 };
+/** How long before the arena shrinks its next ring is shown on the board (ms). */
+const RING_WARNING = 5000;
+/** Vertical squash of the slightly tilted top-down camera. */
+const TILT = 0.86;
+/** The board's reach around the interior cells' centres (1..11, 1..9), in cells. */
+const BOARD = { left: 0.18, right: 11.82, top: -0.12, bottom: 9.75 };
+const TEAM_COLOR = [0x4c9be8, 0xf0708f];
 
 export class BomNguyenToView extends GameView<State, Options> {
   private backdrop!: Phaser.GameObjects.Image;
   private tiles = new Map<string, Phaser.GameObjects.Image>();
   private obstacles = new Map<string, Phaser.GameObjects.Image>();
+  private posts: Phaser.GameObjects.Image[] = [];
+  private fenceBack?: Phaser.GameObjects.Image;
+  private fenceFront?: Phaser.GameObjects.Image;
+  private ground?: Phaser.GameObjects.Image;
+  private blockShadows?: Phaser.GameObjects.Image;
   private actors = new Map<string, Actor>();
   private bombs = new Map<
     number,
-    {
-      image: Phaser.GameObjects.Sprite;
-      timer: Phaser.GameObjects.Text;
-      ring: Phaser.GameObjects.Ellipse;
-    }
+    { image: Phaser.GameObjects.Sprite; ring: Phaser.GameObjects.Ellipse; element: Element }
   >();
   private pickups = new Map<
     string,
-    { image: Phaser.GameObjects.Sprite; label: Phaser.GameObjects.Text }
+    { image: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Ellipse; phase: number }
   >();
   private flames = new Map<string, Phaser.GameObjects.Sprite>();
   private effects = new Set<Phaser.GameObjects.Sprite>();
@@ -110,65 +155,82 @@ export class BomNguyenToView extends GameView<State, Options> {
   private previousPickups = new Map<string, State['pickups'][number]>();
   private warningCells: { cell: Point; start: number; element: Element; frozen: boolean }[] = [];
   private suppressFeedback = true;
-  private localMarker!: Phaser.GameObjects.Graphics;
-  private markerPaint = '';
+  private localMarker!: Phaser.GameObjects.Image;
   private overlayShade!: Phaser.GameObjects.Graphics;
-  private statPaper!: Phaser.GameObjects.Image;
-  private timerPaper!: Phaser.GameObjects.Image;
   private warnings!: Phaser.GameObjects.Graphics;
-  private propShadows!: Phaser.GameObjects.Graphics;
-  private platform!: Phaser.GameObjects.Graphics;
-  private platformPaper?: Phaser.GameObjects.Image;
-  private shadowPaper?: Phaser.GameObjects.Image;
   private boardPaint = '';
-  private hud!: Phaser.GameObjects.Container;
-  private rail!: Phaser.GameObjects.Container;
-  private title!: Phaser.GameObjects.Text;
-  private titleTail!: Phaser.GameObjects.Text;
+  private logo!: Phaser.GameObjects.Image;
+  private modePill!: Phaser.GameObjects.Image;
+  private modeIcon!: Phaser.GameObjects.Image;
   private modeLabel!: Phaser.GameObjects.Text;
+  private portraitGlow!: Phaser.GameObjects.Image;
+  private portrait!: Phaser.GameObjects.Image;
+  private portraitName!: Phaser.GameObjects.Text;
+  private statPaper!: Phaser.GameObjects.Image;
+  private stats: StatRow[] = [];
+  private timerBoard!: Phaser.GameObjects.Image;
+  private timerClock!: Phaser.GameObjects.Image;
   private timerLabel!: Phaser.GameObjects.Text;
   private status!: Phaser.GameObjects.Text;
-  private stats!: Phaser.GameObjects.Text;
-  private skillName!: Phaser.GameObjects.Text;
-  private portrait!: Phaser.GameObjects.Image;
-  private resultPortrait!: Phaser.GameObjects.Image;
-  private resultDetail!: Phaser.GameObjects.Text;
-  private resultStars!: Phaser.GameObjects.Sprite;
-  private roster: {
-    container: Phaser.GameObjects.Container;
-    portrait: Phaser.GameObjects.Image;
-    name: Phaser.GameObjects.Text;
-    hp: Phaser.GameObjects.Graphics;
-  }[] = [];
-  private pad: Control[] = [];
+  private roster: Card[] = [];
+  private padPlate!: Phaser.GameObjects.Image;
+  private padZone!: Phaser.GameObjects.Zone;
+  private padCenter: Point = { x: 0, y: 0 };
+  private padRadius = 100;
+  private pad: PadKey[] = [];
   private actions: Control[] = [];
+  private captions: Phaser.GameObjects.Container[] = [];
+  private cooldowns: Phaser.GameObjects.Graphics[] = [];
+  private cooldownPaint: string[] = [];
+  private helpButton!: Control;
+  private menuButton!: Control;
   private selectPanel!: Phaser.GameObjects.Container;
   private selectTitle!: Phaser.GameObjects.Text;
+  private selectSkill!: Phaser.GameObjects.Text;
   private selectDescription!: Phaser.GameObjects.Text;
   private selectChoices: Control[] = [];
   private readyButton!: Control;
   private resultPanel!: Phaser.GameObjects.Container;
   private resultText!: Phaser.GameObjects.Text;
-  private helpButton!: Control;
+  private resultPortrait!: Phaser.GameObjects.Image;
+  private resultDetail!: Phaser.GameObjects.Text;
+  private resultStars!: Phaser.GameObjects.Sprite;
+  private resultWait!: Phaser.GameObjects.Text;
+  private newGameButton!: Control;
+  private customizeButton!: Control;
+  private sitButton!: Control;
   private helpPanel!: Phaser.GameObjects.Container;
   private helpClose!: Control;
+  private menuPanel!: Phaser.GameObjects.Container;
+  private menuWatchers!: Phaser.GameObjects.Text;
+  private menuItems: Control[] = [];
   private keys: string[] = [];
   private touch = new Map<number, Direction>();
   private direction: Direction = 'none';
   private sentDirection: Direction = 'none';
   private inputElapsed = 0;
+  /** When the player last steered (their fighter trusts its own prediction for a moment). */
+  private steeredAt = -1000;
+  /** `performance.now()` of the previous frame. */
+  private frameAt = 0;
   private snapshotAt = 0;
   private lastPhase: State['phase'] = 'select';
   private previousBlast = 0;
   private lastViewer: string | null = null;
+  private ui = 1;
   private tw = 60;
-  private th = 32;
+  private th = 52;
   private ox = 0;
   private oy = 0;
 
   protected onCreate(ctx: Ctx) {
     this.tiles = new Map();
     this.obstacles = new Map();
+    this.posts = [];
+    this.fenceBack = undefined;
+    this.fenceFront = undefined;
+    this.ground = undefined;
+    this.blockShadows = undefined;
     this.actors = new Map();
     this.bombs = new Map();
     this.pickups = new Map();
@@ -184,282 +246,503 @@ export class BomNguyenToView extends GameView<State, Options> {
     this.direction = 'none';
     this.sentDirection = 'none';
     this.inputElapsed = 0;
+    this.steeredAt = -1000;
+    this.frameAt = 0;
     this.snapshotAt = this.time.now;
     this.lastPhase = ctx.state.phase;
     this.previousBlast = 0;
     this.lastViewer = ctx.me?.id ?? null;
-    this.markerPaint = '';
-    this.platformPaper = undefined;
-    this.shadowPaper = undefined;
     this.boardPaint = '';
-    this.backdrop = this.sprite('background').setDepth(-20);
+    this.roster = [];
+    this.stats = [];
+    this.pad = [];
+    this.actions = [];
+    this.captions = [];
+    this.cooldowns = [];
+    this.cooldownPaint = [];
+    this.selectChoices = [];
+    this.menuItems = [];
+    this.backdrop = this.sprite('garden').setDepth(-20);
     registerAnimations(this, (name) => this.texture(name));
-    this.platform = this.add.graphics().setDepth(-10);
-    this.warnings = this.add.graphics().setDepth(2);
-    this.warnings.pathDetailThreshold = 1;
-    this.propShadows = this.add.graphics().setDepth(1);
-    this.localMarker = this.add.graphics().setDepth(4);
+    this.warnings = this.add.graphics().setDepth(5);
+    this.localMarker = this.bake('bom-marker', { x: -17, y: -29, width: 34, height: 32 }, (g) =>
+      g
+        .fillStyle(0xffffff)
+        .fillTriangle(-14, -22, 14, -22, 0, 1)
+        .fillCircle(-7, -19, 8)
+        .fillCircle(7, -19, 8)
+        .fillStyle(0xf04359)
+        .fillTriangle(-10, -20, 10, -20, 0, -3)
+        .fillCircle(-5, -18, 5.5)
+        .fillCircle(5, -18, 5.5)
+        .fillStyle(0xffffff, 0.75)
+        .fillCircle(-6, -20, 2),
+    ).setDepth(1900);
     this.overlayShade = this.add.graphics().setDepth(2500);
     this.createHud();
     this.createSelection();
     this.createResult();
     this.createHelp();
+    this.createMenu();
     this.bindInput();
   }
 
+  // ── Building blocks ────────────────────────────────────────────────────────────────────
+
+  /** Draws once with Graphics and keeps a crisp texture of it. */
+  private bake(key: string, bounds: Phaser.Types.Math.RectangleLike, draw: Bake) {
+    const g = this.add.graphics();
+    draw(g);
+    const image = rasterizeGraphics(this, g, key, bounds);
+    g.destroy();
+    return image;
+  }
+  private rebake(
+    image: Phaser.GameObjects.Image | undefined,
+    key: string,
+    bounds: Phaser.Types.Math.RectangleLike,
+    draw: Bake,
+  ) {
+    const g = this.add.graphics();
+    draw(g);
+    const result = rasterizeGraphics(this, g, key, bounds, image);
+    g.destroy();
+    return result;
+  }
   private text(text: string, size: number, color = THEME.paper) {
     return this.add.text(0, 0, text, textStyle(size, color)).setOrigin(0.5);
   }
-  private panel(width: number, height: number) {
-    const graphics = this.add
-      .graphics()
-      .fillStyle(THEME.shadow, 0.25)
-      .fillRoundedRect(-width / 2, -height / 2 + 8, width, height, 24)
-      .fillStyle(THEME.wood)
-      .fillRoundedRect(-width / 2, -height / 2 + 4, width, height, 24)
-      .fillStyle(THEME.panel)
-      .fillRoundedRect(-width / 2, -height / 2, width, height, 24)
-      .lineStyle(2.5, THEME.outline)
-      .strokeRoundedRect(-width / 2, -height / 2, width, height, 24)
-      .lineStyle(2, 0xffffff, 0.7)
-      .strokeRoundedRect(-width / 2 + 6, -height / 2 + 6, width - 12, height - 12, 20);
-    const bounds = { x: -width / 2 - 3, y: -height / 2 - 3, width: width + 6, height: height + 14 };
-    const image = rasterizeGraphics(this, graphics, `bom-paper-${width}-${height}`, bounds)
-      .setOrigin(-bounds.x / bounds.width, -bounds.y / bounds.height)
-      .setPosition(0, 0);
-    graphics.destroy();
-    return image;
+  private bold(text: string, size: number, color = THEME.white) {
+    return this.add.text(0, 0, text, boldStyle(size, color)).setOrigin(0.5);
+  }
+  /** Cream paper card with a honey-wood rim, centred on its position. */
+  private paper(width: number, height: number, radius = 24) {
+    return this.bake(
+      `bom-paper-${width}-${height}-${radius}`,
+      { x: -width / 2 - 4, y: -height / 2 - 4, width: width + 8, height: height + 14 },
+      (g) =>
+        g
+          .fillStyle(0x5d7d3a, 0.22)
+          .fillRoundedRect(-width / 2, -height / 2 + 7, width, height, radius)
+          .fillStyle(THEME.wood)
+          .fillRoundedRect(-width / 2, -height / 2 + 3, width, height, radius)
+          .fillStyle(THEME.panel)
+          .fillRoundedRect(-width / 2, -height / 2, width, height, radius)
+          .lineStyle(3, THEME.outline)
+          .strokeRoundedRect(-width / 2, -height / 2, width, height, radius)
+          .lineStyle(2, 0xffffff, 0.8)
+          .strokeRoundedRect(
+            -width / 2 + 6,
+            -height / 2 + 6,
+            width - 12,
+            height - 12,
+            Math.max(4, radius - 5),
+          ),
+    );
   }
   private control(
     text: string,
-    width: number,
-    height: number,
+    skin: Skin,
     tap: () => void,
-    icon?: string,
+    { icon, size = 24, onDown = false }: { icon?: string; size?: number; onDown?: boolean } = {},
   ): Control {
-    const bg = this.add.graphics();
-    const label = this.text(text, 22);
-    // Graphics do not report bounds; include the complete button face and its relief.
-    const bounds = this.add.zone(0, 4, width + 4, height + 12);
-    const container = this.add
-      .container(0, 0, [bounds, bg, label])
-      .setSize(width, height)
-      .setDepth(2000)
-      .setInteractive({ useHandCursor: true });
-    const control: Control = {
+    const key = this.texture(SKIN_IMAGE[skin]);
+    const source = this.textures.getFrame(key);
+    const slice = Math.round(Math.min(source.width, source.height) * 0.34);
+    const bg = this.add.nineslice(
+      0,
+      0,
+      key,
+      undefined,
+      source.width,
+      source.height,
+      slice,
+      slice,
+      slice,
+      slice,
+    );
+    const label =
+      skin === 'cream'
+        ? this.add.text(0, 0, text, textStyle(size)).setOrigin(0.5)
+        : this.bold(text, size);
+    const face = this.add.container(0, 0, [bg, label]);
+    const container = this.add.container(0, 0, [face]).setDepth(2000);
+    const c: Control = {
       container,
+      face,
       bg,
       label,
-      width,
-      height,
+      width: 0,
+      height: 0,
       enabled: true,
       hovered: false,
       pressed: false,
       selected: false,
-      accent: THEME.outline,
-      fill: THEME.cream,
     };
     if (icon) {
-      control.icon = this.sprite(icon);
-      container.addAt(control.icon, 2);
-      control.icon.setDisplaySize(height * 0.62, height * 0.62).setY(-8);
-      label.setY(height * 0.33);
+      c.icon = this.sprite(icon);
+      face.add(c.icon);
     }
-    container.on('pointerup', () => {
-      const pressed = control.pressed;
-      control.pressed = false;
-      this.paintControl(control);
-      if (pressed && control.enabled) {
-        tap();
-      }
+    container.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(0, 0, 1, 1),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
     });
+    const fire = () => {
+      if (c.enabled) tap();
+    };
     container.on('pointerdown', () => {
-      control.pressed = control.enabled;
-      this.paintControl(control);
+      c.pressed = c.enabled;
+      this.paintControl(c);
+      if (onDown) fire();
+    });
+    container.on('pointerup', () => {
+      const pressed = c.pressed;
+      c.pressed = false;
+      this.paintControl(c);
+      if (pressed && !onDown) fire();
     });
     container.on('pointerover', () => {
-      control.hovered = true;
-      this.paintControl(control);
+      c.hovered = true;
+      this.paintControl(c);
     });
     container.on('pointerout', () => {
-      control.hovered = false;
-      control.pressed = false;
-      this.paintControl(control);
-    });
-    this.paintControl(control);
-    return control;
-  }
-  private paintControl(c: Control, active = c.selected, color = c.accent) {
-    c.selected = active;
-    c.accent = color;
-    const y = c.pressed ? 4 : 0;
-    c.container.setAlpha(c.enabled ? 1 : 0.7);
-    const paint = `${active}:${color}:${y}:${c.hovered && c.enabled}:${c.fill}`;
-    if (c.paint === paint) return;
-    c.paint = paint;
-    const radius = Math.min(22, c.height / 2);
-    c.bg
-      .clear()
-      .fillStyle(THEME.shadow, 0.25)
-      .fillRoundedRect(-c.width / 2, -c.height / 2 + 8, c.width, c.height, radius)
-      .fillStyle(THEME.wood)
-      .fillRoundedRect(-c.width / 2, -c.height / 2 + 5, c.width, c.height, radius)
-      .fillStyle(c.hovered && c.enabled ? 0xfffdf5 : c.fill)
-      .fillRoundedRect(-c.width / 2, -c.height / 2 + y, c.width, c.height - y, radius)
-      .lineStyle(active ? 4 : 2.5, active ? color : THEME.outline)
-      .strokeRoundedRect(-c.width / 2, -c.height / 2 + y, c.width, c.height - y, radius)
-      .lineStyle(2, 0xffffff, 0.65)
-      .strokeRoundedRect(
-        -c.width / 2 + 5,
-        -c.height / 2 + y + 5,
-        c.width - 10,
-        c.height - y - 10,
-        radius - 4,
-      );
-    const paper = rasterizeGraphics(
-      this,
-      c.bg,
-      `bom-control-${c.width}-${c.height}-${paint}`,
-      { x: -c.width / 2 - 3, y: -c.height / 2 - 3, width: c.width + 6, height: c.height + 14 },
-      c.paper,
-    );
-    if (!c.paper) c.container.moveTo(paper, 2);
-    c.paper = paper;
-  }
-  private createHud() {
-    this.hud = this.add.container().setDepth(2000);
-    this.title = this.text('Bom', 52, '#efa949')
-      .setOrigin(0, 0)
-      .setStroke('#fff6e7', 6)
-      .setShadow(2, 3, '#a77261', 0, true, true);
-    this.titleTail = this.text('Nguyên Tố', 31, '#6bbdcc')
-      .setOrigin(0, 0)
-      .setStroke('#fff6e7', 5)
-      .setShadow(2, 3, '#a77261', 0, true, true);
-    this.modeLabel = this.text('', 20).setOrigin(0, 0);
-    this.timerLabel = this.text('03:00', 32);
-    this.status = this.text('', 19, THEME.muted);
-    this.stats = this.text('', 21).setOrigin(0, 0);
-    this.skillName = this.text('', 20).setOrigin(0, 0);
-    this.portrait = this.sprite('fire');
-    this.statPaper = this.panel(142, 112);
-    this.timerPaper = this.panel(102, 54);
-    this.rail = this.add.container(0, 0, [
-      this.statPaper,
-      this.title,
-      this.titleTail,
-      this.modeLabel,
-      this.stats,
-      this.skillName,
-      this.portrait,
-    ]);
-    this.hud.add([this.rail, this.timerPaper, this.timerLabel, this.status]);
-    this.roster = Array.from({ length: 4 }, () => {
-      const bg = this.panel(136, 54);
-      const portrait = this.sprite('fire').setPosition(-45, -1).setDisplaySize(56, 56);
-      const name = this.text('', 15).setPosition(-18, -12).setOrigin(0, 0.5);
-      const hp = this.add.graphics();
-      const container = this.add.container(0, 0, [bg, portrait, name, hp]);
-      this.hud.add(container);
-      return { container, portrait, name, hp };
-    });
-    this.pad = (['up', 'left', 'down', 'right'] as const).map((dir) => {
-      const c = this.control('', 76, 76, () => {});
-      c.fill = THEME.peach;
-      // Filled directional icons stay crisp and separate from text glyphs.
-      const arrow = this.add.graphics().fillStyle(THEME.ink).fillTriangle(-10, 7, 10, 7, 0, -10);
-      arrow.setRotation({ up: 0, left: -Math.PI / 2, down: Math.PI, right: Math.PI / 2 }[dir]);
-      c.container.add(arrow);
-      c.container.on('pointerdown', (p: Phaser.Input.Pointer) => {
-        if (!this.canAct()) return;
-        this.touch.set(p.id, dir);
-        this.refreshDirection();
-      });
-      const release = (p: Phaser.Input.Pointer) => {
-        this.touch.delete(p.id);
-        this.refreshDirection();
-      };
-      c.container.on('pointerout', release);
+      c.hovered = false;
+      c.pressed = false;
       this.paintControl(c);
+    });
+    return c;
+  }
+  /** Sizes a control; its corners keep their shape and the tap area is at least 88 square. */
+  private sizeControl(c: Control, width: number, height: number) {
+    c.width = width;
+    c.height = height;
+    if (c.bg) {
+      const frame = this.textures.getFrame(c.bg.texture.key);
+      const scale = Math.min(height / frame.height, width / (c.bg.leftWidth + c.bg.rightWidth + 1));
+      c.bg.setSize(width / scale, height / scale).setScale(scale);
+    }
+    const hitW = Math.max(width, 88);
+    const hitH = Math.max(height, 72);
+    c.container.setSize(width, height);
+    const area = c.container.input?.hitArea as Phaser.Geom.Rectangle | undefined;
+    area?.setTo((width - hitW) / 2, (height - hitH) / 2, hitW, hitH);
+    this.paintControl(c);
+  }
+  private paintControl(c: Control) {
+    const pressed = c.pressed && c.enabled;
+    c.face.setY(pressed ? 3 : 0).setScale(pressed ? 0.97 : c.hovered && c.enabled ? 1.03 : 1);
+    c.container.setAlpha(c.enabled ? 1 : 0.6);
+    c.ring?.setVisible(c.selected);
+  }
+
+  // ── HUD ────────────────────────────────────────────────────────────────────────────────
+
+  private createHud() {
+    this.logo = this.sprite('logo').setOrigin(0.5, 0).setDepth(2000);
+    this.modePill = this.paper(200, 40, 20).setDepth(2000);
+    this.modeIcon = this.sprite('portrait-fire').setDepth(2001);
+    this.modeLabel = this.text('', 20).setOrigin(0, 0.5).setDepth(2001);
+    this.portraitGlow = this.bake(
+      'bom-portrait-glow',
+      { x: -110, y: -110, width: 220, height: 220 },
+      (g) => {
+        for (let i = 10; i > 0; i--) g.fillStyle(0xfffbe8, 0.06).fillCircle(0, 0, i * 10);
+        for (const [x, y, r] of [
+          [-80, -64, 9],
+          [78, -44, 7],
+          [-70, 58, 6],
+          [86, 40, 10],
+        ] as const) {
+          g.fillStyle(0xffe58a)
+            .fillTriangle(x - r * 0.35, y, x + r * 0.35, y, x, y - r)
+            .fillTriangle(x - r * 0.35, y, x + r * 0.35, y, x, y + r)
+            .fillTriangle(x, y - r * 0.35, x, y + r * 0.35, x - r, y)
+            .fillTriangle(x, y - r * 0.35, x, y + r * 0.35, x + r, y);
+        }
+      },
+    ).setDepth(1999);
+    this.portrait = this.sprite('portrait-fire').setDepth(2000);
+    this.portraitName = this.bold('', 22).setDepth(2001);
+    this.statPaper = this.paper(236, 128, 20).setDepth(2000);
+    this.stats = (
+      [
+        ['icon-heart', 'HP'],
+        ['icon-bomb', 'Bom'],
+        ['icon-blast', 'Tầm nổ'],
+      ] as const
+    ).map(([icon, label]) => ({
+      icon: this.sprite(icon).setDepth(2001),
+      label: this.text(label, 20).setOrigin(0, 0.5).setDepth(2001),
+      pill: this.add.graphics().setDepth(2001),
+      value: this.text('', 19).setDepth(2002),
+      paint: '',
+    }));
+    this.timerBoard = this.sprite('timer-board').setDepth(2000);
+    this.timerClock = this.sprite('icon-clock').setDepth(2001);
+    this.timerLabel = this.bold('03:00', 32).setDepth(2001);
+    this.status = this.bold('', 18, '#fff6d8').setDepth(2001);
+    this.roster = Array.from({ length: 4 }, () => {
+      const portrait = this.sprite('portrait-fire');
+      const name = this.text('', 17).setOrigin(0, 0.5);
+      const bar = this.add.graphics();
+      const hp = this.bold('', 13).setStroke(THEME.stroke, 3);
+      const team = this.bold('', 14).setStroke(THEME.stroke, 3);
+      const container = this.add.container(0, 0, [portrait, name, bar, hp, team]).setDepth(2000);
+      return { container, width: 0, height: 0, portrait, name, bar, hp, team, paint: '' };
+    });
+    this.padPlate = this.sprite('dpad').setDepth(2000);
+    this.pad = PAD_DIRS.map((dir) => {
+      const key = this.sprite('dpad-key');
+      const arrow = this.bake(`bom-arrow-${dir}`, { x: -16, y: -16, width: 32, height: 32 }, (g) =>
+        g.fillStyle(THEME.woodDark).fillTriangle(-12, 8, 12, 8, 0, -11),
+      );
+      arrow.setRotation({ up: 0, left: -Math.PI / 2, down: Math.PI, right: Math.PI / 2 }[dir]);
+      const container = this.add.container(0, 0, [key, arrow]).setDepth(2001);
+      return { container, key, arrow, dir };
+    });
+    this.padZone = this.add.zone(0, 0, 10, 10).setDepth(2002);
+    this.padZone.setInteractive({
+      hitArea: new Phaser.Geom.Circle(0, 0, 1),
+      hitAreaCallback: Phaser.Geom.Circle.Contains,
+    });
+    this.padZone.on('pointerdown', (p: Phaser.Input.Pointer) => this.padTouch(p));
+    this.actions = ACTIONS.map((a) => {
+      const c = this.control(a.name, a.skin, () => this.act(a.action), {
+        icon: a.icon,
+        size: 20,
+        onDown: true,
+      });
+      const cooldown = this.add.graphics();
+      c.face.addAt(cooldown, 1);
+      this.cooldowns.push(cooldown);
+      this.cooldownPaint.push('');
+      const caption = this.add.container(0, 0, [
+        this.bake(`bom-caption-${a.key}`, { x: -40, y: -15, width: 80, height: 32 }, (g) =>
+          g
+            .fillStyle(0x5d7d3a, 0.25)
+            .fillRoundedRect(-36, -11, 72, 26, 13)
+            .fillStyle(THEME.panel)
+            .fillRoundedRect(-36, -13, 72, 26, 13)
+            .lineStyle(2, THEME.outline)
+            .strokeRoundedRect(-36, -13, 72, 26, 13),
+        ),
+        this.text(a.key, 17),
+      ]);
+      caption.setDepth(2001);
+      this.captions.push(caption);
       return c;
     });
-    this.actions = [
-      this.control('Bom', 98, 92, () => this.act('bomb'), 'bomb'),
-      this.control('Kỹ năng', 98, 92, () => this.act('skill'), 'blast-fire'),
-      this.control('Lướt', 98, 92, () => this.act('dash'), 'blast-wind'),
-    ];
-    this.actions.forEach((c, i) => {
-      c.fill = [THEME.peach, 0xe8d5ff, 0xc5eaff][i] ?? THEME.cream;
-      c.label.setFontSize(20).setY(27);
-      c.icon?.setDisplaySize(66, 66).setY(-16);
-      const key = this.text(['Space', 'E', 'Shift'][i] ?? '', 12, THEME.muted).setPosition(29, -32);
-      c.container.add(key);
-      this.paintControl(c);
+    this.helpButton = this.control('Luật chơi', 'cream', () => this.toggleHelp(), {
+      icon: 'icon-book',
+      size: 19,
     });
-    this.helpButton = this.control('Luật chơi', 112, 38, () => this.toggleHelp());
+    this.menuButton = this.control('', 'cream', () => this.toggleMenu(), { icon: 'icon-gear' });
   }
+
   private createSelection() {
     this.selectPanel = this.add.container().setDepth(3000);
-    const bg = this.panel(800, 400);
-    this.selectTitle = this.text('Chọn bạn nhỏ của bạn', 36).setY(-153);
-    this.selectDescription = this.text('', 21, THEME.muted).setPosition(0, 76);
+    const bg = this.paper(880, 470, 32);
+    this.selectTitle = this.bold('Chọn bạn nhỏ của bạn', 40).setY(-188);
+    this.selectSkill = this.text('', 26).setPosition(0, 104);
+    this.selectDescription = this.text('', 20, THEME.muted).setPosition(0, 138);
     this.selectChoices = ELEMENTS.map((element, i) => {
-      const c = this.control(
-        ELEMENT_INFO[element].name,
-        124,
-        138,
-        () => {
-          if (this.ctx.me) this.send('choose', { element });
-        },
-        element,
+      const card = this.bake(
+        `bom-choice-${element}`,
+        { x: -76, y: -96, width: 152, height: 200 },
+        (g) =>
+          g
+            .fillStyle(0x5d7d3a, 0.2)
+            .fillRoundedRect(-72, -88, 144, 184, 22)
+            .fillStyle(CHARACTER[element].pastel)
+            .fillRoundedRect(-72, -92, 144, 184, 22)
+            .lineStyle(3, THEME.outline)
+            .strokeRoundedRect(-72, -92, 144, 184, 22)
+            .lineStyle(2, 0xffffff, 0.85)
+            .strokeRoundedRect(-66, -86, 132, 172, 18),
       );
-      c.container.setPosition((i - 2) * 144, -38);
-      c.fill = PASTEL[element];
-      c.icon?.setDisplaySize(116, 116).setY(-14);
-      c.label.setY(44).setFontSize(24);
-      this.selectPanel.add(c.container);
+      const ring = this.bake(
+        `bom-choice-ring-${element}`,
+        { x: -82, y: -102, width: 164, height: 204 },
+        (g) =>
+          g
+            .lineStyle(6, ELEMENT_INFO[element].color)
+            .strokeRoundedRect(-78, -98, 156, 196, 26)
+            .lineStyle(2, 0xffffff)
+            .strokeRoundedRect(-78, -98, 156, 196, 26),
+      );
+      const portrait = this.sprite(`portrait-${element}`);
+      portrait.setScale(124 / Math.max(portrait.width, portrait.height)).setY(-16);
+      const name = this.text(CHARACTER[element].name, 19).setY(64);
+      const face = this.add.container(0, 0, [ring, card, portrait, name]);
+      const container = this.add.container((i - 2) * 160, -40, [face]);
+      container.setSize(144, 184).setInteractive({ useHandCursor: true });
+      const c: Control = {
+        container,
+        face,
+        label: name,
+        ring,
+        width: 144,
+        height: 184,
+        enabled: true,
+        hovered: false,
+        pressed: false,
+        selected: false,
+      };
+      container.on('pointerdown', () => {
+        c.pressed = c.enabled;
+        this.paintControl(c);
+      });
+      container.on('pointerup', () => {
+        const pressed = c.pressed;
+        c.pressed = false;
+        this.paintControl(c);
+        if (pressed && c.enabled && this.ctx.me) this.send('choose', { element });
+      });
+      container.on('pointerover', () => {
+        c.hovered = true;
+        this.paintControl(c);
+      });
+      container.on('pointerout', () => {
+        c.hovered = false;
+        c.pressed = false;
+        this.paintControl(c);
+      });
+      ring.setVisible(false);
+      this.selectPanel.add(container);
       return c;
     });
-    this.readyButton = this.control('Sẵn sàng', 240, 54, () => {
+    this.readyButton = this.control('Sẵn sàng', 'orange', () => {
       if (this.ctx.me) this.send('ready');
     });
-    this.readyButton.fill = THEME.gold;
-    this.readyButton.container.setY(149);
+    this.sizeControl(this.readyButton, 260, 68);
+    this.readyButton.label.setFontSize(30);
+    this.readyButton.container.setY(196).setDepth(3001);
     this.selectPanel.addAt(bg, 0);
-    this.selectPanel.add([this.selectTitle, this.selectDescription, this.readyButton.container]);
+    this.selectPanel.add([
+      this.selectTitle,
+      this.selectSkill,
+      this.selectDescription,
+      this.readyButton.container,
+    ]);
   }
+
   private createResult() {
     this.resultPanel = this.add.container().setDepth(3000).setVisible(false);
-    this.resultText = this.text('', 37).setY(-108).setWordWrapWidth(540);
-    this.resultPortrait = this.sprite('fire').setPosition(0, -8).setDisplaySize(150, 150);
-    this.resultDetail = this.text('', 21, THEME.muted).setY(110).setWordWrapWidth(540);
+    this.resultText = this.bold('', 44).setY(-150).setWordWrapWidth(560);
     this.resultStars = this.add
-      .sprite(0, -15, this.texture('cartoon-fx'), effectFrame('victory'))
-      .setDisplaySize(290, 290);
+      .sprite(0, -40, this.texture('cartoon-fx'), effectFrame('victory'))
+      .setDisplaySize(240, 240);
+    this.resultPortrait = this.sprite('portrait-fire').setPosition(0, -40);
+    this.resultDetail = this.text('', 21, THEME.muted).setY(72).setWordWrapWidth(560);
+    this.resultWait = this.text('', 20, THEME.muted).setY(150);
+    this.newGameButton = this.control('Chơi ván mới', 'orange', () => this.newGame());
+    this.customizeButton = this.control('Tuỳ chỉnh', 'cream', () => this.customize());
+    this.sitButton = this.control('Vào chơi', 'orange', () => this.takeSeat());
+    for (const c of [this.newGameButton, this.customizeButton, this.sitButton]) {
+      this.sizeControl(c, 220, 64);
+      c.label.setFontSize(26);
+      c.container.setY(150).setDepth(3001);
+    }
     this.resultPanel.add([
-      this.panel(620, 340),
+      this.paper(660, 420, 32),
       this.resultStars,
       this.resultText,
       this.resultPortrait,
       this.resultDetail,
+      this.resultWait,
+      this.newGameButton.container,
+      this.customizeButton.container,
+      this.sitButton.container,
     ]);
   }
+
   private createHelp() {
     this.helpPanel = this.add.container().setDepth(4000).setVisible(false);
-    const title = this.text('Luật chơi', 34).setY(-178);
+    const title = this.bold('Luật chơi', 38).setY(-196);
     const body = this.text(
-      'WASD / Phím mũi tên · Di chuyển\nSpace · Đặt bom    E · Kỹ năng    Shift · Lướt\n\nBom nổ sau 2,5 giây; vùng sáng báo phạm vi nổ.\nTường chặn lửa; thùng có thể phá và rơi vật phẩm.\nBom kích hoạt nhau; bom băng có thể trì hoãn bom.\nHồi máu +30 HP · Tầm nổ · Số bom · Tốc độ\n\nSinh tồn: người sống sót cuối cùng thắng.\n2v2: đội còn người thắng; không sát thương đồng đội.\nSau 2 phút, đấu trường thu hẹp.\nHết 3 phút: so HP còn lại; bằng nhau thì hòa.',
+      [
+        'WASD / Phím mũi tên · Di chuyển',
+        'Space · Đặt bom    E · Kỹ năng    Shift · Lướt',
+        '',
+        'Bom nổ sau 2,5 giây; vùng sáng báo phạm vi nổ.',
+        'Hàng rào và đá chặn lửa; thùng quà phá được, rơi vật phẩm.',
+        'Bom kích hoạt nhau; bom băng có thể trì hoãn bom.',
+        'Hồi máu +30 HP · Tầm nổ · Số bom · Tốc độ',
+        '',
+        'Sinh tồn: người sống sót cuối cùng thắng.',
+        '2v2: đội còn người thắng; không sát thương đồng đội.',
+        'Sau 2 phút, đấu trường thu hẹp.',
+        'Hết 3 phút: so HP còn lại; bằng nhau thì hòa.',
+      ].join('\n'),
       21,
-    ).setWordWrapWidth(600);
-    this.helpClose = this.control('Đóng', 180, 46, () => this.toggleHelp(false));
-    this.helpClose.container.setY(188);
-    this.helpPanel.add([this.panel(690, 445), title, body, this.helpClose.container]);
+    ).setWordWrapWidth(620);
+    this.helpClose = this.control('Đóng', 'orange', () => this.toggleHelp(false));
+    this.sizeControl(this.helpClose, 200, 60);
+    this.helpClose.container.setY(200).setDepth(4001);
+    this.helpPanel.add([this.paper(720, 480, 32), title, body, this.helpClose.container]);
   }
+
+  private createMenu() {
+    this.menuPanel = this.add.container().setDepth(4000).setVisible(false);
+    const title = this.bold('Tuỳ chọn', 38).setY(-170);
+    this.menuWatchers = this.text('', 18, THEME.muted).setY(-128);
+    const items: [string, Skin, () => void][] = [
+      [
+        'Cài đặt',
+        'cream',
+        () => {
+          this.toggleMenu(false);
+          this.openSettings();
+        },
+      ],
+      [
+        'Về danh sách phòng',
+        'cream',
+        () => {
+          this.toggleMenu(false);
+          this.leaveRoom();
+        },
+      ],
+      [
+        'Về trang chủ',
+        'cream',
+        () => {
+          this.toggleMenu(false);
+          this.leaveRoom('home');
+        },
+      ],
+      ['Tiếp tục', 'orange', () => this.toggleMenu(false)],
+    ];
+    this.menuItems = items.map(([label, skin, tap], i) => {
+      const c = this.control(label, skin, tap, { size: 24 });
+      this.sizeControl(c, 320, 60);
+      c.container.setY(-78 + i * 74).setDepth(4001);
+      return c;
+    });
+    this.menuPanel.add([
+      this.paper(420, 420, 32),
+      title,
+      this.menuWatchers,
+      ...this.menuItems.map((c) => c.container),
+    ]);
+  }
+
   private toggleHelp(visible = !this.helpPanel.visible) {
     this.helpPanel.setVisible(visible);
+    if (visible) this.menuPanel.setVisible(false);
     this.releaseInput();
     this.renderHud(this.ctx);
   }
+
+  private toggleMenu(visible = !this.menuPanel.visible) {
+    this.menuPanel.setVisible(visible);
+    if (visible) this.helpPanel.setVisible(false);
+    this.releaseInput();
+    this.renderHud(this.ctx);
+  }
+
+  // ── Layout ─────────────────────────────────────────────────────────────────────────────
 
   protected onLayout(ctx: Ctx) {
     const { width: w, height: h, top } = ctx.screen;
@@ -469,161 +752,269 @@ export class BomNguyenToView extends GameView<State, Options> {
       (bottom - bleedTop) / this.backdrop.height,
     );
     this.backdrop.setPosition((left + right) / 2, (bleedTop + bottom) / 2).setScale(ratio);
-    const available = h - top;
-    const touchLayout = window.innerHeight < 540;
-    const s = Math.min(1, w / 1050) * (touchLayout ? 1.03 : 1);
-    const small = w < 1100;
-    this.rail.setPosition(16, top).setScale(1);
-    this.title.setPosition(7, 0).setFontSize(36);
-    this.titleTail.setPosition(7, 44).setFontSize(22);
-    this.modeLabel.setPosition(8, 82).setFontSize(17);
-    // Side controls can cover boundary walls, while every interior floor cell stays clear.
-    const boardH = available - 96;
-    this.tw = Math.min((w - 414) / 10, boardH / (HEIGHT * 0.82));
-    this.th = this.tw * 0.82;
-    const gridLeft = Phaser.Math.Clamp(
-      (w - WIDTH * this.tw) / 2,
-      270 - 1.5 * this.tw,
-      w - 144 - 11.5 * this.tw,
+    const ui = Phaser.Math.Clamp(ctx.screen.hud / 1.35, 0.85, 1.15);
+    this.ui = ui;
+    const margin = 10;
+    const leftW = Math.min(Phaser.Math.Clamp(w * 0.19, 214, 262) * ui, w * 0.27);
+    const rowH = 64 * ui;
+    const compact = w < 1150;
+
+    // Left column: logo, mode, my character, my numbers, D-pad.
+    const cx = margin + leftW / 2;
+    this.logo.setPosition(cx, top).setScale((leftW - 6) / this.logo.width);
+    const logoBottom = top + this.logo.displayHeight;
+    const pillW = leftW - 20;
+    const pillH = 40 * ui;
+    this.modePill = this.rebake(
+      this.modePill,
+      'bom-mode-pill',
+      { x: -pillW / 2 - 4, y: -pillH / 2 - 4, width: pillW + 8, height: pillH + 12 },
+      (g) =>
+        g
+          .fillStyle(0x5d7d3a, 0.22)
+          .fillRoundedRect(-pillW / 2, -pillH / 2 + 5, pillW, pillH, pillH / 2)
+          .fillStyle(THEME.panel)
+          .fillRoundedRect(-pillW / 2, -pillH / 2, pillW, pillH, pillH / 2)
+          .lineStyle(2.5, THEME.outline)
+          .strokeRoundedRect(-pillW / 2, -pillH / 2, pillW, pillH, pillH / 2),
     );
-    this.ox = gridLeft + this.tw / 2;
-    this.oy = top + 74 + this.th / 2;
-    const cx = gridLeft + (WIDTH * this.tw) / 2;
-    this.timerLabel.setPosition(cx, top + 27).setFontSize(29);
-    this.timerPaper.setPosition(cx, top + 27);
-    this.status
-      .setPosition(95, top + 294)
-      .setFontSize(17)
-      .setWordWrapWidth(158);
-    const rosterY = top + 26;
-    this.roster.forEach((r, i) => {
-      const offset = [-258, -123, 123, 258][i] ?? 0;
-      const x = cx + offset * (small ? 0.92 : 1);
-      r.container.setPosition(x, rosterY).setScale(small ? 0.84 : 0.95);
-    });
-    this.platform.clear();
-    const boardX = this.ox - this.tw / 2 - 13;
-    const boardY = this.oy - this.th / 2 - 13;
-    const bw = WIDTH * this.tw + 26;
-    const bh = HEIGHT * this.th + 26;
-    this.platform
-      .fillStyle(0x739f83, 0.25)
-      .fillRoundedRect(boardX - 6, boardY + 14, bw + 12, bh + 6, 28)
-      .fillStyle(0xbe815d)
-      .fillRoundedRect(boardX, boardY + 10, bw, bh, 23)
-      .fillStyle(THEME.wood)
-      .fillRoundedRect(boardX, boardY, bw, bh, 23)
-      .lineStyle(3, THEME.outline)
-      .strokeRoundedRect(boardX, boardY, bw, bh, 23)
-      .lineStyle(3, 0xffe4ac)
-      .strokeRoundedRect(boardX + 5, boardY + 4, bw - 10, bh - 8, 19)
-      // A continuous rectangular rim keeps both horizontal edges visibly equal.
-      // The tilt compresses Y only; there is no perspective scaling along X.
-      .lineStyle(3, 0xffefbd)
-      .strokeRect(boardX + 10, boardY + 10, bw - 20, bh - 20);
-    // Four tiny daisy screws finish the toy board without obscuring its grid.
-    for (const [x, y] of [
-      [boardX + 10, boardY + 10],
-      [boardX + bw - 10, boardY + 10],
-      [boardX + 10, boardY + bh - 10],
-      [boardX + bw - 10, boardY + bh - 10],
-    ]) {
-      for (let i = 0; i < 5; i++) {
-        const a = (i / 5) * Math.PI * 2;
-        this.platform
-          .fillStyle(THEME.cream)
-          .fillCircle((x ?? 0) + Math.cos(a) * 4, (y ?? 0) + Math.sin(a) * 4, 3);
-      }
-      this.platform.fillStyle(THEME.gold).fillCircle(x ?? 0, y ?? 0, 2.5);
+    const pillY = logoBottom + 4 + pillH / 2;
+    this.modePill.setPosition(cx, pillY);
+    this.modeIcon
+      .setScale((pillH * 0.95) / this.modeIcon.height)
+      .setPosition(cx - pillW / 2 + pillH * 0.55, pillY - 2);
+    this.modeLabel
+      .setFontSize(Math.round(21 * ui))
+      .setPosition(cx - pillW / 2 + pillH * 1.05, pillY);
+    const padD = Math.min(leftW - 4, 230 * ui);
+    this.padCenter = { x: cx, y: h - margin - padD / 2 };
+    this.padRadius = padD / 2;
+    this.padPlate
+      .setPosition(this.padCenter.x, this.padCenter.y)
+      .setScale(padD / this.padPlate.width);
+    const keySize = padD * 0.3;
+    const offset = padD * 0.27;
+    for (const k of this.pad) {
+      const d = DIRECTIONS[k.dir];
+      k.key.setScale(keySize / k.key.width);
+      k.arrow.setDisplaySize(keySize * 0.5, keySize * 0.5);
+      k.container.setPosition(this.padCenter.x + d.x * offset, this.padCenter.y + d.y * offset);
     }
-    this.platformPaper = rasterizeGraphics(
-      this,
-      this.platform,
-      'bom-platform',
-      { x: boardX - 8, y: boardY - 4, width: bw + 16, height: bh + 28 },
-      this.platformPaper,
+    this.padZone.setPosition(this.padCenter.x, this.padCenter.y).setSize(padD, padD);
+    (this.padZone.input?.hitArea as Phaser.Geom.Circle | undefined)?.setTo(
+      padD / 2,
+      padD / 2,
+      padD / 2,
     );
-    this.portrait.setVisible(false);
-    this.statPaper.setPosition(79, 179);
-    this.stats.setPosition(18, 135).setFontSize(19).setLineSpacing(2);
-    this.skillName.setPosition(79, 258).setOrigin(0.5, 0.5).setFontSize(17).setWordWrapWidth(148);
-    const padX = 125;
-    const padY = h - 129;
-    const locations = [
-      [0, -76],
-      [-76, 0],
-      [0, 76],
-      [76, 0],
-    ];
-    this.pad.forEach((c, i) => {
-      c.container
-        .setPosition(padX + (locations[i]?.[0] ?? 0), padY + (locations[i]?.[1] ?? 0))
-        .setScale(s);
+    const statH = 128 * ui;
+    const statW = leftW - 8;
+    const statY = this.padCenter.y - padD / 2 - 10 - statH / 2;
+    this.statPaper = this.rebake(
+      this.statPaper,
+      'bom-stats',
+      { x: -statW / 2 - 4, y: -statH / 2 - 4, width: statW + 8, height: statH + 14 },
+      (g) =>
+        g
+          .fillStyle(0x5d7d3a, 0.22)
+          .fillRoundedRect(-statW / 2, -statH / 2 + 7, statW, statH, 20)
+          .fillStyle(THEME.panel, 0.96)
+          .fillRoundedRect(-statW / 2, -statH / 2, statW, statH, 20)
+          .lineStyle(2.5, 0xe7cdb1)
+          .strokeRoundedRect(-statW / 2, -statH / 2, statW, statH, 20),
+    );
+    this.statPaper.setPosition(cx, statY);
+    this.stats.forEach((row, i) => {
+      const y = statY - statH / 2 + (statH / 3) * (i + 0.5);
+      const pillX = cx + statW / 2 - 14 * ui - (STAT_PILL.width * ui) / 2;
+      row.icon.setScale((30 * ui) / row.icon.height).setPosition(cx - statW / 2 + 26 * ui, y);
+      row.label.setFontSize(Math.round(18 * ui)).setPosition(cx - statW / 2 + 46 * ui, y);
+      row.value.setFontSize(Math.round(18 * ui)).setPosition(pillX, y);
+      row.pill.setPosition(pillX, y);
+      row.paint = '';
     });
+    const portraitTop = pillY + pillH / 2 + 6;
+    const portraitBottom = statY - statH / 2 - 8;
+    const portraitH = Math.min(portraitBottom - portraitTop, 200 * ui);
+    const portraitY = (portraitTop + portraitBottom) / 2;
+    this.portrait
+      .setVisible(portraitH > 60)
+      .setScale(Math.min(portraitH / this.portrait.height, (leftW - 30) / this.portrait.width))
+      .setPosition(cx, portraitY);
+    this.portraitGlow
+      .setVisible(portraitH > 60)
+      .setDisplaySize(portraitH * 1.1, portraitH * 1.1)
+      .setPosition(cx, portraitY);
+    this.portraitName
+      .setVisible(portraitH > 90)
+      .setFontSize(Math.round(20 * ui))
+      .setPosition(cx, portraitY + portraitH / 2 - 8);
+
+    // Top-right: rules and the room menu.
+    const iconBtn = 54 * ui;
+    this.sizeControl(this.menuButton, iconBtn, iconBtn);
+    this.menuButton.icon?.setScale((iconBtn * 0.66) / (this.menuButton.icon?.height ?? 1));
+    this.menuButton.container.setPosition(w - margin - iconBtn / 2, top + rowH / 2);
+    const rulesW = compact ? iconBtn : 128 * ui;
+    this.sizeControl(this.helpButton, rulesW, iconBtn);
+    this.helpButton.label.setVisible(!compact).setFontSize(Math.round(19 * ui));
+    this.helpButton.icon
+      ?.setScale((iconBtn * 0.56) / (this.helpButton.icon?.height ?? 1))
+      .setX(compact ? 0 : -rulesW / 2 + iconBtn * 0.4);
+    this.helpButton.label.setX(iconBtn * 0.36).setY(-1);
+    this.helpButton.container.setPosition(w - margin - iconBtn - 8 - rulesW / 2, top + rowH / 2);
+
+    // Actions: a column on the right, or a row under the board when that leaves it bigger.
+    const actionSize = 96 * ui;
+    const actionStep = actionSize + 34 * ui;
+    const columnW = actionSize + 24 * ui;
+    const regionX = margin + leftW + 8;
+    const regionY = top + rowH + 6;
+    const regionH = h - regionY - 6;
+    const across = (width: number) => width / (BOARD.right - BOARD.left);
+    const down = (height: number) => height / ((BOARD.bottom - BOARD.top) * TILT);
+    const sideTw = Math.min(across(w - margin - columnW - 6 - regionX), down(regionH));
+    const rowTw = Math.min(across(w - margin - regionX), down(regionH - actionStep));
+    const below = rowTw > sideTw * 1.04;
+    this.tw = below ? rowTw : sideTw;
+    this.th = this.tw * TILT;
+    const regionW = below ? w - margin - regionX : w - margin - columnW - 6 - regionX;
+    const boardW = (BOARD.right - BOARD.left) * this.tw;
+    const boardH = (BOARD.bottom - BOARD.top) * this.th;
+    const boardX = regionX + (regionW - boardW) / 2;
+    const boardY = below ? regionY : regionY + (regionH - boardH) / 2;
+    this.ox = boardX - BOARD.left * this.tw;
+    this.oy = boardY - BOARD.top * this.th;
     this.actions.forEach((c, i) => {
-      c.container.setPosition(w - 64, h - 277 + i * 106).setScale(s);
+      this.sizeControl(c, actionSize, actionSize);
+      c.icon?.setScale((actionSize * 0.46) / (c.icon?.height ?? 1)).setY(-actionSize * 0.13);
+      c.label.setFontSize(Math.round(18 * ui)).setY(actionSize * 0.22);
+      const x = below
+        ? w - margin - actionSize / 2 - (2 - i) * (actionSize + 12 * ui)
+        : w - margin - columnW / 2;
+      const y = below
+        ? h - 16 * ui - actionSize / 2
+        : h - 16 * ui - actionSize / 2 - i * actionStep;
+      c.container.setPosition(x, y);
+      this.captions[i]?.setPosition(x, y + actionSize / 2 + 2).setScale(ui);
+      this.cooldownPaint[i] = '';
     });
-    this.helpButton.container.setPosition(w - 72, top + 25).setScale(s);
-    const overlayScale = Math.min((w - 80) / 800, (available - 28) / 460, 1.2);
-    for (const panel of [this.selectPanel, this.resultPanel, this.helpPanel])
+
+    // Top row: two cards, the timer, two cards, between the logo and the buttons.
+    const rowLeft = regionX;
+    const rowRight = this.helpButton.container.x - rulesW / 2 - 10;
+    const timerW = 168 * ui;
+    const gap = 8 * ui;
+    const cardW = Math.min(204 * ui, (rowRight - rowLeft - timerW - 4 * gap) / 4);
+    const cardH = 58 * ui;
+    const rowMid = (rowLeft + rowRight) / 2;
+    const rowY = top + rowH / 2;
+    this.timerBoard.setScale(timerW / this.timerBoard.width).setPosition(rowMid, rowY);
+    const timerH = this.timerBoard.displayHeight;
+    this.timerClock
+      .setScale((timerH * 0.82) / this.timerClock.height)
+      .setPosition(rowMid - timerW * 0.29, rowY + timerH * 0.04);
+    this.timerLabel.setFontSize(Math.round(33 * ui)).setPosition(rowMid + timerW * 0.1, rowY + 2);
+    this.status.setFontSize(Math.round(17 * ui)).setPosition(rowMid, rowY + timerH / 2 + 14 * ui);
+    this.roster.forEach((card, i) => {
+      const slot = [-2, -1, 1, 2][i] ?? 0;
+      const x =
+        rowMid +
+        Math.sign(slot) * (timerW / 2 + gap + cardW / 2 + (Math.abs(slot) - 1) * (cardW + gap));
+      card.container.setPosition(x, rowY);
+      this.layoutCard(card, cardW, cardH, ui);
+    });
+
+    const available = h - top;
+    const overlayScale = Math.min((w - 40) / 900, (available - 24) / 500, 1.15);
+    for (const panel of [this.selectPanel, this.resultPanel, this.helpPanel, this.menuPanel])
       panel.setPosition(w / 2, top + available / 2).setScale(overlayScale);
     this.overlayShade
       .clear()
-      .fillStyle(THEME.cream, 0.58)
+      .fillStyle(0xfff8e6, 0.55)
       .fillRect(left, bleedTop, right - left, bottom - bleedTop);
+    this.boardPaint = '';
     this.renderBoard(ctx);
     this.layoutActors(ctx);
     this.renderTransient(ctx);
+    this.renderHud(ctx);
     for (const sprite of this.effects) {
       const pos = this.project(sprite.getData('point') as Point);
       const size = sprite.getData('size') as number;
       sprite
         .setPosition(pos.x, pos.y)
         .setDisplaySize(this.tw * size, this.tw * size)
-        .setDepth(pos.y + 17);
+        .setDepth(100 + pos.y + 17);
     }
   }
+
+  private layoutCard(card: Card, width: number, height: number, ui: number) {
+    card.paint = '';
+    card.width = width;
+    card.height = height;
+    const fresh = !card.paper;
+    card.paper = this.rebake(
+      card.paper,
+      `bom-card-${this.roster.indexOf(card)}`,
+      { x: -width / 2 - 4, y: -height / 2 - 4, width: width + 8, height: height + 14 },
+      (g) =>
+        g
+          .fillStyle(0x5d7d3a, 0.24)
+          .fillRoundedRect(-width / 2, -height / 2 + 6, width, height, 18)
+          .fillStyle(THEME.panel)
+          .fillRoundedRect(-width / 2, -height / 2, width, height, 18)
+          .lineStyle(2.5, 0xe2c6a8)
+          .strokeRoundedRect(-width / 2, -height / 2, width, height, 18),
+    );
+    if (fresh) card.container.addAt(card.paper.setPosition(0, 0), 0);
+    this.fitHead(card);
+    const textX = -width / 2 + 8 + height * 0.98;
+    card.name.setFontSize(Math.round(15 * ui)).setPosition(textX, -height * 0.2);
+    card.bar.setPosition(textX, height * 0.2);
+    card.hp.setFontSize(Math.round(13 * ui)).setPosition(textX, height * 0.2);
+    card.team.setFontSize(Math.round(14 * ui)).setPosition(width / 2 - 12 * ui, -height / 2 + 4);
+  }
+
+  /** A card shows the head and shoulders: the top of the full-body picture. */
+  private fitHead(card: Card) {
+    const frame = card.portrait.frame;
+    const head = 0.64;
+    const scale = (card.height * 1.02) / (frame.height * head);
+    card.portrait
+      .setCrop(0, 0, frame.width, frame.height * head)
+      .setOrigin(0.5, head / 2)
+      .setScale(Math.min(scale, card.height / frame.width))
+      .setPosition(-card.width / 2 + 4 + card.height * 0.48, -3);
+  }
+
   /** Top-down projection with a slight forward tilt; grid axes stay screen-aligned. */
   project(p: Point): Point {
     return { x: this.ox + p.x * this.tw, y: this.oy + p.y * this.th };
   }
+
+  // ── Board ──────────────────────────────────────────────────────────────────────────────
+
   private renderBoard({ state }: Ctx) {
-    const paint = `${this.tw}:${this.th}:${this.ox}:${this.oy}:${state.ring}:${state.cells.join(',')}`;
+    const paint = `${this.tw}:${this.ox}:${this.oy}:${state.ring}:${state.cells.join(',')}`;
     if (paint === this.boardPaint) return;
+    const relayout = !this.boardPaint.startsWith(`${this.tw}:${this.ox}:${this.oy}:`);
     this.boardPaint = paint;
-    this.propShadows.clear();
-    for (let y = 0; y < HEIGHT; y++)
-      for (let x = 0; x < WIDTH; x++) {
-        const p = { x, y },
-          key = keyOf(p),
-          pos = this.project(p),
-          tile = tileAt(state, p);
+    if (relayout) this.renderFence();
+    const closing = (x: number, y: number) => state.ring > 0 && inRing({ x, y }, state.ring);
+    const blocks: Point[] = [];
+    for (let y = 1; y < HEIGHT - 1; y++)
+      for (let x = 1; x < WIDTH - 1; x++) {
+        const p = { x, y };
+        const key = keyOf(p);
+        const pos = this.project(p);
+        const tile = tileAt(state, p);
         let image = this.tiles.get(key);
         if (!image) {
-          image = this.sprite('tile').setOrigin(0.5).setDepth(0);
+          image = this.sprite((x + y) % 2 === 0 ? 'tile-grass' : 'tile-dirt').setDepth(0);
           this.tiles.set(key, image);
         }
-        image
-          .setTexture(
-            this.texture(
-              (x + y) % 2 === 0 ? 'tile-light' : (x * 7 + y) % 9 === 0 ? 'tile-flower' : 'tile',
-            ),
-          )
-          .setPosition(pos.x, pos.y)
-          .setDisplaySize(this.tw, this.th)
-          .setTint(
-            tile === 'wall' &&
-              state.ring > 0 &&
-              (x <= state.ring ||
-                y <= state.ring ||
-                x >= WIDTH - 1 - state.ring ||
-                y >= HEIGHT - 1 - state.ring)
-              ? 0xeaa1a1
-              : 0xffffff,
-          );
-        const border = x === 0 || y === 0 || x === WIDTH - 1 || y === HEIGHT - 1;
-        const wanted =
-          tile === 'wall' ? (border ? 'border' : 'pillar') : tile === 'crate' ? 'crate' : null;
+        image.setPosition(pos.x, pos.y).setDisplaySize(this.tw * 1.01, this.th * 1.01);
+        const pillar = x % 2 === 0 && y % 2 === 0;
+        const wanted = tile === 'crate' ? 'block-crate' : tile === 'wall' ? 'block-stone' : null;
         let prop = this.obstacles.get(key);
         if (!wanted) {
           prop?.destroy();
@@ -631,67 +1022,148 @@ export class BomNguyenToView extends GameView<State, Options> {
           continue;
         }
         if (!prop) {
-          prop = this.sprite(wanted).setOrigin(0.5, 0.86);
+          prop = this.sprite(wanted);
           this.obstacles.set(key, prop);
         }
+        blocks.push(pos);
         prop
           .setTexture(this.texture(wanted))
-          .setOrigin(0.5, 0.86)
-          .setPosition(pos.x, pos.y + this.th * 0.29)
-          .setDisplaySize(
-            this.tw * (border ? 0.96 : 0.85),
-            this.tw * (border ? 0.86 : wanted === 'pillar' ? 1.11 : 1.06),
-          )
-          .setTint(
-            state.ring > 0 &&
-              (x <= state.ring ||
-                y <= state.ring ||
-                x >= WIDTH - 1 - state.ring ||
-                y >= HEIGHT - 1 - state.ring)
-              ? 0xf4aaa2
-              : 0xffffff,
-          )
-          .setDepth(10 + pos.y + this.th * 0.29);
-        this.propShadows
-          .fillStyle(0x42745a, border ? 0.17 : 0.28)
-          .fillEllipse(
-            pos.x + this.tw * 0.1,
-            pos.y + this.th * 0.28,
-            this.tw * 0.96,
-            this.th * 0.64,
-          )
-          .fillStyle(0x375f4a, 0.14)
-          .fillEllipse(
-            pos.x + this.tw * 0.06,
-            pos.y + this.th * 0.2,
-            this.tw * 0.76,
-            this.th * 0.4,
-          );
+          .setOrigin(0.5, 1)
+          .setScale((this.tw * 1.02) / prop.width)
+          .setPosition(pos.x, pos.y + this.th * 0.52)
+          .setTint(!pillar && tile === 'wall' && closing(x, y) ? 0xffb4a6 : 0xffffff)
+          .setDepth(100 + pos.y - 0.5);
       }
-    this.shadowPaper = rasterizeGraphics(
-      this,
-      this.propShadows,
-      'bom-prop-shadows',
-      {
-        x: this.ox - this.tw * 0.6,
-        y: this.oy - this.th * 0.5,
-        width: this.tw * (WIDTH + 0.2),
-        height: this.th * (HEIGHT + 0.2),
+    // Each block casts a soft shadow down and to the right (light from the upper left), so it
+    // reads as standing on the ground rather than printed on it.
+    const a = this.project({ x: 0.5, y: 0.5 });
+    const b = this.project({ x: 11.5, y: 10 });
+    const { tw, th } = this;
+    this.blockShadows = this.rebake(
+      this.blockShadows,
+      'bom-block-shadows',
+      { x: a.x, y: a.y, width: b.x - a.x + tw * 0.2, height: b.y - a.y },
+      (g) => {
+        for (const pos of blocks)
+          g.fillStyle(0x23391b, 0.3).fillRoundedRect(
+            pos.x - tw * 0.42,
+            pos.y + th * 0.4,
+            tw * 0.96,
+            th * 0.3,
+            Math.min(10, tw * 0.14),
+          );
       },
-      this.shadowPaper,
-    );
+    ).setDepth(1);
   }
+
+  /** The lawn under the tiles and the wooden fence around them, redrawn on resize only. */
+  private renderFence() {
+    const tw = this.tw;
+    const th = this.th;
+    const a = this.project({ x: 0.5, y: 0.5 });
+    const b = this.project({ x: 11.5, y: 9.5 });
+    const pad = tw * 0.1;
+    const groundBounds = {
+      x: a.x - pad * 3,
+      y: a.y - pad * 3,
+      width: b.x - a.x + pad * 6,
+      height: b.y - a.y + pad * 6,
+    };
+    this.ground = this.rebake(this.ground, 'bom-ground', groundBounds, (g) =>
+      g
+        .fillStyle(0x3f6b2a, 0.28)
+        .fillRoundedRect(
+          a.x - pad,
+          a.y - pad + th * 0.12,
+          b.x - a.x + pad * 2,
+          b.y - a.y + pad * 2,
+          pad * 2,
+        )
+        .fillStyle(0x7d6338)
+        .fillRoundedRect(
+          a.x - pad * 0.6,
+          a.y - pad * 0.6,
+          b.x - a.x + pad * 1.2,
+          b.y - a.y + pad * 1.2,
+          pad * 1.5,
+        )
+        .fillStyle(0x5f8f35)
+        .fillRect(a.x, a.y, b.x - a.x, b.y - a.y),
+    ).setDepth(-5);
+    const rail = THEME.wood;
+    const railLight = 0xf2c588;
+    const outline = THEME.outline;
+    const t = th * 0.1;
+    const railH = (g: Phaser.GameObjects.Graphics, x0: number, x1: number, y: number, s = 1) =>
+      g
+        .fillStyle(outline)
+        .fillRoundedRect(x0 - 1.5, y - (t * s) / 2 - 1.5, x1 - x0 + 3, t * s + 3, (t * s) / 2 + 1.5)
+        .fillStyle(rail)
+        .fillRoundedRect(x0, y - (t * s) / 2, x1 - x0, t * s, (t * s) / 2)
+        .fillStyle(railLight)
+        .fillRect(x0 + t, y - (t * s) / 2 + 1, x1 - x0 - 2 * t, Math.max(1.5, (t * s) / 3));
+    const railV = (g: Phaser.GameObjects.Graphics, x: number, y0: number, y1: number) =>
+      g
+        .fillStyle(outline)
+        .fillRoundedRect(x - t * 0.6 - 1.5, y0 - 1.5, t * 1.2 + 3, y1 - y0 + 3, t * 0.6)
+        .fillStyle(rail)
+        .fillRoundedRect(x - t * 0.6, y0, t * 1.2, y1 - y0, t * 0.6)
+        .fillStyle(railLight)
+        .fillRect(x - t * 0.15, y0 + t, t * 0.3, y1 - y0 - 2 * t);
+    const top = a.y;
+    const back = {
+      x: a.x - tw * 0.4,
+      y: top - th * 0.6,
+      width: b.x - a.x + tw * 0.8,
+      height: b.y - a.y + th * 0.8,
+    };
+    this.fenceBack = this.rebake(this.fenceBack, 'bom-fence-back', back, (g) => {
+      railV(g, a.x, top - th * 0.42, b.y - th * 0.22);
+      railV(g, b.x, top - th * 0.42, b.y - th * 0.22);
+      railH(g, a.x, b.x, top - th * 0.44);
+      railH(g, a.x, b.x, top - th * 0.2);
+    }).setDepth(99);
+    const fy = this.project({ x: 0, y: 9.62 }).y;
+    const front = {
+      x: a.x - tw * 0.4,
+      y: fy - th * 0.5,
+      width: b.x - a.x + tw * 0.8,
+      height: th * 0.7,
+    };
+    this.fenceFront = this.rebake(this.fenceFront, 'bom-fence-front', front, (g) => {
+      railH(g, a.x, b.x, fy - th * 0.3, 0.9);
+      railH(g, a.x, b.x, fy - th * 0.11, 0.9);
+    }).setDepth(100 + fy + 2);
+    for (const post of this.posts) post.destroy();
+    this.posts = [];
+    const post = (x: number, y: number, height: number, depth: number) => {
+      const image = this.sprite('fence-post').setOrigin(0.5, 0.97);
+      image
+        .setScale(height / image.height)
+        .setPosition(x, y)
+        .setDepth(depth);
+      this.posts.push(image);
+    };
+    for (let x = 0.5; x <= 11.5; x++) {
+      const p = this.project({ x, y: 0.5 });
+      post(p.x, p.y, th * (x === 0.5 || x === 11.5 ? 0.78 : 0.66), 99.5);
+      const q = this.project({ x, y: 9.62 });
+      post(q.x, q.y + th * 0.04, th * (x === 0.5 || x === 11.5 ? 0.62 : 0.5), 100 + q.y + 3);
+    }
+    for (let y = 1.5; y <= 8.5; y++)
+      for (const x of [0.5, 11.5]) {
+        const p = this.project({ x, y });
+        post(p.x, p.y, th * 0.62, 100 + p.y - 1);
+      }
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────────────────────
+
   protected onState(ctx: Ctx) {
     this.snapshotAt = this.time.now;
     if (this.lastViewer !== (ctx.me?.id ?? null)) {
       this.releaseInput();
-      for (const actor of this.actors.values()) {
-        actor.sprite.destroy();
-        actor.shadow.destroy();
-        actor.name.destroy();
-        actor.hp.destroy();
-        actor.status?.destroy();
-      }
+      for (const actor of this.actors.values()) this.destroyActor(actor);
       this.actors.clear();
       this.lastViewer = ctx.me?.id ?? null;
       this.suppressFeedback = true;
@@ -709,7 +1181,7 @@ export class BomNguyenToView extends GameView<State, Options> {
         );
         if (collector) {
           this.showEffect('dust', pickup, 0.9);
-          this.floating(pickup.kind === 'heal' ? '+30 HP' : '+1', pickup, '#4eaa82');
+          this.floating(ITEM_LABEL[pickup.kind], pickup, '#3f9b6e');
           if (collector.id === ctx.me?.id) this.sfx('pickup');
         }
       }
@@ -755,17 +1227,29 @@ export class BomNguyenToView extends GameView<State, Options> {
     this.lastPhase = ctx.state.phase;
     this.suppressFeedback = false;
   }
+
+  private destroyActor(actor: Actor) {
+    actor.sprite.destroy();
+    actor.shadow.destroy();
+    actor.ring.destroy();
+    actor.name.destroy();
+    actor.status?.destroy();
+  }
+
   private layoutActors(ctx: Ctx, feedback = false) {
     for (const p of ctx.state.fighters) {
       let actor = this.actors.get(p.id);
       if (!actor) {
         actor = {
-          sprite: this.add
-            .sprite(0, 0, this.texture(`actor-${p.element}`), actorFrame('idle', p.facing))
-            .setOrigin(0.5, 0.86),
-          shadow: this.add.ellipse(0, 0, 32, 12, 0x5d927c, 0.22),
-          name: this.text('', 14),
-          hp: this.add.graphics(),
+          sprite: this.add.sprite(
+            0,
+            0,
+            this.texture(`actor-${p.element}`),
+            actorFrame('idle', p.facing),
+          ),
+          shadow: this.add.ellipse(0, 0, 32, 12, 0x2f5a22, 0.3),
+          ring: this.add.ellipse(0, 0, 32, 12).setFillStyle(),
+          name: this.bold('', 14).setStroke(THEME.stroke, 4),
           position: { x: p.x, y: p.y },
           correction: { x: 0, y: 0 },
           element: p.element,
@@ -780,7 +1264,6 @@ export class BomNguyenToView extends GameView<State, Options> {
           frozenBefore: p.frozenUntil,
           status: null,
           lastDust: 0,
-          hpPaint: '',
         };
         this.actors.set(p.id, actor);
         const created = actor;
@@ -801,14 +1284,26 @@ export class BomNguyenToView extends GameView<State, Options> {
         ctx.state.phase !== 'playing'
       )
         actor.position = { x: p.x, y: p.y };
-      actor.correction = { x: p.x - actor.position.x, y: p.y - actor.position.y };
-      actor.sprite.setDisplaySize(this.tw * 1.38, this.tw * 1.38);
-      actor.name.setText(
-        p.id === ctx.me?.id ? 'Bạn' : p.bot ? `Máy ${p.seat + 1}` : p.name.slice(0, 12),
-      );
+      const error = { x: p.x - actor.position.x, y: p.y - actor.position.y };
+      // The player's own fighter keeps its prediction while they steer: the server follows the
+      // position this screen sends (`at`), so its older snapshots must not pull them back. A real
+      // change (a push) is further off than walking could explain.
+      const steering = this.time.now - this.steeredAt < 500;
+      const own = p.id === ctx.me?.id && steering && Math.abs(error.x) + Math.abs(error.y) < 1.2;
+      actor.correction = own ? { x: 0, y: 0 } : error;
+      // 256 px frames hold a 200 px standing character: 1.4 cells tall.
+      actor.sprite.setOrigin(0.5, 244 / 256).setDisplaySize(this.tw * 1.79, this.tw * 1.79);
+      const human = !p.bot && p.id !== ctx.me?.id;
+      actor.name
+        .setText(human ? p.name.slice(0, 12) : '')
+        .setFontSize(Math.max(12, Math.round(this.tw * 0.22)));
+      const team = ctx.state.mode === 'teams' ? TEAM_COLOR[p.team] : undefined;
+      actor.ring
+        .setStrokeStyle(Math.max(2, this.tw * 0.04), team ?? 0xffffff, team ? 0.95 : 0)
+        .setVisible(team !== undefined && p.hp > 0);
       if (feedback) {
         if (p.hp < actor.hpBefore) {
-          this.floating(`−${actor.hpBefore - p.hp}`, p, '#d45b72');
+          this.floating(`−${actor.hpBefore - p.hp}`, p, '#e2475e');
           if (p.id === ctx.me?.id) this.sfx('hurt');
           this.playActor(
             actor,
@@ -836,10 +1331,11 @@ export class BomNguyenToView extends GameView<State, Options> {
         actor.frozenBefore = p.frozenUntil;
       }
       actor.sprite.setVisible(p.hp > 0 || actor.oneShot === 'ko');
-      for (const obj of [actor.shadow, actor.hp, actor.name]) obj.setVisible(p.hp > 0);
+      for (const obj of [actor.shadow, actor.name]) obj.setVisible(p.hp > 0);
       this.positionActor(actor, p, ctx.state.time);
     }
   }
+
   private playActor(actor: Actor, state: ActorAnimation, facing = actor.facing) {
     const key = actorAnimation(actor.element, state, facing);
     if (actor.sprite.anims.currentAnim?.key === key && actor.sprite.anims.isPlaying) return;
@@ -849,6 +1345,7 @@ export class BomNguyenToView extends GameView<State, Options> {
     actor.sprite.anims.timeScale = 1;
     actor.sprite.play(key);
   }
+
   private showEffect(name: EffectAnimation, point: Point, size = 1) {
     // Bound decorative effects independently of the authoritative blast/bomb objects.
     if (this.effects.size >= 40) return;
@@ -857,7 +1354,7 @@ export class BomNguyenToView extends GameView<State, Options> {
       .sprite(pos.x, pos.y, this.texture('cartoon-fx'), effectFrame(name))
       .setOrigin(0.5, 0.55)
       .setDisplaySize(this.tw * size, this.tw * size)
-      .setDepth(pos.y + 17)
+      .setDepth(100 + pos.y + 17)
       .setData('point', { ...point })
       .setData('size', size);
     this.effects.add(sprite);
@@ -867,71 +1364,54 @@ export class BomNguyenToView extends GameView<State, Options> {
     });
     sprite.play(effectAnimation(name));
   }
+
   private floating(label: string, point: Point, color: string) {
     if (this.floaters.size >= 18) return;
     const pos = this.project(point);
-    const text = this.text(label, 18, color)
-      .setPosition(pos.x, pos.y - this.tw * 0.8)
-      .setStroke('#fff9ee', 4)
+    const text = this.bold(label, Math.max(16, Math.round(this.tw * 0.32)), color)
+      .setPosition(pos.x, pos.y - this.tw * 0.9)
+      .setStroke('#fffaf0', 5)
       .setDepth(1500);
     this.floaters.add({ text, y: text.y, start: this.time.now });
   }
+
   private positionActor(actor: Actor, p: Fighter, now: number) {
     const pos = this.project(actor.position);
-    actor.sprite.setPosition(pos.x, pos.y).setDepth(pos.y + 12);
+    const feet = pos.y + this.th * 0.25;
+    actor.sprite.setPosition(pos.x, feet).setDepth(100 + pos.y);
     actor.shadow
-      .setPosition(pos.x, pos.y + 2)
-      .setSize(this.tw * 0.54, this.th * 0.35)
-      .setDepth(3);
+      .setPosition(pos.x, feet - this.th * 0.02)
+      .setSize(this.tw * 0.62, this.th * 0.3)
+      .setDepth(4);
+    actor.ring
+      .setPosition(pos.x, feet - this.th * 0.02)
+      .setSize(this.tw * 0.74, this.th * 0.38)
+      .setDepth(4);
     actor.sprite.setAlpha(
-      p.invulnerableUntil > now && Math.floor(this.time.now / 100) % 2 ? 0.7 : 1,
+      p.invulnerableUntil > now && Math.floor(this.time.now / 100) % 2 ? 0.6 : 1,
     );
-    const status = p.frozenUntil > now ? 'freeze' : p.stunUntil > now ? 'pickup-gleam' : null;
+    const status = p.frozenUntil > now ? 'freeze' : p.stunUntil > now ? 'stun' : null;
     if (status && p.hp > 0) {
       if (!actor.status)
         actor.status = this.add.sprite(0, 0, this.texture('cartoon-fx'), effectFrame(status));
       actor.status
         .play(effectAnimation(status), true)
-        .setPosition(pos.x, pos.y - this.tw * 0.22)
+        .setPosition(pos.x, feet - this.tw * 0.45)
         .setOrigin(0.5, 0.6)
-        .setDisplaySize(this.tw * 1.15, this.tw * 1.15)
-        .setDepth(pos.y + 14);
+        .setDisplaySize(this.tw * 1.2, this.tw * 1.2)
+        .setDepth(100 + pos.y + 2);
     } else {
       actor.status?.destroy();
       actor.status = null;
     }
-    const nameColor =
-      p.id === this.ctx.me?.id
-        ? '#8f4d46'
-        : this.ctx.state.mode === 'teams'
-          ? p.team === 0
-            ? '#397eaf'
-            : '#c65b79'
-          : THEME.paper;
-    if (actor.name.style.color !== nameColor) actor.name.setColor(nameColor);
-    actor.name
-      .setPosition(pos.x, pos.y - this.tw * 0.96)
-      .setDepth(1000)
-      .setStroke('#fff9ed', 3);
-    const barW = this.tw * 0.5;
-    const hpPaint = `${this.tw}:${p.hp}:${p.element}`;
-    if (actor.hpPaint !== hpPaint) {
-      actor.hpPaint = hpPaint;
-      actor.hp
-        .clear()
-        .fillStyle(0xfff6e7)
-        .fillRoundedRect(-barW / 2, 0, barW, 4, 2)
-        .fillStyle(ELEMENT_INFO[p.element].color)
-        .fillRoundedRect(-barW / 2, 0, (barW * p.hp) / 100, 4, 2);
-    }
-    actor.hp.setPosition(pos.x, pos.y - this.tw * 0.87).setDepth(1000);
+    actor.name.setPosition(pos.x, feet - this.tw * 1.5).setDepth(1000);
   }
+
   private renderTransient(ctx: Ctx) {
     const s = ctx.state;
     for (const [id, b] of this.bombs)
       if (!s.bombs.some((b) => b.id === id)) {
         b.image.destroy();
-        b.timer.destroy();
         b.ring.destroy();
         this.bombs.delete(id);
       }
@@ -940,60 +1420,54 @@ export class BomNguyenToView extends GameView<State, Options> {
       if (!object) {
         object = {
           image: this.add
-            .sprite(0, 0, this.texture('cartoon-fx'), effectFrame(`bomb-${b.element}`))
-            .setOrigin(0.5, 0.86),
-          timer: this.text('', 13).setStroke('#fff9ed', 3),
-          ring: this.add.ellipse(0, 0, 20, 10, ELEMENT_INFO[b.element].color, 0.65),
+            .sprite(0, 0, this.texture('arena-fx'), arenaFrame('bomb'))
+            .setOrigin(0.5, 180 / 192)
+            .play(arenaAnimation('bomb')),
+          ring: this.add.ellipse(0, 0, 20, 10, ELEMENT_INFO[b.element].color, 0.55),
+          element: b.element,
         };
         this.bombs.set(b.id, object);
       }
       const pos = this.project(b);
       object.image
-        .setPosition(pos.x, pos.y)
-        .setDisplaySize(this.tw * 1.02, this.tw * 1.02)
-        .setDepth(pos.y + 11)
-        .play(effectAnimation(b.frozenUntil > s.time ? 'bomb-frozen' : `bomb-${b.element}`), true);
+        .setPosition(pos.x, pos.y + this.th * 0.3)
+        .setDisplaySize(this.tw, this.tw)
+        .setDepth(100 + pos.y + 0.2)
+        .setTint(b.frozenUntil > s.time ? 0xbfefff : 0xffffff);
       object.ring
-        .setPosition(pos.x, pos.y + 1)
-        .setSize(this.tw * 0.62, this.th * 0.48)
-        .setDepth(3);
-      object.timer
-        .setPosition(pos.x, pos.y - this.tw * 0.63)
-        .setDepth(1000)
-        .setText(
-          b.frozenUntil > s.time ? '❄' : `${Math.max(0, (b.explodeAt - s.time) / 1000).toFixed(1)}`,
-        );
+        .setPosition(pos.x, pos.y + this.th * 0.26)
+        .setSize(this.tw * 0.72, this.th * 0.4)
+        .setDepth(4.5);
     }
     const wanted = new Set(s.pickups.map((p) => keyOf(p)));
     for (const [key, item] of this.pickups)
       if (!wanted.has(key)) {
         item.image.destroy();
-        item.label.destroy();
+        item.glow.destroy();
         this.pickups.delete(key);
       }
     for (const p of s.pickups) {
       const key = keyOf(p);
       let item = this.pickups.get(key);
       if (!item) {
-        const clip = `pickup-${p.kind}` as const;
         item = {
           image: this.add
-            .sprite(0, 0, this.texture('cartoon-fx'), effectFrame(clip))
-            .setOrigin(0.5, 0.86),
-          label: this.text('', 13, '#428b71').setStroke('#fff9ed', 3),
+            .image(0, 0, this.texture('arena-fx'), arenaFrame(`item-${p.kind}`))
+            .setOrigin(0.5, 176 / 192),
+          glow: this.add.ellipse(0, 0, 20, 10, 0xfff6c8, 0.7),
+          phase: (p.x * 7 + p.y * 3) % 6,
         };
         this.pickups.set(key, item);
       }
       const pos = this.project(p);
       item.image
-        .play(effectAnimation(`pickup-${p.kind}`), true)
-        .setPosition(pos.x, pos.y)
-        .setDisplaySize(this.tw * 0.97, this.tw * 0.97)
-        .setDepth(pos.y + 9);
-      item.label
-        .setText(p.kind === 'heal' ? '+30' : '+1')
-        .setPosition(pos.x, pos.y + 7)
-        .setDepth(1000);
+        .setPosition(pos.x, pos.y + this.th * 0.22)
+        .setDisplaySize(this.tw * 0.78, this.tw * 0.78)
+        .setDepth(100 + pos.y - 0.1);
+      item.glow
+        .setPosition(pos.x, pos.y + this.th * 0.24)
+        .setSize(this.tw * 0.62, this.th * 0.34)
+        .setDepth(4);
     }
     const flames = new Set<string>();
     for (const b of s.blasts)
@@ -1001,25 +1475,19 @@ export class BomNguyenToView extends GameView<State, Options> {
         const key = `${b.id}:${keyOf(c)}`;
         flames.add(key);
         let flame = this.flames.get(key);
+        const pos = this.project(c);
         if (!flame) {
           flame = this.add
-            .sprite(0, 0, this.texture('cartoon-fx'), effectFrame(`burst-${b.element}`))
-            .setOrigin(0.5, 0.55);
-          if (this.suppressFeedback) flame.play(effectAnimation(`linger-${b.element}`));
-          else {
-            const sprite = flame;
-            flame.once('animationcomplete', () => {
-              if (sprite.scene) sprite.play(effectAnimation(`linger-${b.element}`));
-            });
-            flame.play(effectAnimation(`burst-${b.element}`));
-          }
+            .sprite(0, 0, this.texture('arena-fx'), arenaFrame(`blast-${b.element}`))
+            .play(arenaAnimation(`blast-${b.element}`));
           this.flames.set(key, flame);
+          if (!this.suppressFeedback) {
+            flame.setData('born', this.time.now);
+          }
         }
-        const pos = this.project(c);
-        flame
-          .setPosition(pos.x, pos.y)
-          .setDisplaySize(this.tw * 1.2, this.tw * 1.2)
-          .setDepth(pos.y + 15);
+        flame.setPosition(pos.x, pos.y).setDepth(100 + pos.y + 15);
+        flame.setData('size', this.tw * 1.2);
+        if (!flame.getData('born')) flame.setDisplaySize(this.tw * 1.2, this.tw * 1.2);
       }
     for (const [key, image] of this.flames)
       if (!flames.has(key)) {
@@ -1027,60 +1495,125 @@ export class BomNguyenToView extends GameView<State, Options> {
         this.flames.delete(key);
       }
   }
+
   private renderHud(ctx: Ctx) {
-    const s = ctx.state,
-      me = s.fighters.find((p) => p.id === ctx.me?.id);
+    const s = ctx.state;
+    const me = s.fighters.find((p) => p.id === ctx.me?.id);
+    const focus = me ?? s.fighters[0];
     this.modeLabel.setText(
       s.mode === 'teams' ? 'Đấu đội 2v2' : s.fighters.length === 1 ? 'Luyện tập' : 'Sinh tồn đơn',
     );
-    this.roster.forEach((r, i) => {
-      const p = s.fighters[i];
-      r.container.setVisible(Boolean(p));
-      if (!p) return;
-      r.portrait.setTexture(this.texture(p.element));
-      r.name.setText(
-        `${p.id === me?.id ? 'Bạn' : p.bot ? `Máy ${p.seat + 1}` : p.name.slice(0, 8)}${s.mode === 'teams' ? (p.team === 0 ? ' · A' : ' · B') : ''}`,
-      );
-      r.container.setAlpha(p.hp > 0 ? 1 : 0.4);
-      r.hp
+    if (focus) {
+      this.modeIcon.setTexture(this.texture(`portrait-${focus.element}`));
+      this.portrait.setTexture(this.texture(`portrait-${focus.element}`));
+      this.portraitName.setText(me ? CHARACTER[focus.element].name : 'Khán giả');
+    }
+    const stat = (i: number, value: string, fill: number, color: number) => {
+      const row = this.stats[i];
+      if (!row) return;
+      const paint = `${value}:${fill}:${color}:${row.pill.x}`;
+      if (row.paint === paint) return;
+      row.paint = paint;
+      const { width, height } = STAT_PILL;
+      row.value.setText(value).setColor(i === 0 ? THEME.white : THEME.paper);
+      if (i === 0) row.value.setStroke(THEME.stroke, 3);
+      row.pill
         .clear()
-        .fillStyle(0xeadac9)
-        .fillRoundedRect(-18, 1, 76, 10, 5)
-        .fillStyle(ELEMENT_INFO[p.element].color)
-        .fillRoundedRect(-18, 1, (76 * p.hp) / 100, 10, 5);
+        .setScale(this.ui)
+        .fillStyle(i === 0 ? 0xffd6dc : 0xf5e6d3)
+        .fillRoundedRect(-width / 2, -height / 2, width, height, height / 2)
+        .fillStyle(color, fill > 0 ? 1 : 0)
+        .fillRoundedRect(
+          -width / 2,
+          -height / 2,
+          Math.max(height, width * fill),
+          height,
+          height / 2,
+        )
+        .lineStyle(2, THEME.outline, 0.5)
+        .strokeRoundedRect(-width / 2, -height / 2, width, height, height / 2);
+    };
+    if (me) {
+      const live = s.bombs.filter((b) => b.owner === me.id).length;
+      stat(0, `${me.hp} / 100`, me.hp / 100, 0xf0566a);
+      stat(1, `${Math.max(0, me.capacity - live)} / ${me.capacity}`, 1, 0xf5e6d3);
+      stat(2, `${me.range}`, 1, 0xf5e6d3);
+    } else {
+      stat(0, '—', 0, 0xf0566a);
+      stat(1, '—', 1, 0xf5e6d3);
+      stat(2, '—', 1, 0xf5e6d3);
+    }
+    this.roster.forEach((card, i) => {
+      const p = s.fighters[i];
+      card.container.setVisible(Boolean(p));
+      if (!p) return;
+      const name = p.id === me?.id ? 'Bạn' : p.bot ? CHARACTER[p.element].name : p.name;
+      const paint = `${name}:${p.hp}:${p.element}:${s.mode}:${p.team}:${card.width}`;
+      card.container.setAlpha(p.hp > 0 ? 1 : 0.55);
+      if (card.paint === paint) return;
+      card.paint = paint;
+      card.portrait
+        .setTexture(this.texture(`portrait-${p.element}`))
+        .setTint(p.hp > 0 ? 0xffffff : 0x9a9a9a);
+      this.fitHead(card);
+      const textX = card.name.x;
+      const barW = card.width / 2 - textX - 10 * this.ui;
+      // Narrow cards (4:3) keep the picture and the HP bar: a cut-off name helps nobody.
+      const named = barW >= 76 * this.ui;
+      card.name.setVisible(named).setFontSize(Math.round(15 * this.ui));
+      if (named) this.fitText(card.name, name, barW, 11);
+      card.bar.setY(named ? card.height * 0.2 : 0);
+      card.hp.setY(named ? card.height * 0.2 : 0);
+      const barH = (named ? 18 : 22) * this.ui;
+      card.bar
+        .clear()
+        .fillStyle(0xe9dccb)
+        .fillRoundedRect(0, -barH / 2, barW, barH, barH / 2)
+        .fillStyle(CHARACTER[p.element].bar)
+        .fillRoundedRect(
+          0,
+          -barH / 2,
+          Math.max(p.hp > 0 ? barH : 0, (barW * p.hp) / 100),
+          barH,
+          barH / 2,
+        )
+        .lineStyle(1.5, THEME.outline, 0.45)
+        .strokeRoundedRect(0, -barH / 2, barW, barH, barH / 2);
+      card.hp.setText(`${p.hp}/100`).setX(textX + barW / 2);
+      card.team
+        .setText(s.mode === 'teams' ? (p.team === 0 ? 'A' : 'B') : '')
+        .setColor(p.team === 0 ? '#bfe0ff' : '#ffd0dc');
     });
-    this.portrait.setTexture(this.texture(me?.element ?? 'fire'));
-    this.stats.setText(
-      me
-        ? `HP  ${me.hp} / 100\nBom  ${Math.max(0, me.capacity - s.bombs.filter((b) => b.owner === me.id).length)} / ${me.capacity}\nTầm nổ  ${me.range}`
-        : 'Khán giả',
+    const overlay = this.helpPanel.visible || this.menuPanel.visible;
+    this.selectPanel.setVisible(s.phase === 'select' && !overlay);
+    this.resultPanel.setVisible(s.phase === 'ended' && !overlay);
+    this.overlayShade.setVisible(s.phase !== 'playing' || overlay);
+    const element = me?.element;
+    this.selectSkill.setText(
+      element ? `${ELEMENT_INFO[element].name} · ${ELEMENT_INFO[element].skill}` : '',
     );
-    this.skillName.setText(me ? ELEMENT_INFO[me.element].skill : '');
-    this.actions[1]?.icon?.setTexture(this.texture(`blast-${me?.element ?? 'fire'}`));
-    this.selectPanel.setVisible(s.phase === 'select');
-    this.resultPanel.setVisible(s.phase === 'ended');
-    this.overlayShade.setVisible(s.phase !== 'playing' || this.helpPanel.visible);
     this.selectDescription.setText(
-      me
-        ? `${ELEMENT_INFO[me.element].skill}\n${ELEMENT_INFO[me.element].description}`
-        : 'Đang chờ người chơi chọn nguyên tố',
+      element ? ELEMENT_INFO[element].description : 'Đang chờ người chơi chọn bạn nhỏ',
     );
     this.readyButton.label.setText(me?.ready ? 'Đã sẵn sàng' : 'Sẵn sàng');
     this.readyButton.enabled = Boolean(me && !me.ready);
     this.paintControl(this.readyButton);
     this.selectChoices.forEach((c, i) => {
       c.enabled = Boolean(me);
-      this.paintControl(c, me?.element === ELEMENTS[i], ELEMENT_INFO[ELEMENTS[i] ?? 'fire'].color);
+      c.selected = me?.element === ELEMENTS[i];
+      this.paintControl(c);
     });
-    for (const c of [...this.pad, ...this.actions]) {
-      c.enabled = Boolean(me && me.hp > 0 && s.phase === 'playing' && !this.helpPanel.visible);
+    for (const c of this.actions) {
+      c.enabled = Boolean(me && me.hp > 0 && s.phase === 'playing' && !overlay);
       this.paintControl(c);
     }
+    const watchers = ctx.room.watchers;
+    this.menuWatchers.setText(watchers > 0 ? `${watchers} người đang xem` : '');
     if (s.phase === 'ended') {
       const won = me && s.winners.includes(me.id);
       const names = s.fighters
         .filter((p) => s.winners.includes(p.id))
-        .map((p) => p.name)
+        .map((p) => (p.bot ? CHARACTER[p.element].name : p.name))
         .join(', ');
       this.resultText.setText(
         s.winners.length
@@ -1092,21 +1625,48 @@ export class BomNguyenToView extends GameView<State, Options> {
           : 'Hòa!',
       );
       this.resultDetail.setText(
-        `${s.reason}\n${me ? `${me.kills} hạ gục · ${me.crates} thùng quà đã mở` : ''}`,
+        `${s.reason}${me ? `\n${me.kills} hạ gục · ${me.crates} thùng quà đã mở` : ''}`,
       );
-      this.resultPortrait.setTexture(
-        this.texture(
-          s.fighters.find((p) => s.winners.includes(p.id))?.element ?? me?.element ?? 'fire',
-        ),
-      );
+      const winner =
+        s.fighters.find((p) => s.winners.includes(p.id))?.element ?? me?.element ?? 'fire';
+      this.resultPortrait.setTexture(this.texture(`portrait-${winner}`));
+      this.resultPortrait.setScale(150 / this.resultPortrait.height);
       this.resultStars.setVisible(Boolean(won));
+      const host = ctx.players.find((p) => p.id === ctx.hostId);
+      const buttons = [
+        ctx.room.newGame && this.newGameButton,
+        ctx.room.customize && this.customizeButton,
+        ctx.room.sit && this.sitButton,
+      ].filter((c): c is Control => Boolean(c));
+      for (const c of [this.newGameButton, this.customizeButton, this.sitButton])
+        c.container.setVisible(buttons.includes(c));
+      buttons.forEach((c, i) => {
+        c.container.setX((i - (buttons.length - 1) / 2) * 236);
+      });
+      this.resultWait.setText(
+        buttons.length
+          ? ''
+          : ctx.me
+            ? `Chờ ${host ? host.name : 'chủ phòng'} mở ván mới…`
+            : 'Đang xem ván đấu',
+      );
     }
   }
-  protected onUpdate(ctx: Ctx, delta: number) {
-    const s = ctx.state,
-      now = s.time + Math.min(100, this.time.now - this.snapshotAt);
-    const dt = Math.min(delta, 50) / 1000;
-    this.inputElapsed += delta;
+
+  // ── Frame loop ─────────────────────────────────────────────────────────────────────────
+
+  protected onUpdate(ctx: Ctx) {
+    const s = ctx.state;
+    const now = s.time + Math.min(100, this.time.now - this.snapshotAt);
+    // Real elapsed time, not Phaser's smoothed delta: on a slow device a frame really lasts
+    // longer, and the server follows this screen's position, so walking must keep real speed.
+    // Movement goes cell by cell, so a long frame cannot tunnel.
+    const frameAt = performance.now();
+    const elapsed = Math.min(250, frameAt - (this.frameAt || frameAt));
+    this.frameAt = frameAt;
+    const dt = elapsed / 1000;
+    this.inputElapsed += elapsed;
+    if (this.direction !== 'none') this.steeredAt = this.time.now;
     if (
       this.direction !== this.sentDirection ||
       (this.direction !== 'none' && this.inputElapsed >= 200)
@@ -1134,7 +1694,12 @@ export class BomNguyenToView extends GameView<State, Options> {
         actor.lastMoved = this.time.now;
       if (p.frozenUntil > now) this.playActor(actor, 'frozen', p.facing);
       else if (!actor.oneShot) {
-        const moving = s.phase === 'playing' && !frozen && this.time.now - actor.lastMoved < 130;
+        // Steering keeps the walk going, against a wall too (walking on the spot): the player
+        // sees their input taken even where the lane ends.
+        const moving =
+          s.phase === 'playing' &&
+          !frozen &&
+          (d !== DIRECTIONS.none || this.time.now - actor.lastMoved < 130);
         const facing = local && this.direction !== 'none' ? this.direction : p.facing;
         this.playActor(actor, moving ? 'walk' : 'idle', facing);
         actor.sprite.anims.timeScale = moving
@@ -1147,28 +1712,31 @@ export class BomNguyenToView extends GameView<State, Options> {
       }
       this.positionActor(actor, p, now);
     }
-    const seconds = Math.max(0, Math.ceil((MATCH_TIME - s.elapsed) / 1000));
-    this.timerLabel.setText(
-      `${Math.floor(seconds / 60)
-        .toString()
-        .padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`,
-    );
+    const left = s.phase === 'select' ? SELECT_TIME - s.time : MATCH_TIME - s.elapsed;
+    const seconds = Math.max(0, Math.ceil(left / 1000));
+    const clock = `${Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
+    if (this.timerLabel.text !== clock) this.timerLabel.setText(clock);
     const me = s.fighters.find((p) => p.id === ctx.me?.id);
-    this.status.setText(
+    const status =
       s.phase === 'select'
-        ? `Chọn nguyên tố · ${Math.max(0, Math.ceil((SELECT_TIME - s.time) / 1000))}s`
-        : me?.hp === 0
+        ? 'Chọn bạn nhỏ'
+        : me?.hp === 0 && s.phase === 'playing'
           ? 'Đã bị loại · Đang theo dõi'
-          : s.ring > 0
-            ? 'Đấu trường đang thu hẹp'
-            : `${s.fighters.filter((p) => p.hp > 0).length} bạn nhỏ còn lại`,
-    );
+          : this.closingIn(s, now) !== null
+            ? 'Đấu trường sắp thu hẹp!'
+            : s.ring > 0 && s.phase === 'playing'
+              ? 'Đấu trường đang thu hẹp!'
+              : '';
+    if (this.status.text !== status) this.status.setText(status);
     if (me) {
       const cds = [
         Math.max(me.nextBomb - now, 0),
         Math.max(me.skillReady - now, 0),
         Math.max(me.dashReady - now, 0),
       ];
+      const totals = [400, 14000, 5000];
       this.actions.forEach((c, i) => {
         const enabled =
           this.canAct() &&
@@ -1180,89 +1748,142 @@ export class BomNguyenToView extends GameView<State, Options> {
           c.enabled = enabled;
           this.paintControl(c);
         }
-        c.label.setText(
-          cds[i] ? `${Math.ceil((cds[i] ?? 0) / 1000)}s` : (['Bom', 'Kỹ năng', 'Lướt'][i] ?? ''),
-        );
-        c.container.setAlpha(c.enabled ? 1 : 0.7);
+        const left = cds[i] ?? 0;
+        const label = left > 500 ? `${Math.ceil(left / 1000)}s` : (ACTIONS[i]?.name ?? '');
+        if (c.label.text !== label) c.label.setText(label);
+        const fraction = left > 0 ? Math.min(1, left / (totals[i] ?? 1)) : 0;
+        const paint = `${Math.round(fraction * 60)}:${c.width}:${i === 1 && me.skillUntil > now}`;
+        if (this.cooldownPaint[i] !== paint) {
+          this.cooldownPaint[i] = paint;
+          const g = this.cooldowns[i];
+          const r = c.width * 0.36;
+          g?.clear();
+          if (fraction > 0)
+            g?.fillStyle(0x3b2a4a, 0.4)
+              .slice(
+                0,
+                -c.width * 0.08,
+                r,
+                -Math.PI / 2,
+                -Math.PI / 2 + fraction * Math.PI * 2,
+                false,
+              )
+              .fillPath();
+          if (i === 1 && me.skillUntil > now)
+            g?.lineStyle(4, 0xfff1a0, 0.95).strokeCircle(0, -c.width * 0.08, r + 2);
+        }
       });
-      this.skillName.setText(`${ELEMENT_INFO[me.element].skill}${me.skillUntil > now ? ' ✦' : ''}`);
     }
     const ownActor = me && this.actors.get(me.id);
-    this.localMarker.setVisible(Boolean(me && me.hp > 0 && ownActor && s.phase === 'playing'));
-    if (me && me.hp > 0 && ownActor && s.phase === 'playing') {
+    const showMarker = Boolean(me && me.hp > 0 && ownActor && s.phase !== 'ended');
+    this.localMarker.setVisible(showMarker);
+    if (showMarker && ownActor) {
       const pos = this.project(ownActor.position);
-      const markerPaint = `${this.tw}:${me.element}`;
-      if (this.markerPaint !== markerPaint) {
-        this.markerPaint = markerPaint;
-        this.localMarker
-          .clear()
-          .lineStyle(2.5, 0xfff6e7)
-          .strokeEllipse(0, 0, this.tw * 0.72, this.th * 0.48)
-          .lineStyle(1.5, ELEMENT_INFO[me.element].color)
-          .strokeEllipse(0, 0, this.tw * 0.64, this.th * 0.4);
-      }
-      this.localMarker.setPosition(pos.x, pos.y + 2);
+      const bob = Math.sin(this.time.now / 180) * this.tw * 0.05;
+      this.localMarker
+        .setDisplaySize(this.tw * 0.5, this.tw * 0.47)
+        .setPosition(pos.x, pos.y + this.th * 0.25 - this.tw * 1.5 + bob);
     }
     this.drawWarnings(s, now);
     for (const b of s.bombs) {
       const obj = this.bombs.get(b.id);
       if (!obj) continue;
-      obj.image.play(
-        effectAnimation(b.frozenUntil > now ? 'bomb-frozen' : `bomb-${b.element}`),
-        true,
-      );
-      obj.image.anims.timeScale = b.frozenUntil > now ? 1 : b.explodeAt - now < 700 ? 2.25 : 1;
-      obj.timer.setText(
-        b.frozenUntil > now
-          ? '❄'
-          : b.explodeAt - now < 400
-            ? '!'
-            : Math.max(0, (b.explodeAt - now) / 1000).toFixed(1),
+      const frozen = b.frozenUntil > now;
+      const left = b.explodeAt - now;
+      obj.image.anims.timeScale = frozen ? 0.2 : left < 700 ? 2.4 : 1;
+      const pulse = frozen
+        ? 1
+        : 1 +
+          Math.max(0, Math.sin(this.time.now / (left < 700 ? 45 : 110))) *
+            (left < 700 ? 0.1 : 0.04);
+      obj.image.setDisplaySize(this.tw * pulse, this.tw * pulse);
+      obj.image.setTint(
+        frozen ? 0xbfefff : left < 700 && Math.floor(this.time.now / 90) % 2 ? 0xffb0a0 : 0xffffff,
       );
     }
     for (const b of s.blasts)
-      for (const c of b.cells)
-        this.flames.get(`${b.id}:${keyOf(c)}`)?.setAlpha(Math.min(1, (b.expires - now) / 350));
+      for (const c of b.cells) {
+        const flame = this.flames.get(`${b.id}:${keyOf(c)}`);
+        if (!flame) continue;
+        const born = flame.getData('born') as number | undefined;
+        const size = flame.getData('size') as number;
+        const grow = born ? Math.min(1, (this.time.now - born) / 140) : 1;
+        flame
+          .setDisplaySize(size * (0.45 + 0.55 * grow), size * (0.45 + 0.55 * grow))
+          .setAlpha(Math.min(1, (b.expires - now) / 300));
+      }
+    for (const [, item] of this.pickups) {
+      const bob = Math.sin(this.time.now / 260 + item.phase) * this.tw * 0.05;
+      item.image.setY(item.glow.y - this.th * 0.02 + bob);
+    }
     for (const floater of this.floaters) {
-      const elapsed = (this.time.now - floater.start) / 850;
-      floater.text.setY(floater.y - elapsed * 30).setAlpha(Math.min(1, (1 - elapsed) * 2));
+      const elapsed = (this.time.now - floater.start) / 900;
+      floater.text.setY(floater.y - elapsed * 34).setAlpha(Math.min(1, (1 - elapsed) * 2));
       if (elapsed >= 1) {
         floater.text.destroy();
         this.floaters.delete(floater);
       }
     }
   }
+
+  /** How long until the next ring closes, when that is within the warning time; else null. */
+  private closingIn(s: State, now: number) {
+    const next = s.phase === 'playing' ? nextRing(s) : null;
+    if (!next) return null;
+    const left = next.at - (s.elapsed + (now - s.time));
+    return left > 0 && left <= RING_WARNING ? left : null;
+  }
+
   private drawWarnings(s: State, now: number) {
     this.warnings.clear();
     if (s.phase !== 'playing') return;
+    const w = this.tw * 0.9;
+    const h = this.th * 0.9;
+    const r = Math.min(10, this.tw * 0.14);
+    // The cells the arena closes next flash red, faster as the stones come.
+    const closing = this.closingIn(s, now);
+    const ring = nextRing(s)?.ring;
+    if (closing !== null && ring) {
+      const pulse = 0.45 + Math.abs(Math.sin(this.time.now / (closing < 2000 ? 90 : 180))) * 0.3;
+      for (let y = 1; y < HEIGHT - 1; y++)
+        for (let x = 1; x < WIDTH - 1; x++) {
+          const cell = { x, y };
+          if (!inRing(cell, ring) || inRing(cell, ring - 1) || tileAt(s, cell) === 'wall') continue;
+          const pos = this.project(cell);
+          this.warnings
+            .fillStyle(0xc81e2b, pulse)
+            .fillRoundedRect(pos.x - w / 2, pos.y - h / 2, w, h, r)
+            .lineStyle(3, 0xffffff, 0.9)
+            .strokeRoundedRect(pos.x - w / 2, pos.y - h / 2, w, h, r);
+        }
+    }
     for (const warning of this.warningCells) {
       const pos = this.project(warning.cell);
       const imminent = warning.start - now < 700;
       const color = warning.frozen
         ? 0x72c6dd
         : imminent
-          ? 0xf37364
+          ? 0xff5a3c
           : ELEMENT_INFO[warning.element].color;
       this.warnings
-        .fillStyle(color, imminent ? 0.32 + Math.sin(this.time.now / 70) * 0.1 : 0.13)
-        .fillRoundedRect(
-          pos.x - this.tw * 0.43,
-          pos.y - this.th * 0.43,
-          this.tw * 0.86,
-          this.th * 0.86,
-          8,
-        )
-        .lineStyle(1.5, color, imminent ? 1 : 0.6)
-        .strokeRoundedRect(
-          pos.x - this.tw * 0.43,
-          pos.y - this.th * 0.43,
-          this.tw * 0.86,
-          this.th * 0.86,
-          8,
-        );
-      if (imminent) this.warnings.fillStyle(0xfff6dc, 0.9).fillCircle(pos.x, pos.y, this.tw * 0.06);
+        .fillStyle(color, imminent ? 0.4 + Math.sin(this.time.now / 70) * 0.12 : 0.24)
+        .fillRoundedRect(pos.x - w / 2, pos.y - h / 2, w, h, r)
+        .lineStyle(2, imminent ? 0xfff0d8 : color, imminent ? 0.95 : 0.7)
+        .strokeRoundedRect(pos.x - w / 2, pos.y - h / 2, w, h, r);
+    }
+    for (const b of s.blasts) {
+      const color = b.element === 'fire' ? 0xff8a3d : ELEMENT_INFO[b.element].color;
+      for (const c of b.cells) {
+        const pos = this.project(c);
+        this.warnings
+          .fillStyle(color, 0.5 * Math.min(1, (b.expires - now) / 300))
+          .fillRoundedRect(pos.x - w / 2, pos.y - h / 2, w, h, r);
+      }
     }
   }
+
+  // ── Input ──────────────────────────────────────────────────────────────────────────────
+
   private bindInput() {
     const keyboard = this.input.keyboard;
     const keydown = (e: KeyboardEvent) => {
@@ -1273,7 +1894,8 @@ export class BomNguyenToView extends GameView<State, Options> {
       )
         return;
       if (e.code === 'Escape') {
-        this.toggleHelp();
+        if (this.menuPanel.visible) this.toggleMenu(false);
+        else this.toggleHelp();
         return;
       }
       if (!this.canAct()) return;
@@ -1307,8 +1929,12 @@ export class BomNguyenToView extends GameView<State, Options> {
       this.touch.delete(p.id);
       this.refreshDirection();
     };
+    const pointermove = (p: Phaser.Input.Pointer) => {
+      if (this.touch.has(p.id)) this.padTouch(p);
+    };
     this.input.on('pointerup', pointerup);
     this.input.on('pointerupoutside', pointerup);
+    this.input.on('pointermove', pointermove);
     if (this.input.manager.pointers.length < 5)
       this.input.addPointer(4 - this.input.manager.pointers.length);
     this.events.once('shutdown', () => {
@@ -1317,60 +1943,100 @@ export class BomNguyenToView extends GameView<State, Options> {
       keyboard?.off('keyup', keyup);
       this.input.off('pointerup', pointerup);
       this.input.off('pointerupoutside', pointerup);
+      this.input.off('pointermove', pointermove);
       window.removeEventListener('blur', release);
       document.removeEventListener('visibilitychange', hide);
     });
   }
+
+  /** A finger on the D-pad: its angle from the centre picks the direction. */
+  private padTouch(p: Phaser.Input.Pointer) {
+    if (!this.canAct()) return;
+    const dx = p.worldX - this.padCenter.x;
+    const dy = p.worldY - this.padCenter.y;
+    const distance = Math.hypot(dx, dy);
+    if (distance > this.padRadius * 1.5) {
+      this.touch.delete(p.id);
+    } else if (distance < this.padRadius * 0.12) {
+      this.touch.set(p.id, 'none');
+    } else {
+      this.touch.set(
+        p.id,
+        Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up',
+      );
+    }
+    this.refreshDirection();
+  }
+
   private canAct() {
     return (
       this.ctx.state.phase === 'playing' &&
       Boolean(
         this.ctx.me && this.ctx.state.fighters.find((p) => p.id === this.ctx.me?.id && p.hp > 0),
       ) &&
-      !this.helpPanel.visible
+      !this.helpPanel.visible &&
+      !this.menuPanel.visible
     );
   }
+
   private refreshDirection() {
+    const touched = [...this.touch.values()].filter((d) => d !== 'none').at(-1);
     this.direction = this.canAct()
-      ? ([...this.touch.values()].at(-1) ?? KEY_DIR[this.keys.at(-1) ?? ''] ?? 'none')
+      ? (touched ?? KEY_DIR[this.keys.at(-1) ?? ''] ?? 'none')
       : 'none';
+    for (const k of this.pad) {
+      const held = this.direction === k.dir;
+      k.container.setScale(held ? 0.94 : 1).setAlpha(held ? 0.85 : 1);
+    }
     if (this.direction !== this.sentDirection) this.sendDirection();
   }
+
+  /** Where this screen shows the player, sent with their input so the server follows it. */
+  private ownPosition() {
+    const own = this.ctx.me && this.actors.get(this.ctx.me.id);
+    if (!own) return {};
+    const round = (n: number) => Math.round(n * 1000) / 1000;
+    return { at: { x: round(own.position.x), y: round(own.position.y) } };
+  }
+
   private sendDirection() {
     if (this.ctx.me && this.ctx.state.phase === 'playing')
-      this.send('input', { direction: this.direction });
+      this.send('input', { direction: this.direction, ...this.ownPosition() });
     this.sentDirection = this.direction;
     this.inputElapsed = 0;
   }
+
   private releaseInput() {
     this.keys = [];
     this.touch.clear();
-    for (const c of this.pad) {
-      c.pressed = false;
-      this.paintControl(c);
-    }
+    for (const k of this.pad) k.container.setScale(1).setAlpha(1);
     this.direction = 'none';
     if (this.sentDirection !== 'none') this.sendDirection();
   }
+
   private act(action: 'bomb' | 'skill' | 'dash') {
-    if (this.canAct()) {
-      this.send(action);
-    }
+    if (!this.canAct()) return;
+    // A bomb lands on the cell the player sees themselves on.
+    this.send(action, action === 'bomb' ? this.ownPosition() : {});
   }
+
   protected onStart() {
     this.releaseInput();
     this.previousBlast = 0;
     this.resetPresentation();
   }
+
   protected onResync() {
     this.releaseInput();
     this.previousBlast = Math.max(0, ...this.ctx.state.blasts.map((b) => b.id));
     this.snapshotAt = this.time.now;
     this.resetPresentation();
   }
+
   private resetPresentation() {
     this.suppressFeedback = true;
     this.helpPanel.setVisible(false);
+    this.menuPanel.setVisible(false);
     this.previousCells = [];
     this.previousPickups.clear();
     for (const effect of this.effects) effect.destroy();

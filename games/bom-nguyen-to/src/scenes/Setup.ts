@@ -7,7 +7,7 @@ import {
   type Options,
   optionsSchema,
 } from '../game/model.js';
-import { THEME, textStyle } from './theme.js';
+import { CHARACTER, THEME, textStyle } from './theme.js';
 
 interface Choice {
   container: Phaser.GameObjects.Container;
@@ -64,18 +64,8 @@ export class Setup extends RoomSetupScene<Options> {
       .lineBetween(-396, -211, 396, -211);
     this.content.add(paper);
     rasterizeGraphics(this, paper, 'sheet', { x: -442, y: -307, width: 884, height: 614 });
-    this.content.add(this.add.text(0, -260, 'Bom Nguyên Tố', textStyle(50)).setOrigin(0.5));
-    this.content.add(this.image(-359, -254, 'bomb').setDisplaySize(82, 82));
-    const flower = this.add.graphics();
-    for (let i = 0; i < 5; i++) {
-      const angle = (i / 5) * Math.PI * 2;
-      flower
-        .fillStyle(THEME.peach)
-        .fillCircle(360 + Math.cos(angle) * 14, -256 + Math.sin(angle) * 14, 12);
-    }
-    flower.fillStyle(THEME.gold).fillCircle(360, -256, 10);
-    this.content.add(flower);
-    rasterizeGraphics(this, flower, 'flower', { x: 328, y: -288, width: 64, height: 64 });
+    const logo = this.image(0, -257, 'logo');
+    this.content.add(logo.setScale(92 / logo.height));
     const heading = (x: number, y: number, label: string) =>
       this.content.add(this.add.text(x, y, label, textStyle(24)).setOrigin(0, 0.5));
     heading(-396, -194, 'Chế độ');
@@ -160,9 +150,9 @@ export class Setup extends RoomSetupScene<Options> {
         },
         { fill: ELEMENT_PASTELS[element] },
       );
-      const icon = this.image(0, -13, element).setDisplaySize(96, 96);
-      c.face.addAt(icon, 1);
-      c.label.setY(43).setFontSize(28);
+      const icon = this.image(0, -14, `portrait-${element}`);
+      c.face.addAt(icon.setScale(96 / Math.max(icon.width, icon.height)), 1);
+      c.label.setText(CHARACTER[element].name).setY(46).setFontSize(17);
     });
     this.skill = this.add.text(218, 119, '', textStyle(27)).setOrigin(0.5);
     this.description = this.add
@@ -305,7 +295,7 @@ export class Setup extends RoomSetupScene<Options> {
     this.content.setPosition(width / 2, this.safeTop() + 16 + 303 * scale).setScale(scale);
     for (const c of this.choices) this.paintChoice(c);
     const element: Element = this.picked.element;
-    this.skill.setText(ELEMENT_INFO[element].skill);
+    this.skill.setText(`${CHARACTER[element].name} · ${ELEMENT_INFO[element].skill}`);
     this.description.setText(ELEMENT_INFO[element].description);
     this.summary.setText(
       this.picked.mode === 'teams'

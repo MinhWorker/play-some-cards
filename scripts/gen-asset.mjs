@@ -5,10 +5,12 @@
 //                                                   (keeps its style; e.g. "make the flag yellow")
 // An entry with "from": "<name>" is drawn by editing that asset's raw image with its prompt, so
 // animation frames keep the same character, framing and canvas (generate the base first).
+// "plain": true leaves out the shared style (its "no text" rule), e.g. for a title logo.
 // The app's prompts live in assets/prompts.json: output apps/web/public/shared/images/<name>.webp
 // ("path" puts it elsewhere, relative to the repo root), raw PNG in assets/shared/images/.
 // A game's prompts live in games/<id>/sources/prompts.json and are named "<id>/<name>": raw PNG
-// in games/<id>/sources/<name>.png, output games/<id>/assets/<name>.webp (same as `npm run assets`).
+// in games/<id>/sources/<name>.png, output games/<id>/assets/<name>.webp (same as `npm run assets`;
+// "path" puts it elsewhere, e.g. frames a game's own script packs into an atlas).
 // Raw PNGs are kept (Git LFS) for re-processing and --edit.
 import { spawn } from 'node:child_process';
 import {
@@ -63,7 +65,7 @@ for (const id of readdirSync(join(root, 'games'))) {
       // A game's frames are drawn from an image of the same game.
       ...(asset.from && { from: `${id}/${asset.from}` }),
       raw: join(root, 'games', id, 'sources', `${name}.png`),
-      out: join(root, 'games', id, 'assets', `${name}.webp`),
+      out: join(root, asset.path ?? join('games', id, 'assets', `${name}.webp`)),
     };
   }
 }
@@ -90,7 +92,9 @@ async function generate(name) {
   const asset = entries[name];
   if (!asset)
     throw new Error(`No prompt "${name}" (assets/prompts.json or games/<id>/sources/prompts.json)`);
-  const prompt = [config.style, asset.prompt, asset.transparent ? config.transparentSuffix : '']
+  // "plain": true skips the shared style, whose "no text" rules out a title logo.
+  const style = asset.plain ? '' : config.style;
+  const prompt = [style, asset.prompt, asset.transparent ? config.transparentSuffix : '']
     .filter(Boolean)
     .join(' ');
   const work = mkdtempSync(join(tmpdir(), `asset-${name.replace('/', '-')}-`));

@@ -20,7 +20,15 @@
  *
  * `ctx` (also `this.ctx`) has everything: the state as you may see it, who you are, the players,
  * host, score, options, result, the game's timer (`ctx.timer`, for a countdown), how long the
- * game has lasted (`ctx.clock`).
+ * game has lasted (`ctx.clock`), and which room controls this viewer may use (`ctx.room`).
+ *
+ * A board that draws the room's controls itself (`hud` in client.ts) calls the room actions:
+ *
+ *   leaveRoom(to?)   "←" (back to the room list) or 'home' (🏠); mid-game the app asks first
+ *   openSettings()   the app's settings panel (sound, view)
+ *   newGame()        host, after a game (`ctx.room.newGame`): start the next one
+ *   customize()      host, between games (`ctx.room.customize`): the game's setup screen
+ *   takeSeat()       spectator, between games (`ctx.room.sit`): sit down
  *
  * The app keeps one instance per game and restarts it for every room (and after "Tuỳ chỉnh"):
  * Phaser destroys the objects when it stops, but fields keep their values. Reset any field that
@@ -29,7 +37,15 @@
 import { hookName } from '../engine.js';
 import type { GameResult, PlayerId } from '../game.js';
 import { GameScene } from './GameScene.js';
-import { BOARD_MOVE, BOARD_OPTIONS, BOARD_PROPS, type BoardProps } from './props.js';
+import {
+  BOARD_MOVE,
+  BOARD_OPTIONS,
+  BOARD_PROPS,
+  BOARD_ROOM,
+  type BoardProps,
+  type RoomAction,
+  type RoomControls,
+} from './props.js';
 import { hudScale } from './text.js';
 
 /** Someone at the table, as a screen sees them. */
@@ -70,10 +86,12 @@ export interface ViewContext<View, Options = unknown> {
    * how long it has been played is `(endedAt ?? Date.now()) - startedAt`. `null`: no game.
    */
   clock: { startedAt: number; endedAt: number | null } | null;
+  /** The room controls this viewer may use now, for a board that draws its own (`hud`). */
+  room: RoomControls;
   /**
    * The frame in design units (720 tall, 960 to 1600 wide; docs/ui-guide.md): size, center,
-   * `top` = first free unit below the app's room bar, and the HUD scale (multiply font and button
-   * sizes by it). `gap` is the free middle of the room bar's own row (between its buttons and
+   * `top` = first free unit below the app's room bar (near 0 when the board draws its own,
+   * `hud.nav`), and the HUD scale (multiply font and button sizes by it). `gap` is the free middle of the room bar's own row (between its buttons and
    * the room's name), for something small like the seat across; `null` when the bar wrapped
    * onto more rows or there is none (the sandbox).
    */
@@ -135,6 +153,37 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
     this.game.events.emit(BOARD_OPTIONS, options);
     this.ctx = this.makeContext();
     this.hook('onState', this.ctx);
+  }
+
+  // ── Room controls, for a board that draws its own (`hud` in client.ts) ──────────────────
+
+  /** Leaves the room: back to the game's room list, or (`'home'`) to the home map. */
+  protected leaveRoom(to: 'rooms' | 'home' = 'rooms') {
+    this.roomAction(to === 'home' ? 'home' : 'leave');
+  }
+
+  /** Opens the app's settings panel (music and sound volume, view settings). */
+  protected openSettings() {
+    this.roomAction('settings');
+  }
+
+  /** Host, after a game (`ctx.room.newGame`): starts the next game. */
+  protected newGame() {
+    if (this.ctx.room.newGame) this.roomAction('new-game');
+  }
+
+  /** Host, between games (`ctx.room.customize`): opens the game's setup screen. */
+  protected customize() {
+    if (this.ctx.room.customize) this.roomAction('customize');
+  }
+
+  /** Spectator, between games (`ctx.room.sit`): takes a free seat. */
+  protected takeSeat() {
+    if (this.ctx.room.sit) this.roomAction('sit');
+  }
+
+  private roomAction(action: RoomAction) {
+    this.game.events.emit(BOARD_ROOM, action);
   }
 
   // ── Wiring (the app ↔ the hooks); games don't need to read below ────────────────────────
@@ -245,7 +294,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
   }
 
   private makeContext(): ViewContext<View, Options> {
-    const { view, me, players, hostId, score, options, result } = this.props;
+    const { view, me, players, hostId, score, options, result, room } = this.props;
     const seats = players.map((p, seat) => ({
       id: p.id,
       name: p.name,
@@ -271,6 +320,7 @@ export abstract class GameView<View, Options = unknown> extends GameScene {
       result,
       timer: this.timer,
       clock: this.clock,
+      room,
       screen: { width, height, cx: width / 2, cy: height / 2, top, hud, gap },
     };
   }

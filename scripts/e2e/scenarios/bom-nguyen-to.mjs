@@ -1,5 +1,5 @@
 // Real input and socket synchronization, including sandbox timer/input races and spectators.
-import { canvasPoint, clickCanvas, DESKTOP, leaveRoom, PHONE, signUp } from '../lib.mjs';
+import { canvasPoint, clickCanvas, DESKTOP, PHONE, signUp } from '../lib.mjs';
 export const games = ['bom-nguyen-to'];
 const id = 'bom-nguyen-to';
 const ready = (page) =>
@@ -8,6 +8,31 @@ const playing = (page) =>
   page.waitForFunction(
     () => window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.phase === 'playing',
   );
+
+// The board draws the room HUD itself: the sandbox's seat buttons fold into "Chơi thử".
+const sandboxButton = async (page, name) => {
+  const dock = page.getByRole('button', { name: 'Chơi thử', exact: true });
+  if ((await dock.getAttribute('aria-expanded')) !== 'true') await dock.click();
+  await page.getByRole('button', { name, exact: true }).click();
+};
+
+// No app room bar or settings gear over the board; the board's own menu leaves the room.
+const boardOwnsHud = (page) =>
+  page.waitForFunction(
+    () =>
+      !document.querySelector('.room-bar') &&
+      !document.querySelector('button[aria-label="Cài đặt"]') &&
+      window.__phaser.scene.getScene('bom-nguyen-to').ctx.screen.top < 20,
+  );
+const leaveBoard = async (page) => {
+  await clickCanvas(page, id, (s) => s.menuButton.container);
+  await clickCanvas(page, id, (s) => s.menuItems[1].container);
+  const confirm = page.getByRole('alertdialog');
+  await confirm.waitFor({ timeout: 1000 }).catch(() => {});
+  if (await confirm.count())
+    await confirm.getByRole('button', { name: 'Rời phòng', exact: true }).click();
+  await page.getByRole('button', { name: '+ Tạo phòng' }).waitFor();
+};
 
 // Controls must stay within the viewport and clear every potentially walkable grid center.
 const controlsClear = (page) =>
@@ -69,7 +94,8 @@ const renderedFrames = async (page, state, direction, minimum = 2) => {
       return new Set(frames.map((f) => `${f.texture}:${f.frame}`)).size >= minimum;
     },
     { state, direction, minimum },
-    { timeout: 10000 },
+    // Clips advance with rendered frames: a busy software renderer draws only a few a second.
+    { timeout: 30000 },
   );
 };
 
@@ -83,11 +109,19 @@ async function spriteLifecycle(t) {
   await page.goto(`${t.url}/?play=${id}&players=1`);
   await ready(page);
   // Practice removes random bot combat from the animation and freeze checks.
-  await page.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+  await sandboxButton(page, 'Tuỳ chỉnh');
   await clickCanvas(page, `${id}:setup`, (s) => s.choices[2].container);
   await clickCanvas(page, `${id}:setup`, (s) => s.choices[16].container);
   await clickCanvas(page, `${id}:setup`, (s) => s.submitButton.container);
-  await ready(page);
+  // The stopped board keeps its old ctx until the new one starts: wait for the practice game.
+  await page.waitForFunction(() => {
+    const s = window.__phaser.scene.getScene('bom-nguyen-to');
+    return (
+      window.__phaser.scene.isActive('bom-nguyen-to') &&
+      s.ctx.state.fighters.length === 1 &&
+      s.ctx.state.fighters[0].element === 'ice'
+    );
+  });
   await clickCanvas(page, id, (s) => s.readyButton.container);
   await playing(page);
   await observeActor(page);
@@ -121,18 +155,22 @@ async function spriteLifecycle(t) {
   await page.keyboard.press('Space');
   await renderedFrames(page, 'place');
   // A live bomb must animate its actual fuse frames while remaining anchored to its cell.
+  // Frames are counted as the clip advances (animationupdate), not per rendered frame: a slow
+  // software renderer can skip several clip frames between two browser frames.
   const bombFrames = await page.evaluate(async () => {
     const s = window.__phaser.scene.getScene('bom-nguyen-to');
     const bomb = [...s.bombs.values()][0].image;
     const frames = new Set(),
       positions = new Set();
+    const seen = (_animation, frame) => frames.add(frame.textureFrame);
+    bomb.on('animationupdate', seen);
     const start = performance.now();
-    while (performance.now() - start < 500) {
+    while (performance.now() - start < 600) {
       await new Promise(requestAnimationFrame);
       if (!bomb.scene) break;
-      frames.add(bomb.frame.name);
       positions.add(`${bomb.x.toFixed(2)},${bomb.y.toFixed(2)}`);
     }
+    bomb.off('animationupdate', seen);
     return { sprite: bomb.type === 'Sprite', frames: frames.size, positions: positions.size };
   });
   if (!bombFrames.sprite || bombFrames.frames < 2 || bombFrames.positions !== 1)
@@ -156,13 +194,11 @@ async function spriteLifecycle(t) {
     const scene = window.__phaser.scene.getScene('bom-nguyen-to');
     const effect = [...scene.flames.values()][0];
     if (effect?.type !== 'Sprite') return 0;
-    const frames = new Set();
+    const frames = new Set([effect.frame.name]);
+    effect.on('animationupdate', (_animation, frame) => frames.add(frame.textureFrame));
     const start = performance.now();
-    while (performance.now() - start < 250) {
+    while (performance.now() - start < 600 && effect.scene && frames.size < 2)
       await new Promise(requestAnimationFrame);
-      if (!effect.scene) break;
-      frames.add(effect.frame.name);
-    }
     return frames.size;
   });
   if (explosionFrames < 2) throw new Error('Explosions must advance genuine atlas frames');
@@ -204,7 +240,7 @@ async function spriteLifecycle(t) {
   });
   await page.screenshot({ path: t.shot('09-practice-result.png') });
   // New snapshots must show clean idle characters, with no KO, blasts, or old one-shots replayed.
-  await page.getByRole('button', { name: 'Ván mới', exact: true }).click();
+  await clickCanvas(page, id, (s) => s.newGameButton.container);
   await ready(page);
   await page.waitForFunction(() => {
     const scene = window.__phaser.scene.getScene('bom-nguyen-to');
@@ -274,15 +310,15 @@ export default async function run(t) {
     time,
   );
   await sandbox.keyboard.up('w');
-  await sandbox.getByRole('button', { name: 'Khán giả', exact: true }).click();
+  await sandboxButton(sandbox, 'Khán giả');
   await sandbox.keyboard.press('Space');
   const spectator = await sandbox.evaluate(() => {
     const s = window.__phaser.scene.getScene('bom-nguyen-to');
     return s.ctx.me === null && s.direction === 'none' && s.actions.every((c) => !c.enabled);
   });
   if (!spectator) throw new Error('Spectator retained input');
-  await sandbox.getByRole('button', { name: 'Ván mới', exact: true }).click();
-  await sandbox.getByRole('button', { name: 'Người 1', exact: true }).click();
+  await sandboxButton(sandbox, 'Ván mới');
+  await sandboxButton(sandbox, 'Người 1');
   await clickCanvas(sandbox, id, (s) => s.selectChoices[4].container);
   await clickCanvas(sandbox, id, (s) => s.readyButton.container);
   await playing(sandbox);
@@ -306,18 +342,25 @@ export default async function run(t) {
   );
   await sandbox.screenshot({ path: t.shot('04-rules-phone.png') });
   await clickCanvas(sandbox, id, (s) => s.helpClose.container);
-  await sandbox.getByRole('button', { name: 'Tuỳ chỉnh', exact: true }).click();
+  await sandboxButton(sandbox, 'Tuỳ chỉnh');
   await clickCanvas(sandbox, `${id}:setup`, (s) => s.choices[1].container);
   await clickCanvas(sandbox, `${id}:setup`, (s) => s.submitButton.container);
   await ready(sandbox);
-  const teams = await sandbox.evaluate(() => {
-    const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state;
-    return (
-      s.mode === 'teams' &&
-      s.fighters.length === 4 &&
-      s.fighters.filter((p) => p.team === 0).length === 2
-    );
-  });
+  // The stopped board keeps its old ctx until the new one starts: wait for the new game.
+  const teams = await sandbox
+    .waitForFunction(
+      () => {
+        const s = window.__phaser.scene.getScene('bom-nguyen-to').ctx.state;
+        return (
+          s.mode === 'teams' &&
+          s.fighters.length === 4 &&
+          s.fighters.filter((p) => p.team === 0).length === 2
+        );
+      },
+      undefined,
+      { timeout: 10000 },
+    )
+    .catch(() => null);
   if (!teams) throw new Error('2v2 missing filled seats');
   await sandbox.setViewportSize({ width: 1024, height: 768 });
   await controlsClear(sandbox);
@@ -347,26 +390,51 @@ export default async function run(t) {
   await ready(host);
   await ready(guest);
   await ready(fan);
+  await boardOwnsHud(host);
+  await boardOwnsHud(fan);
   await clickCanvas(host, id, (s) => s.selectChoices[2].container);
   await clickCanvas(guest, id, (s) => s.selectChoices[3].container);
   await clickCanvas(host, id, (s) => s.readyButton.container);
   await clickCanvas(guest, id, (s) => s.readyButton.container);
   await playing(host);
   await playing(guest);
+  // Every screen sees the host's bomb. (Which element it carries depends on whether the pick
+  // landed inside the 20 s selection on a slow headless browser.)
+  const hostId = await host.evaluate(
+    () => window.__phaser.scene.getScene('bom-nguyen-to').ctx.me.id,
+  );
   await host.keyboard.press('Space');
   for (const page of [guest, fan])
-    await page.waitForFunction(() =>
-      window.__phaser.scene
-        .getScene('bom-nguyen-to')
-        .ctx.state.bombs.some((b) => b.element === 'lightning'),
+    await page.waitForFunction(
+      (owner) =>
+        window.__phaser.scene
+          .getScene('bom-nguyen-to')
+          .ctx.state.bombs.some((b) => b.owner === owner),
+      hostId,
     );
   await guest.screenshot({ path: t.shot('06-synchronized-room-phone.png') });
-  await leaveRoom(guest);
+  // The board's menu opens the app's settings panel in the middle of the screen.
+  await clickCanvas(fan, id, (s) => s.menuButton.container);
+  await clickCanvas(fan, id, (s) => s.menuItems[0].container);
+  await fan.locator('.sound--board .sound-panel').waitFor();
+  // Esc closes the app's panel only: the board gets no keys while an app dialog is open.
+  await fan.keyboard.press('Escape');
+  await fan.locator('.sound--board').waitFor({ state: 'detached' });
+  await fan.waitForTimeout(300);
+  if (await fan.evaluate(() => window.__phaser.scene.getScene('bom-nguyen-to').helpPanel.visible))
+    throw new Error('Esc for the settings panel also reached the board');
+  await leaveBoard(guest);
   await host.waitForFunction(
     () => window.__phaser.scene.getScene('bom-nguyen-to').ctx.state.phase === 'ended',
   );
   await host.screenshot({ path: t.shot('07-victory-desktop.png') });
-  await host.getByRole('button', { name: 'Chơi ván mới', exact: true }).click();
+  // The board's own result buttons replace the app's result panel.
+  if (await host.locator('.result').count()) throw new Error('App result panel over the board');
+  // The guest's seat is free again: the spectator is offered it on the board.
+  await fan.waitForFunction(
+    () => window.__phaser.scene.getScene('bom-nguyen-to').sitButton.container.visible,
+  );
+  await clickCanvas(host, id, (s) => s.newGameButton.container);
   await host.waitForFunction(() => {
     const s = window.__phaser.scene.getScene('bom-nguyen-to');
     return (
@@ -375,7 +443,7 @@ export default async function run(t) {
       s.ctx.state.fighters.every((p) => p.hp === 100)
     );
   });
-  await leaveRoom(host);
+  await leaveBoard(host);
   await guest.context().close();
   await fan.context().close();
   await host.context().close();

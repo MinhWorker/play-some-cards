@@ -13,13 +13,14 @@ import {
   applyBlasts,
   collectPickups,
   explodeBombs,
+  follow,
   moveFighter,
   placeBomb,
   shrinkArena,
+  touches,
 } from './arena.js';
 import { thinkBot } from './bot.js';
 import {
-  cellOf,
   cloneState,
   DIRECTIONS,
   distance,
@@ -34,13 +35,22 @@ import {
   WIDTH,
 } from './model.js';
 
-const inputSchema = z.object({ direction: z.enum(['up', 'down', 'left', 'right', 'none']) });
+/** Where the player's own screen has them (see `follow`). */
+const pointSchema = z.object({
+  x: z.number().finite().min(0).max(WIDTH),
+  y: z.number().finite().min(0).max(HEIGHT),
+});
+const inputSchema = z.object({
+  direction: z.enum(['up', 'down', 'left', 'right', 'none']),
+  at: pointSchema.optional(),
+});
+const bombSchema = z.object({ at: pointSchema.optional() });
 const chooseSchema = z.object({ element: z.enum(ELEMENTS) });
 type Ctx = GameContext<State, Options>;
 export class BomNguyenToGame extends Game<State, Options> {
   events = {
     input: inputSchema,
-    bomb: z.object({}),
+    bomb: bombSchema,
     skill: z.object({}),
     dash: z.object({}),
     choose: chooseSchema,
@@ -139,14 +149,20 @@ export class BomNguyenToGame extends Game<State, Options> {
     const s = cloneState(ctx.state);
     const p = s.fighters.find((p) => p.id === ctx.player.id);
     if (p && p.hp > 0 && s.phase === 'playing') {
+      if (ctx.payload.at) follow(s, p, ctx.payload.at);
       p.dir = ctx.payload.direction;
       p.inputUntil = s.time + 650;
       if (p.dir !== 'none') p.facing = p.dir;
     }
     return s;
   }
-  onBomb(ctx: EventContext<State, Record<string, never>, Options>): State {
-    return this.action(ctx, placeBomb);
+  onBomb(ctx: EventContext<State, z.infer<typeof bombSchema>, Options>): State {
+    // The bomb lands on the cell the player sees themselves on.
+    const at = ctx.payload.at;
+    return this.action(ctx, (s, p) => {
+      if (at && s.phase === 'playing') follow(s, p, at);
+      return placeBomb(s, p);
+    });
   }
   onSkill(ctx: EventContext<State, Record<string, never>, Options>): State {
     return this.action(ctx, activateSkill);
@@ -155,7 +171,7 @@ export class BomNguyenToGame extends Game<State, Options> {
     return this.action(ctx, activateDash);
   }
   private action(
-    ctx: EventContext<State, Record<string, never>, Options>,
+    ctx: EventContext<State, object, Options>,
     fn: (s: State, p: Fighter) => boolean,
   ): State {
     const s = cloneState(ctx.state);
@@ -198,14 +214,20 @@ export class BomNguyenToGame extends Game<State, Options> {
         ((p.speed * TICK) / 1000) *
         (p.dashUntil > s.time ? 1.85 : 1) *
         (p.slowUntil > s.time ? 0.5 : 1);
-      if (p.bot && p.target) step = Math.min(step, distance(p, p.target));
+      // Stop on the next cell's line rather than overshoot it and turn back.
+      if (p.bot && p.target)
+        step = Math.min(step, Math.abs(d.x ? p.target.x - p.x : p.target.y - p.y));
+      const from = { x: p.x, y: p.y };
       moveFighter(s, p, d.x * step, d.y * step);
+      // Blocked on the way (a bomb dropped in front, a wall corner): think again.
+      if (p.bot && p.target && d !== DIRECTIONS.none && distance(from, p) === 0) p.target = null;
       collectPickups(s, p);
     }
+    // A fighter keeps walking off a bomb placed under them until no part of them touches it.
     for (const b of s.bombs)
       b.pass = b.pass.filter((id) => {
         const p = s.fighters.find((p) => p.id === id);
-        return p && p.hp > 0 && distance(cellOf(p), b) === 0;
+        return p && p.hp > 0 && touches(p, b);
       });
     applyBlasts(s);
     shrinkArena(s);

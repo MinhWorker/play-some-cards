@@ -13,10 +13,13 @@ export type Stage =
 
 /**
  * The only link between React and Phaser.
- * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px), 'hud:gap'
- * (the free middle of the room bar's row: left, right, top, bottom in px).
+ * React -> Phaser: 'stage' (Stage), 'hud:top' (bottom edge of the room bar, in px; `null` when
+ * the board draws its own, `hud.nav`), 'hud:gap' (the free middle of the room bar's row: left,
+ * right, top, bottom in px), 'ui:dialog' (true/false: an app dialog opened/closed over the board;
+ * the board gets no keys meanwhile, see `useDialogKeys`).
  * Phaser -> React: 'hub:select' (gameId), 'hub:locked', 'board:move' (move), 'board:options',
- * 'setup:submit' (room options), 'setup:cancel'.
+ * 'board:room' (a RoomAction from a board that draws its own room controls), 'setup:submit'
+ * (room options), 'setup:cancel'.
  * Game scenes (from games/) don't see this: PhaserStage passes their props and events along.
  */
 export const bridge = new Phaser.Events.EventEmitter();

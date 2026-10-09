@@ -8,6 +8,7 @@ import {
   blastCells,
   collectPickups,
   explodeBombs,
+  follow,
   makeBomb,
   moveFighter,
   placeBomb,
@@ -166,6 +167,40 @@ describe('bombs, collision and elemental combat', () => {
     expect(p.x).toBeLessThan(3.3);
     expect(activateDash(s, p)).toBe(true);
     expect(activateDash(s, p)).toBe(false);
+  });
+  it('walks one lane wide and slides around corners instead of catching on them', () => {
+    const s = arena(),
+      p = actor(s);
+    // A corridor along row 3, walls above and below.
+    for (let x = 2; x <= 6; x++) {
+      s.cells[indexOf({ x, y: 2 })] = 'wall';
+      s.cells[indexOf({ x, y: 4 })] = 'wall';
+    }
+    p.x = 2;
+    p.y = 3;
+    moveFighter(s, p, 0, 0.3);
+    expect(p.y).toBe(3);
+    moveFighter(s, p, 1.5, 0);
+    expect(p).toMatchObject({ x: 3.5, y: 3 });
+    // Halfway between rows 5 and 6 at column 7, a turn lines up with the open row first.
+    p.x = 7;
+    p.y = 5.4;
+    s.cells[indexOf({ x: 8, y: 5 })] = 'wall';
+    moveFighter(s, p, 1, 0);
+    expect(p).toMatchObject({ x: 7.4, y: 6 });
+  });
+  it("follows the player's own view only along open lanes and near the server", () => {
+    const s = arena(),
+      p = actor(s);
+    p.x = 3;
+    p.y = 3;
+    follow(s, p, { x: 3.8, y: 3 });
+    expect(p.x).toBeCloseTo(3.8);
+    s.cells[indexOf({ x: 5, y: 3 })] = 'wall';
+    follow(s, p, { x: 5, y: 3 });
+    expect(p.x).toBeCloseTo(3.8);
+    follow(s, p, { x: 3.8, y: 6 });
+    expect(p.y).toBe(3);
   });
   it('chain reactions predict the early fuse and resolve completely in one tick', () => {
     const s = arena();
@@ -374,5 +409,22 @@ describe('tactical bots', () => {
     s.pickups.push({ x: 3, y: 4, kind: 'heal' });
     thinkBot(s, p, optionsSchema.parse({ level: 'hard' }), () => 0);
     expect(p.target).toEqual({ x: 3, y: 4 });
+  });
+  it('leaves the ring that closes next before the arena shrinks', () => {
+    const s = arena(),
+      p = actor(s);
+    s.elapsed = 118000;
+    thinkBot(s, p, optionsSchema.parse({ level: 'normal' }), () => 0);
+    expect(p.target).not.toBeNull();
+    expect(p.target && (p.target.x > 1 || p.target.y > 1)).toBe(true);
+  });
+});
+
+describe('walking off a bomb', () => {
+  it('a player keeps going until no part of them touches their own bomb', () => {
+    const g = testGame(plugin, ['a'], { options: { total: 1 } });
+    g.send('a', 'ready').send('a', 'bomb');
+    for (let i = 0; i < 6; i++) g.send('a', 'input', { direction: 'right' }).fireTimer();
+    expect(g.state.fighters[0]?.x).toBeGreaterThan(2.5);
   });
 });
