@@ -1,11 +1,11 @@
 {
-  "name": "@psc/game-mau-binh",
+  "name": "@xomdao/game-mau-binh",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": {
-      "psc-source": "./src/index.ts",
+      "xomdao-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
@@ -17,7 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@psc/sdk": "*",
+    "@xomdao/sdk": "*",
     "zod": "^4.6.5"
   },
   "peerDependencies": {

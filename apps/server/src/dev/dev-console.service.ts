@@ -13,7 +13,7 @@ import {
   resolveValue,
   type Stored,
   setStatePath,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import { type Room, RoomError, RoomsService } from '../rooms/rooms.service.js';
 import { DevSnapshots } from './dev-snapshots.js';

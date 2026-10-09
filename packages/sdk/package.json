@@ -1,12 +1,12 @@
 {
-  "name": "@psc/sdk",
+  "name": "@xomdao/sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "description": "Everything a game plugin may use: the Game class, rng helpers, testGame, and (in /client) GameView and RoomSetupScene.",
   "exports": {
     ".": {
-      "psc-source": "./src/index.ts",
+      "xomdao-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },

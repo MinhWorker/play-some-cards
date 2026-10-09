@@ -12,8 +12,8 @@ from functools import partial
 
 # Shared helpers resolve identically in Blender and Python with the bpy wheel.
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "blender"))
-from psc_bake import cube, sphere, cloth_tile, render as bake
-from psc_bake import material as base_material, setup as base_setup
+from xomdao_bake import cube, sphere, cloth_tile, render as bake
+from xomdao_bake import material as base_material, setup as base_setup
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / ".blender" / "go"

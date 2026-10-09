@@ -1,4 +1,4 @@
-import { seededRng, testGame } from '@psc/sdk';
+import { seededRng, testGame } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { legalMoves, optionsSchema, squareOf } from './model.js';

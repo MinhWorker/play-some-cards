@@ -1,4 +1,4 @@
-import type { FlowContext } from '@psc/sdk/client';
+import type { FlowContext } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 /** Two steel doors over the entire camera, owned by the pawn's scoped jail journey. */

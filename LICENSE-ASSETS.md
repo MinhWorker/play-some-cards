@@ -3,7 +3,7 @@
 Mã nguồn theo MIT (xem `LICENSE`). Hình và âm thanh có giấy phép riêng:
 
 **[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)**: được dùng, sao chép và sửa
-tự do, miễn là ghi nguồn "Chơi Chút Bài (github.com/MinhWorker/play-some-cards)" và không dùng để
+tự do, miễn là ghi nguồn "Xóm Đảo (github.com/MinhWorker/xom-dao)" và không dùng để
 kiếm tiền.
 
 Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `games/*/assets/`,
@@ -16,7 +16,7 @@ Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `
   `button-hover.wav`, cắt từ `assets/shared/audio/sfx/button-click.mp3` và `button-hover.mp3`),
   vẫn theo giấy phép gốc của chúng. Các hiệu ứng của Tiến Lên
   (`games/tien-len/assets/tien-len-*.wav`, trừ `tien-len-bomb` và `tien-len-win`; bản gốc là
-  `assets/games/tien-len/audio/psc-tien-len-*.wav`) được làm từ bản ghi "taking playing card"
+  `assets/games/tien-len/audio/xomdao-tien-len-*.wav`) được làm từ bản ghi "taking playing card"
   của oxidvideos trên Pixabay, theo giấy phép Pixabay; tiếng đập bài (`tien-len-card-play`,
   `tien-len-combo`) trộn thêm tiếng gỗ `assets/audio/sfx/u_scysdwddsp-wood-effect-254997.mp3`
   (Pixabay). Nhạc tổng kết `games/tien-len/assets/tien-len-standings.mp3` là

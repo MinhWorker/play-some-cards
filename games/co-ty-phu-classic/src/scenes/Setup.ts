@@ -1,4 +1,4 @@
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
 

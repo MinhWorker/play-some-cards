@@ -1,4 +1,4 @@
-import { definePlugin } from '@psc/sdk';
+import { definePlugin } from '@xomdao/sdk';
 import { BomNguyenToGame } from './game/BomNguyenToGame.js';
 import { optionsSchema } from './game/model.js';
 export default definePlugin({

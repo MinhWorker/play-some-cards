@@ -1,4 +1,4 @@
-import { FONT } from '@psc/sdk/client';
+import { FONT } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Property, type Square, STATION_BASE_FEE } from '../../game/model.js';
 

@@ -1,4 +1,4 @@
-"""Bake a wooden Vietnamese horse-race set with the shared psc_bake rig.
+"""Bake a wooden Vietnamese horse-race set with the shared xomdao_bake rig.
 Run: npm run blender -- co-ca-ngua [board horses dice-1 cloth button]
 """
 from pathlib import Path
@@ -7,7 +7,7 @@ import math
 import bpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'tools' / 'blender'))
-from psc_bake import setup, material, wood, cube, sphere, lathe, render, atlas, cloth_tile
+from xomdao_bake import setup, material, wood, cube, sphere, lathe, render, atlas, cloth_tile
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'assets'

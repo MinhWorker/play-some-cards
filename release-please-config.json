@@ -5,7 +5,7 @@
   "bump-minor-pre-major": true,
   "packages": {
     ".": {
-      "package-name": "play-some-cards",
+      "package-name": "xom-dao",
       "changelog-path": "CHANGELOG.md"
     }
   },

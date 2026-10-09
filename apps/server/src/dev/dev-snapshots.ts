@@ -10,7 +10,7 @@ import {
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import type { Stored } from '@psc/sdk';
+import type { Stored } from '@xomdao/sdk';
 import { type Room, RoomError } from '../rooms/rooms.service.js';
 import { type DevFrame, frameOf } from './room-dev.js';
 

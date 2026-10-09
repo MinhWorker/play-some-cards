@@ -1,4 +1,4 @@
-import type { Seat } from '@psc/sdk';
+import type { Seat } from '@xomdao/sdk';
 import type { State } from './model.js';
 
 type DecisionState = Pick<State, 'turn' | 'phase' | 'auction' | 'trade' | 'debt'>;

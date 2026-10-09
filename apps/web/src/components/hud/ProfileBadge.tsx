@@ -1,4 +1,4 @@
-import type { User } from '@psc/shared';
+import type { User } from '@xomdao/shared';
 import { useState } from 'react';
 import { AvatarPicture } from '@/components/ui/AvatarPicture';
 import type { Profile } from '@/lib/profile';

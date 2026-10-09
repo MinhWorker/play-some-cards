@@ -4,7 +4,7 @@
  * then add `setup` here. `leaveConfirm` changes the texts of the "leave mid-game?" question
  * (`{ title, message, stay, leave }`), or `false` turns it off.
  */
-import { defineClient } from '@psc/sdk/client';
+import { defineClient } from '@xomdao/sdk/client';
 import { __Name__View } from './scenes/__Name__View.js';
 
 export default defineClient({ scene: __Name__View });

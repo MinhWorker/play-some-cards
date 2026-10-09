@@ -18,7 +18,7 @@ import {
   GameView,
   type ViewContext,
   type ViewSeat,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Card, handName, handOf } from '../game/cards.js';
 import { BETS, type Options, type View } from '../game/model.js';

@@ -9,10 +9,10 @@ import {
   type SoundHandle,
   type SoundOptions,
   type SoundStart,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import { type AssetOwner, soundUrl } from '@/lib/assetUrl';
 
-const KEY = 'psc:sound';
+const KEY = 'xomdao:sound';
 
 export interface ChannelSettings {
   /** 0..1 */

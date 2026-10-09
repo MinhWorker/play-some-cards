@@ -6,7 +6,7 @@
  *   src/client.ts   defineClient({ scene: …, setup: __Name__Setup })
  *   src/index.ts    definePlugin({ meta, game, room: { options: optionsSchema } })
  */
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/options.js';
 

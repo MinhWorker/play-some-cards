@@ -1,4 +1,4 @@
-import { games, type JoinedRoom, type RoomRole, type RoomSummary } from '@psc/shared';
+import { games, type JoinedRoom, type RoomRole, type RoomSummary } from '@xomdao/shared';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { loadClient } from '@/games';

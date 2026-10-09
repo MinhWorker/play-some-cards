@@ -12,7 +12,7 @@
  *
  * Blender renders the wood and polished stones; grid, shadows and marks remain code-native.
  */
-import { type Button, GameView, type ViewContext } from '@psc/sdk/client';
+import { type Button, GameView, type ViewContext } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { BOARD_SIZE, KOMI, type Options, type Side, type View } from '../game/model.js';
 import { colOf, place, rowOf, score, starPoints } from '../game/rules.js';

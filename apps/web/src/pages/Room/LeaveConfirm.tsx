@@ -1,4 +1,4 @@
-import type { LeaveConfirm as Texts } from '@psc/sdk/client';
+import type { LeaveConfirm as Texts } from '@xomdao/sdk/client';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { useDialogKeys } from '@/hooks/useDialogKeys';

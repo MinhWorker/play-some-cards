@@ -1,14 +1,14 @@
 # Render Blueprint for the game server (apps/server). The web app is on Vercel.
 services:
   - type: web
-    name: play-some-cards-server
+    name: xomdao-server
     runtime: node
     plan: free
     region: singapore
-    repo: https://github.com/MinhWorker/play-some-cards
+    repo: https://github.com/MinhWorker/xom-dao
     branch: main
-    buildCommand: npm ci && npm run build -w @psc/shared && npm run build -w @psc/server
-    startCommand: npm start -w @psc/server
+    buildCommand: npm ci && npm run build -w @xomdao/shared && npm run build -w @xomdao/server
+    startCommand: npm start -w @xomdao/server
     healthCheckPath: /api/health
     buildFilter:
       paths:
@@ -20,7 +20,7 @@ services:
         - package-lock.json
         # The root package.json holds the app version (bumped by release PRs).
         - package.json
-    # Never set PSC_DEV here: it grants room members full game-state commands.
+    # Never set XOMDAO_DEV here: it grants room members full game-state commands.
     envVars:
       - key: NODE_VERSION
         value: "22"

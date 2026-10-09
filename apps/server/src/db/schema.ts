@@ -1,4 +1,4 @@
-// Database tables (Drizzle ORM). After changing this file run `npm run db:generate -w @psc/server`
+// Database tables (Drizzle ORM). After changing this file run `npm run db:generate -w @xomdao/server`
 // to write a migration into `apps/server/drizzle/`; the server applies pending migrations on start.
 // Rooms and games still live in memory (see rooms.service.ts); accounts and finished games
 // (match history) are stored here.
@@ -22,7 +22,7 @@ export const users = pgTable('users', {
   /** Display name shown in games; not unique, can change any time. */
   name: text('name').notNull(),
   avatar: text('avatar').notNull(),
-  /** The ring drawn around the avatar (`Frame` in @psc/shared). */
+  /** The ring drawn around the avatar (`Frame` in @xomdao/shared). */
   frame: text('frame').notNull().default('gold'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

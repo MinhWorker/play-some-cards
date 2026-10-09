@@ -2,7 +2,7 @@
  * The game's data: what a room remembers (State) and the room's options (Options). Read this
  * file first; everything else works on these.
  */
-import type { PlayerId } from '@psc/sdk';
+import type { PlayerId } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export type Mark = 'X' | 'O';

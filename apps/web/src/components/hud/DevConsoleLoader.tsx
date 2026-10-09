@@ -1,5 +1,5 @@
 /** Lazy overlay loading and dev-only automation entry points, independent of the master switch. */
-import type { RoomSnapshot } from '@psc/shared';
+import type { RoomSnapshot } from '@xomdao/shared';
 import { lazy, Suspense, useSyncExternalStore } from 'react';
 import { devSetting, devToolsEnabled, subscribeDevSettings } from '@/lib/devTools';
 

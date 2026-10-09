@@ -1,11 +1,11 @@
-import type { GameAssets, GameClient } from '@psc/sdk/client';
-import { type AnyGameDefinition, games } from '@psc/shared';
+import type { GameAssets, GameClient } from '@xomdao/sdk/client';
+import { type AnyGameDefinition, games } from '@xomdao/shared';
 import { devSetting } from '@/lib/devTools';
 import { checkForNewBuild } from '@/lib/newBuild';
 
 /**
  * The web side of the game plugins in games/<id>/. Nothing here names a game: rules and meta
- * come from @psc/shared's generated list, and these globs pick up every game's files.
+ * come from @xomdao/shared's generated list, and these globs pick up every game's files.
  */
 
 // URLs only (no download until used): every file in games/<id>/assets/.

@@ -3,7 +3,7 @@
  * and whether you move first on the standard 8 × 8 board. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room,
  * with the current picks selected.
  */
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
 import { PRIMARY_BUTTON, SECONDARY_BUTTON, styleButton } from './buttons.js';

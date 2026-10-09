@@ -1,4 +1,4 @@
-import { PROTOCOL_MISMATCH, PROTOCOL_VERSION } from '@psc/shared';
+import { PROTOCOL_MISMATCH, PROTOCOL_VERSION } from '@xomdao/shared';
 import { useEffect, useState } from 'react';
 import { socket } from '@/lib/socket';
 
@@ -9,7 +9,7 @@ import { socket } from '@/lib/socket';
  */
 export type VersionState = 'ok' | 'newer' | 'older';
 
-const RELOAD_KEY = 'psc.versionReload';
+const RELOAD_KEY = 'xomdao.versionReload';
 const RELOAD_EVERY_MS = 60_000;
 const RELOAD_DELAY_MS = 1500;
 

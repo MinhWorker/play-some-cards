@@ -1,4 +1,4 @@
-import type { AuthResponse, LoginRequest, RegisterRequest } from '@psc/shared';
+import type { AuthResponse, LoginRequest, RegisterRequest } from '@xomdao/shared';
 
 /**
  * Where the game server lives. Empty = same origin (dev via Vite proxy, or when the Nest
@@ -7,7 +7,7 @@ import type { AuthResponse, LoginRequest, RegisterRequest } from '@psc/shared';
  */
 export const serverUrl: string | undefined = import.meta.env.VITE_SERVER_URL || undefined;
 
-const TOKEN_KEY = 'psc:token';
+const TOKEN_KEY = 'xomdao:token';
 
 /** The login token of this browser (from register/login), sent when the socket connects. */
 export function loadToken(): string | null {

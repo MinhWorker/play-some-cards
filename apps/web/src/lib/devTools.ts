@@ -49,7 +49,7 @@ export const DEV_SETTINGS = {
 export type DevKey = keyof typeof DEV_SETTINGS;
 type Value<K extends DevKey> = (typeof DEV_SETTINGS)[K]['default'];
 
-const KEY = 'psc:dev';
+const KEY = 'xomdao:dev';
 const listeners = new Set<() => void>();
 let values: Partial<Record<DevKey, unknown>> = load();
 

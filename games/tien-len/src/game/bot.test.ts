@@ -1,4 +1,4 @@
-import { testGame } from '@psc/sdk';
+import { testGame } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { combosOf } from './bot.js';

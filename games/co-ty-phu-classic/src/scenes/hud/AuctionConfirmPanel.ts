@@ -1,4 +1,4 @@
-import { FONT } from '@psc/sdk/client';
+import { FONT } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { auctionRaise, BOARD, type View } from '../../game/model.js';
 import { propertyActionIcon } from './PropertyActionIcons.js';

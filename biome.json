@@ -42,8 +42,8 @@
                   {
                     "group": [
                       "**",
-                      "!@psc/sdk",
-                      "!@psc/sdk/client",
+                      "!@xomdao/sdk",
+                      "!@xomdao/sdk/client",
                       "!phaser",
                       "!zod",
                       "!vitest",
@@ -51,7 +51,7 @@
                       "!../*",
                       "!../*/**"
                     ],
-                    "message": "A game may import only @psc/sdk, @psc/sdk/client, phaser, zod, vitest (tests) and its own files (./..., ../game/...)."
+                    "message": "A game may import only @xomdao/sdk, @xomdao/sdk/client, phaser, zod, vitest (tests) and its own files (./..., ../game/...)."
                   },
                   {
                     "group": ["../../**"],
@@ -76,8 +76,8 @@
                   {
                     "group": [
                       "**",
-                      "!@psc/sdk",
-                      "!@psc/sdk/client",
+                      "!@xomdao/sdk",
+                      "!@xomdao/sdk/client",
                       "!phaser",
                       "!zod",
                       "!vitest",
@@ -108,8 +108,8 @@
               "options": {
                 "patterns": [
                   {
-                    "group": ["@psc/game-*", "**/games/*/src/**"],
-                    "message": "Core code reaches games only through the generated list (@psc/shared `games`) and apps/web/src/games/index.ts."
+                    "group": ["@xomdao/game-*", "**/games/*/src/**"],
+                    "message": "Core code reaches games only through the generated list (@xomdao/shared `games`) and apps/web/src/games/index.ts."
                   }
                 ]
               }

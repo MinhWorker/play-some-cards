@@ -1,4 +1,4 @@
-import { testGame } from '@psc/sdk';
+import { testGame } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { __Name__Game } from './__Name__Game.js';
 

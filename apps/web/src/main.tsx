@@ -1,8 +1,10 @@
+// Runs before any module reads browser storage.
+import '@/lib/legacyStorage';
 // Global styles first: component stylesheets (imported by each component) build on them.
 import '@/styles/theme.css';
 import '@/styles/base.css';
-import { setClientHost } from '@psc/sdk/client';
-import { AVATARS, FRAMES } from '@psc/shared';
+import { setClientHost } from '@xomdao/sdk/client';
+import { AVATARS, FRAMES } from '@xomdao/shared';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from '@/App';

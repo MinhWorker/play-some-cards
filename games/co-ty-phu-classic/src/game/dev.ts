@@ -1,5 +1,5 @@
 /** Optional console schemas and stable references to board squares and cards. */
-import { catalog } from '@psc/sdk';
+import { catalog } from '@xomdao/sdk';
 import { z } from 'zod';
 import { CHANCE, CHEST } from './cards.js';
 import { BOARD } from './model.js';

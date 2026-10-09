@@ -1,7 +1,7 @@
 """Bake ivory xiangqi discs and aligned camera-space normals into one atlas.
 
 Run: npm run blender -- xiangqi pieces [or piece-red-general].
-PSC_XIANGQI_FONT can select another freely licensed CJK font installed on the machine.
+XOMDAO_XIANGQI_FONT can select another freely licensed CJK font installed on the machine.
 """
 from pathlib import Path
 import math
@@ -12,7 +12,7 @@ import bpy
 import bmesh
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'tools' / 'blender'))
-from psc_bake import atlas, lathe, material, render, setup
+from xomdao_bake import atlas, lathe, material, render, setup
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / '.blender' / 'xiangqi'
@@ -20,7 +20,7 @@ SELECTED = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 KINDS = ('general', 'advisor', 'elephant', 'horse', 'chariot', 'cannon', 'soldier')
 CHARACTERS = {'red': '帥仕相傌俥炮兵', 'black': '將士象馬車砲卒'}
 FRAMES = [f'piece-{side}-{kind}' for side in CHARACTERS for kind in KINDS]
-FONT = Path(os.environ.get('PSC_XIANGQI_FONT', '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'))
+FONT = Path(os.environ.get('XOMDAO_XIANGQI_FONT', '/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc'))
 
 
 def glyph(character, font, mat, z, extrusion):
@@ -87,7 +87,7 @@ def engrave(body, cutter):
 
 if not SELECTED or 'pieces' in SELECTED or any(name in FRAMES for name in SELECTED):
     if not FONT.is_file():
-        raise FileNotFoundError('Install Noto Sans CJK Bold or set PSC_XIANGQI_FONT to a CJK font')
+        raise FileNotFoundError('Install Noto Sans CJK Bold or set XOMDAO_XIANGQI_FONT to a CJK font')
     font = bpy.data.fonts.load(str(FONT))
     for side, characters in CHARACTERS.items():
         for kind, character in zip(KINDS, characters):

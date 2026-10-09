@@ -3,7 +3,7 @@
  * Each player shows their three chi (the cards, the hand, the points), binh lủng / tới trắng,
  * and the round's points. Opened and closed with its button on this screen only.
  */
-import { type Button, titleStyle } from '@psc/sdk/client';
+import { type Button, titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { Card } from '../game/cards.js';
 import { CARD_RATIO, CardSprite, type CardTextures } from './Card.js';

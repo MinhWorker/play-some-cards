@@ -6,7 +6,7 @@
  * up again. About a second and a half in all.
  */
 
-import { type FlowContext, type GameScene } from '@psc/sdk/client';
+import { type FlowContext, type GameScene } from '@xomdao/sdk/client';
 
 const PAPER = 0xf2e8d0;
 const PAPER_EDGE = 0xcdb88e;

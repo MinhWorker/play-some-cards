@@ -1,4 +1,4 @@
-# Web app (@psc/web)
+# Web app (@xomdao/web)
 
 Folder guide and "where do I change…" table (Vietnamese): `apps/web/README.md`.
 

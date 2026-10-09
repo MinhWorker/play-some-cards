@@ -36,7 +36,7 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
 - Bốn quân đam trắng ngà/đen gỗ có rãnh, Vua có dấu vương miện và vòng vàng, cùng canvas 384 px.
   Đảo riêng có bàn 8 × 8 và bốn quân. Kết xuất bằng Blender:
   `npm run blender -- checkers`. Thêm `island` hoặc `piece-black-king` sau id để chỉ kết xuất
-  một hình. Helper vật liệu, hình học và đèn dùng chung ở `tools/blender/psc_bake/`; có thể
+  một hình. Helper vật liệu, hình học và đèn dùng chung ở `tools/blender/xomdao_bake/`; có thể
   chạy Python với bpy như [hướng dẫn](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map).
   PNG trung gian ở `.blender/checkers/`; WebP trực tiếp ở `assets/`.
 - Bàn walnut/maple và hai nút nine-slice là bản sao tài nguyên Blender của Cờ Vua

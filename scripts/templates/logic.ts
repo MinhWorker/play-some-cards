@@ -3,7 +3,7 @@
  * event runs its hook (`play` → `onPlay`), which gets the whole room in `ctx` and returns the
  * next state. Use it in src/index.ts: `game: new __Name__Game()`.
  */
-import { type EventContext, Game, type StartContext } from '@psc/sdk';
+import { type EventContext, Game, type StartContext } from '@xomdao/sdk';
 import { z } from 'zod';
 
 /** What the game remembers. Hooks never change it: they return a new one. */

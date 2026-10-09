@@ -1,11 +1,11 @@
-# Chơi chút bài (Play Some Cards)
+# Xóm Đảo
 
 Game bàn cờ và bài để chơi với bạn bè ngay trên trình duyệt, giữa những hòn đảo bay trên trời.
 Chọn một game, mở phòng, bạn bè vào từ danh sách phòng để chơi hoặc xem.
 
-**Chơi:** https://play-some-cards.vercel.app
+**Chơi:** https://xomdao.vercel.app
 
-Có thể cài Chơi chút bài từ nút cài đặt trên Chrome khi trình duyệt hỗ trợ. Khi mất kết nối,
+Có thể cài Xóm Đảo từ nút cài đặt trên Chrome khi trình duyệt hỗ trợ. Khi mất kết nối,
 trang báo ngoại tuyến sẽ thay cho màn hình lỗi.
 
 ![Caro trên các đảo bay](docs/images/screenshot.webp)
@@ -24,8 +24,8 @@ Cần Node 22 và [Git LFS](https://git-lfs.com) (cho ảnh gốc trong `assets/
 
 ```
 git lfs install
-git clone https://github.com/MinhWorker/play-some-cards.git
-cd play-some-cards
+git clone https://github.com/MinhWorker/xom-dao.git
+cd xom-dao
 npm install
 npm run dev        # mở http://localhost:5033
 ```

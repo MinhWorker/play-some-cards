@@ -1,4 +1,4 @@
-import type { AuthResponse, JoinedRoom, User } from '@psc/shared';
+import type { AuthResponse, JoinedRoom, User } from '@xomdao/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { loadToken, logout, saveToken } from '@/lib/auth';
 import type { Profile } from '@/lib/profile';

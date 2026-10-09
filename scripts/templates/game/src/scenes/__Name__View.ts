@@ -7,7 +7,7 @@
  * with your game. Images and sounds in assets/ are used by file name: this.sprite('card'),
  * this.sfx('deal').
  */
-import { type Button, GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import { type Button, GameView, type ViewContext, type ViewEvent } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type State, TARGET } from '../game/__Name__Game.js';
 

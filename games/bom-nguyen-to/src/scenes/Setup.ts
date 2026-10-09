@@ -1,4 +1,4 @@
-import { RoomSetupScene, rasterizeGraphics } from '@psc/sdk/client';
+import { RoomSetupScene, rasterizeGraphics } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import {
   ELEMENT_INFO,

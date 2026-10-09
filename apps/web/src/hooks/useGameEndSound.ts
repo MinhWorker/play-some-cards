@@ -1,4 +1,4 @@
-import type { JoinedRoom, RoomSnapshot } from '@psc/shared';
+import type { JoinedRoom, RoomSnapshot } from '@xomdao/shared';
 import { useEffect, useRef } from 'react';
 import { useGameClient } from '@/hooks/useGameClient';
 import { playSfx } from '@/lib/sound';

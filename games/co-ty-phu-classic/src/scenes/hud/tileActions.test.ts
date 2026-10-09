@@ -1,4 +1,4 @@
-import { testGame } from '@psc/sdk';
+import { testGame } from '@xomdao/sdk';
 import { expect, it } from 'vitest';
 import { move } from '../../game/rules.js';
 import plugin from '../../index.js';

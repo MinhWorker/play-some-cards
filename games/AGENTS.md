@@ -49,10 +49,10 @@ games/<id>/          Only index.ts + client.ts are required
 - `gameRules` and registry tests reject reserved command names, missing command hooks,
   invalid/duplicate catalog IDs and references to unknown catalogs. Existing games need no
   commands or catalogs.
-- Synchronous `console.log/info/warn/error` in hooks reaches the room log with `PSC_DEV=1`
+- Synchronous `console.log/info/warn/error` in hooks reaches the room log with `XOMDAO_DEV=1`
   and still prints in the terminal. SDK declares these methods for pure game builds.
 - A game imports only these; Biome enforces it, and core never imports a game:
-  - `@psc/sdk` and `@psc/sdk/client`;
+  - `@xomdao/sdk` and `@xomdao/sdk/client`;
   - `phaser` and `zod`;
   - its own files.
 - Cờ tỷ phú Classic groups scene helpers under `src/scenes/board/`, `effects/`, `hud/` and
@@ -70,7 +70,7 @@ games/<id>/          Only index.ts + client.ts are required
 - `meta.status: 'wip'` is locked only on the production site (`VERCEL_ENV`), so unfinished games
   can be merged. `'ready'` releases the game.
 - The server runs the games' compiled `dist/`, while the web app and typechecks use their
-  TypeScript source (export condition `psc-source`). Root scripts build them first
+  TypeScript source (export condition `xomdao-source`). Root scripts build them first
   (`scripts/libs.mjs`).
 
 ## Mechanics worth knowing

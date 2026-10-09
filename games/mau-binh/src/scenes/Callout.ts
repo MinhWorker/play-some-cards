@@ -2,7 +2,7 @@
  * Big words that pop up over the table ("Chặt heo!", "Về nhất!", "Vòng 2"): they spring in,
  * hold, then float up and fade.
  */
-import { FRAME, type Frame, type GameScene, hudScale, titleStyle } from '@psc/sdk/client';
+import { FRAME, type Frame, type GameScene, hudScale, titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 export interface CalloutStyle {

@@ -4,7 +4,7 @@
  * back, both from the table's card look (deck.ts). A Phaser container, so it moves, turns and
  * flips as one object.
  */
-import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
+import { type FlowContext, FONT, type GameScene } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { type Card, isRed, RANKS, rankOf, suitOf } from '../game/cards.js';
 import type { CardArt } from './deck.js';

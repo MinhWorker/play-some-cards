@@ -1,4 +1,4 @@
-import type { AuthResponse } from '@psc/shared';
+import type { AuthResponse } from '@xomdao/shared';
 import { type FormEvent, useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { imageUrl } from '@/lib/assetUrl';

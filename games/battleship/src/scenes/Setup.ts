@@ -3,7 +3,7 @@
  * whether ships may touch, whether a hit earns another shot and who fires first. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room,
  * with the current picks selected.
  */
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
 

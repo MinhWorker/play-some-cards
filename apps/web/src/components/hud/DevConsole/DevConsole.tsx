@@ -1,5 +1,5 @@
 /** Three-state translucent overlay: hidden, fading room logs, and focused keyboard commands. */
-import type { RoomSnapshot } from '@psc/shared';
+import type { RoomSnapshot } from '@xomdao/shared';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import {
   consoleSnapshot,

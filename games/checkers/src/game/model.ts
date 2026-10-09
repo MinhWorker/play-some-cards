@@ -7,7 +7,7 @@
  * man, 'W' a white king, 'b' a black man, 'B' a black king, '.' empty. The side that moves first
  * starts on the bottom rows and its men move up.
  */
-import type { PlayerId } from '@psc/sdk';
+import type { PlayerId } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export type Side = 'w' | 'b';

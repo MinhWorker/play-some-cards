@@ -4,7 +4,7 @@
  *
  * Server entry: the game's meta, its logic (a `Game`) and its room options (computer players).
  */
-import { definePlugin } from '@psc/sdk';
+import { definePlugin } from '@xomdao/sdk';
 import { MauBinhGame } from './game/MauBinhGame.js';
 import { optionsSchema } from './game/model.js';
 

@@ -4,7 +4,7 @@ import {
   GameView,
   type LitLayer,
   type ViewContext,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import {
   CELEBRATION_MS,

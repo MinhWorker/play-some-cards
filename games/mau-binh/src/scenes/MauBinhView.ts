@@ -9,7 +9,7 @@
  * are turned over one after another with who won each, sập 3 chi, everyone's points, and the
  * round's scores. After the match, the final standings.
  */
-import { type Button, type FlowContext, GameView, type ViewContext } from '@psc/sdk/client';
+import { type Button, type FlowContext, GameView, type ViewContext } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { bestRows } from '../game/arrange.js';
 import { type Card, foulOf, handName, type Rows, rankOf, SUITS, type Suit } from '../game/cards.js';

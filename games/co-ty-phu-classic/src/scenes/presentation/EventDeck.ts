@@ -1,4 +1,4 @@
-import type { FlowContext, GameScene } from '@psc/sdk/client';
+import type { FlowContext, GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { Deck } from '../../game/cards.js';
 

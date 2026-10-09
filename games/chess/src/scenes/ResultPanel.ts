@@ -4,7 +4,7 @@
  * how it ended, then how long it took, how many moves and how many pieces each side took.
  * "Xem bàn cờ" puts it away (the board's "Kết quả" button brings it back).
  */
-import { type Button, FONT, type GameScene } from '@psc/sdk/client';
+import { type Button, FONT, type GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 const PAPER = 0xfbf1dc;

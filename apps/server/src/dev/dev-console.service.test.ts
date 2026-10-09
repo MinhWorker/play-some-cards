@@ -2,7 +2,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Stored } from '@psc/sdk';
+import type { Stored } from '@xomdao/sdk';
 import { afterEach, describe, expect, it } from 'vitest';
 import { RoomsService } from '../rooms/rooms.service.js';
 import { DevConsoleService } from './dev-console.service.js';
@@ -14,7 +14,7 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 function setup(gameId = 'tic-tac-toe', options: unknown = { opponent: 'bot' }) {
-  const root = mkdtempSync(join(tmpdir(), 'psc-dev-'));
+  const root = mkdtempSync(join(tmpdir(), 'xomdao-dev-'));
   dirs.push(root);
   const rooms = new RoomsService(true);
   const { room } = rooms.create(gameId, { id: 'a', name: 'A' }, options);

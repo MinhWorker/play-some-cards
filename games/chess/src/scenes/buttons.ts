@@ -1,4 +1,4 @@
-import type { Button } from '@psc/sdk/client';
+import type { Button } from '@xomdao/sdk/client';
 
 /** The chess set's lacquer and ivory nine-slice buttons. */
 export const PRIMARY_BUTTON = { image: 'button', slice: 32, size: 28 } as const;

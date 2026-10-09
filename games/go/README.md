@@ -68,7 +68,7 @@ Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
 ## Hình và âm thanh
 
 - Bàn gỗ kaya viền mỏng, quân đá phiến đen/đá trắng ngà mài bóng, nền vải và nút gỗ kết xuất bằng
-  Blender: `npm run blender -- go`. Helper chung ở `tools/blender/psc_bake/`;
+  Blender: `npm run blender -- go`. Helper chung ở `tools/blender/xomdao_bake/`;
   cũng dùng được Python với bpy như [hướng dẫn](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Góc nhìn thẳng từ trên
   xuống, ánh sáng mềm từ trên trái. Nền vải liền mép là tile 256×256 POT phủ màn hình bằng `this.tiled('cloth')`;
   tái tạo bằng `npm run blender -- go cloth`. Đường kẻ và chín sao do Phaser vẽ để khớp giao điểm.
@@ -76,7 +76,7 @@ Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
   `npm run blender -- go bowl bowl-lid`; chồng quân và bóng tròn do Phaser vẽ.
 - Đảo Cờ Vây trên bản đồ tạo bằng Image Gen; prompt ở `sources/prompts.json`. Sinh lại bằng `npm run gen:asset -- go/island`.
 - Ba tiếng đặt quân là các đoạn va chạm trong bản ghi của dự án
-  `assets/audio/sfx/psc-wood-marker-place-veo.mp3`, được cắt, lọc phần ù thấp và làm đuôi ngắn.
+  `assets/audio/sfx/xomdao-wood-marker-place-veo.mp3`, được cắt, lọc phần ù thấp và làm đuôi ngắn.
   Tiếng bắt quân ghép vài va chạm nhỏ; tiếng bỏ lượt/đánh dấu nhẹ hơn. Không thêm tiếng trống
   hay cộng hưởng ống vào tiếng đặt quân.
 - Tiếng mở ván, vào đếm điểm và kết thúc dùng lại `caro-start`, `caro-line-complete`, `caro-win`

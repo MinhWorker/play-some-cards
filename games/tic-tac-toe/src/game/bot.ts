@@ -2,7 +2,7 @@
  * The computer player's brain: which cell to mark. CaroGame.bot calls it in rooms against the
  * computer.
  */
-import { type PlayerId, pick } from '@psc/sdk';
+import { type PlayerId, pick } from '@xomdao/sdk';
 import { at, DIRECTIONS, emptyCells, isOver, otherMark, points, runAt, winsAt } from './board.js';
 import { type Board, type BotLevel, type Mark, type Point, type State, WIN } from './model.js';
 

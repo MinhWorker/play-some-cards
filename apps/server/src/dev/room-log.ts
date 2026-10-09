@@ -1,6 +1,6 @@
 /** Bounded per-room dev logs, synchronous game-console capture and subscriptions. */
 import { format } from 'node:util';
-import type { DevLogEntry } from '@psc/shared';
+import type { DevLogEntry } from '@xomdao/shared';
 import type { Room } from '../rooms/rooms.service.js';
 
 export type LogDetails = Omit<DevLogEntry, 'id' | 't'>;

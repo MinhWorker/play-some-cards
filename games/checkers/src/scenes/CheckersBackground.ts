@@ -1,4 +1,4 @@
-import { GameBackgroundScene } from '@psc/sdk/client';
+import { GameBackgroundScene } from '@xomdao/sdk/client';
 
 /** Quiet midnight cloth: a small seamless POT tile over the whole screen, its bleed included. */
 export class CheckersBackground extends GameBackgroundScene {

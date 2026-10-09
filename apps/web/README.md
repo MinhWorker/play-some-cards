@@ -1,4 +1,4 @@
-# @psc/web
+# @xomdao/web
 
 Ứng dụng web của game: React cho giao diện, Phaser 4 cho thế giới game, Vite để build.
 Chạy từ thư mục gốc repo bằng `npm run dev` (web ở http://localhost:5033).
@@ -87,7 +87,7 @@ nằm giữa thanh trên, không có khung kết quả phụ hay che người ch
 
 ## Dev Console
 
-Trong phòng thật của server chạy `npm run dev` (`PSC_DEV=1`), bật **Dev Console** trong **DEV**.
+Trong phòng thật của server chạy `npm run dev` (`XOMDAO_DEV=1`), bật **Dev Console** trong **DEV**.
 `Ctrl+/` gõ lệnh, `` Ctrl+` `` hiện/ẩn, `Esc` thoát và `?` trong ô trống mở bảng phím tắt.
 Toàn bộ lớp phủ có nền tối bán trong suốt để đọc rõ trên cảnh sáng; `.opacity` chỉnh độ đậm.
 Mọi chuột/chạm đi xuống game; không đổi kích thước khung chơi.

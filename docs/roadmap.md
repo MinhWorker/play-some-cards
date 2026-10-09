@@ -59,10 +59,10 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 Đổi tên trước khi viết dòng Godot đầu tiên, để code mới dùng tên mới ngay.
 
 **Đổi tên**
-- [ ] Đổi tên repo GitHub thành `xom-dao` (chủ dự án làm trong Settings)
-- [ ] `@psc/*` → `@xomdao/*`, `PSC_*` → `XOMDAO_*`, tên hiển thị → "Xóm Đảo" (bằng script)
+- [x] Đổi tên repo GitHub thành `xom-dao` (chủ dự án làm trong Settings)
+- [x] `@psc/*` → `@xomdao/*`, `PSC_*` → `XOMDAO_*`, tên hiển thị → "Xóm Đảo" (bằng script)
 - [ ] Đổi project Vercel thành `xomdao` (`xomdao.vercel.app`), đổi tên service trên Render
-- [ ] README, CONTRIBUTING, `docs/deploy.md`, các `AGENTS.md`
+- [x] README, CONTRIBUTING, `docs/deploy.md`, các `AGENTS.md`
 
 **Công cụ Godot**
 - [ ] `tools/godot/`: file ghim phiên bản (bản 4.x ổn định mới nhất lúc bắt đầu) +

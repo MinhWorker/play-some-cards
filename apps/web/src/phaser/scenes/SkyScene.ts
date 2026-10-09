@@ -1,4 +1,4 @@
-import { FRAME, type Frame, followFrame } from '@psc/sdk/client';
+import { FRAME, type Frame, followFrame } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { Title } from '@/phaser/objects/Title';
 

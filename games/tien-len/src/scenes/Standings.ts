@@ -2,7 +2,7 @@
  * A ranking board over the table: after each round ("Hết vòng 2") and at the end of the match
  * ("Tổng kết"). Rows slide in one after another, best first.
  */
-import { type GameScene, titleStyle } from '@psc/sdk/client';
+import { type GameScene, titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 export interface StandingRow {

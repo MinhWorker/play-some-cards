@@ -1,5 +1,5 @@
 /**
- * @psc/sdk/client: what a game's screens (browser only) may use.
+ * @xomdao/sdk/client: what a game's screens (browser only) may use.
  * `games/<id>/src/client.ts` does `export default defineClient({ scene: MyView, setup?, background?, hud? })`.
  */
 

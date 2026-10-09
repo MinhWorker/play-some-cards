@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { HISTORY_LIMIT, type MatchRecord } from '@psc/shared';
+import { HISTORY_LIMIT, type MatchRecord } from '@xomdao/shared';
 import type { FinishedGame } from '../rooms/rooms.service.js';
 import type { MatchesStore } from './matches.store.js';
 

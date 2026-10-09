@@ -1,7 +1,7 @@
 /**
  * Browser entry: the board and the room options screen.
  */
-import { defineClient } from '@psc/sdk/client';
+import { defineClient } from '@xomdao/sdk/client';
 import { CityBackground } from './scenes/CityBackground.js';
 import { CoTyPhuClassicView } from './scenes/CoTyPhuClassicView.js';
 import { Setup } from './scenes/Setup.js';

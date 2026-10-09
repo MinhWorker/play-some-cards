@@ -1,5 +1,5 @@
 /** Victory announcement over the board, with the official count and match statistics. */
-import { FONT, type GameScene } from '@psc/sdk/client';
+import { FONT, type GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 export interface ResultData {

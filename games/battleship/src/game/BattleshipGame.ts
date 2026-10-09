@@ -19,7 +19,7 @@ import {
   type LeaveContext,
   type Seat as PlayerSeat,
   type StartContext,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import { botShot } from './bot.js';
 import { CELLS, type EndReason, type Options, type Seat, type State, type View } from './model.js';

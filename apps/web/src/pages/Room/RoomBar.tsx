@@ -1,4 +1,4 @@
-import type { RoomSnapshot } from '@psc/shared';
+import type { RoomSnapshot } from '@xomdao/shared';
 import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { bridge } from '@/phaser/bridge';

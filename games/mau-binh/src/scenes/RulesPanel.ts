@@ -2,7 +2,7 @@
  * The scoring rules over the table, opened and closed with the "Luật" button (on this screen
  * only). Every number comes from scoring.ts, so the panel always matches the game.
  */
-import { titleStyle } from '@psc/sdk/client';
+import { titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { CHI_BONUSES, CHI_POINT, FOUL_POINTS, SCOOP_BONUS, SPECIALS } from '../game/scoring.js';
 

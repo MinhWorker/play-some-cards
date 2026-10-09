@@ -1,4 +1,4 @@
-import type { JoinedRoom } from '@psc/shared';
+import type { JoinedRoom } from '@xomdao/shared';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Banner,

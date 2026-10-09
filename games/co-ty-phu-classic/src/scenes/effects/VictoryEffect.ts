@@ -1,4 +1,4 @@
-import { FONT, type GameScene, type ViewContext } from '@psc/sdk/client';
+import { FONT, type GameScene, type ViewContext } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { View } from '../../game/model.js';
 import { assetValue } from '../../game/rules.js';

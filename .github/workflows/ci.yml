@@ -62,7 +62,7 @@ jobs:
     env:
       # Computer players move without the pause people need to follow along.
       BOT_DELAY_MS: 200
-      PSC_DEV: '1'
+      XOMDAO_DEV: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

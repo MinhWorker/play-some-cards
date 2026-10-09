@@ -6,7 +6,7 @@
  * Two shapes: `side` stands up narrow against the left or right edge (picture on top), `flat`
  * lies under the room bar for the seat across (picture on the left). Sizes follow the HUD scale.
  */
-import { titleStyle } from '@psc/sdk/client';
+import { titleStyle } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { drawRing } from './PlayerList.js';
 

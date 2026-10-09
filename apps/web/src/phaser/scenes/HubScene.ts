@@ -1,4 +1,4 @@
-import { FRAME, type Frame, followFrame, hudScale } from '@psc/sdk/client';
+import { FRAME, type Frame, followFrame, hudScale } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { type Portal, portals } from '@/games';
 import { playSfx } from '@/lib/sound';
@@ -21,7 +21,7 @@ const PORTAL_W = 640;
 const PORTAL_H = 760;
 /** A pointer that moved further than this (design units) is dragging the strip, not tapping. */
 const DRAG_PX = 16;
-const FOCUS_KEY = 'psc.hubFocus';
+const FOCUS_KEY = 'xomdao.hubFocus';
 
 /**
  * Home screen: a horizontal strip with one portal (island) per game in games/. It scrolls by

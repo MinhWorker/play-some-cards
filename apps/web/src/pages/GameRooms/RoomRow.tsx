@@ -1,4 +1,4 @@
-import type { RoomRole, RoomSummary } from '@psc/shared';
+import type { RoomRole, RoomSummary } from '@xomdao/shared';
 import { Button } from '@/components/ui/Button';
 
 const STATUS: Record<RoomSummary['status'], string> = {

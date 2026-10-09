@@ -3,7 +3,7 @@ import {
   type HandshakeAuth,
   PROTOCOL_VERSION,
   type ServerToClientEvents,
-} from '@psc/shared';
+} from '@xomdao/shared';
 import { io, type Socket } from 'socket.io-client';
 import { loadToken, serverUrl } from '@/lib/auth';
 import { devSetting, devToolsEnabled, subscribeDevSettings } from '@/lib/devTools';

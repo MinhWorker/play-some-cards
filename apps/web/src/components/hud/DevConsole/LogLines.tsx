@@ -1,5 +1,5 @@
 /** Brief room log summaries; details remain in grouped browser DevTools entries. */
-import type { DevLogEntry } from '@psc/shared';
+import type { DevLogEntry } from '@xomdao/shared';
 
 const icons = {
   move: '▸',

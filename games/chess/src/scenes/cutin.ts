@@ -5,7 +5,7 @@
  * twinkle around, and the crest rises away. About a second and a half in all.
  */
 
-import { type FlowContext, type GameScene } from '@psc/sdk/client';
+import { type FlowContext, type GameScene } from '@xomdao/sdk/client';
 import { DISC } from './theme.js';
 
 const NAVY = 0x1b2a47;

@@ -10,7 +10,7 @@ import {
 } from '@/lib/devTools';
 import './DevTools.css';
 
-const OPEN_KEY = 'psc:dev-open';
+const OPEN_KEY = 'xomdao:dev-open';
 
 function savedOpen() {
   try {
