@@ -1,7 +1,7 @@
 // Headless browser tests of the real app, one scenario per file in scripts/e2e/scenarios/.
 // Scenarios are independent (own browser, own accounts, own room names), so they run side by
 // side here and on separate machines in CI. Screenshots go to .e2e/<scenario>/.
-// Needs a server with PSC_DEV=1 (`npm run dev` sets it). Never opens a visible window.
+// Needs a server with XOMDAO_DEV=1 (`npm run dev` sets it). Never opens a visible window.
 //
 //   npm run e2e [webUrl]                 every scenario, default http://localhost:5033
 //   npm run e2e -- --only tien-len       some scenarios (comma separated)

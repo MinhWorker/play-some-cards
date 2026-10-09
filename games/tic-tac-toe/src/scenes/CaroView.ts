@@ -10,7 +10,7 @@
  * The layer is the camera: moving and scaling it frames the whole board, and when the board
  * grows the new tiles fade in while the layer glides to the new framing.
  */
-import { GameView, type ViewContext, type ViewEvent } from '@psc/sdk/client';
+import { GameView, type ViewContext, type ViewEvent } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { at, keyOf, points, winningLine } from '../game/board.js';
 import { type Board, type Mark, type Options, type Point, type State, WIN } from '../game/model.js';

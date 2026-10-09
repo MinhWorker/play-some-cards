@@ -4,7 +4,7 @@
  * the room's current picks are marked gold. The last tap calls `this.submit(options)`; those
  * options stay with the room (`ctx.options` in CaroGame and CaroView).
  */
-import { hudScale, RoomSetupScene, titleStyle } from '@psc/sdk/client';
+import { hudScale, RoomSetupScene, titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type BotLevel, type Options, optionsSchema } from '../game/model.js';
 import { MARKS, TINT } from './theme.js';

@@ -1,4 +1,4 @@
-import type { FlowHandle, GameScene } from '@psc/sdk/client';
+import type { FlowHandle, GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 export type TilePoint = { x: number; y: number };

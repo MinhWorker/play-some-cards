@@ -23,7 +23,7 @@ import {
   type LitLayer,
   type ViewContext,
   type ViewEvent,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { Move, Options, Piece, Promotion, Side, View } from '../game/model.js';
 import { SIZE } from '../game/model.js';

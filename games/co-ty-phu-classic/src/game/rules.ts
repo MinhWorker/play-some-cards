@@ -1,4 +1,4 @@
-import type { GameContext } from '@psc/sdk';
+import type { GameContext } from '@xomdao/sdk';
 import { CHANCE, CHEST, type Deck } from './cards.js';
 import {
   BOARD,

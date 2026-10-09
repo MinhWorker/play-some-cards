@@ -1,5 +1,5 @@
-import type { RoomControls } from '@psc/sdk/client';
-import { games, type RoomSnapshot } from '@psc/shared';
+import type { RoomControls } from '@xomdao/sdk/client';
+import { games, type RoomSnapshot } from '@xomdao/shared';
 
 /**
  * What `me` may do with the room right now: the room panels' buttons, and `ctx.room` for a board

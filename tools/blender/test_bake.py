@@ -8,7 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import bpy
 from PIL import Image
-from psc_bake import cube, material, render, setup, sphere
+from xomdao_bake import cube, material, render, setup, sphere
 
 
 class NormalBakeTest(unittest.TestCase):

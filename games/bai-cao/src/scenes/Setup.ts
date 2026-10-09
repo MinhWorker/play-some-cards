@@ -2,7 +2,7 @@
  * The room settings screen, one form: how many computer players join, and how many rounds. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room,
  * with the current picks selected.
  */
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema } from '../game/model.js';
 

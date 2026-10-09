@@ -1,4 +1,4 @@
-import { GameBackgroundScene } from '@psc/sdk/client';
+import { GameBackgroundScene } from '@xomdao/sdk/client';
 
 export class CoCaNguaBackground extends GameBackgroundScene {
   protected onCreate() {

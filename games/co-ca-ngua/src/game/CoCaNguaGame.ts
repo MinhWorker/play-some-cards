@@ -6,7 +6,7 @@ import {
   type GameContext,
   type LeaveContext,
   type StartContext,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import {
   CELEBRATION_MS,

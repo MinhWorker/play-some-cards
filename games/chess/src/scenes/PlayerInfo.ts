@@ -1,4 +1,4 @@
-import { FONT, type GameScene } from '@psc/sdk/client';
+import { FONT, type GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { Side } from '../game/model.js';
 import { DISC, SIDES } from './theme.js';

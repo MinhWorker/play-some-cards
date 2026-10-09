@@ -21,7 +21,7 @@ import {
   type Seat,
   type StartContext,
   shuffle,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import { compareHands, fullDeck, handOf } from './cards.js';
 import {

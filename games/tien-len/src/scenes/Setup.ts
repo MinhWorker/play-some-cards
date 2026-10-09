@@ -3,7 +3,7 @@
  * turn clock. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room, with the
  * current picks selected.
  */
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Options, optionsSchema, ROUNDS, TURN_SECONDS } from '../game/model.js';
 

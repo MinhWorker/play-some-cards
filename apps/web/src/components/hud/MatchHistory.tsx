@@ -1,4 +1,4 @@
-import { games, HISTORY_LIMIT, type MatchRecord } from '@psc/shared';
+import { games, HISTORY_LIMIT, type MatchRecord } from '@xomdao/shared';
 import { useEffect, useState } from 'react';
 import { AvatarPicture } from '@/components/ui/AvatarPicture';
 import { gameAssets } from '@/games';

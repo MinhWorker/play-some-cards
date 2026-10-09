@@ -30,7 +30,7 @@ import {
   type LitLayer,
   type ViewContext,
   type ViewEvent,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { COLS, type Move, type Options, ROWS, type Side, type View } from '../game/model.js';
 import { colOf, generalOf, kindOf, legalTargets, rowOf, sideOf } from '../game/rules.js';

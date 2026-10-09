@@ -1,4 +1,4 @@
-# Server (@psc/server) and the socket protocol (@psc/shared)
+# Server (@xomdao/server) and the socket protocol (@xomdao/shared)
 
 ```
 src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = socket events,
@@ -52,19 +52,19 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   it calls that module's service, or listens to events such as `RoomsService.onFinished`.
 
 - Nest DI needs the runtime value, so `import` classes that Nest injects as values.
-- The server typechecks against built packages. Root scripts run `npm run build -w @psc/shared`
+- The server typechecks against built packages. Root scripts run `npm run build -w @xomdao/shared`
   (= `scripts/libs.mjs`) first.
 - **New socket events** go in `protocol.ts` first.
 - Web and server deploy separately and compare `PROTOCOL_VERSION` on connect: an old page
   reloads, and a newer page waits for the server. Bump it when old clients or servers would
   break. Details: `docs/deploy.md`.
-- **DB**: edit `src/db/schema.ts`, then run `npm run db:generate -w @psc/server`. Migrations apply
+- **DB**: edit `src/db/schema.ts`, then run `npm run db:generate -w @xomdao/server`. Migrations apply
   on server start.
 - A migration must work with the previous web build: add first, remove later.
 
 ## Dev Console
 
-- `DEV_MODE` reads `PSC_DEV === '1'` once at startup. `scripts/dev-server.mjs` enables it for
+- `DEV_MODE` reads `XOMDAO_DEV === '1'` once at startup. `scripts/dev-server.mjs` enables it for
   `npm run dev`; never set it on Render. Disabled servers reject every `dev:*` request and
   allocate no room dev state or log followers.
 - `dev:command`, `dev:schema`, `dev:logs` and server `dev:log` are additive protocol events.

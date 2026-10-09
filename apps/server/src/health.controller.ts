@@ -1,5 +1,5 @@
 import { Controller, Get, Inject } from '@nestjs/common';
-import { gameList, PROTOCOL_VERSION } from '@psc/shared';
+import { gameList, PROTOCOL_VERSION } from '@xomdao/shared';
 import { sql } from 'drizzle-orm';
 import { DB, type Db } from './db/db.module.js';
 import { APP_COMMIT, APP_VERSION } from './version.js';

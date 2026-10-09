@@ -1,4 +1,4 @@
-import type { GameEvent } from '@psc/sdk';
+import type { GameEvent } from '@xomdao/sdk';
 import { auctionRaise, BOARD, isDeed, STATION_CONTRIBUTION_STEP, type State } from './model.js';
 import { bankHotels, bankHouses, redeemAmount } from './rules.js';
 

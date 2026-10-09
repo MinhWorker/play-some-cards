@@ -1,4 +1,4 @@
-import { games } from '@psc/shared';
+import { games } from '@xomdao/shared';
 import { useCallback, useState } from 'react';
 import { isPlayable } from '@/games';
 

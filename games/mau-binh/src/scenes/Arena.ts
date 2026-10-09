@@ -3,7 +3,7 @@
  * side by side to be compared, each with a label (name, hand, points). MauBinhView flies the
  * cards in and out; this only draws the panel and the labels and works out where things go.
  */
-import { type GameScene, titleStyle } from '@psc/sdk/client';
+import { type GameScene, titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { CARD_RATIO } from './Card.js';
 

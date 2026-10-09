@@ -4,7 +4,7 @@
  * Server entry: what the app needs to know about the game: its meta, its logic (a `Game`) and
  * its room options. It loads on the server, so it only imports game/.
  */
-import { definePlugin } from '@psc/sdk';
+import { definePlugin } from '@xomdao/sdk';
 import { CaroGame } from './game/CaroGame.js';
 import { optionsSchema } from './game/model.js';
 

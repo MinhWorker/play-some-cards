@@ -3,7 +3,7 @@
  * arrange. It opens for "Tạo phòng" and for the host's "Tuỳ chỉnh" in the room, with the
  * current picks selected.
  */
-import { type Button, RoomSetupScene } from '@psc/sdk/client';
+import { type Button, RoomSetupScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { ARRANGE_SECONDS, type Options, optionsSchema, ROUNDS } from '../game/model.js';
 

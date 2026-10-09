@@ -1,4 +1,4 @@
-/** Browser presentation uses SceneRuntime (@psc/sdk/client); server hooks and timers remain authoritative. */
+/** Browser presentation uses SceneRuntime (@xomdao/sdk/client); server hooks and timers remain authoritative. */
 /**
  * Write a game as a class with lifecycle hooks, like a Unity script.
  *
@@ -20,7 +20,7 @@
  * parameters for @catalog:id references and Tab completion. The default value schema is number.
  * gameRules checks declarations at startup; testGame.command(line) uses the same pure parser.
  * Synchronous console.log/info/warn/error is available to pure game builds and captured per room
- * when the server starts with PSC_DEV=1. All command hooks still return new state and use ctx.rng.
+ * when the server starts with XOMDAO_DEV=1. All command hooks still return new state and use ctx.rng.
  */
 import { z } from 'zod';
 import { commandHookName, validateConsoleDefinitions } from './console/definitions.js';

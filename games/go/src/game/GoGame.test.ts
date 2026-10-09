@@ -1,4 +1,4 @@
-import { type StartContext, testGame } from '@psc/sdk';
+import { type StartContext, testGame } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { GoGame } from './GoGame.js';

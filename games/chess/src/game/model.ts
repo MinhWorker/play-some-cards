@@ -6,7 +6,7 @@
  * row 0 is rank 8 (Black's back rank), row 7 is rank 1 (White's), col 0 is file a. A piece is one
  * letter, upper case for White and lower case for Black (the letters of FEN).
  */
-import type { PlayerId } from '@psc/sdk';
+import type { PlayerId } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export type Side = 'w' | 'b';

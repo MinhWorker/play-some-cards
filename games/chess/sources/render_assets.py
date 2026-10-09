@@ -11,7 +11,7 @@ from functools import partial
 
 # Shared helpers resolve identically in Blender and Python with the bpy wheel.
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "blender"))
-from psc_bake import LEGACY_RIG, material, wood, cube, sphere, lathe, setup, cloth_tile, atlas, render as bake
+from xomdao_bake import LEGACY_RIG, material, wood, cube, sphere, lathe, setup, cloth_tile, atlas, render as bake
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / '.blender' / 'chess'

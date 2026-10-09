@@ -1,4 +1,4 @@
-import { seededRng } from '@psc/sdk';
+import { seededRng } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { KOMI } from './model.js';
 import {

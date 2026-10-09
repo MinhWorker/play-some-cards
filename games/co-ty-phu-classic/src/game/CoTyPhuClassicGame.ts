@@ -7,7 +7,7 @@ import {
   type LeaveContext,
   type StartContext,
   type TimerContext,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import { botMove } from './bot.js';
 import { CHANCE, CHEST, shuffle } from './cards.js';

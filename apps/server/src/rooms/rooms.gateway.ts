@@ -5,7 +5,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import { ConsoleError, type ConsoleIssue } from '@psc/sdk';
+import { ConsoleError, type ConsoleIssue } from '@xomdao/sdk';
 import {
   type ClientToServerEvents,
   type JoinedRoom,
@@ -14,7 +14,7 @@ import {
   type RoomRole,
   type ServerToClientEvents,
   type User,
-} from '@psc/shared';
+} from '@xomdao/shared';
 import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';

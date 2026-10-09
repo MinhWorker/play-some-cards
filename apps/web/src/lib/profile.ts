@@ -1,7 +1,7 @@
-import { AVATARS, type Avatar, DEFAULT_FRAME, type Frame } from '@psc/shared';
+import { AVATARS, type Avatar, DEFAULT_FRAME, type Frame } from '@xomdao/shared';
 import { imageUrl } from '@/lib/assetUrl';
 
-/** Display name, avatar and its frame (kept on the account, see `User` in @psc/shared). */
+/** Display name, avatar and its frame (kept on the account, see `User` in @xomdao/shared). */
 export interface Profile {
   name: string;
   avatar: Avatar;
@@ -55,8 +55,8 @@ export function startingProfile(): Profile {
   let name = '';
   let avatar: Avatar = Math.random() < 0.5 ? 'boy' : 'girl';
   try {
-    name = localStorage.getItem('psc:name')?.trim().slice(0, 20) ?? '';
-    const saved = localStorage.getItem('psc:avatar');
+    name = localStorage.getItem('xomdao:name')?.trim().slice(0, 20) ?? '';
+    const saved = localStorage.getItem('xomdao:avatar');
     if ((AVATARS as readonly (string | null)[]).includes(saved)) avatar = saved as Avatar;
   } catch {}
   return { name: name || randomSillyName(), avatar, frame: DEFAULT_FRAME };

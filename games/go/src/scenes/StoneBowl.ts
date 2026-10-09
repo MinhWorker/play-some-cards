@@ -1,5 +1,5 @@
 /** Separate rendered bowl/lid props with persistent, count-driven stone piles. */
-import type { GameScene } from '@psc/sdk/client';
+import type { GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));

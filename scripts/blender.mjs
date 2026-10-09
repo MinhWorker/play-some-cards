@@ -21,8 +21,8 @@ if (!scripts.length) {
   console.error(`No Blender script: games/${id}/sources/render*.py`);
   process.exit(1);
 }
-const python = process.env.PSC_BLENDER_PYTHON;
-const executable = python ?? process.env.PSC_BLENDER_BIN ?? 'blender';
+const python = process.env.XOMDAO_BLENDER_PYTHON;
+const executable = python ?? process.env.XOMDAO_BLENDER_BIN ?? 'blender';
 for (const script of scripts) {
   const source = join(sources, script);
   const args = python
@@ -31,7 +31,7 @@ for (const script of scripts) {
   const result = spawnSync(executable, args, { cwd: root, stdio: 'inherit' });
   if (result.error)
     console.error(
-      `${result.error.message}\nSet PSC_BLENDER_PYTHON to a Python with bpy and Pillow, or PSC_BLENDER_BIN to Blender.`,
+      `${result.error.message}\nSet XOMDAO_BLENDER_PYTHON to a Python with bpy and Pillow, or XOMDAO_BLENDER_BIN to Blender.`,
     );
   if (result.status !== 0) process.exit(result.status ?? 1);
 }

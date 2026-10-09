@@ -1,4 +1,4 @@
-import { GameBackgroundScene } from '@psc/sdk/client';
+import { GameBackgroundScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 /** A quiet city after dusk: layered buildings, drifting haze and warm window lights. */

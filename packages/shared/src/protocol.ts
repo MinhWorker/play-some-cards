@@ -1,6 +1,6 @@
-import type { ConsoleIssue, DevConsoleSchema } from '@psc/sdk';
+import type { ConsoleIssue, DevConsoleSchema } from '@xomdao/sdk';
 
-export type { DevCommandInfo, DevConsoleSchema } from '@psc/sdk';
+export type { DevCommandInfo, DevConsoleSchema } from '@xomdao/sdk';
 
 import type { ProfileUpdate, User } from './account.js';
 import type { GameResult, PlayerId } from './game.js';

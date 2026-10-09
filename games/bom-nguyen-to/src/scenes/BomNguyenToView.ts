@@ -1,4 +1,4 @@
-import { GameView, rasterizeGraphics, type ViewContext } from '@psc/sdk/client';
+import { GameView, rasterizeGraphics, type ViewContext } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { blastCells, inRing, moveFighter, nextRing } from '../game/arena.js';
 import { dangerMap } from '../game/bot.js';

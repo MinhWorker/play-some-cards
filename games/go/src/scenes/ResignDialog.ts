@@ -3,7 +3,7 @@
  * on. A dimmed backdrop over the whole screen swallows taps (a tap on it plays on), so a stray
  * touch can't end the game.
  */
-import { type Button, FONT, type GameScene } from '@psc/sdk/client';
+import { type Button, FONT, type GameScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 const DEPTH = 30;

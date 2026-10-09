@@ -1,6 +1,6 @@
 /**
- * @psc/sdk: what a game's logic (a `Game`) may use. Pure and safe for the server.
- * Its screens (Phaser, browser only) use `@psc/sdk/client`.
+ * @xomdao/sdk: what a game's logic (a `Game`) may use. Pure and safe for the server.
+ * Its screens (Phaser, browser only) use `@xomdao/sdk/client`.
  */
 
 export * from './console/completion.js';

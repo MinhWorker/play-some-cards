@@ -5,7 +5,7 @@
  * Server entry: the game's meta, its logic (a `Game`) and its room options. It loads on the
  * server, so it only imports game/ (scenes are in client.ts).
  */
-import { definePlugin } from '@psc/sdk';
+import { definePlugin } from '@xomdao/sdk';
 import { CheckersGame } from './game/CheckersGame.js';
 import { optionsSchema } from './game/model.js';
 

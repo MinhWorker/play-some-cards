@@ -16,7 +16,7 @@ import {
   type LeaveContext,
   type Seat,
   type StartContext,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import { botMove } from './bot.js';
 import {

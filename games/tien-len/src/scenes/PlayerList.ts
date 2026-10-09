@@ -3,7 +3,7 @@
  * tag ("Bỏ lượt", a place). Whose turn it is lights up, with the turn clock running around the
  * picture. The table shows it on a panel behind its "Điểm" button.
  */
-import { titleStyle } from '@psc/sdk/client';
+import { titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 export interface PlayerRow {

@@ -1,6 +1,6 @@
 import { type AssetOwner, imageUrl } from '@/lib/assetUrl';
 
-export { FONT, titleStyle } from '@psc/sdk/client';
+export { FONT, titleStyle } from '@xomdao/sdk/client';
 
 /**
  * Every image the app's own scenes use (apps/web/public/shared/images). Keys match the entries

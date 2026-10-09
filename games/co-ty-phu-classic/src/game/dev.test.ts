@@ -1,5 +1,5 @@
 /** Console examples use the real hooks and catalogs, including normal card confirmation. */
-import { testGame } from '@psc/sdk';
+import { testGame } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { catalogs } from './dev.js';

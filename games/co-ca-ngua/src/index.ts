@@ -1,7 +1,7 @@
 /**
  * Server entry: what the app needs to know about the game, and its logic (a `Game`). It loads on the server, so it only imports code from game/ (scenes are in client.ts).
  */
-import { definePlugin } from '@psc/sdk';
+import { definePlugin } from '@xomdao/sdk';
 import { CoCaNguaGame } from './game/CoCaNguaGame.js';
 import { optionsSchema } from './game/model.js';
 

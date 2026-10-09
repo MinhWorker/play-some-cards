@@ -6,7 +6,7 @@
  * square = row * 9 + col, row 0 is Black's back rank, row 9 is Red's. A piece is one letter,
  * upper case for Red and lower case for Black (the letters of Xiangqi FEN).
  */
-import type { PlayerId } from '@psc/sdk';
+import type { PlayerId } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export type Side = 'r' | 'b';

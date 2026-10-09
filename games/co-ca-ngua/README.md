@@ -21,7 +21,7 @@ Máy tính, bốn người:
 - `src/scenes/board.ts`: ánh xạ đường đi sang đúng tọa độ của bàn Blender.
 - `src/scenes/Setup.ts`: chọn bạn bè hoặc số người máy, chế độ Thường hoặc Phân hạng.
 - `src/scenes/CoCaNguaBackground.ts`: nền nỉ xanh phủ kín khung.
-- `sources/render_assets.py`: dựng bàn gỗ, atlas ngựa và normals, sáu mặt xúc xắc, nút và nền nỉ bằng [Blender helper chung](../../tools/blender/psc_bake/__init__.py).
+- `sources/render_assets.py`: dựng bàn gỗ, atlas ngựa và normals, sáu mặt xúc xắc, nút và nền nỉ bằng [Blender helper chung](../../tools/blender/xomdao_bake/__init__.py).
 
 ## Chạy và kiểm tra
 

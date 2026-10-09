@@ -111,14 +111,14 @@ hay khung trang trí ăn chỗ.
 
 ## Lưu Graphics tĩnh thành texture
 
-`rasterizeGraphics` từ `@psc/sdk/client` lưu khung, nền hoặc nút vẽ bằng Phaser
+`rasterizeGraphics` từ `@xomdao/sdk/client` lưu khung, nền hoặc nút vẽ bằng Phaser
 Graphics thành ảnh, tránh dựng lại đường bo mỗi khung hình. `bounds` dùng tọa độ
 cục bộ và cần chứa cả viền lẫn bóng. Ảnh giữ vị trí, scale, depth và container cha;
 Graphics gốc được ẩn. Texture có mật độ tối đa 3×, giới hạn cạnh 4096 px và được
 dọn khi scene đóng. Chỉ gọi lại khi hình thay đổi, dùng cùng key và ảnh cũ để cập nhật.
 
 ```ts
-import { rasterizeGraphics } from '@psc/sdk/client';
+import { rasterizeGraphics } from '@xomdao/sdk/client';
 
 const shape = this.add.graphics()
   .fillStyle(0xfff6e7)

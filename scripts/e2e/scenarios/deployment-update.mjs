@@ -14,9 +14,9 @@ export default async function run(t) {
   });
   await page.goto(t.url);
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
-  assert.match(await page.title(), /Chơi chút bài/);
+  assert.match(await page.title(), /Xóm Đảo/);
   const protocol = await page.evaluate(
-    () => JSON.parse(document.querySelector('meta[name="psc-build"]').content).protocol,
+    () => JSON.parse(document.querySelector('meta[name="xomdao-build"]').content).protocol,
   );
   health.protocol = protocol;
   await page.route(`${t.url.replace(/\/$/, '')}/`, async (route) => {
@@ -24,7 +24,7 @@ export default async function run(t) {
     const build = JSON.stringify({ commit: target, protocol, waitForServer: true });
     await route.fulfill({
       contentType: 'text/html',
-      body: `<meta name="psc-build" content='${build}'><script type="module" src="/assets/${target}.js"></script>`,
+      body: `<meta name="xomdao-build" content='${build}'><script type="module" src="/assets/${target}.js"></script>`,
     });
   });
   await page.route('**/api/health', async (route) => {
@@ -94,7 +94,9 @@ export default async function run(t) {
 
   // A later socket outage on an unchanged web build still uses the original warm-up UI.
   const disconnected = await t.page(PHONE);
-  await disconnected.addInitScript(() => localStorage.setItem('psc:token', 'waiting-for-server'));
+  await disconnected.addInitScript(() =>
+    localStorage.setItem('xomdao:token', 'waiting-for-server'),
+  );
   await disconnected.route('**/socket.io/**', (route) =>
     route.fulfill({ status: 503, body: 'unavailable' }),
   );
@@ -107,7 +109,7 @@ export default async function run(t) {
   // An older protocol in the real Socket.IO handshake is also positive deploy evidence,
   // including when the update dialog's health probe cannot reach the backend yet.
   const protocolWait = await t.page(PHONE);
-  await protocolWait.addInitScript(() => localStorage.setItem('psc:token', 'older-protocol'));
+  await protocolWait.addInitScript(() => localStorage.setItem('xomdao:token', 'older-protocol'));
   await protocolWait.route('**/socket.io/**', (route) => {
     const request = route.request();
     const body =
@@ -124,7 +126,7 @@ export default async function run(t) {
   await protocolWait.route(`${t.url.replace(/\/$/, '')}/`, (route) =>
     route.fulfill({
       contentType: 'text/html',
-      body: `<meta name="psc-build" content='${JSON.stringify({ commit: target, protocol, waitForServer: true })}'><script type="module" src="/assets/protocol-update.js"></script>`,
+      body: `<meta name="xomdao-build" content='${JSON.stringify({ commit: target, protocol, waitForServer: true })}'><script type="module" src="/assets/protocol-update.js"></script>`,
     }),
   );
   await protocolWait.route('**/api/health', (route) =>

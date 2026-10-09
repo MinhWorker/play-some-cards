@@ -4,7 +4,7 @@
  *   normal  the weakest play that works; leading, sheds its lowest card in the longest set
  *   hard    like normal, but keeps its 2s and bombs until they matter
  */
-import { pick, type Rng } from '@psc/sdk';
+import { pick, type Rng } from '@xomdao/sdk';
 import { beats, type Card, type Combo, comboOf, rankOf, TWO } from './cards.js';
 import type { BotLevel, State } from './model.js';
 

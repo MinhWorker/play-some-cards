@@ -1,7 +1,7 @@
 """Edit existing project audio into dry stone-on-wood clicks, without synthesized drums.
 
 python games/go/sources/prepare_audio.py (requires ffmpeg, numpy and scipy).
-Fetch the source recording with git lfs pull --include=assets/audio/sfx/psc-wood-marker-place-veo.mp3.
+Fetch the source recording with git lfs pull --include=assets/audio/sfx/xomdao-wood-marker-place-veo.mp3.
 """
 
 from pathlib import Path
@@ -34,7 +34,7 @@ def write(name, samples, peak=0.34):
     wavfile.write(OUT / f"{name}.wav", RATE, (samples * 32767).astype(np.int16))
 
 
-source = read(ROOT / "assets" / "audio" / "sfx" / "psc-wood-marker-place-veo.mp3")
+source = read(ROOT / "assets" / "audio" / "sfx" / "xomdao-wood-marker-place-veo.mp3")
 clicks = []
 for index, (start, speed) in enumerate([(1.26, 1.04), (1.89, 1.0), (1.26, 0.98)], 1):
     sample = source[int(start * RATE):int((start + 0.35) * RATE)]

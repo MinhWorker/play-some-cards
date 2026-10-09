@@ -1,5 +1,5 @@
 /**
- * The frame (docs/ui-guide.md, `pickFrame` in @psc/sdk/client): measured from the window and its
+ * The frame (docs/ui-guide.md, `pickFrame` in @xomdao/sdk/client): measured from the window and its
  * safe area (notch, home bar), shared with Phaser (PhaserStage puts it in the registry) and with
  * CSS as variables on <html>:
  *   --frame-left/top/width/height  where the frame is, in CSS px (`.ui` covers it)
@@ -11,7 +11,7 @@
  * far from the screen's edges, and the picture quality caps the canvas's pixel density (fewer
  * pixels to draw: smoother on slow phones, a little softer).
  */
-import { type Frame, pickFrame, setFrame } from '@psc/sdk/client';
+import { type Frame, pickFrame, setFrame } from '@xomdao/sdk/client';
 import { devSetting, subscribeDevSettings } from '@/lib/devTools';
 
 const listeners = new Set<(frame: Frame) => void>();
@@ -30,7 +30,7 @@ export const HUD_SIZES = [0.8, 0.9, 1, 1.1, 1.2, 1.3];
 export const MARGINS = [0, 8, 16, 24, 32];
 /** Picture quality: the canvas's pixel density at most (low, medium, high). */
 export const QUALITIES = [1, 2, 3];
-const VIEW_KEY = 'psc:view';
+const VIEW_KEY = 'xomdao:view';
 const DEFAULT_VIEW: ViewSettings = { hudSize: 1, margin: 0, quality: 3 };
 let view = loadView();
 

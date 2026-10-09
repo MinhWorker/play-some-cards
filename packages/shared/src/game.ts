@@ -1,9 +1,9 @@
-import type { AnyGamePlugin, GameMeta } from '@psc/sdk';
+import type { AnyGamePlugin, GameMeta } from '@xomdao/sdk';
 
-// The game contract lives in @psc/sdk (games only depend on the SDK); core code imports it
+// The game contract lives in @xomdao/sdk (games only depend on the SDK); core code imports it
 // from here.
-export type { GameMeta, GameResult, GameRules, PlayerId } from '@psc/sdk';
-export { defaultOptions } from '@psc/sdk';
+export type { GameMeta, GameResult, GameRules, PlayerId } from '@xomdao/sdk';
+export { defaultOptions } from '@xomdao/sdk';
 
 /**
  * A registered game as the server and web use it: its rules, its meta and its room options

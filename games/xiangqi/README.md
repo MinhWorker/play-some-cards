@@ -47,7 +47,7 @@ Tái tạo quân, bóng và nút bằng `npm run blender -- xiangqi`; chỉ bake
 `npm run blender -- xiangqi button-draw button-resign`.
 Cần phông Noto Sans CJK Bold (SIL Open Font License),
 mặc định ở `/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc`; có thể chọn phông CJK khác
-bằng `PSC_XIANGQI_FONT`. Script nằm ở `sources/render_pieces.py` và `sources/render_buttons.py`, PNG trung gian ở
+bằng `XOMDAO_XIANGQI_FONT`. Script nằm ở `sources/render_pieces.py` và `sources/render_buttons.py`, PNG trung gian ở
 `.blender/xiangqi/`; xem [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map).
 Tiếng di chuyển, vỡ quân và nhạc thắng tổng hợp bằng code.
 Thông báo chiếu tướng/chiếu bí theo lối tranh thủy mặc: cuộn giấy mở ra giữa hai trục gỗ, vệt

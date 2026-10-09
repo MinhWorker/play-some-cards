@@ -9,7 +9,7 @@ import sys
 import bpy
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'tools' / 'blender'))
-from psc_bake import cube, material, render, setup, wood
+from xomdao_bake import cube, material, render, setup, wood
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT.parents[1] / '.blender' / 'xiangqi'

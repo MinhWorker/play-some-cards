@@ -1,8 +1,8 @@
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { PROTOCOL_VERSION } from '@psc/shared';
 import react from '@vitejs/plugin-react';
+import { PROTOCOL_VERSION } from '@xomdao/shared';
 import { defaultClientConditions, defineConfig } from 'vite';
 
 // Ports can be moved (e.g. to run a second copy of the repo next to the first one):
@@ -34,9 +34,9 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'psc-build',
+      name: 'xomdao-build',
       transformIndexHtml: () => [
-        { tag: 'meta', attrs: { name: 'psc-build', content: JSON.stringify(deployment) } },
+        { tag: 'meta', attrs: { name: 'xomdao-build', content: JSON.stringify(deployment) } },
       ],
     },
   ],
@@ -53,7 +53,7 @@ export default defineConfig({
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     // Games and the SDK are used as TypeScript source (hot reload), not their built dist/.
-    conditions: ['psc-source', ...defaultClientConditions],
+    conditions: ['xomdao-source', ...defaultClientConditions],
   },
   // Phaser alone is ~1.2 MB minified; that is expected for a game engine.
   build: { chunkSizeWarningLimit: 2000 },

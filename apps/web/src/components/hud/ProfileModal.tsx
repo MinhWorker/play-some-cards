@@ -1,4 +1,4 @@
-import { AVATARS, type Avatar, FRAMES, type Frame } from '@psc/shared';
+import { AVATARS, type Avatar, FRAMES, type Frame } from '@xomdao/shared';
 import { useEffect, useState } from 'react';
 import { AvatarPicture } from '@/components/ui/AvatarPicture';
 import { Button } from '@/components/ui/Button';

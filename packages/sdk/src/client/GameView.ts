@@ -1,6 +1,6 @@
 /**
  * A game's screen as a class with lifecycle hooks, the browser half of `Game`
- * (from `@psc/sdk`). The app calls the hooks; you draw with the helpers from `GameScene` or with Phaser
+ * (from `@xomdao/sdk`). The app calls the hooks; you draw with the helpers from `GameScene` or with Phaser
  * directly (`this.add`, `this.tweens`, … still work).
  * `defineClient({ scene, background })` optionally hides the app's sky (`false`) or replaces
  * it with a GameBackgroundScene. The separate background has a scene lifetime, no room state.

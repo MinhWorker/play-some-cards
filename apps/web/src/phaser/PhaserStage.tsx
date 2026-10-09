@@ -9,7 +9,7 @@ import {
   SETUP_CANCEL,
   SETUP_CURRENT,
   SETUP_SUBMIT,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { useEffect, useRef, useState } from 'react';
 import { loadClient } from '@/games';
@@ -234,7 +234,7 @@ export function PhaserStage({ stage, onReady }: { stage: Stage; onReady?: () => 
           __runtimeDiagnostics: () => ({
             scenes: g.scene.getScenes(true).flatMap((scene) => {
               const runtime = (
-                scene as Phaser.Scene & { runtime?: import('@psc/sdk/client').SceneRuntime }
+                scene as Phaser.Scene & { runtime?: import('@xomdao/sdk/client').SceneRuntime }
               ).runtime;
               return runtime ? [{ scene: scene.sys.settings.key, ...runtime.inspect() }] : [];
             }),

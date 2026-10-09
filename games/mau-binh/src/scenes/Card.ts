@@ -3,7 +3,7 @@
  * suit symbol, or the back. A Phaser container, so it moves as one object. Turning it over plays
  * drawn frames (flip-back → flip-edge → flip-front), not a squashed image.
  */
-import { type FlowContext, FONT, type GameScene } from '@psc/sdk/client';
+import { type FlowContext, FONT, type GameScene } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 import { type Card, isRed, RANKS, rankOf, type Suit, suitOf } from '../game/cards.js';
 

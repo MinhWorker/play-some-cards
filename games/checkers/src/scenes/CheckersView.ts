@@ -18,7 +18,7 @@ import {
   GameView,
   type ViewContext,
   type ViewEvent,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { type Move, type Options, RULES, type Side, type View } from '../game/model.js';
 import { colOf, isDark, isKing, legalMoves, other, rowOf, sideOf } from '../game/rules.js';

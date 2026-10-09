@@ -6,7 +6,7 @@
  * Starter game ("race to 21"): players take turns adding 1, 2 or 3 to a shared total; whoever
  * reaches exactly 21 wins. Replace it with your game.
  */
-import { type EventContext, Game, type StartContext } from '@psc/sdk';
+import { type EventContext, Game, type StartContext } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export const TARGET = 21;

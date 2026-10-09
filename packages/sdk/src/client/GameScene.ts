@@ -44,7 +44,7 @@ export interface Button {
  *
  * `assets/<name>.normal.webp` loads alongside image/atlas `<name>` as raw camera-space normals
  * (+X right, +Y up, +Z toward the viewer; flat = 128,128,255). Call `lighting()` in onCreate for
- * ambient + an upper-left key matching tools/blender/psc_bake; `lighting({ pointer: true })`
+ * ambient + an upper-left key matching tools/blender/xomdao_bake; `lighting({ pointer: true })`
  * also adds a soft hover/drag light. It follows the frame and cleans up on scene shutdown.
  * `litLayer()` groups lit images/sprites into one Layer to keep draw calls low: `pieces.add(obj)`
  * lights it, `pieces.remove(obj)` unlights it, `pieces.layer.setDepth(d)` orders the layer with

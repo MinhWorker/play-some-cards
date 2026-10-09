@@ -1,4 +1,4 @@
-import type { JoinedRoom, RoomSnapshot } from '@psc/shared';
+import type { JoinedRoom, RoomSnapshot } from '@xomdao/shared';
 import { useCallback, useEffect, useState } from 'react';
 import { request, socket } from '@/lib/socket';
 

@@ -1,4 +1,4 @@
-import { games, type JoinedRoom, type RoomSnapshot } from '@psc/shared';
+import { games, type JoinedRoom, type RoomSnapshot } from '@xomdao/shared';
 import { useEffect, useRef, useState } from 'react';
 import { Toast } from '@/components/hud';
 import { Button } from '@/components/ui/Button';

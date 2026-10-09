@@ -4,7 +4,7 @@
  * options, result and the screen size. Show it in src/client.ts:
  * `defineClient({ scene: __Name__View })`.
  */
-import { GameView, type ViewContext } from '@psc/sdk/client';
+import { GameView, type ViewContext } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { State } from '../game/__LOGIC__.js';
 

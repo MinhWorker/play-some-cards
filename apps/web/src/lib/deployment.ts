@@ -1,4 +1,4 @@
-import { PROTOCOL_VERSION } from '@psc/shared';
+import { PROTOCOL_VERSION } from '@xomdao/shared';
 import { APP_COMMIT } from './version';
 
 declare const __WAIT_FOR_SERVER__: boolean;
@@ -21,7 +21,7 @@ export function deploymentOf(html: string): DeploymentBuild | null {
   try {
     const content = new DOMParser()
       .parseFromString(html, 'text/html')
-      .querySelector('meta[name="psc-build"]')
+      .querySelector('meta[name="xomdao-build"]')
       ?.getAttribute('content');
     if (!content) return null;
     const build = JSON.parse(content) as DeploymentBuild;

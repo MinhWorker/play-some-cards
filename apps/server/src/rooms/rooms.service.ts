@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { hookName } from '@psc/sdk';
+import { hookName } from '@xomdao/sdk';
 import {
   type AnyGameDefinition,
   defaultOptions,
@@ -12,7 +12,7 @@ import {
   type RoomSnapshot,
   type RoomStatus,
   type RoomSummary,
-} from '@psc/shared';
+} from '@xomdao/shared';
 import { DEV_MODE } from '../dev/dev-mode.js';
 import { frameOf, newRoomDev, type RoomDev, remember, rngOf } from '../dev/room-dev.js';
 import { captureConsole, logRoom, runRoomHook } from '../dev/room-log.js';
@@ -62,7 +62,7 @@ export interface Room {
   startedAt: number | null;
   endedAt: number | null;
   createdAt: number;
-  /** Available only when the server starts with PSC_DEV=1. */
+  /** Available only when the server starts with XOMDAO_DEV=1. */
   dev?: RoomDev;
 }
 
@@ -99,7 +99,7 @@ export class RoomsService {
   private readonly finishedListeners: ((game: FinishedGame) => void)[] = [];
 
   constructor(@Optional() @Inject(DEV_MODE) readonly devEnabled = false) {
-    if (devEnabled) new Logger('DevConsole').warn('PSC_DEV=1: Dev Console đang bật');
+    if (devEnabled) new Logger('DevConsole').warn('XOMDAO_DEV=1: Dev Console đang bật');
   }
 
   /** Calls `listener` each time a game ends with a result (not when it is stopped). */

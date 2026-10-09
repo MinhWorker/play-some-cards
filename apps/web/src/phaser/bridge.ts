@@ -1,4 +1,4 @@
-import type { BoardProps } from '@psc/sdk/client';
+import type { BoardProps } from '@xomdao/sdk/client';
 import Phaser from 'phaser';
 
 export type { BoardProps };

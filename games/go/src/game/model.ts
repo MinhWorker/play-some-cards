@@ -5,7 +5,7 @@
  * The board is `size` × `size` intersections, stored row by row from the top as one string:
  * point = row * size + col, '.' empty, 'b' a black stone, 'w' a white stone.
  */
-import type { PlayerId } from '@psc/sdk';
+import type { PlayerId } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export type Side = 'b' | 'w';

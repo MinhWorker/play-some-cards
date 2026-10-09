@@ -16,7 +16,7 @@ import {
   type Seat,
   type StartContext,
   shuffle,
-} from '@psc/sdk';
+} from '@xomdao/sdk';
 import { z } from 'zod';
 import { botPlay } from './bot.js';
 import { beats, type Card, cardName, comboOf, fullDeck } from './cards.js';

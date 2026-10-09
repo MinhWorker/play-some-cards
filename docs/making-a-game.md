@@ -90,7 +90,7 @@ games/<id>/
 Chỉ `src/index.ts` và `src/client.ts` là bắt buộc; phần còn lại sắp xếp tuỳ bạn. Giữ `game/` không
 dính Phaser: server nạp thư mục đó.
 
-Một game chỉ được import `@psc/sdk`, `@psc/sdk/client`, `phaser`, `zod` và file của chính nó; lint
+Một game chỉ được import `@xomdao/sdk`, `@xomdao/sdk/client`, `phaser`, `zod` và file của chính nó; lint
 sẽ kiểm tra. Import tương đối kết thúc bằng `.js` (`./model.js`), vì server chạy JS đã biên dịch.
 
 ### Tạo file mới từ mẫu
@@ -131,7 +131,7 @@ export class MyGame extends Game<State, Options> {
 - **Giấu bí mật trong `view(ctx, viewer)`**: bài của người khác, thứ tự bộ bài. `viewer` là `null`
   với khán giả: chỉ thông tin công khai. Không viết `view` thì ai cũng thấy cả state. Sự kiện mà
   người khác không được thấy dữ liệu (ví dụ úp một lá bài) thì ghi vào `secretEvents`.
-- Chỉ lấy ngẫu nhiên qua `ctx.rng` (`shuffle(ctx.rng, deck)`, `pick`, `int` từ `@psc/sdk`), không
+- Chỉ lấy ngẫu nhiên qua `ctx.rng` (`shuffle(ctx.rng, deck)`, `pick`, `int` từ `@xomdao/sdk`), không
   bao giờ dùng `Math.random()`, để test có thể chơi lại đúng một ván.
 - **Hẹn giờ**: `ctx.setTimer(ms, 'turn-over')` hẹn server gọi `onTurnOver(ctx)` sau `ms` mili
   giây (ví dụ đồng hồ mỗi lượt, khoảng nghỉ giữa các vòng, chờ hoạt ảnh chia bài xong). Mỗi game
@@ -148,7 +148,7 @@ export class MyGame extends Game<State, Options> {
 
 ## Dùng Dev Console
 
-`npm run dev` bật `PSC_DEV=1` cho server. Vào **phòng thật**, mở nút **DEV** rồi bật
+`npm run dev` bật `XOMDAO_DEV=1` cho server. Vào **phòng thật**, mở nút **DEV** rồi bật
 **Dev Console**. Game nào cũng có các lệnh engine; sandbox `/?play=<id>` vẫn chạy độc lập trong
 trình duyệt và không nhận các lệnh phòng.
 
@@ -197,7 +197,7 @@ Trong hook đồng bộ, dùng `console.log/info/warn/error` bình thường: kh
 log phòng và terminal. Chi tiết dữ liệu/stack là object trong DevTools của trình duyệt
 (`console.groupCollapsed`); lớp phủ chỉ hiện tóm tắt. Log giữ tối đa 500 dòng, chi tiết quá lớn
 bị cắt quanh 20 KB. Tắt công tắc tổng thì client thôi nhận log; ẩn nhanh bằng phím vẫn giữ log.
-Server không có `PSC_DEV=1` từ chối mọi lệnh dev, kể cả khi client tự gửi socket.
+Server không có `XOMDAO_DEV=1` từ chối mọi lệnh dev, kể cả khi client tự gửi socket.
 
 ## Lệnh dev (tuỳ chọn)
 
@@ -205,7 +205,7 @@ Game không cần khai báo gì để dùng lệnh engine và `as`. Muốn có l
 `commands` cùng hook `cmd<Name>`; `catalogs` cung cấp giá trị có tên cho `@danh-mục:id`:
 
 ```ts
-import { catalog, type CommandContext, Game, type StartContext } from '@psc/sdk';
+import { catalog, type CommandContext, Game, type StartContext } from '@xomdao/sdk';
 import { z } from 'zod';
 
 type State = { players: { position: number }[] };
@@ -273,7 +273,7 @@ bầu trời khi mở bàn chơi/sandbox và tự vẽ nền ngay trong `GameVie
 và tuỳ chỉnh vẫn dùng bầu trời chung; rời bàn sẽ khôi phục nền mặc định.
 
 ```ts
-import { defineClient, GameBackgroundScene } from '@psc/sdk/client';
+import { defineClient, GameBackgroundScene } from '@xomdao/sdk/client';
 
 class MyBackground extends GameBackgroundScene {
   protected onCreate() { /* tạo đối tượng và đặt lại các field */ }
@@ -516,7 +516,7 @@ tả chỗ khác đi. Codex sẽ sửa từ hình gốc nên nhân vật và b�
 
 ### Kết xuất Blender và normal map
 
-Helper chung ở `tools/blender/psc_bake/`: vật liệu, `cube`/`sphere`/`lathe`, `setup`/`render`,
+Helper chung ở `tools/blender/xomdao_bake/`: vật liệu, `cube`/`sphere`/`lathe`, `setup`/`render`,
 đèn trên trái và pass normal. Cờ Vua, Cờ Đam và Cờ Vây dùng cùng bộ này.
 
 ```sh
@@ -530,15 +530,15 @@ Lệnh mặc định dùng `blender` và Pillow. Nếu máy không có Blender C
 3.13 rồi chọn Python đó cho lệnh:
 
 ```sh
-python3.13 -m venv /tmp/psc-blender
-/tmp/psc-blender/bin/python -m pip install bpy==5.1.2 Pillow
-PSC_BLENDER_PYTHON=/tmp/psc-blender/bin/python npm run blender -- chess pieces
+python3.13 -m venv /tmp/xomdao-blender
+/tmp/xomdao-blender/bin/python -m pip install bpy==5.1.2 Pillow
+XOMDAO_BLENDER_PYTHON=/tmp/xomdao-blender/bin/python npm run blender -- chess pieces
 ```
 
 Lệnh chạy lần lượt mọi `sources/render*.py` của game; mỗi script chỉ kết xuất những tên của
 nó trong danh sách (không ghi tên thì kết xuất hết). Cũng chạy trực tiếp được bằng `python games/chess/sources/render_assets.py -- pieces` hoặc
 `blender -b -t 4 --python games/chess/sources/render_assets.py -- pieces`;
-`PSC_BLENDER_BIN` chọn Blender ở đường dẫn khác. PNG trung gian nằm trong `.blender/<id>/`,
+`XOMDAO_BLENDER_BIN` chọn Blender ở đường dẫn khác. PNG trung gian nằm trong `.blender/<id>/`,
 chỉ commit script Python và tài nguyên sẵn dùng; không cần thêm `.blend` hay file nguồn LFS.
 Đổi một quân Cờ Vua sẽ ghép lại atlas `pieces`; lần đầu sẽ kết xuất thêm quân còn thiếu.
 `npm run blender -- go bowl bowl-lid` kết xuất riêng hộp và nắp.

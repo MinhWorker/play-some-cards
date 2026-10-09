@@ -1,4 +1,4 @@
-import { GameBackgroundScene } from '@psc/sdk/client';
+import { GameBackgroundScene } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 /** A quiet pavilion behind the board, covering notches and the frame's extra screen area. */

@@ -1,4 +1,4 @@
-import { GameBackgroundScene } from '@psc/sdk/client';
+import { GameBackgroundScene } from '@xomdao/sdk/client';
 
 /** Quiet woven teal beneath the top-down wood board: a small seamless POT tile over the whole screen, its bleed included. */
 export class GoBackground extends GameBackgroundScene {

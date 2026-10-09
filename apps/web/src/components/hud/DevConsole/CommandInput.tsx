@@ -1,5 +1,5 @@
 /** Keyboard-only input with history, schema hints, cycling completion and error spans. */
-import { type ConsoleSuggestion } from '@psc/sdk';
+import { type ConsoleSuggestion } from '@xomdao/sdk';
 import { type RefObject, useRef, useState, useSyncExternalStore } from 'react';
 import {
   clearConsoleIssue,

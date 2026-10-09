@@ -57,7 +57,7 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
   chứa 12 khung cùng điểm neo. Bake riêng hai màu Tượng bằng
   `npm run blender -- chess piece-white-bishop piece-black-bishop`. Normal map raw, lossless, đục (không alpha) và hướng đèn trên trái. Bàn và nút vẫn
   dùng bộ đèn cũ (`LEGACY_RIG`) để kết xuất lại khớp hình đã có.
-  Có thể dùng Python 3.13 với `bpy==5.1.2` qua `PSC_BLENDER_PYTHON`; xem
+  Có thể dùng Python 3.13 với `bpy==5.1.2` qua `XOMDAO_BLENDER_PYTHON`; xem
   [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Toạ độ, chấm nước đi và màu đánh dấu do Phaser vẽ.
 - Đảo Cờ Vua: Image Gen, prompt trong `sources/prompts.json`. PNG gốc khoảng 2 MB được lưu
   bằng Git thường theo ngoại lệ trong `.gitattributes`, vì kết nối hiện tại không xác thực

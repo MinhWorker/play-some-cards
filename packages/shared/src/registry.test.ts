@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { Game, gameRules, validateConsoleDefinitions } from '@psc/sdk';
+import { Game, gameRules, validateConsoleDefinitions } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { games } from './registry.js';

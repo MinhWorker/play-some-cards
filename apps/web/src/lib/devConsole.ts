@@ -5,8 +5,8 @@ import {
   completeConsoleLine,
   type DevConsoleSchema,
   parseConsoleLine,
-} from '@psc/sdk';
-import type { DevLogEntry, RoomSnapshot } from '@psc/shared';
+} from '@xomdao/sdk';
+import type { DevLogEntry, RoomSnapshot } from '@xomdao/shared';
 import { devToolsEnabled, setDevSetting } from '@/lib/devTools';
 import { request, socket } from '@/lib/socket';
 
@@ -42,8 +42,8 @@ interface ConsoleState {
   preferences: Preferences;
   issue: ConsoleIssue | null;
 }
-const PREF_KEY = 'psc:dev-console:v1';
-const HISTORY_KEY = 'psc:dev-console:history';
+const PREF_KEY = 'xomdao:dev-console:v1';
+const HISTORY_KEY = 'xomdao:dev-console:history';
 const EMPTY_SCHEMA: DevConsoleSchema = { commands: [], catalogs: {} };
 function read(key: string): unknown {
   try {

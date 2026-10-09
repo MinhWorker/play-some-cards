@@ -1,5 +1,5 @@
 {
-  "name": "@psc/shared",
+  "name": "@xomdao/shared",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@psc/sdk": "*",
+    "@xomdao/sdk": "*",
     "zod": "^4.6.5"
   },
   "devDependencies": {

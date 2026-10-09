@@ -2,7 +2,7 @@
  * The game's logic, on the server. A player's event runs its hook, which gets the whole room in
  * `ctx` and returns the next state; everyone's screen then gets it (scenes/CaroView.ts).
  */
-import { type BotContext, type EventContext, Game, type StartContext } from '@psc/sdk';
+import { type BotContext, type EventContext, Game, type StartContext } from '@xomdao/sdk';
 import { z } from 'zod';
 import { at, grow, inside, isDraw, newBoard, place, winsAt } from './board.js';
 import { botMove } from './bot.js';

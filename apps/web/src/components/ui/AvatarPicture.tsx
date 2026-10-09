@@ -1,4 +1,4 @@
-import { DEFAULT_FRAME } from '@psc/shared';
+import { DEFAULT_FRAME } from '@xomdao/shared';
 import { avatarImage, frameImage } from '@/lib/profile';
 import './AvatarPicture.css';
 

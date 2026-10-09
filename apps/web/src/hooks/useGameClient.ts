@@ -1,4 +1,4 @@
-import type { GameClient } from '@psc/sdk/client';
+import type { GameClient } from '@xomdao/sdk/client';
 import { useEffect, useState } from 'react';
 import { loadClient } from '@/games';
 

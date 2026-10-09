@@ -1,4 +1,6 @@
-const CACHE_NAME = 'psc-offline-v1';
+const CACHE_NAME = 'xomdao-offline-v1';
+// Caches from before the rename to Xóm Đảo are removed too.
+const CACHE_PREFIXES = ['xomdao-offline-', 'psc-offline-'];
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -14,7 +16,10 @@ self.addEventListener('activate', (event) => {
         .then((keys) =>
           Promise.all(
             keys
-              .filter((key) => key.startsWith('psc-offline-') && key !== CACHE_NAME)
+              .filter(
+                (key) =>
+                  CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)) && key !== CACHE_NAME,
+              )
               .map((key) => caches.delete(key)),
           ),
         ),

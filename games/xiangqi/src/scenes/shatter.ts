@@ -1,4 +1,4 @@
-import type { GameScene } from '@psc/sdk/client';
+import type { GameScene } from '@xomdao/sdk/client';
 /**
  * A taken piece breaks into shards of itself. Each piece's image is cut once, the first time
  * it breaks, into jagged wedges around a point near its middle (an inner and an outer shard

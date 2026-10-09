@@ -8,7 +8,7 @@ import {
   profileSchema,
   registerSchema,
   type User,
-} from '@psc/shared';
+} from '@xomdao/shared';
 import type { AccountsStore } from './accounts.store.js';
 
 export class AccountError extends Error {}

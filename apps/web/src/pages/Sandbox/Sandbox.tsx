@@ -1,4 +1,4 @@
-import { defaultOptions, type GameResult, games } from '@psc/shared';
+import { defaultOptions, type GameResult, games } from '@xomdao/shared';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SoundControl, Toast } from '@/components/hud';
 import { Button } from '@/components/ui/Button';

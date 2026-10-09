@@ -4,7 +4,7 @@ import {
   GameView,
   type ViewContext,
   type ViewEvent,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import type { Deck } from '../game/cards.js';
 import {

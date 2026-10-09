@@ -1,4 +1,4 @@
-import { defineClient } from '@psc/sdk/client';
+import { defineClient } from '@xomdao/sdk/client';
 import { CoCaNguaBackground } from './scenes/CoCaNguaBackground.js';
 import { CoCaNguaView } from './scenes/CoCaNguaView.js';
 import { Setup } from './scenes/Setup.js';

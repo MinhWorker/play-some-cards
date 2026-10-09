@@ -61,7 +61,7 @@ trang mở từ trước lần deploy web sẽ không tải được code của 
 Web nhận ra điều này (`src/lib/newBuild.ts`: tải lại `index.html` và so file JS chính) khi tải
 code game thất bại hoặc khi người chơi quay lại tab, rồi hiện hộp "Đã có phiên bản mới" với nút
 "Tải lại". Bấm nút bắt đầu chờ backend: web đọc commit và protocol của bản
-mới từ thẻ `psc-build` trong `index.html`, kiểm tra `/api/health` mỗi 3 giây và chỉ tải lại
+mới từ thẻ `xomdao-build` trong `index.html`, kiểm tra `/api/health` mỗi 3 giây và chỉ tải lại
 khi backend trả về đúng commit, đúng protocol và database không báo `down`. Vì các lần merge
 có thể dùng chung số phiên bản và protocol, hai trường đó không thay thế việc so commit.
 Chỉ mất kết nối, request lỗi hoặc quá 10 giây chưa đủ để kết luận backend đang deploy:
@@ -90,16 +90,16 @@ làm chúng chạy được với bản trước (thêm cột trước, xoá c�
 
 ## Game
 
-`npm run build -w @psc/shared` (thứ Render và Vercel chạy) build `@psc/sdk`, phần server của mọi
-game và `@psc/shared` (scripts/libs.mjs), nên một thư mục mới trong `games/` được triển khai mà
+`npm run build -w @xomdao/shared` (thứ Render và Vercel chạy) build `@xomdao/sdk`, phần server của mọi
+game và `@xomdao/shared` (scripts/libs.mjs), nên một thư mục mới trong `games/` được triển khai mà
 không phải đổi cài đặt nào. Bản build web chứa mỗi game thành một phần riêng, chỉ tải khi cần. Game
 có `status: 'wip'` bị khoá ở nơi có `VERCEL_ENV=production` (trang thật) và chơi được ở mọi nơi
 khác, kể cả bản xem trước của PR; sandbox (`/?play=<id>`) theo cùng quy tắc.
 
 ## Ứng dụng web → Vercel
 
-Repo GitHub `MinhWorker/play-some-cards` được nối với project Vercel
-`minhnks-projects/play-some-cards` (bản thật: https://play-some-cards.vercel.app). Mỗi lần push
+Repo GitHub `MinhWorker/xom-dao` được nối với project Vercel
+`minhnks-projects/xomdao` (bản thật: https://xomdao.vercel.app). Mỗi lần push
 lên `main` triển khai bản thật; mỗi PR có một URL xem trước. Cài đặt build nằm trong `vercel.json`
 (gốc repo).
 
@@ -108,9 +108,10 @@ Biến môi trường trên Vercel: `VITE_SERVER_URL` = URL công khai của gam
 
 ## Game server → Render
 
-Dịch vụ Render `play-some-cards-server` (gói miễn phí, Singapore), cấu hình sao lại trong
+Dịch vụ Render `xomdao-server` (gói miễn phí, Singapore), cấu hình sao lại trong
 `render.yaml`:
-- URL: https://play-some-cards-server.onrender.com (kiểm tra sức khoẻ: `/api/health`)
+- URL: https://play-some-cards-server.onrender.com (kiểm tra sức khoẻ: `/api/health`). Đổi tên
+  dịch vụ không đổi URL này, nên nó vẫn mang tên cũ.
 - Bảng điều khiển: https://dashboard.render.com/web/srv-daq1sc0473hc73e7bsl0
 - Tự triển khai khi push lên `main` nếu `apps/server/**`, `packages/shared/**` hoặc
   `package-lock.json` thay đổi.
@@ -131,7 +132,8 @@ instance. Cũng vì vậy mà luôn giữ đúng một instance server.
 
 Lưu tài khoản (`users`) và token đăng nhập (`sessions`); phòng vẫn ở trong bộ nhớ.
 Project Neon `play-some-cards` (id `royal-block-89471600`, gói miễn phí, `aws-ap-southeast-1`
-= Singapore, cạnh server Render). Database `psc`, role `psc_owner`.
+= Singapore, cạnh server Render). Database `psc`, role `psc_owner`
+(tên cũ, giữ nguyên để không phải chuyển dữ liệu).
 - Nhánh `main` = bản thật. `DATABASE_URL` của Render giữ URL **pooled** của nó.
 - Nhánh `dev` = phát triển trên máy. URL pooled của nó nằm trong `apps/server/.env` (bị gitignore;
   server nạp bằng `process.loadEnvFile()`).
@@ -145,10 +147,10 @@ Project Neon `play-some-cards` (id `royal-block-89471600`, gói miễn phí, `aw
 - CLI: `neonctl` (cài toàn cục bằng npm; `neonctl auth` để đăng nhập).
 
 Schema và migration dùng Drizzle ORM: sửa `apps/server/src/db/schema.ts`, chạy
-`npm run db:generate -w @psc/server` (ghi SQL vào `apps/server/drizzle/`, nhớ commit). Server áp
-các migration còn thiếu khi khởi động. `npm run db:studio -w @psc/server` mở trình xem bảng.
+`npm run db:generate -w @xomdao/server` (ghi SQL vào `apps/server/drizzle/`, nhớ commit). Server áp
+các migration còn thiếu khi khởi động. `npm run db:studio -w @xomdao/server` mở trình xem bảng.
 
 ## Cách đơn giản nhất: một tiến trình, không Vercel
 
-`npm run build && npm start -w @psc/server` phục vụ cả ứng dụng web lẫn game ở cổng 8033. Bạn bè
+`npm run build && npm start -w @xomdao/server` phục vụ cả ứng dụng web lẫn game ở cổng 8033. Bạn bè
 cùng Wi-Fi có thể mở `http://<IP-LAN-của-bạn>:8033`.

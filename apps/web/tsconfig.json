@@ -10,7 +10,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "customConditions": ["psc-source"]
+    "customConditions": ["xomdao-source"]
   },
   "include": ["src", "vite.config.ts"]
 }

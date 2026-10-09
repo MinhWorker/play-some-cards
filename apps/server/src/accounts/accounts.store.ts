@@ -1,4 +1,4 @@
-import { AVATARS, type Avatar, DEFAULT_FRAME, FRAMES, type Frame, type User } from '@psc/shared';
+import { AVATARS, type Avatar, DEFAULT_FRAME, FRAMES, type Frame, type User } from '@xomdao/shared';
 import { eq } from 'drizzle-orm';
 import type { Db } from '../db/db.module.js';
 import { sessions, users } from '../db/schema.js';

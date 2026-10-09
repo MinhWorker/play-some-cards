@@ -2,7 +2,7 @@
  * Browser entry: the table, the settings screen ("Tạo phòng", "Tuỳ chỉnh") and what a player is
  * asked when they leave mid-game.
  */
-import { defineClient } from '@psc/sdk/client';
+import { defineClient } from '@xomdao/sdk/client';
 import { Setup } from './scenes/Setup.js';
 import { TienLenView } from './scenes/TienLenView.js';
 

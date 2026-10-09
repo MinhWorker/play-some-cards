@@ -5,7 +5,7 @@
  * Each player has a sea of 10 × 10 cells, stored row by row from the top: cell = row * 10 + col.
  * A ship is the cells it covers. Seats are 0 and 1 (`players[seat]`); seat 0 fires first.
  */
-import type { PlayerId } from '@psc/sdk';
+import type { PlayerId } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export const SIZE = 10;

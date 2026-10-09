@@ -2,7 +2,7 @@
  * The players, listed in the top-left corner like a voice-chat overlay: picture, name, cards in
  * hand and points. Whose turn it is lights up, with the turn clock running around the picture.
  */
-import { titleStyle } from '@psc/sdk/client';
+import { titleStyle } from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 
 export interface PlayerRow {

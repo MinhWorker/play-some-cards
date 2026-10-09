@@ -16,7 +16,7 @@ import {
   titleStyle,
   type ViewContext,
   type ViewEvent,
-} from '@psc/sdk/client';
+} from '@xomdao/sdk/client';
 import type Phaser from 'phaser';
 import { beats, type Card, comboOf, isChop, rankOf, TWO } from '../game/cards.js';
 import { standings } from '../game/match.js';
