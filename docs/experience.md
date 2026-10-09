@@ -8,7 +8,9 @@
 > ảnh. Chữ, số và bố cục cụ thể do các bảng và quy tắc bên dưới quyết định. Prompt tạo ảnh:
 > [concepts/prompts.json](concepts/prompts.json).
 >
-> Tầm nhìn: [vision.md](vision.md). Kế hoạch: [roadmap.md](roadmap.md).
+> Tầm nhìn: [vision.md](vision.md). Kế hoạch: [roadmap.md](roadmap.md). Giao diện game thật đã
+> tham khảo: [ui-references.md](ui-references.md). Khi ảnh concept và tài liệu đó khác nhau, theo
+> tài liệu đó: ảnh AI đẹp nhưng không thực tế.
 >
 > **Hướng nghệ thuật là hoạt hình phẳng**, như ảnh sảnh, chọn trò, Nhà, sự kiện và bộ thành phần.
 > Ảnh ván đấu, kết quả, danh sách phòng và ảnh hub cũ quá chi tiết, nhiều texture: chỉ xem bố cục,
@@ -19,10 +21,10 @@
 1. **Học bố cục từ game mobile nổi tiếng, vẽ lại bằng văn hoá Việt.** Sảnh chờ, chọn chế độ, chọn
    bản đồ, nút "Chơi" to ở góc dưới phải: người chơi game mobile (MOBA, bắn súng sinh tồn) đã quen
    tay. Nhưng mọi thứ là gỗ, tre, dây thừng, sơn mài, giấy dó, nón lá, đèn lồng.
-2. **Là game, không phải app.** Nút nhiều cũng được, nhưng mỗi nút là một đồ vật có khối, có chuyển
-   động, có chấm đỏ thông báo; không thanh tab phẳng, không nút kiểu Material.
-3. **Trò chơi làm chủ phần giữa màn hình.** Trong ván, phần khung (shell) chỉ dùng bốn góc. Trò không
-   vẽ lại những gì phần khung đã có.
+2. **HUD mỏng, hình to, một nút lộng lẫy.** Như game thật: icon và hàng nút nhỏ, phẳng, nền trong
+   mờ; cảnh và nhân vật chiếm phần lớn màn hình; chỉ nút CHƠI và vài bảng lớn được làm bằng gỗ, sơn
+   mài, dây thừng.
+3. **Trong ván, màn hình là của trò.** Phần khung (shell) chỉ giữ một nút menu nhỏ ở góc trên trái.
 4. **Một lần chạm để vào chơi.** Nút **CHƠI** ở sảnh luôn mang trò đang chọn (mặc định là trò vừa
    chơi). Đổi trò là việc riêng, không chặn đường vào chơi.
 5. **Một ngôn ngữ hình ảnh.** Mọi trò, mọi sự kiện dùng chung vật liệu, bảng màu, font, nút và âm
@@ -61,12 +63,15 @@ Bố cục HUD ở sảnh:
 | Vùng | Chứa |
 | --- | --- |
 | Trên trái | Ảnh đại diện, tên, cấp → **Nhà** |
-| Trên phải | Xu, ngọc, hộp thư, ⚙ |
-| Cột trái | Sự kiện, Nhiệm vụ, Bạn bè |
-| Cột phải | Chợ, Túi đồ |
-| Dưới trái | Hàng nút: Nhà, Xếp hạng, Thành tích, Bến (phòng) |
+| Trên phải | Một hàng icon nhỏ: xu, ngọc, hộp thư, ⚙ |
+| Cột trái | Sự kiện, Nhiệm vụ, Bạn bè (icon tròn nhỏ, có chấm đỏ) |
+| Cột phải | **Banner có tranh**: sự kiện đang mở, Chợ, Túi đồ; nhãn nhỏ "Mới", "Miễn phí" |
+| Dưới trái | Dòng chat mỏng; dưới nó là hàng nút chữ + icon: Nhà, Xếp hạng, Thành tích, Bến |
 | Dưới phải | Thẻ trò đang chọn (đổi được) + nút **CHƠI** thật to + **Tạo phòng** |
 | Giữa | Xóm, nhân vật của bạn, các đảo thể loại |
+
+Các màn khác ngoài sảnh và ván đấu (chọn trò, Nhà, Chợ, Bến, kết quả) chỉ có ← ở trên trái và hàng
+icon tiền + ⚙ ở trên phải.
 
 Các nơi chốn của Xóm vẫn giữ tên làng: **Nhà** (hồ sơ, túi đồ), **Chợ** (cửa hàng), **Đình**
 (tin tức, xếp hạng chung), **Bến** (phòng đang mở, bạn bè online, lời mời). Chúng là nút trên HUD,
@@ -84,8 +89,10 @@ Mở game ─► Sảnh (Xóm)
   │      ▼
   │   Chọn trò: tab thể loại + danh sách thẻ kéo ngang
   │      ├─ Chọn ──────► về Sảnh, thẻ dưới phải đổi thành trò mới
-  │      ├─ Tạo phòng ─► tuỳ chỉnh phòng ─► phòng chờ ─► Ván đấu
+  │      ├─ Tạo phòng ─► tuỳ chỉnh phòng ─► phòng chờ (có mã phòng) ─► Ván đấu
   │      └─ Danh sách phòng ─► vào phòng
+  │
+  ├─ Bến ─► Nhập mã phòng / bạn bè đang online / lời mời
   │
   ├─ Tạo phòng (ở Sảnh) ─► tuỳ chỉnh phòng của trò đang chọn
   └─ Nhà / Chợ / Bến / Sự kiện …  ─► màn nơi chốn ─► ← về Sảnh
@@ -94,7 +101,8 @@ Mở game ─► Sảnh (Xóm)
 - **CHƠI** = ghép nhanh: vào phòng còn chỗ của trò đang chọn, không có thì mở phòng mới, chờ một
   lúc rồi cho máy ngồi ghế trống.
 - Nút ← luôn về đúng một bước. Từ ván đấu về sảnh có hỏi xác nhận nếu đang giữa ván.
-- Link mời bạn bè mở thẳng vào phòng. Thoát ra thì về sảnh, với trò đó đang được chọn.
+- Chơi với bạn bè: phòng nào cũng có **mã phòng** ngắn. Gửi mã hoặc link mời; bạn bè nhập mã ở Bến
+  hoặc mở link là vào thẳng phòng. Thoát ra thì về sảnh, với trò đó đang được chọn.
 
 ## Khung hình
 
@@ -107,45 +115,38 @@ Bầu trời / mặt biển lấp phần thừa, vẽ tràn dưới tai thỏ; H
 Cỡ tối thiểu (vùng chạm 88, chữ nhỏ nhất 24…) theo bảng
 [Đơn vị và cỡ tối thiểu](ui-guide.md#đơn-vị-và-cỡ-tối-thiểu).
 
-## HUD trong ván: bốn góc
+## HUD trong ván
 
 ![HUD trong ván đấu](concepts/in-game-hud.webp)
 
-> Ảnh này có một chỗ sai: người chơi trên máy (Minh) luôn ở **dưới**, chỉ có bài trên tay, không
-> có ô người chơi; ảnh lại vẽ Minh ở trên. Ảnh cũng gợi ý một hướng đáng cân nhắc: đối thủ ngồi
-> quanh bàn như nhân vật thật, không chỉ là ảnh tròn (xem [Còn để ngỏ](#còn-để-ngỏ)).
+> Ảnh concept này chỉ để xem không khí. Bố cục theo các quy tắc dưới đây, rút từ Ludo King và
+> Stumble Guys ([ui-references.md](ui-references.md#trong-trận)). Người chơi trên máy luôn ở
+> **dưới**; ảnh lại vẽ Minh ở trên.
 
-Màn hình chia ba lớp:
+**Phần khung chỉ giữ một thứ: nút menu ☰** ở góc trên trái (88 × 88, sát mép). Menu mở một bảng
+chung: rời phòng, âm thanh, cài đặt (cỡ giao diện, lề, chất lượng hình), luật chơi, biểu cảm. Trò
+để trống ô vuông đó, còn lại cả màn hình là của trò.
 
-1. **Thế giới / bàn chơi**: cả màn hình. Thuộc về trò (hoặc sảnh).
-2. **HUD góc**: bốn góc, do phần khung vẽ. Trò không vẽ lại và không đặt gì đè lên.
-3. **Bảng**: biển gỗ hiện trên thế giới (chi tiết trò, kết quả, cài đặt). Do phần khung vẽ, trò chỉ
-   cung cấp nội dung bên trong khi được phép.
+Trò chọn một trong hai bố cục mẫu, để các trò cùng loại trông giống nhau:
 
-Sảnh có HUD đầy đủ (xem [Sảnh](#sảnh-xóm-và-các-đảo-thể-loại)). Mọi màn khác chỉ dùng bốn góc:
+| Bố cục | Giữa | Góc và hai bên | Dưới |
+| --- | --- | --- | --- |
+| **Bàn** (cờ, bài, tiệc) | Bàn chơi vuông, cao gần trọn khung | Ô người chơi của đối thủ ở các góc hoặc hai bên, sát chỗ ngồi của họ (như Ludo King) | Người chơi trên máy: bài trên tay hoặc ô của mình; nút hành động (Đánh, Bỏ lượt) ở dưới phải |
+| **Hành động** (đối kháng, sự kiện) | Cảnh chơi | Mục tiêu trên trái (dưới nút ☰), bộ đếm/thời gian trên phải | Cần điều khiển dưới trái, nút hành động dưới phải |
 
-| Màn | Trên trái | Trên phải | Dưới trái | Dưới phải |
-| --- | --- | --- | --- | --- |
-| Chọn trò | ← | Xu, ⚙ | (trống) | (bảng chi tiết chiếm bên phải) |
-| Nơi chốn (Nhà, Chợ…) | ← | Xu, ⚙ | (trống) | (trống) |
-| Ván đấu | ← | 🔊, ⚙ | Biểu cảm | **Thuộc về trò** |
-| Kết quả | (trống) | Xu (để thấy xu bay vào), ⚙ | (trống) | (trống) |
-
-- Góc dưới phải trong ván là chỗ duy nhất trò được đặt nút hành động của riêng nó (Đánh, Bỏ lượt,
-  Xong…). Nút hành động dùng thành phần nút chung.
-- Trong ván không hiện tên trò, tên phòng hay số dư xu: người chơi biết mình đang ở đâu.
-- Người chơi khác do trò vẽ quanh bàn, nhưng dùng thành phần **ô người chơi** chung (ảnh đại diện
-  trong vòng tre, thẻ tên gỗ, vòng thời gian vàng cho người đang tới lượt, 👑 cho chủ phòng).
-- Cài đặt (⚙) là một bảng chung: âm thanh, cỡ giao diện, lề màn hình, chất lượng hình, rời phòng.
-  Trò có thể thêm một mục "Luật chơi" vào đó, không thêm gì khác.
+- Ô người chơi dùng thành phần chung: ảnh đại diện, tên, cấp, vòng thời gian vàng cho người đang
+  tới lượt, 👑 cho chủ phòng. Thông tin riêng của trò (số lá bài, xúc xắc) nằm trong ô đó.
+- Trong ván không hiện tên trò, tên phòng hay số dư xu.
+- Biểu cảm: chạm vào ô của mình, hoặc mở từ menu.
 
 ## Chọn trò
 
 ![Chọn trò trong thể loại Bài](concepts/genre-select.webp)
 
 - Trên cùng là **tab thể loại** hình biển đảo nhỏ, để đổi thể loại mà không quay ra sảnh.
-- Giữa là **danh sách thẻ kéo ngang**. Mỗi thẻ: tranh minh hoạ, tên, số người, số người đang chơi.
-  Thẻ đang chọn to hơn, viền vàng. Trò sắp có là thẻ mờ sương có ổ khoá ở cuối danh sách.
+- Giữa là **danh sách thẻ dọc kéo ngang**. Mỗi thẻ: tranh minh hoạ, tên, số người, thời lượng một
+  ván ("5–10 phút"), số người đang chơi, nút **?** mở bảng giới thiệu ngắn có hình. Thẻ đang chọn
+  to hơn, viền vàng. Trò sắp có là thẻ mờ có ổ khoá ở cuối danh sách.
 - Bên phải là **bảng chi tiết** của thẻ đang chọn, cùng một bố cục cho mọi trò:
   - tên, một câu giới thiệu, số người, số phòng đang mở;
   - **Chọn** (đặt làm trò của nút CHƠI);
@@ -206,17 +207,17 @@ ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng p
 bóng đơn giản, ít texture. Không vẽ vân gỗ, rêu, hạt nước hay ánh sáng điện ảnh chi tiết.
 
 **Thế giới:** xóm chài Việt Nam kiểu đồ chơi: tre, dây thừng, thúng, thuyền thúng, mái ngói đỏ,
-đèn lồng. Hoạt hình phẳng 2.5D, khối mềm, bóng ngắn, nắng từ trên trái. Đảo thể loại là diorama nhỏ; không
-đảo nào lấn át Xóm và nhân vật ở giữa.
+đèn lồng. Hoạt hình phẳng 2.5D, khối mềm, bóng ngắn, nắng từ trên trái. Đảo thể loại là diorama
+nhỏ; không đảo nào lấn át Xóm và nhân vật ở giữa.
 
 **Vật liệu giao diện:**
 
 | Thành phần | Vật liệu |
 | --- | --- |
-| Bảng, hộp thoại | Gỗ mật ong, buộc dây thừng, ruột giấy dó màu kem |
-| Nút chính | Sơn mài đỏ viền vàng, chữ kem |
-| Nút phụ | Gỗ mật ong, chữ nâu đậm |
-| Nút biểu tượng | Tròn, gỗ, 88 × 88 |
+| Nút CHƠI và nút chính trong bảng | Sơn mài đỏ viền vàng, chữ kem: thứ lộng lẫy duy nhất |
+| Bảng lớn (kết quả, chi tiết trò, sự kiện) | Gỗ mật ong, buộc dây thừng, ruột giấy dó màu kem |
+| Nút phụ | Phẳng, màu gỗ, chữ nâu đậm hoặc kem |
+| Icon, hàng nút nhỏ, thanh tiền | Hình phẳng đơn giản, nền nâu trong mờ, chữ kem; không vân gỗ, không dây thừng |
 | Ảnh đại diện | Vòng tre; khung khác là vật phẩm trang trí |
 | Tiền | Đồng **xu** đồng có lỗ vuông; tài nguyên phụ là **ngọc** xanh lá |
 | Thẻ trò | Khung gỗ dọc bo góc, tranh minh hoạ trên, bảng tên giấy dưới |
@@ -248,18 +249,18 @@ biển nền ở sảnh. Mỗi trò có nhạc nền riêng; âm thanh giao di�
 
 Một trò hay sự kiện **phải**:
 
-- [ ] Khai báo: tên, thể loại, một câu giới thiệu, số người, phần thưởng tối đa; sự kiện thêm ngày
-      mở/đóng và dải phần thưởng.
+- [ ] Khai báo: tên, thể loại, một câu giới thiệu, số người, thời lượng một ván, phần thưởng tối
+      đa; sự kiện thêm ngày mở/đóng và dải phần thưởng.
 - [ ] Có tranh thẻ trò (dọc, theo khung chung) và tranh nhỏ cho thẻ "trò đang chọn" ở sảnh.
 - [ ] Dùng thành phần chung từ `xomdao_sdk`: nút, bảng, ô người chơi, ô lựa chọn, thông báo.
-- [ ] Đặt nút hành động của trò ở góc dưới phải; để trống ba góc còn lại.
+- [ ] Theo một bố cục mẫu trong ván (**Bàn** hoặc **Hành động**); để trống ô của nút ☰.
 - [ ] Trả thứ hạng khi hết ván và để phần khung hiện kết quả, phần thưởng.
 - [ ] Vừa lõi 960 × 720 ở mọi tỉ lệ khung; vùng chạm ≥ 88, chữ ≥ 24.
 - [ ] Có ảnh chụp ở các khung (`npm run shots`) và kịch bản e2e.
 
 Một trò hay sự kiện **không được**:
 
-- Vẽ nút quay lại, cài đặt, âm thanh, số dư hay tên trò của riêng nó.
+- Vẽ nút quay lại, menu, cài đặt, âm thanh, số dư hay tên trò của riêng nó.
 - Tự cộng tiền hay vật phẩm cho người chơi.
 - Dùng font, bảng màu giao diện hay kiểu nút khác (thế giới bên trong trò thì tự do).
 - Hiện chữ hướng dẫn kiểu "chạm vào đây để…".
