@@ -51,9 +51,10 @@ Notes on the options and on Codex:
 - Shared materials, geometry, camera setup and upper-left light rig live in `tools/blender/xomdao_bake/`.
   Chess, checkers and go use them; Cờ tỷ phú keeps its existing scripts.
 - `npm run blender -- <id> [names…]` runs every `games/<id>/sources/render*.py` in name order;
-  each script bakes only its own names from the list (all when empty). Run it with Blender (and Pillow), or install
-  `bpy==5.1.2` + `Pillow` in a Python 3.13 environment and set `XOMDAO_BLENDER_PYTHON` to its Python.
-  `XOMDAO_BLENDER_BIN` selects another Blender executable. Direct `python x.py -- <names>` and
+  each script bakes only its own names from the list (all when empty). `npm run setup:blender`
+  installs bpy + Pillow (`tools/blender/requirements.txt`) into a Python 3.13 venv in `.tools/blender`,
+  which `npm run blender` then uses. Without it, it runs `blender` (with Pillow).
+  `XOMDAO_BLENDER_PYTHON` selects another Python with bpy, `XOMDAO_BLENDER_BIN` another Blender. Direct `python x.py -- <names>` and
   `blender -b --python x.py -- <names>` work too. PNG intermediates stay in ignored `.blender/`;
   commit Python sources and app-ready files, without adding LFS originals or `.blend` files.
 - `assets/<name>.normal.webp` pairs with image/atlas `<name>`. Same dimensions, frame placement

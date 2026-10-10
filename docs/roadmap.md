@@ -66,13 +66,13 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 - [x] README, CONTRIBUTING, `docs/deploy.md`, các `AGENTS.md`
 
 **Công cụ Godot**
-- [ ] `tools/godot/`: file ghim phiên bản (bản 4.x ổn định mới nhất lúc bắt đầu) +
+- [x] `tools/godot/`: file ghim phiên bản (Godot 4.7.2) +
       `npm run setup:godot` tải editor và export template vào `.tools/`
-- [ ] `npm run godot -- …` gọi đúng bản đã ghim
-- [ ] `npm run godot:check`: mở dự án headless và báo lỗi script, chạy `gdlint`/`gdformat`
+- [x] `npm run godot -- …` gọi đúng bản đã ghim
+- [x] `npm run godot:check`: mở dự án headless và báo lỗi script, chạy `gdlint`/`gdformat`
       (gdtoolkit) và test GUT. Bật cảnh báo thiếu kiểu thành lỗi
-- [ ] `npm run godot:link`: tạo symlink `apps/client/content/<id>` → `games/<id>/godot`
-- [ ] `npm run godot:export`: bản web đơn luồng + PWA, mỗi trò một `.pck` đặt tên theo mã băm
+- [x] `npm run godot:link`: tạo symlink `apps/client/content/<id>` → `games/<id>/godot`
+- [x] `npm run godot:export`: bản web đơn luồng + PWA, mỗi trò một `.pck` đặt tên theo mã băm
 
 **Mạng và protocol**
 - [ ] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO
@@ -85,7 +85,7 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
       đọc state
 - [ ] `npm run shots` và `npm run e2e` chạy với bản Godot web
 - [ ] Sandbox `?play=<id>`: tạo phòng trên dev server, bot ngồi ghế trống
-- [ ] Job CI `godot`: cài, check, export, e2e
+- [ ] Job CI `godot`: cài, check, export, e2e (đã có cài, check, export và mở thử bản web; còn e2e)
 
 **Trò thử**
 - [ ] Caro bằng Godot: bàn chơi đơn giản, chưa cần art đẹp

@@ -1,0 +1,45 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Xóm Đảo"
+run/main_scene="res://hub/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/bg_color=Color(0.56078434, 0.827451, 0.95686275, 1)
+boot_splash/show_image=false
+config/icon="res://icon.png"
+config/icon.game_pack=""
+
+[autoload]
+
+Net="*res://core/net.gd"
+Session="*res://core/session.gd"
+Wallet="*res://core/wallet.gd"
+ContentLoader="*res://core/content_loader.gd"
+
+[debug]
+
+gdscript/warnings/untyped_declaration=2
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=4
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true
+environment/defaults/default_clear_color=Color(0.56078434, 0.827451, 0.95686275, 1)

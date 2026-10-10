@@ -22,6 +22,41 @@ jobs:
       - run: npm run check
       - run: npm run build
 
+  # The Godot client (apps/client, games/*/godot): the pinned toolchain, its checks, the web export
+  # and one headless look at the exported build.
+  godot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - uses: actions/cache@v6
+        with:
+          path: |
+            .tools/godot
+            .tools/gdtoolkit
+          key: godot-${{ runner.os }}-${{ hashFiles('tools/godot/version.json') }}
+      - run: npm run setup:godot
+      - run: npm run godot:check
+      - run: npm run godot:export
+      - id: playwright
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - run: npx playwright install --with-deps --only-shell chromium
+      - run: npm run godot:smoke
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: godot-web
+          path: .shots/
+          retention-days: 7
+
   # Which e2e scenarios (scripts/e2e/scenarios/) this change needs: all of them on main, the
   # ones the changed files touch on a PR (none for docs), none for a release PR (versions only).
   e2e-plan:

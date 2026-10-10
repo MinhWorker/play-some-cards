@@ -19,6 +19,7 @@ describe the current React + Phaser app.
 | --- | --- |
 | A game or the SDK (`games/`, `packages/sdk/`) | `games/AGENTS.md` |
 | The web app: screens, HUD, Phaser world, dev tools (`apps/web/`) | `apps/web/AGENTS.md` |
+| The Godot client, a game's `godot/` folder, the Godot toolchain (`apps/client/`, `tools/godot/`) | `apps/client/AGENTS.md` |
 | The server, rooms, accounts, DB, socket protocol (`apps/server/`, `packages/shared/`) | `apps/server/AGENTS.md` |
 | Images or sounds, for the app or a game | `assets/AGENTS.md` |
 
@@ -30,9 +31,12 @@ packages/sdk/      @xomdao/sdk        The only API games use
 packages/shared/   @xomdao/shared     Core only, never imported by games: socket protocol, accounts, game registry
 apps/server/       @xomdao/server     NestJS + Socket.IO
 apps/web/          @xomdao/web        React + Vite + Phaser 4
+apps/client/                          Godot 4 client (GDScript), not an npm workspace
 assets/            Originals of the app's own art and audio (Git LFS), prompts.json
 scripts/           Build helpers (libs.mjs), generators (new.mjs), asset tools, smoke/e2e
-tools/blender/     Shared Python/bpy sprite baking helpers (xomdao_bake)
+tools/blender/     Shared Python/bpy sprite baking helpers (xomdao_bake), setup:blender
+tools/godot/       Pinned Godot toolchain (version.json) and the godot:* scripts
+.tools/            What setup:godot / setup:blender install (ignored)
 docs/              Shared guides for people: making-a-game, ui-guide, deploy
 ```
 
@@ -42,9 +46,12 @@ docs/              Shared guides for people: making-a-game, ui-guide, deploy
 | --- | --- |
 | `npm install` | Install (npm only, not pnpm/yarn). Also writes the game list: rerun it and restart dev after adding a game folder |
 | `npm run dev` | Server on :8033, web on :5033 (Vite proxies `/api` and `/socket.io`). `PORT=8133 WEB_PORT=5133` moves them |
-| `npm run check` | Lint + typecheck + unit tests |
+| `npm run check` | Lint + typecheck + unit tests, plus `godot:check` when Godot is installed |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
-| `npm run blender -- <id> [names…]` | Bake game art with Blender or `XOMDAO_BLENDER_PYTHON` (Python+bpy); see `assets/AGENTS.md` |
+| `npm run setup:godot` | Install the pinned Godot, web templates, gdtoolkit and GUT into `.tools/` (Linux, macOS) |
+| `npm run godot -- <args>` | The pinned Godot on `apps/client`; `godot:check`, `godot:link`, `godot:export`, `godot:smoke` in `apps/client/AGENTS.md` |
+| `npm run setup:blender` | Install bpy + Pillow into `.tools/blender` (needs Python 3.13) |
+| `npm run blender -- <id> [names…]` | Bake game art with the `.tools/blender` bpy, Blender or `XOMDAO_BLENDER_PYTHON`; see `assets/AGENTS.md` |
 | `npm run e2e [url]` | Headless Chromium plays every scenario in `scripts/e2e/scenarios/` through the real UI, side by side (needs a running dev server). `-- --only <names>`, `-- --changed origin/main`; flags at the top of `scripts/e2e.mjs`. Screenshots in `.e2e/<scenario>/` |
 | `npm run shots [url]` | Headless screenshots of one page (`-- --path '/?play=<id>'`, `-- --login`) on real phone/tablet/desktop sizes held sideways, at their pixel density and with notch insets. Prints the canvas density against the screen's; `-- --audit` also lists images drawn bigger than their pixels. `.shots/<device>.png` + a 1:1 `-crop.png`; flags at the top of `scripts/shots.mjs` |
 | `npm run smoke [url]` | Bots play Caro over sockets against a running server |
@@ -93,6 +100,8 @@ Test what the change needs, no more (e2e is slow):
   screenshot where it is used. Skip `npm run check` and e2e.
 - **Small UI/CSS tweaks**: `npm run check`, plus `npm run shots` of that screen.
 - **Other code changes**: `npm run check` passes.
+- **Godot changes** (`apps/client/`, `games/<id>/godot/`, `tools/godot/`): `npm run godot:check`, and
+  `npm run godot:export && npm run godot:smoke` when the build or a screen changed.
 - **Gameplay, room/lobby flow, protocol or socket changes**: also run
   `npm run e2e -- --changed origin/main` (the scenarios CI will pick) against a running dev
   server and look at the screenshots. Run it once, at the end of the task, not after every small

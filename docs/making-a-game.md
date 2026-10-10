@@ -526,14 +526,17 @@ npm run blender -- checkers cloth
 npm run blender -- go cloth
 ```
 
-Lệnh mặc định dùng `blender` và Pillow. Nếu máy không có Blender CLI, cài wheel bằng Python
-3.13 rồi chọn Python đó cho lệnh:
+Cách dễ nhất là cài Blender dạng module Python (`bpy`) bằng một lệnh. Lệnh cần Python 3.13
+và cài vào `.tools/blender` (git bỏ qua); phiên bản ghim trong `tools/blender/requirements.txt`:
 
 ```sh
-python3.13 -m venv /tmp/xomdao-blender
-/tmp/xomdao-blender/bin/python -m pip install bpy==5.1.2 Pillow
-XOMDAO_BLENDER_PYTHON=/tmp/xomdao-blender/bin/python npm run blender -- chess pieces
+npm run setup:blender
+npm run blender -- chess pieces
 ```
+
+Khi chưa cài, lệnh dùng `blender` (Blender CLI) và Pillow của máy. `XOMDAO_BLENDER_PYTHON` chọn
+một Python khác có `bpy` và Pillow; Python 3.13 không phải `python3` thì đặt `XOMDAO_PYTHON` cho
+`setup:blender`.
 
 Lệnh chạy lần lượt mọi `sources/render*.py` của game; mỗi script chỉ kết xuất những tên của
 nó trong danh sách (không ghi tên thì kết xuất hết). Cũng chạy trực tiếp được bằng `python games/chess/sources/render_assets.py -- pieces` hoặc

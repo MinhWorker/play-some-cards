@@ -1,0 +1,7 @@
+# Godot's import cache and editor state
+.godot/
+# Symlinks to games/<id>/godot, made by npm run godot:link
+content/
+# Installed by npm run setup:godot
+addons/gut/
+dist/

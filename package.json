@@ -20,7 +20,7 @@
     "test": "npm run build -w @xomdao/shared && npm run test --workspaces --if-present",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "check": "npm run lint && npm run typecheck && npm run test",
+    "check": "npm run lint && npm run typecheck && npm run test && node tools/godot/check.mjs --if-installed",
     "smoke": "node scripts/smoke.mjs",
     "dev:web": "npm run dev -w @xomdao/web",
     "dev:server": "npm run build -w @xomdao/shared && concurrently -k -n shared,server -c magenta,blue \"npm run dev -w @xomdao/shared\" \"npm run dev -w @xomdao/server\"",
@@ -30,7 +30,14 @@
     "new": "node scripts/new.mjs",
     "new:game": "node scripts/new.mjs game",
     "assets": "node scripts/assets.mjs",
-    "blender": "node scripts/blender.mjs"
+    "blender": "node scripts/blender.mjs",
+    "setup:blender": "node tools/blender/setup.mjs",
+    "setup:godot": "node tools/godot/setup.mjs",
+    "godot": "node tools/godot/run.mjs",
+    "godot:check": "node tools/godot/check.mjs",
+    "godot:link": "node tools/godot/link.mjs",
+    "godot:export": "node tools/godot/export.mjs",
+    "godot:smoke": "node tools/godot/smoke.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
