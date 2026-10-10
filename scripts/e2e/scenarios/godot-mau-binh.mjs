@@ -41,7 +41,9 @@ export default async function run(t) {
       );
     } else if (v.phase === 'show' && !done.has('reveal-shot')) {
       done.add('reveal-shot');
-      await godotText(page, 'Info', 'Chi 2', 15_000);
+      // The reveal runs on the server's clock: on a busy machine this loop may see the show phase
+      // late, so any chi (or the totals) will do for the picture.
+      await godotText(page, 'Info', /Chi [123]|Vòng sau|Tổng kết/, 15_000);
       await page.screenshot({ path: t.shot('2-chi.png') });
       await godotText(page, 'Info', /Vòng sau|Tổng kết/, 15_000);
       await page.screenshot({ path: t.shot('3-totals.png') });
