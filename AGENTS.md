@@ -103,8 +103,8 @@ Test what the change needs, no more (e2e is slow):
 - **Godot changes** (`apps/client/`, `games/<id>/godot/`, `tools/godot/`): `npm run godot:check`, and
   `npm run godot:export && npm run godot:smoke` when the build or a screen changed.
 - **Gameplay, room/lobby flow, protocol or socket changes**: also run
-  `npm run e2e -- --changed origin/main` (the scenarios CI will pick) against a running dev
-  server and look at the screenshots. Run it once, at the end of the task, not after every small
+  `npm run e2e -- --changed origin/main` against a running dev server and look at the
+  screenshots (CI skips e2e while the games move to Godot: `PAUSED` in `ci.yml`). Run it once, at the end of the task, not after every small
   follow-up edit. For a game, also try it in the sandbox.
 
 Keep the AGENTS.md files accurate when you change layout, commands or conventions. This file
