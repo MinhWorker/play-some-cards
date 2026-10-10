@@ -4,9 +4,14 @@ extends Node
 ## without a download. In the editor and headless runs the games are already there through the
 ## content/<id> links (npm run godot:link).
 
+## A pack finished mounting (or failed): loads waiting for it look again.
+signal mounted(id: String)
+
 ## Bytes downloaded so far by this run (manifest and packs), for the load measurements.
 var downloaded: int = 0
 var _manifest: Dictionary = {}
+## Packs being fetched now, by game id: a second load waits for the first.
+var _mounting: Dictionary = {}
 
 
 ## The game's main scene (res://content/<id>/main.tscn), or null when it cannot be loaded.
@@ -17,16 +22,54 @@ func load_game(id: String) -> PackedScene:
 	return load(path) as PackedScene
 
 
-func _mount(id: String) -> bool:
+## The games this client has a pack for: the web build's manifest, or the content/<id> links.
+func available() -> Array[String]:
+	var ids: Array[String] = []
+	if await _load_manifest():
+		ids.assign(_manifest.keys())
+	elif DirAccess.dir_exists_absolute("res://content"):
+		for id: String in DirAccess.get_directories_at("res://content"):
+			if ResourceLoader.exists("res://content/%s/main.tscn" % id):
+				ids.append(id)
+	return ids
+
+
+## Starts loading a game's pack in the background, so it is there when the game starts.
+func preload_game(id: String) -> void:
+	if not ResourceLoader.exists("res://content/%s/main.tscn" % id):
+		await _mount(id)
+
+
+func _load_manifest() -> bool:
+	if not _manifest.is_empty():
+		return true
 	var base: String = _base_url()
 	if base == "":
 		return false
-	if _manifest.is_empty():
-		var body: PackedByteArray = await _fetch(base + "manifest.json")
-		var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
-		if parsed is not Dictionary:
-			return false
-		_manifest = parsed
+	var body: PackedByteArray = await _fetch(base + "manifest.json")
+	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
+	if parsed is not Dictionary:
+		return false
+	_manifest = parsed
+	return true
+
+
+func _mount(id: String) -> bool:
+	while _mounting.has(id):
+		await mounted
+	if ResourceLoader.exists("res://content/%s/main.tscn" % id):
+		return true
+	_mounting[id] = true
+	var ok: bool = await _fetch_pack(id)
+	_mounting.erase(id)
+	mounted.emit(id)
+	return ok
+
+
+func _fetch_pack(id: String) -> bool:
+	var base: String = _base_url()
+	if not await _load_manifest():
+		return false
 	var file: String = str(_manifest.get(id, ""))
 	if file == "":
 		return false

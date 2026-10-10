@@ -1,24 +1,35 @@
 extends Control
-## The tracer's temporary hub (#113), until the island ring lobby: play Caro with the computer,
-## make a room and share its code or link, or join one by code; then the room, the game and its
-## result. Links: ?room=<code> joins that room; ?play=<id> (debug builds) is the sandbox, a real
-## room on the server with the computer in the empty seats.
+## The hub (docs/experience.md): the lobby's island ring, the game select, Bến, the waiting
+## room, the game with its ☰ menu, and the result. Links: ?room=<code> joins that room;
+## ?play=<id> (debug builds) is the sandbox, a real room on the server with the computer in the
+## empty seats.
 ##
-## Screens are rebuilt from the connection's state (room code and snapshot) whenever it changes.
+## Out of a room the hub shows the screen the player went to (lobby, select, Bến); in a room it
+## follows the room: the waiting room before a game, the game while it runs, the result after.
 ## Every node a test taps or reads has a name (TestBridge, core/test_bridge.gd).
 ## ?gallery=<page> (web) or `-- --gallery=<page>` opens the UI component gallery instead.
 
-## The game this hub offers until the lobby lists them all.
-const GAME := "tic-tac-toe"
-
 var _client: XomDaoClient = Net.client
 var _screen: Control
-var _game: Control
-var _game_id: String = ""
-var _loading: bool = false
 var _shown: String = ""
 var _menu: XomDaoMenu
-var _code_input: LineEdit
+var _catalog: HubCatalog
+## The game on CHƠI and the genre of the lobby's front island.
+var _game_id: String = ""
+var _genre: String = ""
+## Where the player is out of a room: "lobby", "select" or "ben".
+var _place: String = "lobby"
+## The balance the screens show; the result rolls it up to the ledger's.
+var _coins: int = 0
+## Quick match is looking for players for the room we are in.
+var _quick: bool = false
+var _game: Control
+var _game_id_shown: String = ""
+var _loading: bool = false
+var _result: HubResult
+var _ben: HubBen
+## The screen on now (the lobby, the waiting room…).
+var _current: Control
 
 
 func _ready() -> void:
@@ -35,9 +46,17 @@ func _ready() -> void:
 	_screen.name = "Screen"
 	_screen.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(_screen)
-	_build_hud()
+	_menu = XomDaoMenu.new()
+	_menu.name = "Shell"
+	_menu.button.name = "Menu"
+	_menu.button.visible = false
+	_menu.leave_requested.connect(_leave_game)
+	_menu.rules_requested.connect(func() -> void: _show_rules(_client.snapshot.game_id))
+	add_child(_menu)
 	_client.state_changed.connect(func(_s: XomDaoRoomSnapshot) -> void: _refresh())
-	_client.room_changed.connect(func(_c: String) -> void: _refresh())
+	_client.room_changed.connect(_on_room_changed)
+	_client.rewarded.connect(_on_rewarded)
+	_client.event_received.connect(_on_event)
 	_client.disconnected.connect(func() -> void: _say("Mất kết nối, đang nối lại"))
 	_show_status("Đang kết nối")
 	await _start()
@@ -62,6 +81,13 @@ func _start() -> void:
 		_show_status("Không đăng nhập được")
 		return
 	_client.error.connect(_say)
+	_coins = _balance()
+	var reply: Dictionary = await _client.request(XomDaoProtocol.CATALOG_GET)
+	if reply.get("ok") != true:
+		_show_status("Không tải được danh sách trò")
+		return
+	_catalog = HubCatalog.create(XomDaoCatalog.from_dict(reply), await ContentLoader.available())
+	_pick_game(HubPrefs.selected_game(_client.user.id))
 	var play: String = _query("play") if OS.is_debug_build() else ""
 	var code: String = _query("room")
 	if play != "" and _client.room_code == "":
@@ -87,111 +113,225 @@ func _sandbox(id: String) -> void:
 		await _client.start_game()
 
 
+## The game on CHƠI: `wanted` when the catalog has it, else the first playable game.
+func _pick_game(wanted: String) -> void:
+	var card: XomDaoGameCard = _catalog.card(wanted)
+	if card == null:
+		for genre: XomDaoGenre in _catalog.ordered_genres():
+			var cards: Array[XomDaoGameCard] = _catalog.games_of(genre.id)
+			if not cards.is_empty() and (card == null or _catalog.can_play(cards[0].id)):
+				card = cards[0]
+				if _catalog.can_play(card.id):
+					break
+	_game_id = card.id if card != null else ""
+	_genre = card.genre if card != null else ""
+
+
+func _choose_game(game_id: String) -> void:
+	_pick_game(game_id)
+	if _client.user != null and _game_id != "":
+		HubPrefs.set_selected_game(_client.user.id, _game_id)
+
+
 func _refresh() -> void:
+	if _catalog == null:
+		return
 	var snapshot: XomDaoRoomSnapshot = _client.snapshot
-	_menu.visible = snapshot != null and snapshot.status != "lobby"
-	if not _menu.visible:
+	var playing: bool = snapshot != null and snapshot.status != "lobby"
+	_menu.button.visible = playing
+	if not playing and _menu.is_open() and _shown != "lobby":
 		_menu.close()
 	if _client.room_code == "":
 		_drop_game()
-		_show_home()
+		_show_place()
 	elif snapshot == null or snapshot.status == "lobby":
 		_drop_game()
-		_show_room(snapshot)
+		_show_waiting_room(snapshot)
 	else:
+		_quick = false
 		_show_game(snapshot)
 
 
-func _show_status(text: String) -> void:
-	_set_screen("status")
-	_centered().add_child(_label("Status", text, "HudLabel"))
-	TestBridge.scene = "status"
+func _on_room_changed(code: String) -> void:
+	if code == "":
+		_quick = false
+	_refresh()
 
 
-func _show_home() -> void:
-	if _shown == "home":
+# ── Out of a room ─────────────────────────────────────────────────────────────────────────
+
+
+func _show_place() -> void:
+	match _place:
+		"select":
+			_show_select(_genre)
+		"ben":
+			_show_ben()
+		_:
+			_show_lobby()
+
+
+func _show_lobby() -> void:
+	_place = "lobby"
+	if _shown == "lobby":
 		return
-	_set_screen("home")
-	var board := XomDaoBoard.create("Caro")
-	board.name = "HomeBoard"
-	_centered().add_child(board)
-	var column: VBoxContainer = board.content
-	column.add_theme_constant_override("separation", 20)
-	var bot := _button("PlayBot", "Chơi với máy", XomDaoUi.Kind.GO)
-	bot.pressed.connect(_play_bot)
-	column.add_child(bot)
-	var create := _button("CreateRoom", "Tạo phòng", XomDaoUi.Kind.SOCIAL)
-	create.pressed.connect(_create)
-	column.add_child(create)
-	column.add_child(XomDaoDivider.new())
-	var join := HBoxContainer.new()
-	join.add_theme_constant_override("separation", 16)
-	column.add_child(join)
-	_code_input = LineEdit.new()
-	_code_input.name = "CodeInput"
-	_code_input.placeholder_text = "Mã phòng"
-	_code_input.max_length = 4
-	_code_input.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_code_input.custom_minimum_size = Vector2(220, XomDaoUi.TOUCH)
-	_code_input.add_theme_font_override("font", XomDaoUi.display_font(800))
-	_code_input.add_theme_font_size_override("font_size", XomDaoUi.TEXT)
-	_code_input.text_submitted.connect(func(_t: String) -> void: _join())
-	join.add_child(_code_input)
-	var go := _button("Join", "Vào", XomDaoUi.Kind.SOCIAL)
-	go.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	go.pressed.connect(_join)
-	join.add_child(go)
-	TestBridge.scene = "home"
+	var lobby := HubLobby.new()
+	_set_screen("lobby", lobby)
+	lobby.show_user(_client.user)
+	lobby.money.show_balance(_coins)
+	lobby.money.settings_pressed.connect(_menu.open_settings)
+	lobby.show_catalog(_catalog, _genre)
+	lobby.show_game(_catalog.card(_game_id), _catalog.can_play(_game_id))
+	lobby.genre_changed.connect(_on_genre_changed.bind(lobby))
+	lobby.play_pressed.connect(_quick_match)
+	lobby.create_pressed.connect(_open_setup)
+	lobby.select_opened.connect(_show_select)
+	lobby.place_pressed.connect(_on_place)
 
 
-func _show_room(snapshot: XomDaoRoomSnapshot) -> void:
-	_set_screen("room")
-	TestBridge.scene = "room"
-	var board := XomDaoBoard.create("Phòng")
-	board.name = "RoomBoard"
-	_centered().add_child(board)
-	var column: VBoxContainer = board.content
-	column.add_theme_constant_override("separation", 20)
-	var code := _label("RoomCode", _client.room_code, "TitleLabel")
-	code.add_theme_font_size_override("font_size", 72)
-	code.add_theme_color_override("font_color", XomDaoUi.LACQUER)
-	column.add_child(code)
+func _on_genre_changed(genre_id: String, lobby: HubLobby) -> void:
+	var cards: Array[XomDaoGameCard] = _catalog.games_of(genre_id)
+	if cards.is_empty():
+		_genre = genre_id
+		lobby.show_game(null, false)
+		return
+	_choose_game(cards[0].id)
+	lobby.show_game(cards[0], _catalog.can_play(cards[0].id))
+
+
+func _on_place(place: String) -> void:
+	if place == "ben":
+		_show_ben()
+	else:
+		XomDaoToast.show_on(self, "Sắp có", "lock-simple")
+
+
+func _show_select(genre_id: String) -> void:
+	_place = "select"
+	if _shown == "select":
+		return
+	var select := HubGameSelect.new()
+	_set_screen("select", select)
+	select.top.money.show_balance(_coins)
+	select.top.money.settings_pressed.connect(_menu.open_settings)
+	select.show_genre(_catalog, genre_id, _game_id)
+	select.back_pressed.connect(_back_to_lobby)
+	select.chosen.connect(
+		func(id: String) -> void:
+			_choose_game(id)
+			_back_to_lobby()
+	)
+	select.create_pressed.connect(_open_setup)
+	select.rooms_pressed.connect(
+		func(id: String) -> void:
+			_choose_game(id)
+			_show_ben()
+	)
+	select.rules_pressed.connect(_show_rules)
+
+
+func _show_ben() -> void:
+	_place = "ben"
+	if _shown == "ben":
+		return
+	_ben = HubBen.new()
+	_set_screen("ben", _ben)
+	_ben.top.money.show_balance(_coins)
+	_ben.top.money.settings_pressed.connect(_menu.open_settings)
+	_ben.back_pressed.connect(_back_to_lobby)
+	_ben.join_requested.connect(func(code: String) -> void: _client.join_room(code))
+	var card: XomDaoGameCard = _catalog.card(_game_id)
+	var title: String = card.name if card != null else ""
+	_ben.show_rooms(title, [])
+	if _game_id == "":
+		return
+	var reply: Dictionary = await _client.request(XomDaoProtocol.LOBBY_WATCH, {"gameId": _game_id})
+	if reply.get("ok") == true and _ben != null and is_instance_valid(_ben):
+		_ben.show_rooms(title, XomDaoRoomList.from_dict(reply).rooms)
+
+
+func _on_event(_event: String, data: Variant) -> void:
+	if data is XomDaoLobbyRooms and _shown == "ben" and data.game_id == _game_id:
+		var card: XomDaoGameCard = _catalog.card(_game_id)
+		_ben.show_rooms(card.name if card != null else "", data.rooms)
+
+
+func _back_to_lobby() -> void:
+	if _shown == "ben":
+		_client.request(XomDaoProtocol.LOBBY_UNWATCH)
+	_place = "lobby"
+	_show_lobby()
+
+
+func _quick_match(game_id: String) -> void:
+	_choose_game(game_id)
+	_quick = true
+	if not await _client.quick_match(game_id):
+		_quick = false
+
+
+## Tạo phòng: the game's own options board, then the room.
+func _open_setup(game_id: String) -> void:
+	_choose_game(game_id)
+	var card: XomDaoGameCard = _catalog.card(game_id)
+	var scene: PackedScene = await ContentLoader.load_game(game_id)
+	if scene == null or card == null:
+		_say("Không tải được trò chơi")
+		return
+	var probe: Node = scene.instantiate()
+	var spec: Array = probe.call("room_setup") if probe.has_method("room_setup") else []
+	probe.free()
+	var setup := HubRoomSetup.new()
+	add_child(setup)
+	setup.show_setup(card.name, spec)
+	setup.cancelled.connect(setup.queue_free)
+	setup.created.connect(
+		func(options: Dictionary) -> void:
+			setup.queue_free()
+			await _client.create_room(game_id, options if not options.is_empty() else null)
+	)
+
+
+func _show_rules(game_id: String) -> void:
+	var card: XomDaoGameCard = _catalog.card(game_id)
+	if card == null:
+		return
+	var text: String = card.tagline
+	if _catalog.can_play(game_id) and await ContentLoader.load_game(game_id) != null:
+		var rules: String = "res://content/%s/RULES.md" % game_id
+		if FileAccess.file_exists(rules):
+			text = HubRulesBoard.plain(FileAccess.get_file_as_string(rules))
+	add_child(HubRulesBoard.create("Luật %s" % card.name, text))
+
+
+# ── In a room ─────────────────────────────────────────────────────────────────────────────
+
+
+func _show_waiting_room(snapshot: XomDaoRoomSnapshot) -> void:
+	var room: HubWaitingRoom = _current as HubWaitingRoom if _shown == "room" else null
+	if room == null:
+		room = HubWaitingRoom.new()
+		_set_screen("room", room)
+		room.top.money.show_balance(_coins)
+		room.top.money.settings_pressed.connect(_menu.open_settings)
+		room.leave_pressed.connect(_leave)
+		room.invite_pressed.connect(_invite)
+		room.start_pressed.connect(_client.start_game)
 	if snapshot == null:
 		return
-	var seats := HBoxContainer.new()
-	seats.alignment = BoxContainer.ALIGNMENT_CENTER
-	seats.add_theme_constant_override("separation", 24)
-	column.add_child(seats)
-	for i: int in snapshot.players.size():
-		var player: XomDaoPlayerInfo = snapshot.players[i]
-		var slot := XomDaoPlayerSlot.new()
-		slot.name = "Seat%d" % i
-		slot.compact = true
-		slot.player_name = player.name
-		slot.host = player.id == snapshot.host_id
-		seats.add_child(slot)
-	column.add_child(XomDaoDivider.new())
-	var buttons := HBoxContainer.new()
-	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	buttons.add_theme_constant_override("separation", 16)
-	column.add_child(buttons)
-	var leave := _button("LeaveRoom", "Rời phòng", XomDaoUi.Kind.BACK)
-	leave.pressed.connect(_leave)
-	buttons.add_child(leave)
-	var invite := _button("Invite", "Mời bạn", XomDaoUi.Kind.SOCIAL)
-	invite.pressed.connect(_invite)
-	buttons.add_child(invite)
-	if snapshot.host_id == _client.player_id:
-		var start := _button("Start", "Bắt đầu", XomDaoUi.Kind.GO)
-		start.disabled = snapshot.players.size() < 2
-		start.pressed.connect(_client.start_game)
-		buttons.add_child(start)
+	var card: XomDaoGameCard = _catalog.card(snapshot.game_id)
+	room.show_room(snapshot, _client.player_id, card.max_players if card != null else 2, _quick)
+	if snapshot.game_id != _game_id:
+		_choose_game(snapshot.game_id)
+	ContentLoader.preload_game(snapshot.game_id)
 
 
 func _show_game(snapshot: XomDaoRoomSnapshot) -> void:
-	if _game_id != snapshot.game_id:
+	if _game_id_shown != snapshot.game_id:
 		_drop_game()
-		_game_id = snapshot.game_id
+		_game_id_shown = snapshot.game_id
+		if snapshot.game_id != _game_id:
+			_choose_game(snapshot.game_id)
 	if _game == null:
 		if _loading:
 			return
@@ -202,83 +342,83 @@ func _show_game(snapshot: XomDaoRoomSnapshot) -> void:
 		if scene == null:
 			_show_status("Không tải được trò chơi")
 			return
-		_set_screen("game")
 		_game = scene.instantiate()
-		_screen.add_child(_game)
+		_set_screen("game", _game)
 		if _game.has_method("bind"):
 			_game.call("bind", _client)
 		_refresh()
 		return
-	if _shown != "game" and _shown != "result":
-		_set_screen("game")
+	if _shown != "game":
+		_set_screen("game", _game)
 	TestBridge.scene = snapshot.game_id
-	var old: Node = _screen.get_node_or_null("Result")
-	if old != null:
-		old.free()
 	if snapshot.status == "finished":
-		_show_result(snapshot)
+		if _result == null:
+			_show_result(snapshot)
+	elif _result != null:
+		_result.queue_free()
+		_result = null
 
 
-## The result over the board: who won, what you earned, and what next.
 func _show_result(snapshot: XomDaoRoomSnapshot) -> void:
-	var overlay := ColorRect.new()
-	overlay.name = "Result"
-	overlay.color = Color(XomDaoUi.INK, 0.45)
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_screen.add_child(overlay)
+	_result = HubResult.new()
+	_screen.add_child(_result)
+	_result.money.settings_pressed.connect(_menu.open_settings)
+	_result.again_pressed.connect(_client.start_game)
+	_result.home_pressed.connect(_leave)
+	_result.show_result(snapshot, _client.player_id, _coins)
+	# The ledger may have paid before the board came up.
+	if _balance() != _coins:
+		_on_rewarded(null)
+
+
+func _on_rewarded(_notice: XomDaoRewardNotice) -> void:
+	var balance: int = _balance()
+	if _result != null and is_instance_valid(_result):
+		_result.receive(balance)
+	_coins = balance
+
+
+## ☰ → Rời phòng: in the middle of a game, ask first.
+func _leave_game() -> void:
+	if _client.snapshot == null or _client.snapshot.status != "playing":
+		await _leave()
+		return
+	var confirm: XomDaoBoard = XomDaoBoard.create("Rời ván?", true)
+	confirm.name = "ConfirmBoard"
+	var shade := ColorRect.new()
+	shade.color = Color(XomDaoUi.INK, 0.45)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(shade)
 	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.add_child(center)
-	var winners: Array[String] = snapshot.result.winners if snapshot.result != null else []
-	var title: String = "Hoà"
-	if _client.player_id in winners:
-		title = "Bạn thắng!"
-	elif not winners.is_empty():
-		title = "%s thắng!" % _player_name(snapshot, winners[0])
-	var board := XomDaoBoard.create("Hết ván")
-	board.name = "ResultBoard"
-	center.add_child(board)
-	var column: VBoxContainer = board.content
-	column.add_theme_constant_override("separation", 20)
-	column.add_child(_label("ResultTitle", title, "TitleLabel"))
-	if snapshot.result != null:
-		for reward: XomDaoReward in snapshot.result.rewards:
-			if reward.player == _client.player_id and reward.resource == "core:coin":
-				var delta := XomDaoDelta.create(reward.amount)
-				delta.name = "Reward"
-				delta.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-				column.add_child(delta)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.add_child(center)
+	center.add_child(confirm)
+	var note := Label.new()
+	note.text = "Ván đang chơi sẽ dừng."
+	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	confirm.content.add_child(note)
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 16)
-	column.add_child(buttons)
-	var home := _button("Home", "Về sảnh", XomDaoUi.Kind.BACK)
-	home.pressed.connect(_leave)
-	buttons.add_child(home)
-	if snapshot.host_id == _client.player_id:
-		var again := _button("Again", "Chơi ván mới", XomDaoUi.Kind.GO)
-		again.pressed.connect(_client.start_game)
-		buttons.add_child(again)
-	board.open()
-	TestBridge.scene = snapshot.game_id
-
-
-func _play_bot() -> void:
-	if await _client.create_room(GAME, {"opponent": "bot"}):
-		await _client.start_game()
-
-
-func _create() -> void:
-	await _client.create_room(GAME)
-
-
-func _join() -> void:
-	var code: String = _code_input.text.strip_edges()
-	if code != "":
-		await _client.join_room(code)
+	confirm.content.add_child(buttons)
+	var stay: XomDaoButton = XomDaoButton.create("Ở lại", XomDaoUi.Kind.BACK)
+	stay.name = "Stay"
+	stay.pressed.connect(shade.queue_free)
+	buttons.add_child(stay)
+	var leave: XomDaoButton = XomDaoButton.create("Rời phòng", XomDaoUi.Kind.DANGER)
+	leave.name = "ConfirmLeave"
+	leave.pressed.connect(
+		func() -> void:
+			shade.queue_free()
+			_leave()
+	)
+	buttons.add_child(leave)
+	confirm.closed.connect(shade.queue_free)
+	confirm.open()
 
 
 func _leave() -> void:
 	_menu.close()
+	_place = "lobby"
 	await _client.leave_room()
 
 
@@ -291,63 +431,54 @@ func _invite() -> void:
 	XomDaoToast.show_on(self, "Đã sao chép link mời")
 
 
+# ── Screens ───────────────────────────────────────────────────────────────────────────────
+
+
+func _show_status(text: String) -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var label := Label.new()
+	label.name = "Status"
+	label.text = text
+	label.theme_type_variation = "HudLabel"
+	center.add_child(label)
+	_set_screen("status", center)
+
+
+## Puts `screen` on, freeing the one before (the game stays: it lives across rounds).
+func _set_screen(shown: String, screen: Control) -> void:
+	_shown = shown
+	_current = screen
+	for child: Node in _screen.get_children():
+		if child != _game and child != screen:
+			child.queue_free()
+	if _result != null and not is_instance_valid(_result):
+		_result = null
+	if shown != "game" and _result != null:
+		_result = null
+	if _ben != null and shown != "ben":
+		_ben = null
+	if screen.get_parent() == null:
+		_screen.add_child(screen)
+	if _game != null:
+		_game.visible = shown == "game"
+	TestBridge.scene = shown if shown != "game" else _game_id_shown
+
+
 func _drop_game() -> void:
 	if _game != null:
 		_game.queue_free()
 		_game = null
-	_game_id = ""
+	_game_id_shown = ""
+	_result = null
 
 
-## Empties the screen for another one (the game stays: it lives across rounds).
-func _set_screen(screen: String) -> void:
-	_shown = screen
-	for child: Node in _screen.get_children():
-		if child != _game:
-			child.queue_free()
-	if _game != null:
-		_game.visible = screen == "game"
-
-
-func _build_hud() -> void:
-	_menu = XomDaoMenu.new()
-	_menu.name = "Shell"
-	_menu.button.name = "Menu"
-	_menu.visible = false
-	_menu.leave_requested.connect(_leave)
-	add_child(_menu)
+func _balance() -> int:
+	return int(_client.balances.get("core:coin", 0))
 
 
 func _say(text: String) -> void:
 	XomDaoToast.show_on(self, text, "warning")
-
-
-func _centered() -> CenterContainer:
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_screen.add_child(center)
-	return center
-
-
-func _label(node_name: String, text: String, variation: String = "") -> Label:
-	var label := Label.new()
-	label.name = node_name
-	label.text = text
-	label.theme_type_variation = variation
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	return label
-
-
-func _button(node_name: String, text: String, kind: XomDaoUi.Kind) -> XomDaoButton:
-	var button := XomDaoButton.create(text, kind)
-	button.name = node_name
-	return button
-
-
-func _player_name(snapshot: XomDaoRoomSnapshot, id: String) -> String:
-	for player: XomDaoPlayerInfo in snapshot.seats + snapshot.players:
-		if player.id == id:
-			return player.name
-	return "?"
 
 
 ## A query parameter of the page's URL (web only).

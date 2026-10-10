@@ -280,6 +280,44 @@ describe('RoomsService', () => {
     });
   });
 
+  describe('quick match', () => {
+    it('puts the next player in the waiting room, which is then full', () => {
+      const service = new RoomsService();
+      const first = service.quickMatch('tic-tac-toe', acc('Alice'));
+      expect(first.created).toBe(true);
+      expect(service.isFull(first.room)).toBe(false);
+      // A room made by hand is not offered to quick match.
+      service.create('tic-tac-toe', acc('Carol'));
+      const second = service.quickMatch('tic-tac-toe', acc('Bob'));
+      expect(second).toMatchObject({ created: false, room: first.room });
+      expect(service.isFull(first.room)).toBe(true);
+      expect(service.fillQuick(first.room.code)?.status).toBe('playing');
+      expect(first.room.players.map((p) => p.id)).toEqual(['alice', 'bob']);
+      // Started: a third player gets a new room.
+      expect(service.quickMatch('tic-tac-toe', acc('Dan')).created).toBe(true);
+    });
+
+    it('lets the computer take the seats nobody came for, then starts', () => {
+      const service = new RoomsService();
+      const { room } = service.quickMatch('tien-len', acc('Alice'));
+      service.quickMatch('tien-len', acc('Bob'));
+      service.fillQuick(room.code);
+      expect(room.status).toBe('playing');
+      expect(room.players.map((p) => p.id)).toEqual(['alice', 'bob', 'bot:1', 'bot:2']);
+      expect(room.options).toMatchObject({ bots: 2 });
+      expect(service.fillQuick(room.code)).toBeUndefined();
+    });
+
+    it('plays Caro against the computer when alone', () => {
+      const service = new RoomsService();
+      const { room } = service.quickMatch('tic-tac-toe', acc('Alice'));
+      service.fillQuick(room.code);
+      expect(room.options).toMatchObject({ opponent: 'bot' });
+      expect(room.players.map((p) => p.id)).toEqual(['alice', 'bot:1']);
+      expect(room.status).toBe('playing');
+    });
+  });
+
   describe('changing options between games', () => {
     it('lets the host change them before the next game', () => {
       const { service, room, host, guest } = setupRoom();

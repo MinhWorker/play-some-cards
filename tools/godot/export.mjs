@@ -20,7 +20,7 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { join, relative } from 'node:path';
-import { client, godot, requireGodot, templatesDir, tools } from './lib.mjs';
+import { client, godot, requireGodot, root, templatesDir, tools } from './lib.mjs';
 import { link } from './link.mjs';
 
 const debug = process.argv.includes('--debug');
@@ -49,8 +49,15 @@ cpSync(client, project, {
   filter: (path) => !['.godot', 'dist'].includes(relative(client, path)),
 });
 
-/** A pack preset for one game: its resources under content/<id>/ minus its tests. The
- * game_pack feature blanks the project icon, which Godot otherwise adds to every pack. */
+// Each game's RULES.md goes into its pack, where the hub's Luật board reads it.
+for (const id of games) {
+  const rules = join(root, 'games', id, 'RULES.md');
+  if (existsSync(rules)) cpSync(rules, join(project, 'content', id, 'RULES.md'));
+}
+
+/** A pack preset for one game: its resources under content/<id>/ minus its tests, plus its
+ * RULES.md. The game_pack feature blanks the project icon, which Godot otherwise adds to every
+ * pack. */
 function packPreset(index, id, web) {
   const outside = readdirSync(project)
     .filter((name) => !name.startsWith('.') && name !== 'content')
@@ -63,6 +70,7 @@ function packPreset(index, id, web) {
     .replace(/^name=.*$/m, `name="content:${id}"`)
     .replace(/^runnable=.*$/m, 'runnable=false')
     .replace(/^custom_features=.*$/m, 'custom_features="game_pack"')
+    .replace(/^include_filter=.*$/m, `include_filter="content/${id}/RULES.md"`)
     .replace(/^exclude_filter=.*$/m, `exclude_filter="${outside.join(', ')}"`);
 }
 

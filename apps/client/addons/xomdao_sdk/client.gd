@@ -105,6 +105,12 @@ func create_room(game_id: String, options: Variant = null) -> bool:
 	return _entered(await _ok(XomDaoProtocol.ROOM_CREATE, data))
 
 
+## Quick match (CHƠI): a seat in a waiting room of this game, or a new one the computer fills
+## after a while. The server starts the game itself.
+func quick_match(game_id: String) -> bool:
+	return _entered(await _ok(XomDaoProtocol.ROOM_QUICK, {"gameId": game_id}))
+
+
 ## Joins a room by its code (any case), as a "player" or a "spectator".
 func join_room(code: String, role: String = "player") -> bool:
 	var ack: Dictionary = await _ok(XomDaoProtocol.ROOM_JOIN, {"roomCode": code, "role": role})

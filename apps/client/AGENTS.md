@@ -21,8 +21,10 @@ shows state and sends moves. Folder guide (Vietnamese): `apps/client/README.md`.
 project.godot       960 × 720 base, canvas_items + expand, landscape, Compatibility renderer
 core/               Autoloads: Net (the app's XomDaoClient, server_url()), Session (saved token),
                     Wallet, ContentLoader (game packs), TestBridge (window.xomdao, debug web only)
-hub/                The lobby and each platform module's screen (hub/<module>/); main.tscn starts
-                    (for now the tracer's Caro screens: home, room, game, result)
+hub/                main.gd routes the screens: lobby (island ring + HUD), select (game select),
+                    ben (Bến), room (waiting room), the game with ☰, the result over it
+  lobby/            HubLobby, HubIslandRing (ring layout, swipe/tap), HubIsland (drawn islands)
+  select/ ben/ room/  Game select; Bến; waiting room, Tạo phòng board, result, Luật board
   gallery/          Every UI kit component on 4 pages: ?gallery=<page> or `-- --gallery=<page>`
 addons/xomdao_sdk/  The only API a game's Godot code uses: XomDaoFrame, XomDaoClient (client.gd)
   ui/               The shared UI kit (theme, widgets, fonts, Phosphor icons, UI sounds)
@@ -43,20 +45,24 @@ export_presets.cfg  The Web preset: single-threaded, PWA
 - A game's Godot entry is `res://content/<id>/main.tscn`. Its root gets `bind(client:
   XomDaoClient)` once in the tree, draws `client.snapshot` and follows `state_changed`. It may
   define `sandbox_options() -> Dictionary`, the room options for `?play=<id>` (debug builds: a
-  real room with the computer in the seats, started at once). The hub draws the ☰ menu, the
-  room and the result; the game draws only its table.
+  real room with the computer in the seats, started at once), and `room_setup() -> Array`, the
+  Tạo phòng board's rows (`{key, label, options: [[label, value], …]}`, first is the default).
+  The hub draws the ☰ menu, the room, the result and Luật (the game's RULES.md, which
+  `godot:export` puts in its pack); the game draws only its table.
+- A catalog card is playable here only when the client has its pack (`ContentLoader.available()`);
+  the others show "Sắp có". The game on CHƠI is kept per account in `user://hub.cfg`.
 - `ContentLoader.load_game(id)` gives that scene: from the `content/<id>` link in the editor and
   headless, otherwise it downloads `content/<id>.<hash>.pck` (listed in `content/manifest.json`
   next to the page) into `user://content/` once and loads it.
 - The server URL: `window.XOMDAO_SERVER` when the export baked it in (`XOMDAO_SERVER_URL` or
   `VITE_SERVER_URL`), else the page's own origin (`npm run dev` proxies `/ws`); off the web
   `XOMDAO_SERVER` or ws://localhost:8033/ws.
-- Name every node a test taps or reads (`Cell_<x>_<y>`, `PlayBot`, `RoomCode`…). The debug
+- Name every node a test taps or reads (`Cell_<x>_<y>`, `Play`, `RoomCode`, `Island_<genre>`…). The debug
   bridge `window.xomdao` (`core/test_bridge.gd`): `scene()`, `tree(depth)`, `text(name)`,
   `rect(name)` (CSS px), `click(name)`, `state()`. The hub sets `TestBridge.scene`.
   `scripts/e2e/godot.mjs` wraps it for scenarios (`tap` clicks with the real mouse).
 - The server connection is `XomDaoClient` (WebSocket + JSON on `/ws`): `connect_to_server`,
-  `login_guest` / `login` / `login_token`, `create_room`, `join_room(code)`, `leave_room`,
+  `login_guest` / `login` / `login_token`, `create_room`, `quick_match(game_id)`, `join_room(code)`, `leave_room`,
   `start_game`, `send(event, payload)`, `request(event, data)`; signals `state_changed`,
   `room_changed`, `rewarded`, `event_received`, `error`, `connected`, `disconnected`. It
   reconnects and resumes by itself. Its header is the API reference.

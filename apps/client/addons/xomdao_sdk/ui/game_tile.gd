@@ -34,6 +34,7 @@ var playing: int = -1
 
 var _title := Label.new()
 var _art := TextureRect.new()
+var _frame := PanelContainer.new()
 var _foot := HFlowContainer.new()
 
 
@@ -74,7 +75,7 @@ func _init() -> void:
 	_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_title.custom_minimum_size.y = 52.0
 	column.add_child(_title)
-	var frame := PanelContainer.new()
+	var frame: PanelContainer = _frame
 	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var art_box: StyleBoxFlat = XomDaoUi.box(
@@ -97,6 +98,12 @@ func _init() -> void:
 
 func _ready() -> void:
 	button_down.connect(_on_down)
+
+
+## Draws `node` in the art's frame instead of a picture (a card without its art yet).
+func show_art(node: Control) -> void:
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_frame.add_child(node)
 
 
 ## Fills the card from the catalog: name, players, length and how many play it now.

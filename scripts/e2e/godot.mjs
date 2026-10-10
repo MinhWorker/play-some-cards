@@ -71,3 +71,39 @@ export async function caroTap(page, x, y) {
     { x, y },
   );
 }
+
+/** A balance as the hub shows it: "2.450". */
+export const coins = (amount) => String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+/**
+ * Plays Caro as X until the game ends, against a computer that plays anywhere near the pieces:
+ * each turn extends the row with the most X and no O (rows of five cells on the board).
+ */
+export async function caroPlayToEnd(page) {
+  for (let turn = 0; turn < 60; turn++) {
+    const state = await page.evaluate(() => window.xomdao.state().room);
+    if (state.status !== 'playing') return;
+    const { board } = state.view;
+    const at = (x, y) => board.cells[(y - board.top) * board.cols + (x - board.left)];
+    let best = null;
+    for (let y = board.top; y < board.top + board.rows; y++) {
+      for (let x = board.left; x + 4 < board.left + board.cols; x++) {
+        const line = [0, 1, 2, 3, 4].map((i) => at(x + i, y));
+        if (line.some((c) => c !== null && c !== 'X')) continue;
+        const mine = line.filter((c) => c === 'X').length;
+        if (!best || mine > best.mine) best = { mine, x: x + line.indexOf(null), y };
+      }
+    }
+    if (!best) throw new Error('No open row left for X');
+    await caroTap(page, best.x, best.y);
+    await page.waitForFunction(
+      () => {
+        const r = window.xomdao.state().room;
+        return r.status !== 'playing' || window.xomdao.text('Status') === 'Lượt bạn';
+      },
+      null,
+      { timeout: 30_000 },
+    );
+  }
+  throw new Error('Caro did not end');
+}

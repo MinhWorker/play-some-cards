@@ -22,5 +22,9 @@ export default definePlugin({
     duration: { min: 5, max: 10 },
   },
   game: new MauBinhGame(),
-  room: { options: optionsSchema, bots: (options) => options.bots },
+  room: {
+    options: optionsSchema,
+    bots: (options) => options.bots,
+    withBots: (options, count) => ({ ...options, bots: count }),
+  },
 });

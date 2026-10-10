@@ -27,5 +27,9 @@ export default definePlugin({
     options: optionsSchema,
     // Against the computer it takes the second seat.
     bots: (options) => (options.opponent === 'bot' ? 1 : 0),
+    withBots: (options, count) => ({
+      ...options,
+      opponent: count > 0 ? ('bot' as const) : ('human' as const),
+    }),
   },
 });

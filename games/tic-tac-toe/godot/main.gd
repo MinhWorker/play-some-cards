@@ -27,6 +27,19 @@ func sandbox_options() -> Dictionary:
 	return {"opponent": "bot"}
 
 
+## The hub's Tạo phòng board: who to play and, against the computer, how well it plays
+## (`optionsSchema` in src/game/model.ts).
+func room_setup() -> Array:
+	return [
+		{"key": "opponent", "label": "Chơi với", "options": [["Bạn bè", "human"], ["Máy", "bot"]]},
+		{
+			"key": "level",
+			"label": "Máy chơi",
+			"options": [["Dễ", "easy"], ["Vừa", "normal"], ["Khó", "hard"]]
+		},
+	]
+
+
 func bind(client: XomDaoClient) -> void:
 	_client = client
 	client.state_changed.connect(_show)

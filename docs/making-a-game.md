@@ -471,11 +471,16 @@ export default definePlugin({
   room: {
     options: optionsSchema,                                  // zod; server kiểm tra object
     bots: (options) => (options.opponent === 'bot' ? 1 : 0), // tuỳ chọn: số ghế cho máy
+    // tuỳ chọn: tuỳ chọn khi máy ngồi `count` ghế trống của phòng ghép nhanh (nút CHƠI)
+    withBots: (options, count) => ({ ...options, opponent: count > 0 ? 'bot' : 'human' }),
   },
 });
 ```
 
 - Tuỳ chọn tới tay game dưới dạng `ctx.options`, ở cả `Game` lẫn `GameView`.
+- Ghép nhanh (CHƠI ở sảnh Godot) cho người vào phòng đang chờ của trò; không ai tới sau vài giây
+  thì server gọi `withBots` để máy ngồi các ghế trống rồi bắt đầu. Trò không có `withBots` thì
+  phòng ghép nhanh chỉ chờ người.
 - Người chơi máy: viết hook `bot(ctx)` trong `Game`, trả về sự kiện của máy cho ghế `ctx.player`
   (ví dụ `{ event: 'place', payload: { x, y } }`), hoặc `null` khi chưa tới lượt. Server chơi nó
   sau một khoảng dừng ngắn và kiểm tra như mọi sự kiện. Test bằng `.bot(player)` của `testGame`.

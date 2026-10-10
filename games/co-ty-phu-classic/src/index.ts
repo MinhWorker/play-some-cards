@@ -19,5 +19,9 @@ export default definePlugin({
     duration: { min: 30, max: 60 },
   },
   game: new CoTyPhuClassicGame(),
-  room: { options: optionsSchema, bots: (options) => options.bots },
+  room: {
+    options: optionsSchema,
+    bots: (options) => options.bots,
+    withBots: (options, count) => ({ ...options, bots: count }),
+  },
 });
