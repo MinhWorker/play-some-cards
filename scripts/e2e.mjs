@@ -161,7 +161,14 @@ async function attempt(scenario) {
         let deadline;
         try {
           const entries = await Promise.race([
-            page.evaluate(() => window.__devRoomLogs?.()),
+            // The Godot client has no room log: its state and visible nodes instead.
+            page.evaluate(
+              () =>
+                window.__devRoomLogs?.() ??
+                (window.xomdao
+                  ? [{ godot: window.xomdao.state(), tree: window.xomdao.tree(8) }]
+                  : []),
+            ),
             new Promise((_, reject) => {
               deadline = setTimeout(() => reject(new Error('Room log read timed out')), 7000);
             }),
@@ -180,7 +187,7 @@ async function attempt(scenario) {
     writeFileSync(join(shots, 'room.log'), `${logs.join('\n')}\n`);
     await Promise.allSettled(
       pages.map((page, index) =>
-        page.screenshot({ path: join(shots, `failure-${index}.png`), timeout: 2000 }),
+        page.screenshot({ path: join(shots, `failure-${index}.png`), timeout: 5000 }),
       ),
     );
     // A page error is often why a step then failed: report them together.

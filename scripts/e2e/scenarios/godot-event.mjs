@@ -84,6 +84,7 @@ export default async function run(t) {
       throw new Error(`A closed event's room: ${JSON.stringify(quick)}`);
     await page.screenshot({ path: t.shot('6-closed.png') });
   } finally {
-    await page.evaluate(() => window.xomdao.request('dev:clock', { at: null })).catch(() => {});
+    // Back to the real time before the page closes: other scenarios share the server.
+    await ask(page, 'dev:clock', { at: null }).catch(() => {});
   }
 }
