@@ -42,3 +42,15 @@ Console phát triển trong phòng server hỗ trợ `set-horse <seat> <horse> <
 Hình bàn, ngựa, xúc xắc, nút và nỉ được tạo trong Blender bằng mã nguồn của dự án; không dùng tài nguyên bên ngoài. Ngựa dùng atlas diffuse/normals cùng kích thước, normals RGB opaque và lossless, ánh sáng chung phía trên trái. Bàn 1664 px đủ nét trên máy tính bảng.
 
 Ảnh đảo giữ bộ hình hiện có trong `sources/prompts.json`. Nhạc và hiệu ứng Cờ Cá Ngựa giữ bộ âm thanh hiện có của dự án; các hiệu ứng ngắn được chỉnh tốc độ, âm lượng và fade để theo nhịp hoạt ảnh. Nguồn lưu trữ nằm trong `assets/games/co-ca-ngua/audio/`; xem [ghi công tài nguyên](../../LICENSE-ASSETS.md).
+
+## Bản Godot
+
+`godot/main.gd` dựng bàn trong client Godot: bàn vuông ở giữa, ô người chơi ở góc cạnh chuồng
+màu của họ, xúc xắc nằm ở cột của người đang tới lượt. Chạm xúc xắc để tung; ngựa đi được có vòng
+vàng, chạm ngựa để đi. Ngựa nhảy từng ô, ngựa bị đá trượt về chuồng, đội về đủ bốn ngựa nhảy múa.
+`godot/rules.gd` đặt ngựa trên lưới 15 × 15 và tìm nước đi (chép từ `model.ts`, `board.ts`);
+hình ở `godot/art/`, âm thanh ở `godot/sounds/`, nhạc ở `godot/music/`; test: `godot/test/`.
+
+Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=co-ca-ngua`
+(ba máy, trên server thật).
+
