@@ -76,6 +76,8 @@ jobs:
           path: |
             .shots/
             .e2e/
+          # Both folders start with a dot: without this the upload finds nothing.
+          include-hidden-files: true
           retention-days: 7
 
   # Which e2e scenarios (scripts/e2e/scenarios/) this change needs: all of them on main, the
