@@ -2,7 +2,7 @@ import { testGame } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { at, inside, winningLine } from './board.js';
-import type { Options, Point } from './model.js';
+import { type Options, type Point, WIN_COINS } from './model.js';
 
 type Move = [number, number];
 
@@ -42,7 +42,10 @@ describe('caro', () => {
     const four = play(rows(4));
     expect(four.result).toBeNull();
     const game = play([...rows(4), [6, 4]]);
-    expect(game.result).toEqual({ winners: ['a'] });
+    expect(game.result).toEqual({
+      winners: ['a'],
+      rewards: [{ player: 'a', resource: 'core:coin', amount: WIN_COINS }],
+    });
     expect(winningLine(game.state.board)).toEqual([2, 3, 4, 5, 6].map((x) => ({ x, y: 4 })));
     expect(game.error('b', 'place', { x: 7, y: 7 })).toBe('Ván đã kết thúc');
   });
@@ -54,7 +57,7 @@ describe('caro', () => {
       [i, 7],
     ]) as Move[];
     expect(play(moves).result).toBeNull();
-    expect(play([...moves, [6, 6]]).result).toEqual({ winners: ['a'] });
+    expect(play([...moves, [6, 6]]).result?.winners).toEqual(['a']);
   });
 
   it('grows three rows or columns on the side of an edge mark', () => {
@@ -90,7 +93,7 @@ describe('caro', () => {
     const game = play([[4, 8], [7, 2], ...moves]);
     const before = { ...game.state.board, cells: [] };
     game.send('a', 'place', { x: 5, y: 11 });
-    expect(game.result).toEqual({ winners: ['a'] });
+    expect(game.result?.winners).toEqual(['a']);
     expect({ ...game.state.board, cells: [] }).toEqual(before);
   });
 
@@ -104,7 +107,7 @@ describe('caro', () => {
 
   it('lets the second seat play X after a swap', () => {
     expect(play([], { swap: true }).state).toMatchObject({ players: ['b', 'a'], turn: 'b' });
-    expect(play([...rows(4), [6, 4]], { swap: true }).result).toEqual({ winners: ['b'] });
+    expect(play([...rows(4), [6, 4]], { swap: true }).result?.winners).toEqual(['b']);
   });
 
   it('asks the computer only in rooms against it', () => {

@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { hookName } from '@xomdao/sdk';
 import {
@@ -58,6 +58,8 @@ export interface Room {
   last: { seq: number; player: PlayerId; move: unknown } | null;
   /** The game's pending timer (`ctx.setTimer`), once the gateway has started it. */
   timer: { key: string; event: string; ms: number; endsAt: number } | null;
+  /** A new id for every game started: what keys its rewards (`null` before the first). */
+  matchId: string | null;
   /** When the current (or last) game began and ended (`null` while it runs). */
   startedAt: number | null;
   endedAt: number | null;
@@ -69,6 +71,8 @@ export interface Room {
 /** A game that just ended, for whoever keeps a record of it (see `onFinished`). */
 export interface FinishedGame {
   gameId: string;
+  /** Unique to this game: the room's `matchId`. */
+  matchId: string;
   startedAt: number;
   endedAt: number;
   /** Everyone seated when the game began, in seat order. */
@@ -138,6 +142,7 @@ export class RoomsService {
       round: 0,
       last: null,
       timer: null,
+      matchId: null,
       startedAt: null,
       endedAt: null,
       createdAt: Date.now(),
@@ -323,6 +328,7 @@ export class RoomsService {
     room.result = null;
     room.startedAt = Date.now();
     room.endedAt = null;
+    room.matchId = randomUUID();
     room.round++;
     room.last = null;
     room.timer = null;
@@ -548,6 +554,7 @@ export class RoomsService {
     if (!this.finishedListeners.length || room.state === null) return;
     const game: FinishedGame = {
       gameId: room.game.id,
+      matchId: room.matchId ?? randomUUID(),
       startedAt: room.startedAt ?? room.endedAt ?? Date.now(),
       endedAt: room.endedAt ?? Date.now(),
       seats: room.game.seats(room.state, this.context(room)).map((p) => ({

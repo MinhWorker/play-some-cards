@@ -6,7 +6,7 @@ import { type BotContext, type EventContext, Game, type StartContext } from '@xo
 import { z } from 'zod';
 import { at, grow, inside, isDraw, newBoard, place, winsAt } from './board.js';
 import { botMove } from './bot.js';
-import { MAX_SIDE, type Mark, type Options, type Point, type State } from './model.js';
+import { MAX_SIDE, type Mark, type Options, type Point, type State, WIN_COINS } from './model.js';
 
 /** A cell coordinate, loosely bounded (onPlace checks it is on the board). */
 const coord = z
@@ -36,7 +36,7 @@ export class CaroGame extends Game<State, Options> {
    * the board there, and once it can't grow and nobody can make five any more it is a draw.
    */
   onPlace(ctx: EventContext<State, Point, Options>): State {
-    const { state, player, payload, reject, finish } = ctx;
+    const { state, player, payload, reject, finish, reward } = ctx;
     const p = { x: payload.x, y: payload.y };
     if (state.turn !== player.id) reject('Chưa tới lượt bạn');
     if (!inside(state.board, p)) reject('Ô này không có trên bàn');
@@ -44,8 +44,10 @@ export class CaroGame extends Game<State, Options> {
 
     const mark: Mark = player.id === state.players[0] ? 'X' : 'O';
     let board = place(state.board, p, mark);
-    if (winsAt(state.board, p, mark)) finish([player.id]);
-    else {
+    if (winsAt(state.board, p, mark)) {
+      finish([player.id]);
+      reward(player.id, 'core:coin', WIN_COINS);
+    } else {
       board = grow(board, p);
       if (isDraw(board)) finish([]);
     }

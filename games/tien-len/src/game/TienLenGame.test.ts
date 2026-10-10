@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { comboOf } from './cards.js';
 import { standings } from './match.js';
-import type { Options, State } from './model.js';
+import { type Options, type State, WIN_COINS } from './model.js';
 
 const PLAYERS = ['a', 'b', 'c', 'd'];
 type Session = ReturnType<typeof testGame<State, unknown, Options>>;
@@ -107,6 +107,9 @@ describe('tiến lên', () => {
     expect(game.state.results).toHaveLength(2);
     const best = standings(game.state)[0] as number;
     expect(game.result?.winners).toEqual([PLAYERS[best]]);
+    expect(game.result?.rewards).toEqual([
+      { player: PLAYERS[best], resource: 'core:coin', amount: WIN_COINS },
+    ]);
     expect(game.state.points[best]).toBe(Math.max(...game.state.points));
     expect(game.state.points.reduce((a, b) => a + b)).toBe(2 * (3 + 2 + 1));
   });

@@ -43,6 +43,8 @@ Hết ván đấu, xếp theo tổng điểm, rồi số vòng về nhất, rồ
 Người đứng đầu thắng. Điểm chỉ tính theo hạng; không thưởng tới trắng hoặc phạt điểm cho bài còn lại,
 kể cả heo.
 
+Người thắng ván đấu nhận 30 xu.
+
 ## Thời gian và rời bàn
 
 Thời gian lượt chọn 15, 20 hoặc 30 giây, mặc định 20. Đồng hồ chạy khi còn ít nhất 2 người thật.

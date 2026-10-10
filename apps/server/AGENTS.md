@@ -6,6 +6,7 @@ src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = 
 src/dev/        gated console commands, snapshots, undo/RNG frames and per-room logs
 src/accounts/   Username/password (scrypt) and login tokens
 src/catalog/    The hub's catalog (`catalog:get`): core genres + a card per game with a genre
+src/ledger/     Ledger: the only module that changes balances (`ledger_entries`, `balances`)
 src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
@@ -44,6 +45,20 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   and one card per game whose `meta.genre` is set, with `playing` (connected people seated in
   its rooms) and `openRooms` (`RoomsService.activity`).
 - `wip` games are hidden where `RENDER` is set (production); `XOMDAO_SHOW_WIP=1|0` overrides it.
+
+## Ledger
+
+- Tables `ledger_entries` (one row per change, unique `key`) and `balances` (per account and
+  namespaced resource, `core:coin`). Memory store without `DATABASE_URL`.
+- `LedgerService.apply({ userId, resource, amount, reason, key })` is how other modules pay or
+  charge: a used key changes nothing (`duplicate`), a balance never goes below 0
+  (`insufficient`). No other module touches these tables.
+- Game rewards: games call `ctx.reward(player, resource, amount)`; the totals land in
+  `result.rewards`. The gateway hands every `RoomsService.onFinished` game to
+  `LedgerService.rewardMatch`, which pays accounts (never bots) once per game (key
+  `match:<matchId>:<user>:<resource>`) and refuses totals above the game's `meta.rewardCap`.
+  Each paid player's sockets get `reward` with the new balances; `session:resume` returns
+  `balances`.
 
 ## Match history
 

@@ -29,6 +29,7 @@ import {
   ROUND_OVER_MS,
   type State,
   type View,
+  WIN_COINS,
 } from './model.js';
 
 const play = z.object({ cards: z.array(z.number().int().min(0).max(51)).min(1).max(13) });
@@ -318,7 +319,9 @@ function endRound(ctx: Ctx, state: State): State | undefined {
 
 function finishMatch(ctx: Ctx, state: State): State {
   const best = standings(state)[0];
-  ctx.finish(best === undefined ? [] : [ctx.players[best]?.id ?? '']);
+  const winner = best === undefined ? undefined : ctx.players[best]?.id;
+  ctx.finish(best === undefined ? [] : [winner ?? '']);
+  if (winner) ctx.reward(winner, 'core:coin', WIN_COINS);
   return { ...state, phase: 'over' };
 }
 

@@ -1,6 +1,7 @@
 // End-to-end check against a RUNNING server: three fake accounts register; Bob finds Caro in the
-// hub's catalog; two create/join a room from the room list and play tic-tac-toe to a win while
-// the third one watches. Mid-game Bob closes his "browser" and logs in on another "device": he must be put back in his seat.
+// hub's catalog; two create/join a room from the room list and play tic-tac-toe to a win (the
+// winner is paid coins) while the third one watches. Mid-game Bob closes his "browser" and logs
+// in on another "device": he must be put back in his seat.
 // Usage: node scripts/smoke.mjs [serverUrl]
 import { io } from 'socket.io-client';
 
@@ -32,10 +33,12 @@ function client(token) {
       socket.emit(event, payload, (res) => (res.ok ? resolve(res) : reject(new Error(res.error)))),
     );
   let last = null;
+  const rewards = [];
   socket.on('room:state', (s) => {
     last = s;
   });
-  return { socket, send, state: () => last };
+  socket.on('reward', (r) => rewards.push(r));
+  return { socket, send, state: () => last, rewards };
 }
 
 const alice = client(await signUp('Alice'));
@@ -88,8 +91,16 @@ try {
   const result = cam.state()?.result;
   if (result?.winners?.[0] !== room.playerId)
     throw new Error(`Unexpected result: ${JSON.stringify(result)}`);
+  // The ledger pays after the game ends.
+  await new Promise((r) => setTimeout(r, 300));
+  const coins = alice.rewards[0]?.balances['core:coin'];
+  if (!coins || bob.rewards.length)
+    throw new Error(`Wrong rewards: ${JSON.stringify(alice.rewards)}`);
+  const resumed2 = await alice.send('session:resume', {});
+  if (resumed2.balances['core:coin'] !== coins)
+    throw new Error('Alice has no coins after a resume');
   console.log(
-    `OK: room ${room.roomCode}, Bob came back from another device, Alice won, Cam watched`,
+    `OK: room ${room.roomCode}, Bob came back from another device, Alice won ${coins} coins, Cam watched`,
   );
 } catch (err) {
   console.error('SMOKE FAILED:', err.message);

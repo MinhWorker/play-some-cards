@@ -82,6 +82,10 @@ games/<id>/          Only index.ts + client.ts are required
 
 - **Seats never change during a game.** A leaver stays in `ctx.players` with `left: true`. Without
   `onLeave`, one player leaving stops the game for everyone.
+- **Rewards**: `ctx.reward(playerId, 'core:coin', amount)` when the game ends (Caro, Tiến Lên
+  pay `WIN_COINS` from `model.ts`). Declare the most one player can win in `meta.rewardCap`; the
+  server refuses more, pays once per game and skips bots. `testGame` shows them in
+  `result.rewards`.
 - **Timers**: `ctx.setTimer(ms, 'name')` calls `onName(ctx)`. There is one timer per game, and
   the gateway runs it. Use it for a turn clock or a pause between rounds. The view shows
   countdowns with `ctx.timer`.

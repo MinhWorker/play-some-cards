@@ -10,6 +10,8 @@ export type Cell = Mark | null;
 
 /** Marks in a row that win. */
 export const WIN = 5;
+/** Coins for winning a game (a placeholder amount; also the game's `meta.rewardCap`). */
+export const WIN_COINS = 20;
 /** Cells per side of a new board. */
 export const START_SIDE = 9;
 /** Rows or columns a mark on an edge adds on that side. */
