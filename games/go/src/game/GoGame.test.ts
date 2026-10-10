@@ -165,10 +165,20 @@ describe('go', () => {
     expect(left.state.end).toEqual({ reason: 'left', winner: 'w', score: null });
   });
 
-  it('shows everything but the position history', () => {
-    const view = fresh().view(null) as View;
+  it('shows everything but the position history, and your points on your turn', () => {
+    const game = fresh();
+    const view = game.view(null) as View;
     expect(view).not.toHaveProperty('history');
     expect(view.board).toHaveLength(361);
+    expect(view.moves).toEqual([]);
+    expect(view.count).toBeNull();
+    expect((game.view('a') as View).moves).toHaveLength(361);
+    expect((game.view('b') as View).moves).toEqual([]);
+    game.send('a', 'pass');
+    game.send('b', 'pass');
+    const counting = game.view('a') as View;
+    expect(counting.moves).toEqual([]);
+    expect(counting.count).toEqual({ b: 0, w: KOMI, owner: '.'.repeat(361) });
   });
 
   it('asks the computer only in rooms against it, and it plays legal points', () => {

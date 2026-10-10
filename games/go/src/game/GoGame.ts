@@ -177,10 +177,23 @@ export class GoGame extends Game<State, Options, View> {
     return point === null ? { event: 'pass' } : { event: 'place', payload: { point } };
   }
 
-  /** Nothing is secret; screens just don't need the position history. */
-  view({ state }: GameContext<State, Options>, _viewer: Seat | null): View {
-    const { history: _, ...view } = state;
-    return view;
+  /** Nothing is secret; screens get the points they may play and the count instead of the
+   * position history. */
+  view({ state }: GameContext<State, Options>, viewer: Seat | null): View {
+    const { history, ...view } = state;
+    const side = viewer && state.players.includes(viewer.id) ? sideOfPlayer(state, viewer) : null;
+    const moves: number[] = [];
+    if (side && side === state.turn && state.phase === 'play' && !state.end) {
+      for (let p = 0; p < state.board.length; p++) {
+        if (state.board[p] !== '.' || p === state.ko) continue;
+        const played = place(state.board, state.size, p, side);
+        if (played && !history.includes(hashOf(played.board))) moves.push(p);
+      }
+    }
+    const counted = state.phase === 'scoring' || state.end?.reason === 'score';
+    const tally = counted ? score(state.board, state.size, state.dead, KOMI) : null;
+    const count = tally && { b: tally.b, w: tally.w, owner: tally.owner.join('') };
+    return { ...view, moves, count };
   }
 
   /** The sender's side, if it is their turn to play. */
