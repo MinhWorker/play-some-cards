@@ -1,6 +1,6 @@
 /**
  * Server entry of an event: its meta (dates, reward tiers, colour) and its logic. It loads on
- * the server, so it only imports code from game/ (the screens are godot/ and src/client.ts).
+ * the server, so it only imports code from game/ (the screens are in godot/).
  */
 import { definePlugin, EVENT_POINTS } from '@xomdao/sdk';
 import { __Name__Game, MAX_POINTS } from './game/__Name__Game.js';

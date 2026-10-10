@@ -6,7 +6,7 @@
 // An entry with "from": "<name>" is drawn by editing that asset's raw image with its prompt, so
 // animation frames keep the same character, framing and canvas (generate the base first).
 // "plain": true leaves out the shared style (its "no text" rule), e.g. for a title logo.
-// The app's prompts live in assets/prompts.json: output apps/web/public/shared/images/<name>.webp
+// The app's prompts live in assets/prompts.json: output assets/app/images/<name>.webp
 // ("path" puts it elsewhere, relative to the repo root), raw PNG in assets/shared/images/.
 // A game's prompts live in games/<id>/sources/prompts.json and are named "<id>/<name>": raw PNG
 // in games/<id>/sources/<name>.png, output games/<id>/assets/<name>.webp (same as `npm run assets`;
@@ -53,7 +53,7 @@ for (const [name, asset] of Object.entries(config.assets)) {
   entries[name] = {
     ...asset,
     raw: join(root, 'assets/shared/images', `${name}.png`),
-    out: join(root, asset.path ?? `apps/web/public/shared/images/${name}.webp`),
+    out: join(root, asset.path ?? `assets/app/images/${name}.webp`),
   };
 }
 for (const id of readdirSync(join(root, 'games'))) {

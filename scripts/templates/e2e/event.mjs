@@ -1,9 +1,8 @@
 // __NAME__ in the Godot client: with the server's event clock moved into the event (dev:clock),
 // the sandbox (?play=__ID__) picks every bud and the result shows the event's points. Needs the
-// debug web build at /godot/ (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
+// debug web build (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
 
-import { godotText, launch, onScene, openGodot } from '../godot.mjs';
-import { PHONE } from '../lib.mjs';
+import { godotText, launch, onScene, openGodot, PHONE } from '../godot.mjs';
 
 export const games = ['__ID__'];
 export { launch };

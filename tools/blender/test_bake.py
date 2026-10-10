@@ -18,7 +18,7 @@ class NormalBakeTest(unittest.TestCase):
             cube('Facing the camera', (1.8, 1.8, 0.1), (0, 0, 0), material('Ivory', (1, 1, 1)), 0)
             render('flat', directory, directory, normal=True)
             with Image.open(Path(directory) / 'flat.normal.webp') as normal:
-                # Opaque: Phaser premultiplies image alpha, which would shrink edge normals.
+                # Opaque: a premultiplied upload of image alpha would shrink edge normals.
                 self.assertEqual(normal.mode, 'RGB')
                 self.assertEqual(normal.getpixel((32, 32)), (128, 128, 255))
                 with Image.open(Path(directory) / 'flat.webp') as diffuse:

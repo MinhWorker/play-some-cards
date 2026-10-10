@@ -1,8 +1,9 @@
 # Godot client (apps/client)
 
-The Xóm Đảo client: one Godot 4 project in typed GDScript, exported to the web
-(`docs/adr/0001-godot-client.md`). Game rules stay in TypeScript on the server; this project only
-shows state and sends moves. Folder guide (Vietnamese): `apps/client/README.md`.
+The Xóm Đảo client, the only one: one Godot 4 project in typed GDScript, exported to the web
+(`docs/adr/0001-godot-client.md`) and served as the site at `/`. Game rules stay in TypeScript on
+the server; this project only shows state and sends moves. Folder guide (Vietnamese):
+`apps/client/README.md`.
 
 ## Toolchain
 
@@ -61,8 +62,8 @@ export_presets.cfg  The Web preset: single-threaded, PWA
 - `ContentLoader.load_game(id)` gives that scene: from the `content/<id>` link in the editor and
   headless, otherwise it downloads `content/<id>.<hash>.pck` (listed in `content/manifest.json`
   next to the page) into `user://content/` once and loads it.
-- The server URL: `window.XOMDAO_SERVER` when the export baked it in (`XOMDAO_SERVER_URL` or
-  `VITE_SERVER_URL`), else the page's own origin (`npm run dev` proxies `/ws`); off the web
+- The server URL: `window.XOMDAO_SERVER` when the export baked it in (`XOMDAO_SERVER_URL`, or
+  the older `VITE_SERVER_URL`), else the page's own origin (`npm run dev` proxies `/ws`); off the web
   `XOMDAO_SERVER` or ws://localhost:8033/ws.
 - Name every node a test taps or reads (`Cell_<x>_<y>`, `Play`, `RoomCode`, `Island_<genre>`…). The debug
   bridge `window.xomdao` (`core/test_bridge.gd`): `scene()`, `tree(depth)`, `text(name)`,
@@ -105,10 +106,11 @@ export_presets.cfg  The Web preset: single-threaded, PWA
 | `npm run godot:smoke` | Serves `dist/`, opens it in headless Chromium at 800 × 360, waits for `xomdao:ready`, saves `.shots/godot-800x360.png` |
 | `npm run godot:measure` | Download size and time to playable, first and repeat visit, on a throttled phone profile (`-- --server <url>` of a running server; `--cpu`, `--net`). Release build for sizes, debug build for every timing. Numbers go in `docs/adr/0001-godot-client.md` |
 
-In the browser: `npm run dev` serves `dist/` at http://localhost:5033/godot/ (export again to see
-changes) and proxies `/ws`. `npm run e2e -- --only godot-caro` and
-`npm run shots -- --path '/godot/?play=tic-tac-toe'` need a debug export there. CI's `godot` job
-runs every `godot-*` scenario (`--only 'godot-*'`); `e2e-plan` skips them. Vercel builds the client too (`tools/godot/vercel.mjs`:
-release on production, debug on previews) and serves it at `/godot/`.
+In the browser: `npm run dev` serves `dist/` at http://localhost:5033/ (`scripts/web.mjs`; export
+again to see changes) and forwards `/api` and `/ws`. `npm run e2e -- --only godot-caro` and
+`npm run shots -- --path '/?play=tic-tac-toe'` need a debug export there. CI's `godot` job runs
+smoke and every e2e scenario against it. Vercel builds the client (`tools/godot/vercel.mjs`:
+release on production, debug on previews) and serves it at `/`; old `/godot/…` links redirect
+there.
 
 Format a script with `.tools/gdtoolkit/bin/gdformat <file>`.

@@ -1,7 +1,7 @@
 /**
  * The game's logic, on the server. A player's event runs its hook, which gets the whole room
  * in `ctx` and returns the next state; everyone's screen then gets what `view` lets them see
- * (scenes/BattleshipView.ts).
+ * (godot/main.gd).
  *
  *   arrange  while setting up: your fleet where you placed it (secret)
  *   shuffle  while setting up: a new random fleet

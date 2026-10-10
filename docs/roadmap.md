@@ -7,18 +7,16 @@
 Trọng tâm của kế hoạch là **môi trường làm việc**: chủ dự án mô tả một trò hay một sự kiện, agent
 làm từ đầu tới PR, tự kiểm tra, và hub tự nhận nội dung mới.
 
-## Cấu trúc repo đích
+## Cấu trúc repo
 
 ```
-apps/server/          NestJS: giữ, thêm cổng WebSocket thuần và các dịch vụ nền tảng
+apps/server/          NestJS: WebSocket thuần + JSON ở /ws, API và các dịch vụ nền tảng
 apps/client/          Dự án Godot duy nhất
   project.godot
   core/                 Autoload: Net, Session, Wallet, ContentLoader
   hub/                  Sảnh và màn của từng khối nền tảng: hub/<khối>/ (Nhà, Chợ, xếp hạng…)
-  ui/                   Theme chung: nút, bảng gỗ, font
-  addons/xomdao_sdk/    SDK GDScript cho trò: phòng, send(), on_state()
+  addons/xomdao_sdk/    SDK GDScript cho trò: XomDaoClient, XomDaoFrame; ui/ là bộ giao diện chung
   content/              Symlink tới games/*/godot do script tạo (gitignore)
-apps/web/             Client Phaser cũ: để yên, xoá khi không cần nữa
 packages/sdk/         @xomdao/sdk: luật TS chạy trên server, thêm reward/stat
 packages/shared/      @xomdao/shared: protocol zod, nguồn sinh code GDScript
 games/<id>/           Một nội dung = một thư mục
@@ -81,14 +79,14 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 - [x] `addons/xomdao_sdk`: kết nối lại, đăng nhập, tạo/vào phòng, `send()`, tín hiệu `state_changed`
 
 **Kiểm tra**
-- [ ] Cầu nối test `window.xomdao` (chỉ bản debug): scene hiện tại, bấm node theo tên, đọc text,
+- [x] Cầu nối test `window.xomdao` (chỉ bản debug): scene hiện tại, bấm node theo tên, đọc text,
       đọc state
-- [ ] `npm run shots` và `npm run e2e` chạy với bản Godot web
-- [ ] Sandbox `?play=<id>`: tạo phòng trên dev server, bot ngồi ghế trống
-- [ ] Job CI `godot`: cài, check, export, e2e (đã có cài, check, export và mở thử bản web; còn e2e)
+- [x] `npm run shots` và `npm run e2e` chạy với bản Godot web
+- [x] Sandbox `?play=<id>`: tạo phòng trên dev server, bot ngồi ghế trống
+- [x] Job CI `godot`: cài, check, export, smoke và mọi kịch bản e2e
 
 **Trò thử**
-- [ ] Caro bằng Godot: bàn chơi đơn giản, chưa cần art đẹp
+- [x] Caro bằng Godot: bàn chơi đơn giản, chưa cần art đẹp
 
 **Xong khi:**
 - Caro chơi được bằng Godot trên điện thoại thật (Android Chrome và iOS Safari);
@@ -107,7 +105,7 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
       `.pck` của trò. Đảo còn vẽ tạm bằng code, chờ ảnh `hub/genres/<island>.webp`
 - [x] CHƠI ghép nhanh (`room:quick`, máy ngồi ghế trống sau một lúc), Bến (mã phòng, phòng mở),
       tạo/vào phòng, kết quả có xu bay vào số dư
-- [ ] Đăng nhập
+- [x] Đăng nhập: Nhà › Tài khoản (đăng nhập, tạo tài khoản, đăng xuất)
 - [x] Nhà (hồ sơ, túi đồ) và Chợ: mua khung và lưng bài bằng xu, đeo vào thì người cùng phòng
       thấy
 - [x] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
@@ -123,8 +121,8 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 ## Phase 3: trò thật đầu tiên
 
 - [ ] Tiến Lên bằng Godot, art và hiệu ứng đầy đủ
-- [x] Skill cho agent trong `.claude/skills/`: tạo nội dung mới, chuyển một trò Phaser sang Godot,
-      làm một asset, kiểm tra trên điện thoại
+- [x] Skill cho agent trong `.claude/skills/`: tạo nội dung mới, làm một asset, kiểm tra trên
+      điện thoại (skill chuyển một trò Phaser sang Godot đã xoá cùng client Phaser)
 
 **Xong khi:** chủ dự án mời bạn bè chơi.
 
@@ -132,15 +130,16 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 Làm dần, theo thứ tự chủ dự án muốn:
 
-- Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
-- Thể loại phụ đầu tiên thay đảo Sắp có, kèm Bom Nguyên Tố
+- Đã xong: chuyển các trò còn lại của Cờ và Bài sang Godot (Cờ tỷ phú sau cùng); thể loại phụ
+  đầu tiên (Hành động) thay đảo Sắp có, kèm Bom Nguyên Tố
 - Sự kiện theo mùa: `npm run new:event` tạo khung (ngày mở/đóng, mốc thưởng, bố cục Hành động);
   ví dụ đầy đủ `games/trung-thu`
 - Thêm vật phẩm và loại vật phẩm cho túi đồ, Chợ
 - Thêm thành tích (dữ liệu trong `meta.achievements`) và bảng xếp hạng (khung đã có: `ctx.stat`,
   cấp theo kinh nghiệm, Nhà và Đình)
 - Nhiều loại tài nguyên
-- Khi không còn trò nào dùng Phaser: xoá `apps/web` và cổng Socket.IO
+- Đã xong (#127): không còn trò nào dùng Phaser, nên đã xoá `apps/web` và cổng Socket.IO; client
+  Godot phục vụ ở `/`
 
 ## Các mặc định đã chốt
 
@@ -153,4 +152,4 @@ Làm dần, theo thứ tự chủ dự án muốn:
 | Test và lint Godot | GUT, gdtoolkit |
 | Kinh tế | Tiền chỉ mua đồ trang trí |
 | Địa chỉ | `xomdao.vercel.app` |
-| Client Phaser | Chạy tiếp cho tới khi có trò Godot đầu tiên; xoá khi không còn dùng |
+| Client Phaser | Đã xoá (#127); client Godot là client duy nhất |

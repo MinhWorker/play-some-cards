@@ -1,10 +1,9 @@
 // Mậu Binh in the Godot client (#121): the sandbox (?play=mau-binh) plays a 3-round game against
 // three computer players. Each round you swap two cards, undo, let Tự xếp arrange and press Xong;
 // the reveal shows chi by chi at every seat and the hub's result comes at the end. Needs the
-// debug web build at /godot/ (npm run godot:export -- --debug).
+// debug web build (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 
 export const games = ['mau-binh'];
 export { launch };

@@ -2,47 +2,40 @@
 
 ## CI (GitHub Actions)
 
-- `ci.yml` (mọi PR và mọi lần push lên `main`): `check` = `npm run check` + `npm run build`.
-  E2E chia làm ba job (**đang tạm dừng**, xem [E2E trong CI](#e2e-trong-ci)):
-  - `e2e-plan` chọn kịch bản cần chạy (`scripts/e2e/scenarios/`). Push lên `main` chạy hết. PR
-    chỉ chạy kịch bản liên quan đến file đã đổi (xem [E2E trong CI](#e2e-trong-ci)).
-  - `e2e-run` chạy mỗi kịch bản trên một máy riêng: `npm run dev` không có database, rồi
-    `npm run e2e -- --only <kịch bản> --retries 1` trong Chromium headless. Ảnh chụp là artifact
-    `e2e-<kịch bản>`. Máy đầu tiên chạy thêm `npm run smoke`.
-  - `e2e` là check bắt buộc: đạt khi mọi kịch bản được chọn đều qua, hoặc không cần kịch bản nào.
+- `ci.yml` (mọi PR và mọi lần push lên `main`):
+  - `check` = `npm run check` + `npm run build`.
+  - `godot` cài Godot đã ghim, chạy `npm run godot:check`, `npm run godot:net`, xuất bản release
+    và chụp thử bằng `npm run godot:smoke`. Sau đó nó xuất bản debug, chạy `npm run dev` (không
+    database), rồi `npm run smoke` và mọi kịch bản e2e (`npm run e2e -- --retries 1`). Ảnh chụp
+    là artifact `godot-web`.
+  - `e2e` là check bắt buộc: chỉ báo lại kết quả của job `godot`.
 - `pr.yml` (PR): `title` kiểm tra tiêu đề theo Conventional Commit; `protocol` báo lỗi khi
   `packages/shared/src/protocol.ts` thay đổi mà không tăng `PROTOCOL_VERSION` (gắn nhãn
   `protocol:compatible` để bỏ qua).
 - `release.yml` (push lên `main`): release-please giữ PR phát hành luôn cập nhật.
 - Dependabot mở PR gộp hằng tuần cho npm và GitHub Actions.
 
-## E2E trong CI
+## E2E
 
-**Đang tạm dừng** trong lúc các trò được làm lại bằng Godot (#108): từ giờ tới lúc đó không ai chơi
-bản Phaser. `e2e-plan` không chọn kịch bản nào nên `e2e` luôn đạt. Muốn chạy lại thì xoá dòng
-`PAUSED: 'true'` trong `ci.yml`. Phần dưới đây mô tả cách CI chọn kịch bản khi bật lại.
+Mỗi kịch bản là một file `scripts/e2e/scenarios/godot-*.mjs`, chơi bản debug của client Godot
+qua cầu nối test `window.xomdao` và tự tạo tài khoản, phòng riêng. Nhờ đó các kịch bản chạy song
+song được. CI chạy hết mọi kịch bản; kịch bản lỗi được chạy lại một lần, nếu lần sau qua thì CI
+vẫn xanh nhưng hiện cảnh báo "Flaky e2e". Một kịch bản chạy quá 10 phút bị tính là lỗi. Server
+trong CI đặt `BOT_DELAY_MS=200`: máy đi gần như ngay, không nghỉ 0,7 giây như khi người thật chơi.
 
-Mỗi kịch bản là một file trong `scripts/e2e/scenarios/`, tự tạo tài khoản và phòng riêng. Nhờ đó
-các kịch bản chạy song song được. Tổng thời gian bằng thời gian của kịch bản dài nhất cộng khoảng
-một phút cài đặt, không phải tổng của tất cả.
+Trên máy mình, `npm run e2e -- --changed origin/main` chỉ chạy kịch bản liên quan đến file đã
+đổi (`--list` in ra danh sách đó):
 
-Cách chọn kịch bản cho một PR (`npm run e2e -- --list --changed origin/main` in ra đúng danh
-sách CI sẽ chạy):
-
-- Chỉ đổi tài liệu (`*.md`, `docs/`), ảnh gốc (`games/*/sources/`), `.github/` (trừ `ci.yml`) hay
-  cấu hình release-please: không chạy kịch bản nào.
+- Chỉ đổi tài liệu (`*.md`, `docs/`), ảnh gốc (`games/*/sources/`, `games/*/assets/`), `.github/`
+  (trừ `ci.yml`) hay cấu hình release-please: không chạy kịch bản nào.
 - Chỉ đổi trong `games/<id>/`: chạy các kịch bản khai báo `games = ['<id>']`, cùng các kịch bản có
   `always = true` (đường đi ngắn nhất qua toàn bộ ứng dụng).
 - Chỉ đổi file của một kịch bản: chạy riêng kịch bản đó.
-- Đổi bất cứ thứ gì khác (app, server, SDK, `packages/shared`, `scripts/e2e.mjs`,
-  `scripts/e2e/lib.mjs`, dependency…): chạy hết.
+- Đổi bất cứ thứ gì khác (client, server, SDK, `packages/shared`, `scripts/e2e.mjs`,
+  `scripts/e2e/godot.mjs`, dependency…): chạy hết.
 
-Để test nhanh hơn, server trong CI đặt `BOT_DELAY_MS=200`: máy đi gần như ngay, không nghỉ 0,7 giây
-như khi người thật chơi. Kịch bản lỗi được chạy lại một lần. Nếu lần sau qua, CI vẫn xanh nhưng hiện
-cảnh báo "Flaky e2e" để biết kịch bản đó chập chờn. Một kịch bản chạy quá 10 phút sẽ bị tính là lỗi.
-
-Thêm game mới: viết một kịch bản `scripts/e2e/scenarios/<id>.mjs` có `export const games =
-['<id>']`. CI tự nhận nó, không cần sửa `ci.yml`.
+Thêm game mới: viết một kịch bản `scripts/e2e/scenarios/godot-<id>.mjs` có `export const games =
+['<id>']` (`npm run new:game` đã viết sẵn). CI tự nhận nó, không cần sửa `ci.yml`.
 
 ## Phiên bản
 
@@ -52,69 +45,43 @@ phát hành trước vào `CHANGELOG.md`; merge nó sẽ gắn tag `vX.Y.Z` và 
 lần merge vào `main` đều triển khai, dù có phát hành hay không; một bản phát hành chỉ là một mốc
 có tên.
 
-Phiên bản đang chạy hiện ở cuối bảng âm thanh (`v0.1.0 · <commit>`) và trong `/api/health`
-(`version`, `commit`, `protocol`).
+Phiên bản đang chạy của server nằm trong `/api/health` (`version`, `commit`, `protocol`).
 
-Web và server triển khai riêng (Render chậm hơn Vercel vài phút), nên chúng so `PROTOCOL_VERSION`
-khi socket kết nối (client Godot cũng gửi nó trong lệnh đăng nhập ở `/ws`). Trang cũ hơn server tự tải lại; trang mới hơn server hiện màn cập nhật
-và thử lại tới khi server theo kịp. Bản xem trước của PR nói chuyện với server thật, nên bản
-xem trước nào tăng protocol cũng chờ cập nhật.
+Client (Vercel) và server (Render) triển khai riêng (Render chậm hơn Vercel vài phút), nên client
+gửi `PROTOCOL_VERSION` trong lệnh đăng nhập ở `/ws`, và server từ chối bản khác bản của mình. Khi
+đó client hiện "Đã có bản mới" với nút **Tải lại**. Bản xem trước của PR nói chuyện với server
+thật, nên bản xem trước nào tăng protocol cũng phải chờ server lên bản mới. Khi server đang ngủ,
+màn đầu hiện "Đang đánh thức máy chủ" và thử lại tới hai phút.
 
-Mỗi bản build web đặt tên file theo mã băm, và Vercel chỉ phục vụ file của bản mới nhất. Một
-trang mở từ trước lần deploy web sẽ không tải được code của game (404) khi người chơi mở game.
-Web nhận ra điều này (`src/lib/newBuild.ts`: tải lại `index.html` và so file JS chính) khi tải
-code game thất bại hoặc khi người chơi quay lại tab, rồi hiện hộp "Đã có phiên bản mới" với nút
-"Tải lại". Bấm nút bắt đầu chờ backend: web đọc commit và protocol của bản
-mới từ thẻ `xomdao-build` trong `index.html`, kiểm tra `/api/health` mỗi 3 giây và chỉ tải lại
-khi backend trả về đúng commit, đúng protocol và database không báo `down`. Vì các lần merge
-có thể dùng chung số phiên bản và protocol, hai trường đó không thay thế việc so commit.
-Chỉ mất kết nối, request lỗi hoặc quá 10 giây chưa đủ để kết luận backend đang deploy:
-khi chưa có phản hồi phiên bản, web dùng màn **hâm nóng server** hiện có (cold start/mất
-kết nối). Chỉ khi `/api/health` trả về commit/protocol khác bản cần dùng, hoặc socket báo
-backend có protocol cũ, web mới hiện **Đang cập nhật…**. Sau khi đã xác nhận lệch phiên
-bản, màn cập nhật giữ nguyên cả khi backend ngắt kết nối để khởi động lại. Nếu backend
-đã khớp bản nhưng database báo `down`, web trở về màn hâm nóng/chờ kết nối.
+`index.html` và `content/manifest.json` không được cache; gói `.pck` của từng trò có mã băm
+trong tên nên được cache vĩnh viễn.
 
-Web tự thử lại; nếu có bản web mới hơn trong lúc chờ, mục tiêu cập nhật chuyển sang bản đó.
-Nếu backend deploy thất bại, màn chờ giữ nguyên tới khi deploy được khắc phục hoặc có bản
-web khác thay thế.
-Màn chờ phủ toàn màn hình, có hoạt ảnh bài và xúc xắc trên nền trời cùng các câu đùa luân
-phiên. Thanh "Nạp năng lượng" chỉ là tiến độ giả cho vui, tăng chậm tới tối đa 95%, không
-phải phần trăm deploy và không kéo dài thời gian chờ khi backend đã sẵn sàng. Thiết bị bật
-chế độ giảm chuyển động sẽ không chạy hoạt ảnh.
-
-Trang production vừa mở hoặc tự refresh cũng chặn thao tác tới khi backend khớp commit,
-tránh tạo phòng trên tiến trình cũ rồi mất phòng khi backend khởi động lại. Phòng có sẵn vẫn
-nằm trong bộ nhớ backend và không được giữ qua lần khởi động lại. Dev và bản xem trước PR
-không chờ commit (bản xem trước dùng backend production); kiểm tra protocol vẫn áp dụng.
-Ở chế độ dev hộp bản mới không tự hiện vì file JS chính luôn là `/src/main.tsx`.
-
-Migration database chạy khi server khởi động, trong lúc bản web trước có thể vẫn đang chạy: hãy
+Migration database chạy khi server khởi động, trong lúc bản server trước có thể vẫn đang chạy: hãy
 làm chúng chạy được với bản trước (thêm cột trước, xoá cột cũ ở một PR sau).
 
 ## Game
 
-`npm run build -w @xomdao/shared` (thứ Render và Vercel chạy) build `@xomdao/sdk`, phần server của mọi
-game và `@xomdao/shared` (scripts/libs.mjs), nên một thư mục mới trong `games/` được triển khai mà
-không phải đổi cài đặt nào. Bản build web chứa mỗi game thành một phần riêng, chỉ tải khi cần. Game
-có `status: 'wip'` bị khoá ở nơi có `VERCEL_ENV=production` (trang thật) và chơi được ở mọi nơi
-khác, kể cả bản xem trước của PR; sandbox (`/?play=<id>`) theo cùng quy tắc.
+`npm run build -w @xomdao/shared` (thứ Render chạy) build `@xomdao/sdk`, phần server của mọi game
+và `@xomdao/shared` (scripts/libs.mjs), nên một thư mục mới trong `games/` được triển khai mà
+không phải đổi cài đặt nào. Bản xuất Godot có mỗi trò thành một gói `.pck` riêng, chỉ tải khi cần.
+Game có `status: 'wip'` không hiện trong danh mục của server thật (nơi có `RENDER`; bản xem trước
+của PR cũng dùng server này) và hiện ở mọi server khác; `XOMDAO_SHOW_WIP=1|0` đổi điều đó.
 
-## Ứng dụng web → Vercel
+## Client → Vercel
 
 Repo GitHub `MinhWorker/xom-dao` được nối với project Vercel
 `minhnks-projects/xomdao` (bản thật: https://xomdao.vercel.app). Mỗi lần push
 lên `main` triển khai bản thật; mỗi PR có một URL xem trước. Cài đặt build nằm trong `vercel.json`
 (gốc repo).
 
-Biến môi trường trên Vercel: `VITE_SERVER_URL` = URL công khai của game server (xem bên dưới). Nó
-được gắn cứng lúc build, nên đổi xong phải triển khai lại.
+Biến môi trường trên Vercel: `XOMDAO_SERVER_URL` = URL công khai của game server (xem bên dưới;
+tên cũ `VITE_SERVER_URL` vẫn được đọc). Nó được gắn cứng lúc build, nên đổi xong phải triển khai
+lại.
 
-Client Godot được dựng cùng lúc (`node tools/godot/vercel.mjs` trong `buildCommand`): lệnh này cài
-Godot và template web (khoảng 80 MB tải về mỗi lần build), xuất client với `VITE_SERVER_URL` làm
-địa chỉ server, rồi `vite build` chép nó vào `/godot/`. Bản thật dùng bản release
-(https://xomdao.vercel.app/godot/), bản xem trước của PR dùng bản debug, có cầu nối test và
-sandbox `?play=<id>`. Gói `.pck` có mã băm trong tên nên được cache vĩnh viễn.
+`buildCommand` là `node tools/godot/vercel.mjs`: lệnh này cài Godot và template web (khoảng 80 MB
+tải về mỗi lần build) rồi xuất client vào `apps/client/dist`, thư mục Vercel phục vụ ở `/`. Bản
+thật dùng bản release, bản xem trước của PR dùng bản debug, có cầu nối test và sandbox
+`?play=<id>`. Link cũ `/godot/…` chuyển về `/…`.
 
 ## Game server → Render
 
@@ -126,12 +93,12 @@ Dịch vụ Render `xomdao-server` (gói miễn phí, Singapore), cấu hình sa
 - Tự triển khai khi push lên `main` nếu `apps/server/**`, `packages/shared/**` hoặc
   `package-lock.json` thay đổi.
 - Gói miễn phí ngủ sau ~15 phút không dùng; lượt vào đầu tiên mất ~30-60 giây để đánh thức (trong
-  lúc đó ứng dụng web hiện thông báo "Đang kết nối…"). Ngủ hoặc triển khai lại sẽ xoá mọi phòng
+  lúc đó client hiện "Đang đánh thức máy chủ"). Ngủ hoặc triển khai lại sẽ xoá mọi phòng
   (tài khoản vẫn còn: chúng nằm trong Neon).
 - CLI: `render services`, `render logs -r srv-daq1sc0473hc73e7bsl0`,
   `render deploys create srv-daq1sc0473hc73e7bsl0`.
 
-`VITE_SERVER_URL` của Vercel (bản thật + bản xem trước) trỏ tới URL này.
+`XOMDAO_SERVER_URL` của Vercel (bản thật + bản xem trước) trỏ tới URL này.
 
 Đừng chuyển server sang Vercel. Vercel Functions có hỗ trợ WebSocket, nhưng kết nối bị đóng khi
 hết thời gian tối đa của function và mỗi kết nối có thể rơi vào một instance khác. Phòng sống
@@ -160,7 +127,14 @@ Schema và migration dùng Drizzle ORM: sửa `apps/server/src/db/schema.ts`, ch
 `npm run db:generate -w @xomdao/server` (ghi SQL vào `apps/server/drizzle/`, nhớ commit). Server áp
 các migration còn thiếu khi khởi động. `npm run db:studio -w @xomdao/server` mở trình xem bảng.
 
-## Cách đơn giản nhất: một tiến trình, không Vercel
+## Cách đơn giản nhất: một máy, không Vercel
 
-`npm run build && npm start -w @xomdao/server` phục vụ cả ứng dụng web lẫn game ở cổng 8033. Bạn bè
-cùng Wi-Fi có thể mở `http://<IP-LAN-của-bạn>:8033`.
+```sh
+npm run godot:export
+npm run build && npm start -w @xomdao/server   # server ở cổng 8033
+node scripts/web.mjs                           # client ở cổng 5033, chuyển /api và /ws tới server
+```
+
+Server không phục vụ trang web; `scripts/web.mjs` phục vụ bản xuất Godot và chuyển tiếp tới server
+nên trình duyệt chỉ nói chuyện với một địa chỉ. Bạn bè cùng Wi-Fi có thể mở
+`http://<IP-LAN-của-bạn>:5033`.

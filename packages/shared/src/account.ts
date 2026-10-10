@@ -101,7 +101,7 @@ export type ProfileUpdate = z.input<typeof profileSchema>;
 
 /** Reply of POST /api/auth/register and /api/auth/login. */
 export interface AuthResponse {
-  /** Send as `auth: { token }` when connecting the socket. Kept in the browser. */
+  /** Send with `auth:token` after connecting to /ws. Kept on the device. */
   token: string;
   user: User;
 }

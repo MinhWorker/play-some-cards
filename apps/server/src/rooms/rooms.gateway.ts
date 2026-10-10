@@ -1,24 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import {
-  type OnGatewayDisconnect,
-  type OnGatewayInit,
-  SubscribeMessage,
-  WebSocketGateway,
-  WebSocketServer,
-} from '@nestjs/websockets';
-import { MESSAGE_METADATA } from '@nestjs/websockets/constants.js';
+import { Injectable, type OnModuleDestroy, type OnModuleInit } from '@nestjs/common';
 import { ConsoleError, type ConsoleIssue } from '@xomdao/sdk';
 import {
-  type ClientToServerEvents,
   COIN,
   type JoinedRoom,
-  PROTOCOL_MISMATCH,
-  PROTOCOL_VERSION,
   type RoomRole,
   type ServerToClientEvents,
   type User,
 } from '@xomdao/shared';
-import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { CatalogService } from '../catalog/catalog.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';
@@ -32,7 +21,7 @@ import { StatsError, StatsService } from '../stats/stats.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 export interface SocketData {
-  /** Set by the auth middleware; every connected socket is logged in. */
+  /** Set when the client logs in (`WsGateway`); handlers only see logged-in clients. */
   user: User;
   /** The room this socket shows. Your member id in it is `user.id`. */
   roomCode?: string;
@@ -42,19 +31,33 @@ export interface SocketData {
   devLogOff?: () => void;
 }
 
-type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
-type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
 /**
- * A connected client on either transport: a Socket.IO socket, or a plain WebSocket wrapped by
- * `WsGateway`. Handlers only read `data` and `emit` events, so both work the same.
+ * A logged-in client: a WebSocket connection wrapped by `WsGateway`. Handlers only read `data` and
+ * `emit` events.
  */
-export type Client = Pick<AppSocket, 'data' | 'emit'>;
+export interface Client {
+  data: SocketData;
+  emit<E extends keyof ServerToClientEvents>(
+    event: E,
+    ...args: Parameters<ServerToClientEvents[E]>
+  ): boolean;
+}
 /** A handler's reply, sent back as the request's ack. */
 export type Result =
   | { ok: true; [key: string]: unknown }
   | { ok: false; error: string; issue?: ConsoleIssue };
 
 const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
+
+/** The handler method of each client event, filled by `@On`. */
+const HANDLERS = new Map<string, string>();
+
+/** Marks a method as the handler of a client event (`room:create`…). */
+function On(event: string): MethodDecorator {
+  return (_target, name) => {
+    HANDLERS.set(event, String(name));
+  };
+}
 /**
  * The computer "thinks" this long before its move, so players can follow the game. CI's e2e
  * sets BOT_DELAY_MS lower: a test doesn't need to follow along.
@@ -67,28 +70,25 @@ const BOT_DELAY_MS = Number(process.env.BOT_DELAY_MS) || 700;
 const QUICK_WAIT_MS = Number(process.env.QUICK_WAIT_MS) || 6000;
 
 /**
- * Translates Socket.IO events into RoomsService calls. Each handler's return value
- * is sent back as the ack. After every change we push a fresh `room:state` to each
- * member (filtered per member so hidden cards stay hidden) and a fresh room list to
- * everyone browsing that game.
+ * Translates client requests into RoomsService calls. Each handler's return value is sent back as
+ * the request's ack. After every change we push a fresh `room:state` to each member (filtered per
+ * member so hidden cards stay hidden) and a fresh room list to everyone browsing that game.
  *
- * Sockets must be logged in (`auth: { token }`). Being in a room belongs to the account, so
- * one account can have several sockets (tabs, devices) showing the same seat.
- *
- * The same handlers serve the Godot client's plain WebSocket (`WsGateway`, `handlerFor`): its
- * clients join `clients()` through `attach` and leave through `handleDisconnect` + `detach`.
+ * Clients come from `WsGateway` (plain WebSocket + JSON): they join `clients()` through `attach`
+ * once logged in and leave through `handleDisconnect` + `detach`. Being in a room belongs to the
+ * account, so one account can have several clients (tabs, devices) showing the same seat.
  */
-@WebSocketGateway({ cors: { origin: true } })
-export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
-  @WebSocketServer() server!: AppServer;
+@Injectable()
+export class RoomsGateway implements OnModuleInit, OnModuleDestroy {
   /** Pending computer moves, by room code. */
   private readonly botTimers = new Map<string, NodeJS.Timeout>();
   /** Pending game timers (`ctx.setTimer`), by room code. */
   private readonly gameTimers = new Map<string, NodeJS.Timeout>();
   /** Quick-match rooms waiting for people before the computer fills them, by room code. */
   private readonly quickTimers = new Map<string, NodeJS.Timeout>();
-  /** Clients on the other transport (`WsGateway`). */
-  private readonly extra = new Set<Client>();
+  /** Logged-in clients (`WsGateway`). */
+  private readonly connected = new Set<Client>();
+  private pruner?: NodeJS.Timeout;
 
   constructor(
     private readonly rooms: RoomsService,
@@ -131,53 +131,31 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  afterInit(server: AppServer) {
-    // The client sees a refused connection as `connect_error` with this message.
-    server.use((socket, next) => {
-      if (socket.handshake.auth?.protocol !== PROTOCOL_VERSION) {
-        // Web and server deploy separately; the client reloads or waits (see PROTOCOL_VERSION).
-        return next(
-          Object.assign(new Error(PROTOCOL_MISMATCH), { data: { protocol: PROTOCOL_VERSION } }),
-        );
-      }
-      this.accounts.authenticate(socket.handshake.auth?.token).then(
-        (user) => {
-          if (!user) return next(new Error('unauthorized'));
-          socket.data.user = user;
-          next();
-        },
-        (err) => {
-          console.error(err);
-          next(new Error('server'));
-        },
-      );
-    });
-    setInterval(() => this.rooms.pruneEmptyRooms(), PRUNE_INTERVAL_MS).unref();
+  onModuleInit() {
+    this.pruner = setInterval(() => this.rooms.pruneEmptyRooms(), PRUNE_INTERVAL_MS);
+    this.pruner.unref();
+  }
+
+  onModuleDestroy() {
+    clearInterval(this.pruner);
   }
 
   /** A WebSocket client that just logged in. */
   attach(client: Client) {
-    this.extra.add(client);
+    this.connected.add(client);
   }
 
   /** A WebSocket client that closed (after `handleDisconnect`). */
   detach(client: Client) {
-    this.extra.delete(client);
+    this.connected.delete(client);
   }
 
-  /**
-   * The handler of a client event (the `@SubscribeMessage` method), for `WsGateway`; `undefined`
-   * for an unknown event.
-   */
+  /** The handler of a client event (an `@On` method), for `WsGateway`; `undefined` if unknown. */
   handlerFor(event: string): ((client: Client, req: unknown) => Promise<Result>) | undefined {
-    const proto = RoomsGateway.prototype as unknown as Record<string, unknown>;
-    for (const name of Object.getOwnPropertyNames(proto)) {
-      const method = proto[name];
-      if (typeof method !== 'function' || Reflect.getMetadata(MESSAGE_METADATA, method) !== event)
-        continue;
-      return (client, req) => method.call(this, client, req) as Promise<Result>;
-    }
-    return undefined;
+    const name = HANDLERS.get(event);
+    const method = name && (this as unknown as Record<string, unknown>)[name];
+    if (typeof method !== 'function') return undefined;
+    return (client, req) => method.call(this, client, req) as Promise<Result>;
   }
 
   /** The account changed how it shows: its sockets and its room (pushed to everyone) follow. */
@@ -201,7 +179,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     if (room) this.broadcast(room);
   }
 
-  @SubscribeMessage('session:resume')
+  @On('session:resume')
   resume(socket: Client) {
     return this.handle(async () => {
       const balances = await this.ledger.balances(socket.data.user.id);
@@ -210,7 +188,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('profile:update')
+  @On('profile:update')
   updateProfile(socket: Client, req: unknown) {
     return this.handle(async () => {
       const me = socket.data.user;
@@ -227,17 +205,17 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('shop:list')
+  @On('shop:list')
   shopList(socket: Client) {
     return this.handle(async () => ({ items: await this.shop.list(socket.data.user.id) }));
   }
 
-  @SubscribeMessage('shop:buy')
+  @On('shop:buy')
   shopBuy(socket: Client, req: { itemId?: unknown }) {
     return this.handle(() => this.shop.buy(socket.data.user.id, String(req?.itemId ?? '')));
   }
 
-  @SubscribeMessage('inventory:get')
+  @On('inventory:get')
   inventoryGet(socket: Client, req: { userId?: unknown } | undefined) {
     return this.handle(() => {
       const userId = typeof req?.userId === 'string' ? req.userId : socket.data.user.id;
@@ -245,7 +223,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('inventory:equip')
+  @On('inventory:equip')
   equip(socket: Client, req: { itemId?: unknown }) {
     return this.handle(async () => {
       const user = await this.inventory.equip(socket.data.user.id, String(req?.itemId ?? ''));
@@ -253,19 +231,19 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('event:get')
+  @On('event:get')
   eventGet(socket: Client, req: { eventId?: unknown }) {
     return this.handle(() => this.events.progress(socket.data.user.id, String(req?.eventId ?? '')));
   }
 
-  @SubscribeMessage('event:claim')
+  @On('event:claim')
   eventClaim(socket: Client, req: { eventId?: unknown; tier?: unknown }) {
     return this.handle(() =>
       this.events.claim(socket.data.user.id, String(req?.eventId ?? ''), Number(req?.tier)),
     );
   }
 
-  @SubscribeMessage('stats:get')
+  @On('stats:get')
   statsGet(socket: Client, req: { userId?: unknown } | undefined) {
     return this.handle(() => {
       const userId = typeof req?.userId === 'string' ? req.userId : socket.data.user.id;
@@ -273,22 +251,22 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('ranking:get')
+  @On('ranking:get')
   rankingGet(socket: Client, req: { board?: unknown }) {
     return this.handle(() => this.stats.ranking(String(req?.board ?? ''), socket.data.user.id));
   }
 
-  @SubscribeMessage('history:recent')
+  @On('history:recent')
   history(socket: Client) {
     return this.handle(async () => ({ matches: await this.matches.recent(socket.data.user.id) }));
   }
 
-  @SubscribeMessage('catalog:get')
+  @On('catalog:get')
   getCatalog() {
     return this.handle(() => this.catalog.catalog());
   }
 
-  @SubscribeMessage('lobby:watch')
+  @On('lobby:watch')
   watch(socket: Client, req: { gameId: string }) {
     return this.handle(() => {
       this.unwatchLobby(socket);
@@ -297,7 +275,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('lobby:unwatch')
+  @On('lobby:unwatch')
   unwatch(socket: Client) {
     return this.handle(() => {
       this.unwatchLobby(socket);
@@ -305,7 +283,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('room:create')
+  @On('room:create')
   create(socket: Client, req: { gameId: string; options?: unknown }) {
     return this.handle(() => {
       this.refuseClosedEvent(req?.gameId);
@@ -315,7 +293,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('room:quick')
+  @On('room:quick')
   quick(socket: Client, req: { gameId: string }) {
     return this.handle(() => {
       this.refuseClosedEvent(req?.gameId);
@@ -331,7 +309,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('room:join')
+  @On('room:join')
   join(socket: Client, req: { roomCode: string; role: RoomRole }) {
     return this.handle(() => {
       const role = req.role === 'spectator' ? 'spectator' : 'player';
@@ -341,7 +319,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('room:leave')
+  @On('room:leave')
   leave(socket: Client) {
     return this.handle(() => {
       const { roomCode } = this.requireSeat(socket);
@@ -350,7 +328,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('room:sit')
+  @On('room:sit')
   sit(socket: Client) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -359,7 +337,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('room:options')
+  @On('room:options')
   setOptions(socket: Client, req: { options: unknown }) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -368,7 +346,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('game:start')
+  @On('game:start')
   start(socket: Client) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -377,12 +355,12 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('game:restart')
+  @On('game:restart')
   restart(socket: Client) {
     return this.start(socket);
   }
 
-  @SubscribeMessage('game:move')
+  @On('game:move')
   move(socket: Client, req: { move: unknown }) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -391,7 +369,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('dev:logs')
+  @On('dev:logs')
   devLogs(socket: Client, req: { on: boolean }) {
     return this.handle(() => {
       this.requireDev();
@@ -409,7 +387,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     socket.data.devLogOff = undefined;
   }
 
-  @SubscribeMessage('dev:command')
+  @On('dev:command')
   devCommand(socket: Client, req: { line: string }) {
     return this.handle(() => {
       this.requireDev();
@@ -418,7 +396,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('dev:schema')
+  @On('dev:schema')
   devSchema(socket: Client) {
     return this.handle(() => {
       this.requireDev();
@@ -427,7 +405,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('dev:coins')
+  @On('dev:coins')
   devCoins(socket: Client, req: { amount?: unknown }) {
     return this.handle(async () => {
       this.requireDev();
@@ -445,7 +423,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  @SubscribeMessage('dev:clock')
+  @On('dev:clock')
   devClock(_socket: Client, req: { at?: unknown }) {
     return this.handle(() => {
       this.requireDev();
@@ -523,7 +501,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   /** Every logged-in client, on both transports. */
   private clients(): Client[] {
-    return [...this.server.sockets.sockets.values(), ...this.extra];
+    return [...this.connected];
   }
 
   /** Starts a quick-match room, with the computer in the seats nobody came for. */

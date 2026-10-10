@@ -2,10 +2,9 @@
 // players. You tap the dice and then a horse that can go for a few turns; then the Dev Console
 // stages each of your horses at its home gate with the roll it needs (6, 5, 4, 3) and you tap
 // them home one by one until you win and the hub's result comes. Needs the debug web build at
-// /godot/ (npm run godot:export -- --debug).
+// (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 
 export const games = ['co-ca-ngua'];
 export { launch };

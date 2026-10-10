@@ -28,10 +28,9 @@ const MAX_PAYLOAD = 64 * 1024;
 type AuthEvent = 'auth:token' | 'auth:login' | 'auth:guest';
 
 /**
- * The Godot client's transport: plain WebSocket + JSON on `/ws`, next to Socket.IO on the same
- * port (protocol in packages/shared/src/protocol.ts, "WebSocket transport"). It only translates:
- * after an `auth:*` request logs the connection in, every request runs the same `RoomsGateway`
- * handler a Socket.IO client would reach, so rooms, accounts and bots behave the same.
+ * The client transport: plain WebSocket + JSON on `/ws`, on the HTTP server's port (protocol in
+ * packages/shared/src/protocol.ts, "WebSocket transport"). It only translates: after an `auth:*`
+ * request logs the connection in, every request runs its `RoomsGateway` handler.
  */
 @Injectable()
 export class WsGateway implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -49,7 +48,7 @@ export class WsGateway implements OnApplicationBootstrap, OnApplicationShutdown 
     const http = this.adapterHost.httpAdapter?.getHttpServer();
     if (!http) return;
     this.wss = new WebSocketServer({ noServer: true, maxPayload: MAX_PAYLOAD });
-    // Socket.IO answers its own upgrades (/socket.io/); this takes only /ws.
+    // Only /ws upgrades; anything else is left alone (and times out).
     http.on('upgrade', (req: IncomingMessage, socket: Duplex, head: Buffer) => {
       if (new URL(req.url ?? '/', 'http://x').pathname !== WS_PATH) return;
       this.wss?.handleUpgrade(req, socket, head, (ws) => this.accept(ws));

@@ -2,7 +2,7 @@
  * Cờ Tướng (Xiangqi) for two, by the WXF 2018 rules: against a friend or the computer.
  *
  * Server entry: the game's meta, its logic (a `Game`) and its room options. It loads on the
- * server, so it only imports game/ (scenes are in client.ts).
+ * server, so it only imports game/.
  */
 import { definePlugin } from '@xomdao/sdk';
 import { optionsSchema } from './game/model.js';

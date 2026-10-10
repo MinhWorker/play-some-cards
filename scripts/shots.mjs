@@ -2,19 +2,13 @@
 // real pixel density: what a player sees, sharp or blurry. Headless Chromium, no emulator.
 // Needs `npm run dev` running. Files go to .shots/.
 //
-//   npm run shots [webUrl]                    the home screen on every device
-//   npm run shots -- --path '/?play=xiangqi'  another page (the sandbox needs no account)
-//   npm run shots -- --path '/godot/?play=tic-tac-toe'  the Godot client (a debug build from
-//                                             npm run godot:export -- --debug): waits for its
-//                                             first screen past loading
-//   npm run shots -- --login                  sign up a throwaway account first (home, rooms)
+//   npm run shots [webUrl]                    the lobby on every device
+//   npm run shots -- --path '/?play=xiangqi'  a game's sandbox against the computer (debug build:
+//                                             npm run godot:export -- --debug)
 //   npm run shots -- --devices iphone-15,ipad some devices (comma separated)
 //   npm run shots -- --tab                    in a browser tab (minus its bars), not the app
-//   --state FILE reuse a Playwright storage state (a real room and its dev settings)
-//   --command LINE run a dev console line after loading, before taking the shot
-//   --wait MS    wait after the page loads (default 2500)
+//   --wait MS    wait after the client's first screen past loading (default 2500)
 //   --crop X,Y,W,H  the 1:1 detail crop, in CSS px (default: the middle of the screen)
-//   --audit      also list the images drawn bigger than their pixels (blurry: export them bigger)
 //
 // Per device it writes <device>.png (every device pixel) and <device>-crop.png (a 1:1 detail of
 // it, small enough to view unscaled: that is where blur shows), and prints the canvas density
@@ -52,13 +46,9 @@ const { values: args, positionals } = parseArgs({
   options: {
     path: { type: 'string', default: '/' },
     devices: { type: 'string' },
-    login: { type: 'boolean', default: false },
-    state: { type: 'string' },
-    command: { type: 'string' },
     tab: { type: 'boolean', default: false },
     wait: { type: 'string', default: '2500' },
     crop: { type: 'string' },
-    audit: { type: 'boolean', default: false },
   },
 });
 const base = positionals[0] ?? 'http://localhost:5033';
@@ -76,25 +66,6 @@ const browser = await chromium.launch({
   args: ['--use-gl=angle', '--use-angle=swiftshader'],
 });
 
-/** Signs up a throwaway account once; every device reuses its cookies. */
-async function account() {
-  const context = await browser.newContext();
-  const page = await context.newPage();
-  const name = `shots${Date.now().toString(36)}`;
-  await page.goto(base);
-  await page.getByRole('button', { name: 'Tạo tài khoản' }).first().click();
-  await page.getByLabel('Tên đăng nhập').fill(name);
-  await page.getByLabel('Mật khẩu', { exact: true }).fill('shots-pass');
-  await page.getByLabel('Tên trong game').fill('Ảnh');
-  await page.getByRole('button', { name: 'Tạo tài khoản' }).last().click();
-  await page.getByRole('button', { name: 'Sửa hồ sơ' }).waitFor();
-  const state = await context.storageState();
-  await context.close();
-  return state;
-}
-
-const storageState = args.state ?? (args.login ? await account() : undefined);
-
 for (const name of names) {
   const d = DEVICES[name];
   const height = d.height - (args.tab ? (d.bar ?? 0) : 0);
@@ -103,7 +74,6 @@ for (const name of names) {
     deviceScaleFactor: d.dpr,
     isMobile: !d.desktop,
     hasTouch: !d.desktop,
-    storageState,
   });
   const page = await context.newPage();
   const errors = [];
@@ -113,18 +83,15 @@ for (const name of names) {
     await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: d.inset });
   }
   await page.goto(new URL(args.path, base).href);
-  if (args.path.startsWith('/godot'))
-    await page.waitForFunction(
+  // The release build has no test bridge: then only the wait.
+  await page
+    .waitForFunction(
       () => window.xomdao && !['boot', 'status'].includes(window.xomdao.scene()),
       null,
       { timeout: 60_000 },
-    );
+    )
+    .catch(() => console.log(`  ${name}: no test bridge (release build?), shot after the wait`));
   await page.waitForTimeout(Number(args.wait));
-  if (args.command) {
-    const result = await page.evaluate((line) => window.__devCommand?.(line), args.command);
-    if (!result?.ok)
-      throw new Error(`Dev command failed: ${result?.error ?? 'console unavailable'}`);
-  }
 
   const file = join(out, `${name}.png`);
   const screenshot = await page.screenshot({ path: file });
@@ -151,17 +118,6 @@ for (const name of names) {
   console.log(
     `${name.padEnd(13)} ${d.width}×${height} @${d.dpr}  screen ${d.dpr}× ${density}${warn}`,
   );
-  if (args.audit) {
-    const uses = (await page.evaluate(() => window.__textureAudit?.() ?? [])).filter(
-      (u) => u.upscale > 1.05,
-    );
-    for (const u of uses) {
-      const need = `${Math.ceil(u.source.width * u.upscale)}×${Math.ceil(u.source.height * u.upscale)}`;
-      console.log(
-        `  stretched ${u.upscale.toFixed(2)}× ${u.key} (${u.source.width}×${u.source.height}, needs ${need})`,
-      );
-    }
-  }
   for (const e of errors) console.log(`  page error: ${e}`);
   await context.close();
 }

@@ -2,10 +2,9 @@
 // Thu (dev:clock), the lobby's banner and Sự kiện island show it; its board opens from the
 // banner, Tham gia plays Câu cá until there are 10 points, and Nhận pays the first tier once
 // (double tap). With the clock after the event, it is gone and its rooms are refused. Needs the
-// debug web build at /godot/ (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
+// debug web build (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
 
-import { godotText, launch, onScene, openGodot, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, tap } from '../godot.mjs';
 
 export const games = ['trung-thu'];
 // It moves the server's event clock: other scenarios with this lock wait for it.

@@ -10,12 +10,11 @@ Never open a visible browser; everything here is headless.
 1. **Build and serve.** `npm run godot:export -- --debug`, then a dev server on free ports with
    no database (the environment may hold a real `DATABASE_URL`):
    `DATABASE_URL= PORT=8133 WEB_PORT=5133 BOT_DELAY_MS=200 npm run dev` in the background, and
-   wait for `curl -sf localhost:8133/api/health` and `localhost:5133/godot/`.
+   wait for `curl -sf localhost:8133/api/health` and `localhost:5133/`.
 2. **Shoot.** One page on every device profile, sideways, at its pixel density with notch
    insets:
-   - a game's table: `npm run shots -- http://localhost:5133 --path '/godot/?play=<id>' --wait 15000`
-   - a hub screen: `--path '/godot/'`, or a UI kit page: `--path '/godot/?gallery=2'`
-   - `-- --audit` also lists images drawn bigger than their pixels.
+   - a game's table: `npm run shots -- http://localhost:5133 --path '/?play=<id>' --wait 15000`
+   - a hub screen: the default path `/` (the lobby), or a UI kit page: `--path '/?gallery=2'`
    Files land in `.shots/<device>.png` (scaled) and `.shots/<device>-crop.png` (1:1).
 3. **Look** at every device with the Read tool, the smallest first (`android-720p` 640×360,
    `iphone-se`, then `ipad` and `laptop`). Check:

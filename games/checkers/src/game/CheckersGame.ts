@@ -1,7 +1,7 @@
 /**
  * The game's logic, on the server (simplified 8 × 8 draughts). A
  * player's event runs its hook, which gets the whole room in `ctx` and returns the next state;
- * everyone's screen then gets it (scenes/CheckersView.ts).
+ * everyone's screen then gets it (godot/main.gd).
  *
  *   move          a piece along a path of squares (legal moves: rules.ts)
  *   offer-draw    offer a draw, or accept the other side's offer

@@ -1,10 +1,9 @@
 // Accounts in the Godot client: a guest makes an account at Nhà › Tài khoản and comes back as it,
 // logs out (a new guest) and logs in again; a player the old web app logged in (its token in
-// localStorage) opens the Godot client as the same account. Needs the debug web build at /godot/
+// localStorage) opens the Godot client as the same account. Needs the debug web build
 // (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, tap, typeInto } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, tap, typeInto } from '../godot.mjs';
 
 export const games = [];
 export { launch };

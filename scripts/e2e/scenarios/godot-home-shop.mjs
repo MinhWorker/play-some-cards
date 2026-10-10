@@ -1,10 +1,19 @@
 // Nhà and Chợ in the Godot client (#125): Lan gets coins (dev:coins), can't buy what she can't
 // pay for, buys the jade frame with a double tap (paid once), wears it at Nhà, and makes a room.
 // Hùng joins it at Bến, sees her new frame, and opens her Nhà (read-only). Needs the debug web
-// build at /godot/ (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
+// build (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
 
-import { godotText, launch, onScene, openGodot, room, tap, typeInto } from '../godot.mjs';
-import { DESKTOP, PHONE } from '../lib.mjs';
+import {
+  DESKTOP,
+  godotText,
+  launch,
+  onScene,
+  openGodot,
+  PHONE,
+  room,
+  tap,
+  typeInto,
+} from '../godot.mjs';
 
 export const games = ['tic-tac-toe'];
 export { launch };

@@ -1,5 +1,5 @@
 {
-  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: apps/web/public/shared/images/<name>.webp, or apps/web/public/games/<game>/images/ when 'game' is set (art used by one game only)",
+  "$comment": "Source prompts for every generated image. Regenerate with: npm run gen:asset -- <name>. Output: assets/app/images/<name>.webp; 'path' puts it elsewhere",
   "style": "Polished stylized 3D cartoon game art for a cheerful casual mobile board-game hub, in the spirit of popular 2015 Vietnamese mobile games. Saturated colors, soft warm lighting from the top-left, chunky rounded shapes, clean edges. Absolutely no text, letters, numbers or watermark.",
   "transparentSuffix": "Single isolated object on a fully transparent background, centered with generous margin, no ground shadow, no sky, no clouds.",
   "assets": {

@@ -1,4 +1,3 @@
-/** Browser presentation uses SceneRuntime (@xomdao/sdk/client); server hooks and timers remain authoritative. */
 /**
  * Write a game as a class with lifecycle hooks, like a Unity script.
  *
@@ -10,7 +9,8 @@
  *   export default definePlugin({ meta, rules: gameRules(new CounterGame()) });
  *
  * The server runs it: a player's event is checked against `events`, its hook returns the next
- * state, and every screen gets the new state and hears the event (see `GameView`). Hooks get one
+ * state, and every client gets the new state and the last event (a game's Godot table draws it
+ * from `snapshot.view`). Hooks get one
  * `ctx` with everything about the room. They must not change `ctx.state`: return a new one.
  *
  * Optional `override readonly commands` maps names to z.object argument schemas and cmd<Name>

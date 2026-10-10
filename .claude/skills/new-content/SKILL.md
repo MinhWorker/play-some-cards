@@ -5,7 +5,7 @@ description: Make a new Xóm Đảo game or event from a brief (rules, Godot tab
 
 # New game or event from a brief
 
-Read first: `games/AGENTS.md`, `apps/client/AGENTS.md`, `docs/experience.md` ("Trong trận",
+Read first: `games/AGENTS.md`, `apps/client/AGENTS.md`, `docs/experience.md` ("HUD trong ván",
 "Sự kiện"), `docs/making-a-game.md`.
 
 ## 1. Pin down the brief
@@ -52,11 +52,11 @@ writes the `.uid` files, and commit them.
    nodes. CI runs every `godot-*` scenario.
 6. **Art and sound**: see the `make-asset` skill; the starter card art is a stand-in.
 7. **Docs**: RULES.md (current rules only, for players), the game README (layout of the folder,
-   credits). The Phaser `src/client.ts` + `src/scenes/` stay as the starter unless asked.
+   credits).
 
 ## 4. Check
 
-- `npm run check`; `npm run godot:export -- --debug`, a dev server
+- `npm run check` and `npm run godot:check`; `npm run godot:export -- --debug`, a dev server
   (`DATABASE_URL= PORT=8133 WEB_PORT=5133 BOT_DELAY_MS=200 npm run dev`) and
   `npm run e2e -- http://localhost:5133 --only godot-<id>`.
 - Look at the table on phones: the `phone-check` skill.

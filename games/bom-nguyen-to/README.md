@@ -10,27 +10,15 @@ Minigame đặt bom trong khu vườn đồ chơi, 1–4 bạn nhỏ nguyên t�
 - `src/game/bot.ts`: BFS theo không gian/thời gian và dự đoán phản ứng dây chuyền.
 - `src/game/BomNguyenToGame.ts`: mô phỏng server với timer 100 ms, chọn nhân vật,
   sự kiện điều khiển, loại người chơi và kết quả đội.
-- `src/client.ts`: bật `hud: { nav, settings, result }`, nên bàn chơi tự vẽ toàn bộ HUD,
-  kể cả nút menu (cài đặt, rời phòng, về trang chủ) và các nút sau ván.
-- `src/scenes/BomNguyenToView.ts`: màn chơi theo concept vườn đồ chơi:
-  - cột trái: logo, chế độ, chân dung bạn nhỏ của mình, HP/bom/tầm nổ và D-pad gỗ;
-  - hàng trên: bốn thẻ người chơi quanh đồng hồ gỗ, nút **Luật chơi** và nút menu;
-  - nút **Bom**, **Kỹ năng**, **Lướt** xếp dọc bên phải, hoặc thành hàng dưới bàn ở khung 4:3;
-  - đấu trường: ô cỏ/đất xen kẽ, khối đá, thùng quà và hàng rào gỗ thay cho tường viền;
-  - bảng chọn bạn nhỏ, bảng kết quả, luật chơi và menu.
-- `src/scenes/animations.ts`: tốc độ các chuỗi khung hình; số khung lấy từ atlas.
-- `src/scenes/Setup.ts`: chế độ, số nhân vật, ghế máy, độ khó và bạn nhỏ ban đầu.
-- `src/scenes/theme.ts`: màu, chữ Baloo 2 và tên năm bạn nhỏ.
 
-Phaser sắp lớp theo chiều sâu từng hàng ô. Nhân vật dùng khung hình thật ở bốn hướng: nghỉ
-(có chớp mắt), đi bộ, đặt bom, dùng kỹ năng, trúng đòn, đóng băng, bị loại và xuất hiện. Bom
-và vụ nổ cũng đổi khung hình; không biến dạng nhân vật để giả chuyển động. Luật chơi và máy
-chạy trên server, cùng luật trong sandbox. Máy bổ sung vào đấu trường khi thiếu ghế không chiếm
-ghế phòng dành cho người thật.
+Nhân vật dùng khung hình thật ở bốn hướng: nghỉ (có chớp mắt), đi bộ, đặt bom, dùng kỹ năng,
+trúng đòn, đóng băng, bị loại và xuất hiện. Bom và vụ nổ cũng đổi khung hình; không biến dạng
+nhân vật để giả chuyển động. Luật chơi và máy chạy trên server. Máy bổ sung vào đấu trường khi
+thiếu ghế không chiếm ghế phòng dành cho người thật.
 
-## Bản Godot
+## Bàn chơi
 
-`godot/main.gd` dựng màn chơi trong client Godot theo bố cục **Hành động**: đấu trường ở giữa;
+`godot/main.gd` dựng màn chơi theo bố cục **Hành động**: đấu trường ở giữa;
 thẻ bạn nhỏ của mình (HP, bom còn đặt được, tầm nổ) ở trên trái dưới nút ☰; đồng hồ ở giữa hàng
 trên, thẻ những người khác hai bên; D-pad gỗ ở dưới trái; **Bom**, **Kỹ năng**, **Lướt** xếp dọc
 ở dưới phải (vòng tối quay lại khi đang hồi, số giây thay cho tên). Bàn phím: WASD hoặc phím
@@ -48,26 +36,20 @@ số lần hạ gục và thùng quà đã mở.
 - `godot/card.gd`, `godot/pad.gd`, `godot/action.gd`: thẻ người chơi, D-pad, nút hành động.
 - Hình ở `godot/art/`, âm thanh ở `godot/sounds/`; test: `godot/test/`.
 
-Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=bom-nguyen-to`
-(một máy dễ, trên server thật).
-
 ## Phát triển và kiểm tra
 
 Từ thư mục gốc repo:
 
 ```sh
-npm install
+npm run godot:export -- --debug
 npm run dev
 npm run check
-npm run e2e -- --changed origin/main
+npm run godot:check
+npm run e2e -- --only godot-bom-nguyen-to
 ```
 
-Sandbox: `http://localhost:5033/?play=bom-nguyen-to&players=1`. Bàn chơi chiếm cả màn hình như
-trong phòng thật; nút **Chơi thử** ở giữa mép dưới mở các nút chọn ghế, **Ván mới**,
-**Tuỳ chỉnh** và **Khán giả**. Có thể dùng 2–4 ghế sandbox để thử nhiều người. Kịch bản browser
-nằm ở `scripts/e2e/scenarios/bom-nguyen-to.mjs`: chọn nhân vật, camera, cảm ứng, kỹ năng, đồng
-bộ phòng thật, menu cài đặt và rời phòng của game, kết quả đội, khung hình bốn hướng, đóng
-băng, trúng đòn, bị loại và chơi lại.
+Sandbox: `http://localhost:5033/?play=bom-nguyen-to` (một máy dễ, trên server thật). Kịch bản
+trình duyệt nằm ở `scripts/e2e/scenarios/godot-bom-nguyen-to.mjs`.
 
 ## Hình và âm thanh
 

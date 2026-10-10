@@ -64,7 +64,7 @@ export interface View extends Omit<State, 'fleets' | 'shots'> {
 }
 
 /**
- * Room options, all on one setup form (scenes/Setup.ts). `optionsSchema.parse({})` gives the
+ * Room options, all on one setup form (godot/main.gd, room_setup). `optionsSchema.parse({})` gives the
  * defaults: two friends, ships may not touch, a hit earns another shot, the room's creator
  * fires first.
  */

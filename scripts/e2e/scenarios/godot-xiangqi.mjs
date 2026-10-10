@@ -2,10 +2,19 @@
 // phone. A few moves by tapping the points with the mouse (captures first), then Đầu hàng twice;
 // the result board says how it ended, Xem bàn puts it away and Kết quả brings it back. Then a
 // host on a desktop makes a room for two friends and Black sees the board turned round. Needs
-// the debug web build at /godot/ (npm run godot:export -- --debug).
+// the debug web build (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, tap, tapCard, typeInto } from '../godot.mjs';
-import { DESKTOP, PHONE } from '../lib.mjs';
+import {
+  DESKTOP,
+  godotText,
+  launch,
+  onScene,
+  openGodot,
+  PHONE,
+  tap,
+  tapCard,
+  typeInto,
+} from '../godot.mjs';
 
 export const games = ['xiangqi'];
 export { launch };

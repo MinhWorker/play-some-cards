@@ -12,45 +12,39 @@ Cờ Tướng cho hai người, chơi với bạn hoặc máy.
 | Lặp thế cờ, chiếu dai và đuổi dai | `src/game/referee.ts` |
 | Lượt, xin hoà, đầu hàng và kết thúc | `src/game/XiangqiGame.ts` |
 | Máy và tuỳ chọn | `src/game/bot.ts`, `model.ts` |
-| Điều phối bàn | `src/scenes/XiangqiView.ts` |
-| Cảnh đình và vườn riêng qua SDK | `src/scenes/XiangqiBackground.ts` |
-| Vỡ quân và thông báo chiếu | `src/scenes/shatter.ts`, `cutin.ts` |
-| Kết quả, tạo phòng và màu | `src/scenes/ResultPanel.ts`, `Setup.ts`, `theme.ts` |
-| Màn hình Godot: bàn, đường kẻ, quân, vỡ quân, cuộn chiếu tướng, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
-| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
+| Bàn chơi: cảnh đình, bàn, đường kẻ, quân, vỡ quân, cuộn chiếu tướng, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` (test: `godot/test/`) |
+| Hình, âm thanh và nhạc của bàn | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
-`src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
-`assets/` chứa hình và âm thanh dùng trực tiếp, `sources/` chứa nguồn và prompt.
+`src/index.ts` đăng ký game phía server. `assets/` chứa hình và âm thanh cỡ đầy đủ (bàn chép bản
+cần dùng vào `godot/`), `sources/` chứa nguồn và prompt.
 Test nằm cạnh phần logic với đuôi `.test.ts`.
 
 ## Phát triển
 
-Chạy `npm run dev` ở gốc repo rồi mở `http://localhost:5033/?play=xiangqi&players=2`.
-Kiểm tra bằng `npm run check`. Hướng dẫn SDK và Dev Console:
+Chạy `npm run godot:export -- --debug` và `npm run dev` ở gốc repo rồi mở
+http://localhost:5033/?play=xiangqi (chơi với máy trên server thật). Kiểm tra bằng
+`npm run check` và `npm run godot:check`; kịch bản trình duyệt ở
+`scripts/e2e/scenarios/godot-xiangqi.mjs`. Hướng dẫn SDK và Dev Console:
 [tạo game](../../docs/making-a-game.md).
 
-Bản Godot (`godot/`) có cùng cảnh đình, bàn, đường kẻ, chữ 楚河 漢界, quân và bóng, vòng chiếu
-tướng nhấp nháy, cột thống kê và các nút như trên. Quân bị ăn bị đánh văng, xoay rồi tan; thông báo
-chiếu là một cuộn giấy mở ra rồi cuộn lại. Quân là từng ảnh cắt từ atlas `assets/pieces.webp`, chưa
-có đèn normal map. Nước đi hợp lệ lấy từ `moves` trong view của server (chỉ có khi tới lượt mình),
-nên luật chỉ nằm ở TypeScript. Chơi thử bằng `npm run godot:export -- --debug` rồi mở
-http://localhost:5033/godot/?play=xiangqi; test GUT ở `godot/test/`, kịch bản trình duyệt ở
-`scripts/e2e/scenarios/godot-xiangqi.mjs`.
+Bàn có cảnh đình, bàn, đường kẻ, chữ 楚河 漢界, quân và bóng, vòng chiếu tướng nhấp nháy, cột
+thống kê và các nút. Quân bị ăn bị đánh văng, xoay rồi tan; thông báo chiếu là một cuộn giấy mở ra
+rồi cuộn lại. Quân là từng ảnh cắt từ atlas `assets/pieces.webp`, chưa có đèn normal map. Nước đi
+hợp lệ lấy từ `moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm ở
+TypeScript.
 
 ## Tài nguyên
 
 Hình bàn gỗ óc chó viền nổi mỏng và cảnh đình lúc hoàng hôn sinh bằng Image Gen từ prompt
-trong `sources/prompts.json`; đường bàn vẽ theo `src/scenes/theme.ts`.
+trong `sources/prompts.json`; đường bàn vẽ bằng code trong `godot/main.gd`.
 Quân cờ là model đĩa đá trắng ngà dựng bằng Blender, thân dày và mép thẳng không bo tròn.
 Bán kính giảm nhẹ để các quân đứng cạnh nhau thoáng hơn. Chữ Hán và vòng viền được khoét
 lõm vào mặt quân; màu Đỏ/Đen nằm ở đáy rãnh, còn thành rãnh giữ màu ngà.
 Màu trắng ngà nằm ngay trong vật liệu, giữ nguyên khi di chuyển, vỡ quân, chiếu tướng và trên
 bảng kết quả. Cặp atlas `pieces.webp`/`pieces.normal.webp` cùng `pieces.json` chứa 14 quân
-Đỏ/Đen; normal map raw, lossless và đục dùng đèn mềm từ trên trái cùng đèn đi theo con trỏ
-như Cờ Vua. Tất cả bóng tiếp xúc nằm ở layer riêng dưới toàn bộ quân, kể cả khi nhấc quân
-hoặc ăn quân. Chữ trên sông kết xuất bằng Blender. Nút xin hoà dùng mặt giấy ngà, nút đầu
-hàng dùng sơn đỏ sẫm; cả hai có khung gỗ óc chó, viền đồng và hoa văn góc riêng. Chữ trên
-nút vẫn do giao diện vẽ để đổi theo trạng thái xin hoà, xác nhận hoặc kết thúc ván.
+Đỏ/Đen; normal map raw, lossless và đục được giữ cùng atlas. Chữ trên sông kết xuất bằng
+Blender. `assets/` còn có hai nút kết xuất sẵn (xin hoà mặt giấy ngà, đầu hàng sơn đỏ sẫm, khung
+gỗ óc chó); bàn Godot dùng nút chung của bộ giao diện.
 
 Tái tạo quân, bóng và nút bằng `npm run blender -- xiangqi`; chỉ bake atlas bằng
 `npm run blender -- xiangqi pieces`, hoặc hai nút bằng
@@ -60,19 +54,13 @@ mặc định ở `/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc`; có th�
 bằng `XOMDAO_XIANGQI_FONT`. Script nằm ở `sources/render_pieces.py` và `sources/render_buttons.py`, PNG trung gian ở
 `.blender/xiangqi/`; xem [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map).
 Tiếng di chuyển, vỡ quân và nhạc thắng tổng hợp bằng code.
-Thông báo chiếu tướng/chiếu bí theo lối tranh thủy mặc: cuộn giấy mở ra giữa hai trục gỗ, vệt
-mực nhạt quét ngang, quân đang chiếu hiện bên trái, rồi hai chữ ("CHIẾU", "TƯỚNG!" hoặc "BÍ!")
-lần lượt nện xuống bằng nét bút lông, mỗi cú làm cuộn giấy rung và văng mực; triện đỏ chữ 將 đóng
-cùng chữ thứ hai, sau đó cuộn giấy cuộn lại. Hình vẽ bằng code (`src/scenes/cutin.ts`); chữ dùng
-phông Comforter Brush (Google Fonts, có đủ dấu tiếng Việt), tải khi mở bàn; chưa tải xong hoặc
-không có mạng thì dùng phông có chân của máy.
-Âm thanh dùng trực tiếp từ `assets/`.
+Thông báo chiếu tướng/chiếu bí: một cuộn giấy có quân đang chiếu mở ra trên bàn rồi cuộn lại,
+vẽ bằng code (`_cut_in` trong `godot/main.gd`).
+Âm thanh chép từ `assets/` vào `godot/sounds/`.
 
 ## Bố cục bàn chơi
 
-Bàn tận dụng chiều cao giữa các nút ở góc màn hình khi đủ chỗ; thanh HUD nhiều dòng và sandbox
-giữ bàn bên dưới. Lưới mở rộng sát viền để quân lớn hơn trên điện thoại xoay ngang.
-Bên trái là hai người chơi, dấu chủ phòng, vòng đánh dấu bên tới lượt, thời gian và số nước.
-Bố cục người chơi chuyển sang hàng ngang khi thiếu chiều cao hoặc tăng cỡ HUD.
-Bên phải là trạng thái và các nút có vùng chạm lớn. Cảnh nền riêng phủ cả phần ngoài khung và
-vùng tai thỏ, giữ tỉ lệ khi đổi kích thước; màn tạo phòng vẫn dùng nền chung của ứng dụng.
+Bố cục **Bàn** ([experience.md](../../docs/experience.md)): bàn gỗ óc chó ở giữa, cao gần trọn
+khung, trước cảnh đình. Cột bên trái có hai người chơi (mình ở dưới, đối thủ dưới nút ☰ của hub)
+và số nước giữa họ; cột bên phải có trạng thái và các nút Xin hoà, Đầu hàng, Hiệu ứng. Bên Đen
+thấy bàn xoay ngược.

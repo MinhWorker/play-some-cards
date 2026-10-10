@@ -4,7 +4,7 @@
 //   node scripts/libs.mjs --watch     same, then rebuild on change (npm run dev)
 //   node scripts/libs.mjs --generate  only write the game list (npm install runs this)
 // The game list is packages/shared/src/generated/games.ts (gitignored): one static import per
-// game, so tsc, Vite and Nest all see it. Adding a game folder is enough; nothing to register.
+// game, so tsc, vitest and Nest all see it. Adding a game folder is enough; nothing to register.
 import { spawnSync } from 'node:child_process';
 import {
   existsSync,
@@ -71,7 +71,7 @@ function findGames() {
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(id)) problems.push(`games/${id}: use a kebab-case name`);
     if (pkg.name !== `@xomdao/game-${id}`)
       problems.push(`games/${id}/package.json: "name" must be "@xomdao/game-${id}"`);
-    for (const file of ['src/index.ts', 'src/client.ts', 'tsconfig.build.json']) {
+    for (const file of ['src/index.ts', 'tsconfig.build.json']) {
       if (!existsSync(join(folder, file))) problems.push(`games/${id}: missing ${file}`);
     }
     if (!existsSync(join(root, 'node_modules/@xomdao', `game-${id}`)))

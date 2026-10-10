@@ -45,10 +45,7 @@ function setup(dev: boolean) {
     emit: vi.fn(),
     leave: vi.fn(),
   } as unknown as Parameters<RoomsGateway['devLogs']>[0];
-  gateway.server = {
-    sockets: { sockets: new Map([['a', socket]]) },
-    to: () => ({ emit: vi.fn() }),
-  } as unknown as RoomsGateway['server'];
+  gateway.attach(socket);
   return { room, rooms, gateway, socket };
 }
 describe('dev gateway', () => {

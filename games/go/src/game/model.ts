@@ -72,7 +72,7 @@ export type View = Omit<State, 'history'> & {
 };
 
 /**
- * Room options, all on one setup form (scenes/Setup.ts). `optionsSchema.parse({})` gives the
+ * Room options, all on one setup form (godot/main.gd, room_setup). `optionsSchema.parse({})` gives the
  * defaults: two friends on a 9 × 9 board, the room's creator plays Black.
  */
 export const optionsSchema = z.object({

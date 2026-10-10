@@ -4,7 +4,7 @@ extends RefCounted
 ## Trimmed frames get their margin back, so every frame of a sheet has the same size.
 
 const ART := "res://content/bom-nguyen-to/art/"
-## Clip speeds (src/scenes/animations.ts): frames per second and whether it loops.
+## Clip speeds: frames per second and whether it loops.
 const ACTOR_CLIPS: Dictionary = {
 	"idle": [4.0, true],
 	"walk": [8.0, true],

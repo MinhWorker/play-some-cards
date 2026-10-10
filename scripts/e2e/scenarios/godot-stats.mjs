@@ -1,10 +1,9 @@
 // Stats, achievements and rankings in the Godot client (#126): Lan plays Caro against the
 // computer in the sandbox (?play=tic-tac-toe); the game unlocks "Ván đầu tiên" (a notice, and its
 // coins). Her Nhà shows the level, the achievement reached and her place on Cả xóm; Đình ranks
-// her. Needs the debug web build at /godot/ (npm run godot:export -- --debug) and a dev server.
+// her. Needs the debug web build (npm run godot:export -- --debug) and a dev server.
 
-import { caroPlayToEnd, godotText, launch, onScene, openGodot, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { caroPlayToEnd, DESKTOP, godotText, launch, onScene, openGodot, tap } from '../godot.mjs';
 
 export const games = ['tic-tac-toe'];
 export { launch };

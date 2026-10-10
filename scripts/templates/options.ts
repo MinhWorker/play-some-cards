@@ -1,7 +1,7 @@
 /**
- * The room's options, picked on the setup screen. The server checks them with this schema and
- * keeps them for the room's life: `ctx.options` in the game and its screens. Give every field a
- * default: `optionsSchema.parse({})` is what a room gets without the screen.
+ * The room's options, picked on Tạo phòng (room_setup() in godot/main.gd). The server checks them
+ * with this schema and keeps them for the room's life: `ctx.options` in the game. Give every field
+ * a default: `optionsSchema.parse({})` is what a room gets without the screen.
  */
 import { z } from 'zod';
 

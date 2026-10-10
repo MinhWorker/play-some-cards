@@ -1,6 +1,6 @@
 /**
  * @xomdao/sdk: what a game's logic (a `Game`) may use. Pure and safe for the server.
- * Its screens (Phaser, browser only) use `@xomdao/sdk/client`.
+ * Its screens are GDScript, in the game's godot/ folder.
  */
 
 export * from './console/completion.js';

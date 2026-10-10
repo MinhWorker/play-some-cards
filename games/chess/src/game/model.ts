@@ -87,7 +87,7 @@ export interface State extends Position {
 export type View = Omit<State, 'history'> & { moves: Move[] };
 
 /**
- * Room options, all on one setup form (scenes/Setup.ts). `optionsSchema.parse({})` gives the
+ * Room options, all on one setup form (godot/main.gd, room_setup). `optionsSchema.parse({})` gives the
  * defaults: two friends, the room's creator plays White.
  */
 export const optionsSchema = z.object({

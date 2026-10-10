@@ -1,8 +1,8 @@
 # Client Godot
 
-Client mới của Xóm Đảo: một dự án Godot 4 duy nhất, viết bằng GDScript có kiểu, xuất bản web
-([ADR 0001](../../docs/adr/0001-godot-client.md)). Luật chơi vẫn chạy trên server; client chỉ hiển
-thị và gửi nước đi. Client Phaser cũ (`apps/web`) chạy tiếp tới khi không còn dùng.
+Client của Xóm Đảo: một dự án Godot 4 duy nhất, viết bằng GDScript có kiểu, xuất bản web
+([ADR 0001](../../docs/adr/0001-godot-client.md)). Bản web này chính là trang chơi, ở `/`. Luật
+chơi vẫn chạy trên server; client chỉ hiển thị và gửi nước đi.
 
 ## Cài đặt
 
@@ -22,7 +22,7 @@ Godot bản khác sẽ ghi lại `project.godot` và các scene.
 | --- | --- |
 | `project.godot` | Khung gốc 960 × 720, `canvas_items` + `expand`, màn hình ngang ([ui-guide.md](../../docs/ui-guide.md)) |
 | `core/` | Autoload `Net` (kết nối), `Session` (token đăng nhập; đăng ký, đăng nhập, đăng xuất qua `/api/auth`), `Wallet`, `ContentLoader` (tải gói trò), `TestBridge` (cầu nối test, chỉ bản debug) |
-| `hub/` | Sảnh và màn của từng khối nền tảng; `hub/main.tscn` là màn đầu tiên, hiện là màn tạm của Caro |
+| `hub/` | Sảnh và màn của từng khối nền tảng; `hub/main.tscn` là màn đầu tiên |
 | `addons/xomdao_sdk/` | API duy nhất phần Godot của trò được dùng: `XomDaoFrame`, `XomDaoClient` (kết nối server) |
 | `addons/xomdao_sdk/ui/` | Bộ thành phần giao diện chung: theme, nút, bảng, hàng tiền, ô người chơi, thẻ trò, ô lựa chọn, thông báo nhanh, menu ☰, lá bài và chiếu cho trò bài, font, icon, âm thanh |
 | `hub/gallery/` | Màn gallery liệt kê mọi thành phần: mở bằng `?gallery=<trang>` (trang 1 tới 4) |
@@ -47,8 +47,8 @@ Xem mọi thành phần ở màn gallery: `?gallery=1` tới `?gallery=4` trên 
 
 ## Kết nối server
 
-`XomDaoClient` nói chuyện với server qua WebSocket thuần + JSON ở `/ws` (cùng cổng với
-Socket.IO): đăng nhập khách hoặc tài khoản, tạo phòng, vào phòng bằng mã, gửi nước đi, nhận
+`XomDaoClient` nói chuyện với server qua WebSocket thuần + JSON ở `/ws` (cùng cổng với API
+HTTP): đăng nhập khách hoặc tài khoản, tạo phòng, vào phòng bằng mã, gửi nước đi, nhận
 `state_changed`. Mất kết nối thì tự nối lại và quay về phòng. Đầu file `client.gd` ghi cách dùng.
 
 Protocol chỉ viết một lần, bằng schema zod trong `packages/shared/src/protocol.ts`. Sửa schema
@@ -72,7 +72,8 @@ phải để mở màn chọn trò. HUD: hồ sơ trên trái, số xu và ⚙ t
 - **Nhà**: thẻ hồ sơ (ảnh đại diện với khung đang dùng, cấp và thanh kinh nghiệm, số ván và số ván
   thắng, lưng bài) và kệ có tab Túi đồ, Thành tích, Xếp hạng. Túi đồ có món đã mua trước, rồi món
   ai cũng có; "Dùng" để đeo. Thành tích đã đạt đứng trước; Xếp hạng có một ô "Hạng N" cho mỗi
-  bảng. Chạm một người trong phòng chờ là xem Nhà của họ, chỉ đọc.
+  bảng. Chạm một người trong phòng chờ là xem Nhà của họ, chỉ đọc. Nút **Tài khoản** ở Nhà của
+  mình để đăng nhập, tạo tài khoản hoặc đăng xuất ([experience.md](../../docs/experience.md)).
 - **Đình**: bảng xếp hạng với tab Cả xóm (theo kinh nghiệm) và từng trò (theo số ván thắng); hàng
   của bạn tô màu, nằm dưới danh sách nếu bạn ngoài top. Hết ván, thành tích vừa đạt hiện thành
   thông báo "Thành tích: …".
@@ -99,8 +100,9 @@ Link:
 
 ## Chạy trên trình duyệt
 
-`npm run dev` phục vụ bản xuất ở `http://localhost:5033/godot/` và chuyển `/ws` tới server, nên
-sau `npm run godot:export -- --debug` chỉ cần mở trang đó. Xuất lại là thấy bản mới.
+`npm run dev` phục vụ bản xuất ở `http://localhost:5033/` (`scripts/web.mjs`) và chuyển `/api`
+và `/ws` tới server, nên sau `npm run godot:export -- --debug` chỉ cần mở trang đó. Xuất lại là
+thấy bản mới.
 
 Bản debug có cầu nối test `window.xomdao` cho e2e và `npm run shots`: `scene()`, `tree()`,
 `text(tên)`, `rect(tên)`, `click(tên)`, `state()` (xem đầu `core/test_bridge.gd`). Node nào test
@@ -110,19 +112,20 @@ cần bấm hay đọc đều có tên, ví dụ ô Caro là `Cell_<x>_<y>`.
 - `npm run e2e -- --only godot-caro`: hai người chơi Caro qua mã phòng ở Bến, thêm một ván sandbox.
 - `npm run e2e -- --only godot-tien-len`: ba vòng Tiến Lên với ba máy trong sandbox, chọn bài bằng
   chuột thật, tới bảng kết quả.
-- `npm run shots -- --path '/godot/?play=tic-tac-toe'`: ảnh chụp trên các cỡ điện thoại.
+- `npm run shots -- --path '/?play=tic-tac-toe'`: ảnh chụp trên các cỡ điện thoại.
 
 ## Xuất bản
 
 `npm run godot:export` tạo bản web đơn luồng có PWA trong `apps/client/dist/`, và mỗi trò một gói
 `dist/content/<id>.<mã băm>.pck` kèm `manifest.json`. `npm run godot:smoke` mở bản đó trong
-Chromium không giao diện và chụp `.shots/godot-800x360.png`. `XOMDAO_SERVER_URL` (hoặc
-`VITE_SERVER_URL`) lúc xuất ghi địa chỉ server vào trang; không có thì client dùng chính địa chỉ
+Chromium không giao diện và chụp `.shots/godot-800x360.png`. `XOMDAO_SERVER_URL` (tên cũ
+`VITE_SERVER_URL` vẫn được đọc) lúc xuất ghi địa chỉ server vào trang; không có thì client dùng chính địa chỉ
 của trang.
 
 `npm run godot:measure` đo dung lượng tải và thời gian tới lúc chơi được trên một cấu hình điện
 thoại giả lập (mạng 4G, CPU chậm 4 lần), lần đầu và lần sau. Kết quả ghi trong
 [ADR 0001](../../docs/adr/0001-godot-client.md).
 
-Vercel dựng client cùng ứng dụng web (`tools/godot/vercel.mjs`) và phục vụ nó ở `/godot/`: bản
-thật dùng bản release, bản xem trước của PR dùng bản debug (có cầu nối test và sandbox).
+Vercel dựng client (`tools/godot/vercel.mjs`) và phục vụ nó ở `/`: bản thật dùng bản release,
+bản xem trước của PR dùng bản debug (có cầu nối test và sandbox). Link cũ `/godot/…` chuyển về
+`/…`.

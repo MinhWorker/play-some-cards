@@ -1,4 +1,4 @@
-// Builds the avatar pictures and frames in apps/web/public/shared/images/. The two are separate:
+// Builds the avatar pictures and frames in assets/app/images/. The two are separate:
 // the app stacks a frame (frame-<id>) over a round, frameless avatar (avatar-<id>).
 //   node scripts/avatars.mjs frames              frame-<id> recolored from frame-gold
 //   node scripts/avatars.mjs emoji <assets dir>  avatar-<id> from Microsoft Fluent Emoji 3D (MIT):
@@ -48,7 +48,7 @@ const FRAMES = {
 /** Every picture is SIZE square; an avatar is a disc of radius DISC, the frame's ring covers its edge. */
 const SIZE = 256;
 const DISC = 100;
-const images = resolve(fileURLToPath(import.meta.url), '../../apps/web/public/shared/images');
+const images = resolve(fileURLToPath(import.meta.url), '../../assets/app/images');
 const webp = { quality: 88, alphaQuality: 100 };
 
 const [mode, source] = process.argv.slice(2);

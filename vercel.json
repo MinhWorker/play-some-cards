@@ -1,14 +1,55 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build -w @xomdao/shared && node tools/godot/vercel.mjs && npm run build -w @xomdao/web",
-  "outputDirectory": "apps/web/dist",
+  "buildCommand": "node tools/godot/vercel.mjs",
+  "outputDirectory": "apps/client/dist",
   "framework": null,
-  "redirects": [{ "source": "/godot", "destination": "/godot/" }],
+  "redirects": [
+    {
+      "source": "/godot",
+      "destination": "/"
+    },
+    {
+      "source": "/godot/:path*",
+      "destination": "/:path*"
+    }
+  ],
   "headers": [
     {
-      "source": "/godot/content/(.*)\\.pck",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "source": "/content/(.*)\\.pck",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/content/manifest.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
     }
   ]
 }

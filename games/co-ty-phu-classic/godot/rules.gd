@@ -1,8 +1,8 @@
 extends RefCounted
 ## Cờ tỷ phú Classic's board and the sums the table shows, copied from the TypeScript rules:
 ## the squares from `BOARD` in src/game/model.ts, rent and mortgage sums from src/game/rules.ts,
-## who decides from src/game/turnClock.ts. Square corners come from
-## src/scenes/board/boardGeometry.ts (rendered with sources/render_board_25d.py).
+## who decides from src/game/turnClock.ts. Square corners and the panel come from the geometry
+## sources/render_board_25d.py writes with board-25d.webp.
 
 const STARTING_CASH := 1000
 const STATION_STEP := 50
@@ -478,7 +478,7 @@ const IMAGE_RATIO := 1.2727272727272727
 const HOMOGRAPHY: Array[float] = [
 	0.765042, -0.09543849, 0.117479, 0, 0.73190475, 0.020574, 0, -0.19087698, 1
 ]
-## The printed players' panel in board units (PLAYER_PANEL in boardGeometry.ts).
+## The printed players' panel in board units (PLAYER_PANEL in the board geometry).
 const PANEL_AVATAR := Vector3(0.262, 0.296, 0.058)
 const PANEL_NAME := Vector2(0.34, 0.243)
 const PANEL_CASH := Vector2(0.34, 0.292)

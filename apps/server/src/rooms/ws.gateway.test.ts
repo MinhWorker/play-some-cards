@@ -1,4 +1,4 @@
-/** The Godot transport against the real app: plain WebSocket + JSON next to Socket.IO. */
+/** The client transport against the real app: plain WebSocket + JSON on /ws. */
 import 'reflect-metadata';
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';

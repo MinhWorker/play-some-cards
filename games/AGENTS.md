@@ -5,43 +5,42 @@ Where to look:
 - **Every hook**: `docs/making-a-game.md` ("Các hook").
 - **Examples**:
   - `scripts/templates/` holds the starters `new:game` / `new:event` fill in: `game/` (rules,
-    bot, Phaser view), `event/` (over `game/`), `godot/<layout>/main.gd` (Bàn, Hành động, event),
+    bot), `event/` (over `game/`), `godot/<layout>/main.gd` (Bàn, Hành động, event),
     `godot/test/`, `e2e/`.
-  - `games/tic-tac-toe` (Caro) adds room options, a computer player and a setup screen.
+  - `games/tic-tac-toe` (Caro) adds room options (Tạo phòng rows) and a computer player.
   - `games/tien-len` is the fullest Godot table (cards, effects, sounds, art).
-- **Skills** in `.claude/skills/`: `new-content` (a game or event from a brief),
-  `port-phaser-game`, `make-asset`, `phone-check`.
-- **The source of truth for the API** is the headers of `packages/sdk/src/engine.ts` and
-  `packages/sdk/src/client/GameView.ts`.
+- **Skills** in `.claude/skills/`: `new-content` (a game or event from a brief), `make-asset`,
+  `phone-check`.
+- **The source of truth for the API** is the header of `packages/sdk/src/engine.ts` (rules) and,
+  for a game's Godot table, `apps/client/AGENTS.md` and the header of
+  `apps/client/addons/xomdao_sdk/client.gd`.
 
 ## A game's folder
 
 ```
-games/<id>/          Only index.ts + client.ts are required
-  RULES.md             Current Vietnamese gameplay rules (non-starter games)
+games/<id>/          src/index.ts is required; without godot/main.tscn the card shows "Sắp có"
+  RULES.md             Current Vietnamese gameplay rules (non-starter games); the client's Luật board
   README.md            Component map, development commands and asset credits
   src/index.ts         export default definePlugin({ meta, game: new MyGame(), room? }); server
-  src/client.ts        export default defineClient({ scene, setup?, background?, leaveConfirm?, showsResult?, showsPlayers?, hud? }); browser, lazy
-  src/game/            Pure logic, no Phaser or DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
-  src/scenes/          Phaser: <Name>View.ts (a GameView), <Name>Setup.ts (a RoomSetupScene for "Tạo phòng")
-  assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'));
-                       same-name .json = atlas; <name>.normal.webp = raw normals for image/atlas <name>
+  src/game/            Pure rules, no DOM: <Name>Game.ts (+ test), model.ts, options.ts, bot.ts
+  godot/               The Godot table: main.tscn + main.gd, test/test_*.gd (GUT), art/, sounds/,
+                       music/ (rules in apps/client/AGENTS.md)
+  assets/              Full-size images/sounds, atlases and normals; godot/ copies what it uses
   sources/             Optional originals (Git LFS) + prompts.json (see assets/AGENTS.md)
-  godot/               The Godot table: main.tscn + main.gd, test/test_*.gd (GUT), art/, sounds/
-                       (rules in apps/client/AGENTS.md)
 ```
 
 | Command | What it does |
 | --- | --- |
 | `npm run new:game -- <id> "Tên" --genre <g> [--layout ban\|hanh-dong]` | A working game (status `wip`): rules + bot + tests, a Godot table in that layout + GUT test, RULES.md, README, stand-in card, `scripts/e2e/scenarios/godot-<id>.mjs`. Then `npm run godot:check` writes the `.uid` files to commit |
 | `npm run new:event -- <id> "Tên" [--opens YYYY-MM-DD] [--closes YYYY-MM-DD]` | The same for an event (`su-kien`, Hành động layout, dates default to today + 4 weeks, reward tiers) |
-| `npm run new -- logic\|view\|setup <id> [Name]` | Write a `Game` (+ test), a `GameView` or a setup screen from `scripts/templates/` (leave out `<id>` inside `games/<id>/`) |
-| `/?play=<id>&players=2` | Sandbox: the game's rules + board alone in the browser, in dev and PR previews |
+| `npm run new -- logic <id> [Name]` | Write a `Game` (+ test) from `scripts/templates/` (leave out `<id>` inside `games/<id>/`) |
+| `npm run new -- options <id>` | Write `src/game/options.ts` (the room's options); its Tạo phòng rows come from `room_setup()` in `godot/main.gd` |
+| `/?play=<id>` | Sandbox (debug builds: dev and PR previews): a real room with the computer in the other seats (`sandbox_options()`) |
 
 ## Rules
 
-- **The server is authoritative.** A `GameView` calls `send(event, payload)`, which goes out as
-  `game:move`. The server then:
+- **The server is authoritative.** A game's Godot table calls `client.send(event, payload)`,
+  which goes out as `game:move`. The server then:
   1. checks the payload against `events`;
   2. runs `on<Event>`;
   3. sends each member a `room:state` built by `view(ctx, viewer)`.
@@ -59,32 +58,30 @@ games/<id>/          Only index.ts + client.ts are required
   commands or catalogs.
 - Synchronous `console.log/info/warn/error` in hooks reaches the room log with `XOMDAO_DEV=1`
   and still prints in the terminal. SDK declares these methods for pure game builds.
-- A game imports only these; Biome enforces it, and core never imports a game:
-  - `@xomdao/sdk` and `@xomdao/sdk/client`;
-  - `phaser` and `zod`;
+- A game's TypeScript imports only these; Biome enforces it, and core never imports a game:
+  - `@xomdao/sdk` and `zod` (and `vitest` in tests);
   - its own files.
-- Cờ tỷ phú Classic groups scene helpers under `src/scenes/board/`, `effects/`, `hud/` and
-  `presentation/`; see `co-ty-phu-classic/AGENTS.md`. Its depth-specific Biome override still
-  prevents imports outside the game's `src/`.
+- A game's Godot code reaches only its own folder and `res://addons/xomdao_sdk/`
+  (`godot:check` enforces it; see `apps/client/AGENTS.md`).
 - Every `Game` has tests with `testGame` (`src/game/<Name>Game.test.ts`).
 - A game's browser test in the Godot client is `scripts/e2e/scenarios/godot-<id>.mjs` with
   `export const games = ['<id>']` (the generator writes one). CI's `godot` job runs every
   `godot-*` scenario. A scenario that moves the event clock (`dev:clock`) exports
-  `lock = 'clock'` so such scenarios run one at a time. Phaser scenarios
-  (`scripts/e2e/scenarios/<id>.mjs`) are paused in CI; see "E2E trong CI" in `docs/deploy.md`.
+  `lock = 'clock'` so such scenarios run one at a time.
 - When a mechanic or piece of data would help other games too, add it to the SDK instead of the
   game. Examples: a system event, a `ctx` property, a view helper, a test helper.
 - Changing an SDK API means, in the same change:
   - updating every game that uses it;
-  - documenting it in the engine.ts / GameView.ts headers and `docs/making-a-game.md`.
+  - documenting it in the engine.ts header and `docs/making-a-game.md`.
 - `meta` is also the game's hub card: `genre` (an id from `genres` in
   `packages/shared/src/catalog.ts`; none = not in the hub yet), `tagline`, `duration` in minutes,
   optional `kind` (`table`/`event` + `event`), `card` art and `rewardCap`. The registry test
   checks it with `metaProblems`.
-- `meta.status: 'wip'` is locked only on the production site (`VERCEL_ENV`), so unfinished games
-  can be merged. `'ready'` releases the game.
-- The server runs the games' compiled `dist/`, while the web app and typechecks use their
-  TypeScript source (export condition `xomdao-source`). Root scripts build them first
+- `meta.status: 'wip'` keeps a game out of the catalog on the production server (`RENDER`, which
+  PR previews use too; `XOMDAO_SHOW_WIP` overrides), so unfinished games can be merged. `'ready'`
+  releases the game.
+- The server runs the games' compiled `dist/`, while typechecks and tests use their TypeScript
+  source (export condition `xomdao-source`). Root scripts build them first
   (`scripts/libs.mjs`).
 
 ## Mechanics worth knowing
@@ -105,45 +102,23 @@ games/<id>/          Only index.ts + client.ts are required
   or reuse a shipped achievement id. `testGame` shows counts in `result.stats`. See "Thống kê và
   thành tích" in `docs/making-a-game.md`.
 - **Timers**: `ctx.setTimer(ms, 'name')` calls `onName(ctx)`. There is one timer per game, and
-  the gateway runs it. Use it for a turn clock or a pause between rounds. The view shows
-  countdowns with `ctx.timer`.
+  the gateway runs it. Use it for a turn clock or a pause between rounds. The table shows
+  countdowns from the snapshot's `timer`.
 - **Room options and bots**:
   - `room.options` is a zod schema, and `optionsSchema.parse({})` must work.
-  - A game reads the options as `ctx.options` in both the `Game` and the `GameView`.
+  - The `Game` reads them as `ctx.options`; the table gets them in the snapshot's `options`.
+  - The Tạo phòng board's rows come from `room_setup()` in the game's `godot/main.gd`.
   - `room.bots` seats computer players, whose moves come from `bot(ctx)`.
   - `room.withBots(options, count)` gives the options with the computer in `count` empty seats:
     quick match (CHƠI) fills a room with it when nobody else comes (`QUICK_WAIT_MS`).
-  - The host changes options between games through "Tuỳ chỉnh" or `changeOptions`.
+  - The host may replace them between games with `room:options` (the hub has no board for it
+    yet).
 - **Snapshots** carry `round` and `last` (the last event). `ctx.lastResult` is how the room's
   previous game ended.
-- **Boards**: follow `docs/ui-guide.md` (landscape frame, table filling the height, sizes), and
-  build them from `GameScene` helpers:
-  - `label`, `button`, `sprite` and `avatar(player)`;
-  - `hudScale()`, `fitText` and `boardArea()`.
-  - `rasterizeGraphics(scene, graphics, key, bounds, image?)` from the client SDK caches static
-    Graphics as an image with scene-owned textures. Include outlines/shadows in local bounds;
-    refresh only when the drawing changes, never on every frame.
-- **Room HUD**: optional `defineClient({ hud: { nav, settings, result } })` lets the board draw the
-  room bar, settings button and result buttons in its own art. The board reads `ctx.room` and
-  calls `leaveRoom`, `openSettings`, `newGame`, `customize`, `takeSeat` (GameView header). The app
-  hides its versions while the board shows; errors and the leave question stay the app's.
-- **Backgrounds**: optional `defineClient({ background: false | MyBackground })` hides/replaces
-  the app sky for boards/sandboxes. `GameBackgroundScene` has scene lifetime, no room state/input,
-  and `onCreate`, `onLayout`, `onUpdate(dt)` hooks; `this.tiled(name)` covers the bleed with a
-  seamless tile at one texel per canvas pixel. Setups retain the app sky.
-- **Presentation**: `this.runtime.run` owns scoped async flows; `fx.tween`, `wait`, `sound`,
-  `animate`, `frame` and `parallel` use its clock and cancellation. Use `fx.defer` for temporary
-  objects and `fx.checkpoint` before direct side effects after await. Reset display fields in
-  `onCreate`; rebuild silently in `onResync`. Games with multiple visual rounds per match call
-  `runtime.newRound('game-round')` before replacing cards. Never mix managed and raw Phaser
-  tweens on a target. See the presentation/runtime sections of `docs/making-a-game.md`.
-- **Coordinates are design units** on a landscape frame 720 tall and 960–1600 wide
-  (`this.view`, `ctx.screen`), never screen pixels: the camera scales the frame to the screen at
-  its pixel density. `this.bleed` is how far the screen reaches beyond it (backgrounds only).
-  Read taps with `pointer.worldX/worldY`; `pointer.x/y` are canvas pixels.
-
-  Setup screens have the same helpers. Anything game-like (pieces, cards, animation, drag and
-  drop) is drawn in Phaser.
+- **Tables**: the hub draws the ☰ menu, the room, the result and Luật; the game's Godot table
+  draws only its board, from `client.snapshot`. Follow `docs/experience.md` (layouts, HUD) and
+  `docs/ui-guide.md` (landscape frame, sizes), and build every button and panel from the UI kit in
+  `apps/client/addons/xomdao_sdk/ui/` (`apps/client/AGENTS.md`).
 - **`testGame`** takes a plugin or a `Game`. It offers:
   - `send`, `error`, `view` and `assertHidden`;
   - `command(line)` for optional game dev commands, catalog references and semicolon chains;

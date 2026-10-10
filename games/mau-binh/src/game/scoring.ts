@@ -1,7 +1,7 @@
 /**
  * Scoring a round: tới trắng (special 13-card hands), binh lủng, and chi against chi. Every pair
  * of players settles on its own ("duel"); a player's round is the sum of their duels.
- * The numbers here are the rules panel's too (scenes/RulesPanel.ts shows them).
+ * The numbers here are in RULES.md too.
  */
 import {
   ACE,

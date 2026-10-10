@@ -1,7 +1,7 @@
 """Bake parchment and red-lacquer xiangqi buttons with walnut frames for nine-slice UI.
 
 Run: npm run blender -- xiangqi button-draw button-resign.
-Text stays in Phaser so offer/accept draw and surrender confirmation share the same assets.
+Text is drawn by the client so offer/accept draw and surrender confirmation share the same assets.
 """
 from pathlib import Path
 import sys
