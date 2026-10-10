@@ -53,6 +53,8 @@ mắt mình và ước lượng vùng chắc bằng các ván ngẫu nhiên. Ch�
 | Hộp, nắp và các chồng quân theo số lượng | `src/scenes/StoneBowl.ts` |
 | Nền vải xanh trầm | `src/scenes/GoBackground.ts` |
 | Form tạo phòng | `src/scenes/Setup.ts` |
+| Màn hình Godot: bàn, quân, kính lúp, đếm điểm, hộp và nắp, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
+| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
 `src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
 `assets/` chứa hình và âm thanh dùng trực tiếp; `sources/` chứa script và prompt tạo tài nguyên.
@@ -64,6 +66,15 @@ Chạy `npm run dev` ở gốc repo rồi mở http://localhost:5033/?play=go&pl
 Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
 `npm run shots -- --path '/?play=go&players=2' --audit`.
 Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
+
+Bản Godot (`godot/`) có cùng bàn kaya, đường kẻ và chín sao, quân có bóng, vòng đỏ ở nước vừa đi,
+ô vuông ở điểm cướp, quân mờ theo chuột và kính lúp 3 × 3 khi nhấn giữ. Khi đếm điểm, quân chết mờ
+đi và mỗi điểm thuộc về một bên có ô vuông nhỏ màu bên đó; chạm một nhóm quân để đánh dấu chết
+hoặc sống. Hai hộp đầy quân còn lại, quân bị bắt bay vào nắp của bên bắt. Đầu hàng hỏi lại trong
+hộp xác nhận. Chưa có đèn normal map. Điểm được đi lấy từ `moves` trong view của server (chỉ có
+khi tới lượt mình), số đếm lấy từ `count`, nên luật chỉ nằm ở TypeScript. Chơi thử bằng
+`npm run godot:export -- --debug` rồi mở http://localhost:5033/godot/?play=go; test GUT ở
+`godot/test/`, kịch bản trình duyệt ở `scripts/e2e/scenarios/godot-go.mjs`.
 
 ## Hình và âm thanh
 

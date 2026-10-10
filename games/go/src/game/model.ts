@@ -61,8 +61,15 @@ export interface State {
   end: { reason: EndReason; winner: Side; score: Score | null } | null;
 }
 
-/** What screens get: the state without the position history. */
-export type View = Omit<State, 'history'>;
+/**
+ * What screens get: the state without the position history, plus what a screen would otherwise
+ * need the rules for: the points the player who sees it may play on their turn (empty
+ * otherwise), and while counting (or after a count) the count with each point's owner.
+ */
+export type View = Omit<State, 'history'> & {
+  moves: number[];
+  count: (Score & { owner: string }) | null;
+};
 
 /**
  * Room options, all on one setup form (scenes/Setup.ts). `optionsSchema.parse({})` gives the
