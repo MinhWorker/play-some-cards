@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dlnpfkqvrk2gf"
-path="res://.godot/imported/mat.webp-fa7cf5e7abd4b6487e8400e399295f57.ctex"
+uid="uid://dfe5f3gtgmbgv"
+path="res://.godot/imported/mat.webp-ac65599c5c4607bd70098e3f5784a1e0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/tien-len/art/mat.webp"
-dest_files=["res://.godot/imported/mat.webp-fa7cf5e7abd4b6487e8400e399295f57.ctex"]
+source_file="res://addons/xomdao_sdk/ui/cards/mat.webp"
+dest_files=["res://.godot/imported/mat.webp-ac65599c5c4607bd70098e3f5784a1e0.ctex"]
 
 [params]
 

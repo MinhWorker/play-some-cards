@@ -18,7 +18,7 @@ Tiến Lên miền Nam cho 2–4 người, chơi nhiều vòng và tính điểm
 | Lá bài và kiểu mặt bài | `src/scenes/Card.ts`, `deck.ts` |
 | Kết quả và thông báo | `src/scenes/Standings.ts`, `Callout.ts` |
 | Tạo phòng | `src/scenes/Setup.ts` |
-| Bàn trong client Godot | `godot/main.gd` (bàn, ghế, hiệu ứng), `hand.gd` (bài trên tay), `card.gd` (lá bài), `rules.gd` (bộ và chặn, chép từ `cards.ts`); test: `godot/test/` |
+| Bàn trong client Godot | `godot/main.gd` (bàn, ghế, hiệu ứng), `hand.gd` (bài trên tay), `card.gd` (lá bài, dựa trên `XomDaoCard` của SDK; chiếu là `XomDaoMat`), `rules.gd` (bộ và chặn, chép từ `cards.ts`); test: `godot/test/` |
 
 `src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
 `assets/` chứa hình và âm thanh dùng trực tiếp, `sources/` chứa nguồn và prompt.

@@ -41,6 +41,17 @@ Chia bài, lật bài và hiện điểm dùng runtime của SDK. Mỗi ván con
 trước. Khi kết nối lại hoặc đổi kích thước bàn, bài được dựng ngay từ trạng thái hiện tại;
 hiệu ứng đang chờ không lật lại bài đã thay đổi.
 
+## Bản Godot
+
+`godot/main.gd` dựng bàn trong client Godot: ghế cho 1–6 người, ba lá của bạn (kéo lên hoặc
+sang phải để nặn, chạm để mở), nút Cược 5/10/20 và Lật bài, ba nhịp Cược → Nặn bài → So bài,
+chia bài, lật bài và phỉnh bay khi tính điểm. Lá bài và chiếu là `XomDaoCard` và `XomDaoMat` của
+SDK, dùng chung với Tiến Lên. `godot/rules.gd` tính nút và Ba Tây (chép từ `cards.ts`); hình ở
+`godot/art/`, âm thanh ở `godot/sounds/` và `godot/music/`; test: `godot/test/`.
+
+Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=bai-cao`
+(ba máy, năm ván, trên server thật).
+
 ## Hình và âm thanh
 
 Ba mức cược hiện bằng phỉnh xanh (5), đỏ (10), vàng (20), luôn có số để phân biệt. Nhà cái có
