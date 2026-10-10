@@ -17,6 +17,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Xếp năm quân liền hàng trước đối thủ.',
+    duration: { min: 5, max: 15 },
   },
   game: new CaroGame(),
   room: {

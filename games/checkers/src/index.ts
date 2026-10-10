@@ -18,6 +18,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Nhảy qua bắt hết quân của đối thủ.',
+    duration: { min: 10, max: 25 },
   },
   game: new CheckersGame(),
   room: {

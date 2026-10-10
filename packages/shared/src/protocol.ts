@@ -3,6 +3,7 @@ import type { ConsoleIssue, DevConsoleSchema } from '@xomdao/sdk';
 export type { DevCommandInfo, DevConsoleSchema } from '@xomdao/sdk';
 
 import type { ProfileUpdate, User } from './account.js';
+import type { Catalog } from './catalog.js';
 import type { GameResult, PlayerId } from './game.js';
 import type { MatchRecord } from './history.js';
 
@@ -140,6 +141,11 @@ export interface ClientToServerEvents {
   'profile:update': (req: ProfileUpdate, ack: Ack<{ user: User }>) => void;
   /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
   'history:recent': (req: Record<string, never>, ack: Ack<{ matches: MatchRecord[] }>) => void;
+  /**
+   * The hub's catalog: genres and game cards with how many people play each and its open rooms.
+   * Works in progress are left out on servers that hide them (production).
+   */
+  'catalog:get': (req: Record<string, never>, ack: Ack<Catalog>) => void;
   /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
   'lobby:watch': (req: { gameId: string }, ack: Ack<{ rooms: RoomSummary[] }>) => void;
   'lobby:unwatch': (req: Record<string, never>, ack: Ack) => void;

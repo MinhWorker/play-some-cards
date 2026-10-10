@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { Game, gameRules, validateConsoleDefinitions } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { type Genre, gameCard, genreProblems, genres, metaProblems } from './catalog.js';
 import { games } from './registry.js';
 
 const gameDir = (id: string) => new URL(`../../../games/${id}/`, import.meta.url);
@@ -27,6 +28,18 @@ describe('game registry', () => {
         expect(game.maxPlayers).toBeGreaterThanOrEqual(game.minPlayers);
       });
 
+      it('declares a valid hub card', () => {
+        expect(metaProblems(game)).toEqual([]);
+      });
+
+      it('has its card art in assets/', () => {
+        const image = game.card ?? game.portal.image;
+        const found = ['webp', 'png'].some((ext) =>
+          existsSync(new URL(`assets/${image}.${ext}`, gameDir(game.id))),
+        );
+        expect(found).toBe(true);
+      });
+
       it('has its portal image in assets/', () => {
         const found = ['webp', 'png'].some((ext) =>
           existsSync(new URL(`assets/${game.portal.image}.${ext}`, gameDir(game.id))),
@@ -35,6 +48,95 @@ describe('game registry', () => {
       });
     });
   }
+});
+
+describe('genres and the hub catalog', () => {
+  it('has a valid genre list with Cờ and Bài as the main genres', () => {
+    expect(genreProblems(genres)).toEqual([]);
+    expect(genres.filter((g) => g.main).map((g) => g.id)).toEqual(['co', 'bai']);
+  });
+
+  it('puts every game in Cờ or Bài except Bom Nguyên Tố', () => {
+    for (const game of Object.values(games)) {
+      expect([game.id, gameCard(game)?.genre]).toEqual([
+        game.id,
+        game.id === 'bom-nguyen-to' ? undefined : expect.stringMatching(/^(co|bai)$/),
+      ]);
+    }
+  });
+
+  it('catches bad genres', () => {
+    const co: Genre = { id: 'co', name: 'Cờ', order: 1, island: 'co', main: true };
+    expect(genreProblems([co, { ...co, order: 2 }])).toEqual(['genre "co": duplicate id']);
+    expect(genreProblems([co, { ...co, id: 'Bai', order: 1 }])).toEqual([
+      'genre "Bai": id must be kebab-case',
+      'genres: two genres share an order',
+    ]);
+  });
+
+  const meta = {
+    id: 'demo',
+    name: 'Demo',
+    minPlayers: 2,
+    maxPlayers: 2,
+    status: 'ready' as const,
+    portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Một câu giới thiệu.',
+    duration: { min: 5, max: 10 },
+  };
+  const event = {
+    opensAt: '2026-09-20T00:00:00+07:00',
+    closesAt: '2026-10-05T00:00:00+07:00',
+    tiers: [
+      { points: 10, reward: { 'core:coin': 50 } },
+      { points: 30, reward: { 'core:coin': 200 } },
+    ],
+  };
+
+  it('accepts a valid table game and event', () => {
+    expect(metaProblems(meta)).toEqual([]);
+    expect(metaProblems({ ...meta, kind: 'event', event, rewardCap: { 'core:coin': 20 } })).toEqual(
+      [],
+    );
+  });
+
+  it('catches bad hub declarations', () => {
+    expect(metaProblems({ ...meta, genre: 'dua-xe' })).toEqual([
+      expect.stringContaining('unknown genre "dua-xe"'),
+    ]);
+    expect(metaProblems({ ...meta, tagline: ' ' })).toEqual([expect.stringContaining('tagline')]);
+    expect(metaProblems({ ...meta, duration: { min: 10, max: 5 } })).toEqual([
+      expect.stringContaining('duration'),
+    ]);
+    expect(metaProblems({ ...meta, rewardCap: { coin: 10 } })).toEqual([
+      expect.stringContaining('rewardCap'),
+    ]);
+    expect(metaProblems({ ...meta, rewardCap: { 'core:coin': -1 } })).toEqual([
+      expect.stringContaining('rewardCap'),
+    ]);
+    expect(metaProblems({ ...meta, kind: 'event' })).toEqual([
+      expect.stringContaining('needs meta.event'),
+    ]);
+    expect(metaProblems({ ...meta, event })).toEqual([
+      expect.stringContaining('only kind "event"'),
+    ]);
+    expect(
+      metaProblems({
+        ...meta,
+        kind: 'event',
+        event: { ...event, closesAt: event.opensAt, tiers: [...event.tiers].reverse() },
+      }),
+    ).toEqual([
+      expect.stringContaining('opensAt first'),
+      expect.stringContaining('go up in points'),
+    ]);
+  });
+
+  it('leaves games without a genre out of the catalog and defaults the card', () => {
+    expect(gameCard({ ...meta, genre: undefined })).toBeNull();
+    expect(gameCard(meta)).toMatchObject({ kind: 'table', card: 'island', rewardCap: {} });
+  });
 });
 
 describe('invalid game console declarations', () => {

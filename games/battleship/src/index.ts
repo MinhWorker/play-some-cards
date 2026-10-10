@@ -18,6 +18,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Đoán chỗ và bắn chìm hạm đội đối phương.',
+    duration: { min: 10, max: 20 },
   },
   game: new BattleshipGame(),
   room: {

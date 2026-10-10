@@ -17,6 +17,7 @@ import {
 } from '@xomdao/shared';
 import type { Server, Socket } from 'socket.io';
 import { AccountError, AccountsService } from '../accounts/accounts.service.js';
+import { CatalogService } from '../catalog/catalog.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';
 import { followRoomLog } from '../dev/room-log.js';
 import { MatchesService } from '../matches/matches.service.js';
@@ -70,6 +71,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     private readonly accounts: AccountsService,
     private readonly devConsole: DevConsoleService,
     private readonly matches: MatchesService,
+    private readonly catalog: CatalogService,
   ) {
     rooms.onFinished((game) => {
       this.matches.record(game).catch((err) => console.error('Could not save a match', err));
@@ -135,6 +137,11 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('history:recent')
   history(socket: AppSocket) {
     return this.handle(async () => ({ matches: await this.matches.recent(socket.data.user.id) }));
+  }
+
+  @SubscribeMessage('catalog:get')
+  getCatalog() {
+    return this.handle(() => this.catalog.catalog());
   }
 
   @SubscribeMessage('lobby:watch')

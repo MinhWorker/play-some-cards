@@ -17,6 +17,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'bai',
+    tagline: 'Xếp mười ba lá thành ba chi mạnh hơn đối thủ.',
+    duration: { min: 5, max: 10 },
   },
   game: new MauBinhGame(),
   room: { options: optionsSchema, bots: (options) => options.bots },

@@ -156,6 +156,18 @@ export class RoomsService {
       .sort((a, b) => Number(b.canJoin) - Number(a.canJoin));
   }
 
+  /** How busy a game is: people seated in its listed rooms, and those rooms with a free seat. */
+  activity(gameId: string): { playing: number; openRooms: number } {
+    let playing = 0;
+    let openRooms = 0;
+    for (const room of this.rooms.values()) {
+      if (room.game.id !== gameId || !this.humans(room).some((m) => m.connected)) continue;
+      playing += room.players.filter((p) => !p.bot && p.connected).length;
+      if (this.seatError(room) === null) openRooms++;
+    }
+    return { playing, openRooms };
+  }
+
   /** Joining a room you are already in just puts you back in your place. */
   join(code: string, account: Account, role: RoomRole) {
     const room = this.get(code);
