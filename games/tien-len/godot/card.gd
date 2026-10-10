@@ -15,7 +15,6 @@ const SMALL_SPOT := Vector3(-0.27, -0.15, 0.22)
 const BIG_SPOT := Vector3(0.1, 0.14, 0.52)
 
 const _FACE: Texture2D = preload("res://content/tien-len/art/face-classic.webp")
-const _BACK: Texture2D = preload("res://content/tien-len/art/back-lattice.webp")
 const _SUITS: Array[Texture2D] = [
 	preload("res://content/tien-len/art/suit-spade.webp"),
 	preload("res://content/tien-len/art/suit-club.webp"),
@@ -33,6 +32,12 @@ var card: int = -1:
 var picked: bool = false:
 	set(value):
 		picked = value
+		queue_redraw()
+
+## The back it shows face down: the card back its holder wears (XomDaoLooks).
+var back: Texture2D = XomDaoLooks.card_back(""):
+	set(value):
+		back = value
 		queue_redraw()
 
 ## Dims the card (a play under the newest one on the pile).
@@ -66,7 +71,7 @@ func _draw() -> void:
 	)
 	shadow.draw(get_canvas_item(), Rect2(Vector2(2.0, 3.0), size))
 	if card < 0:
-		draw_texture_rect(_BACK, rect, false)
+		draw_texture_rect(back, rect, false)
 		return
 	draw_texture_rect(_FACE, rect, false)
 	var w: float = size.x

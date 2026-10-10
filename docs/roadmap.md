@@ -107,7 +107,9 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
       `.pck` của trò. Đảo còn vẽ tạm bằng code, chờ ảnh `hub/genres/<island>.webp`
 - [x] CHƠI ghép nhanh (`room:quick`, máy ngồi ghế trống sau một lúc), Bến (mã phòng, phòng mở),
       tạo/vào phòng, kết quả có xu bay vào số dư
-- [ ] Đăng nhập, hồ sơ (Nhà)
+- [ ] Đăng nhập
+- [x] Nhà (hồ sơ, túi đồ) và Chợ: mua khung và lưng bài bằng xu, đeo vào thì người cùng phòng
+      thấy
 - [x] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
       khai báo của trò. Bảng dữ liệu thiết kế sẵn cho nhiều loại tài nguyên
 - [x] Bộ thành phần giao diện Godot trong `xomdao_sdk/ui`: theme, nút, bảng, hàng tiền, ô người
@@ -133,7 +135,7 @@ Làm dần, theo thứ tự chủ dự án muốn:
 - Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
 - Thể loại phụ đầu tiên thay đảo Sắp có, kèm Bom Nguyên Tố
 - Khung `event`: ngày mở/đóng, phần thưởng riêng, đảo Sự kiện là một thể loại phụ; `npm run new:event`
-- Danh mục vật phẩm, túi đồ, cửa hàng đồ trang trí
+- Thêm vật phẩm và loại vật phẩm cho túi đồ, Chợ
 - Thống kê, thành tích, xếp hạng
 - Nhiều loại tài nguyên
 - Khi không còn trò nào dùng Phaser: xoá `apps/web` và cổng Socket.IO

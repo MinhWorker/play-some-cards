@@ -44,6 +44,8 @@ const INTRO_ROUND := 1.2
 ## How wide one tile of mat.webp (512 px) lies on the table, in units.
 const MAT_TILE := 220.0
 const CARD_WIDTH := 84.0
+## The face-down cards by the others' seats.
+const FAN_CARD := 34.0
 const PILE_CARD := 72.0
 const BUTTON_WIDTH := 200.0
 const THROW_SECONDS := 0.23
@@ -67,6 +69,8 @@ var _pass: XomDaoButton = XomDaoButton.create("Bỏ lượt", XomDaoUi.Kind.DANG
 var _round_board: XomDaoBoard = XomDaoBoard.create("")
 var _slots: Array[XomDaoPlayerSlot] = []
 var _stamps: Array[Label] = []
+## A few face-down cards by each other seat, in the card back that player wears.
+var _fans: Array[Control] = []
 var _sounds: Dictionary = {}
 
 ## What the last view showed, to tell what changed.
@@ -227,6 +231,8 @@ func _show(snapshot: XomDaoRoomSnapshot) -> void:
 	if turn != _turn and turn == _me and turn >= 0 and not _dealing:
 		_sfx("turn")
 	_turn = turn
+	if _me >= 0:
+		_hand.back = XomDaoLooks.card_back(_card_back_of(_client.player_id))
 	_show_seats()
 	_show_round_board()
 	_refresh_buttons()
@@ -419,6 +425,12 @@ func _show_seats() -> void:
 			_snapshot.seats[seat] if seat < _snapshot.seats.size() else XomDaoPlayerInfo.new()
 		)
 		slot.player_name = _seat_name(seat)
+		slot.frame = info.frame
+		var fan: Control = _fans[seat]
+		fan.visible = seat != _me and int(counts[seat]) > 0 and phase != "over"
+		fan.set_meta("back", XomDaoLooks.card_back(_card_back_of(info.id)))
+		fan.set_meta("cards", mini(3, int(counts[seat])))
+		fan.queue_redraw()
 		slot.host = info.id == str(_snapshot.host_id)
 		slot.extra = "%d lá" % int(counts[seat]) if seat != _me and int(counts[seat]) > 0 else ""
 		var on_turn: bool = (
@@ -556,6 +568,9 @@ func _build_seats(count: int) -> void:
 		slot.queue_free()
 	for stamp: Label in _stamps:
 		stamp.queue_free()
+	for fan: Control in _fans:
+		fan.queue_free()
+	_fans.clear()
 	_slots.clear()
 	_stamps.clear()
 	for seat: int in count:
@@ -575,6 +590,14 @@ func _build_seats(count: int) -> void:
 		add_child(stamp)
 		move_child(stamp, _hand.get_index())
 		_stamps.append(stamp)
+		var fan := Control.new()
+		fan.name = "Backs_%d" % seat
+		fan.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fan.size = Vector2(FAN_CARD * 2.0, FAN_CARD * CardView.RATIO)
+		fan.draw.connect(_draw_fan.bind(fan))
+		add_child(fan)
+		move_child(fan, slot.get_index())
+		_fans.append(fan)
 	_layout.call_deferred()
 
 
@@ -626,6 +649,8 @@ func _layout() -> void:
 				)
 			"right":
 				slot.position = Vector2(right - box.x, side_y - box.y / 2.0)
+		var fan: Control = _fans[seat]
+		fan.position = slot.position + Vector2((box.x - fan.size.x) / 2.0, box.y - 6.0)
 		var stamp: Label = _stamps[seat]
 		stamp.reset_size()
 		stamp.position = slot.position + Vector2(box.x * 0.5, box.y * 0.62) - stamp.size / 2.0
@@ -672,6 +697,28 @@ func _draw_pattern() -> void:
 		_pattern.draw_polyline(points, Color(RED, 0.55), 3.0, true)
 	var light := Color(1.0, 0.95, 0.8, 0.12)
 	_pattern.draw_circle(size / 2.0, minf(size.x, size.y) * 0.32, light)
+
+
+func _draw_fan(fan: Control) -> void:
+	var back: Texture2D = fan.get_meta("back", null)
+	var cards: int = int(fan.get_meta("cards", 0))
+	if back == null:
+		return
+	var card := Vector2(FAN_CARD, FAN_CARD * CardView.RATIO)
+	for i: int in cards:
+		var angle: float = deg_to_rad((i - (cards - 1) / 2.0) * 12.0)
+		var at := Vector2(fan.size.x / 2.0 + (i - (cards - 1) / 2.0) * card.x * 0.35, card.y * 0.55)
+		fan.draw_set_transform(at, angle)
+		fan.draw_texture_rect(back, Rect2(-card / 2.0, card), false)
+	fan.draw_set_transform(Vector2.ZERO)
+
+
+## The card back a member of the room wears ("" when unknown: the default).
+func _card_back_of(id: String) -> String:
+	for player: XomDaoPlayerInfo in _snapshot.players + _snapshot.spectators:
+		if player.id == id:
+			return player.card_back
+	return ""
 
 
 ## The middle of a seat's slot (for cards thrown from it).

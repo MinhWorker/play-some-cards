@@ -8,11 +8,14 @@ src/dev/        gated console commands, snapshots, undo/RNG frames and per-room 
 src/accounts/   Username/password (scrypt) and login tokens
 src/catalog/    The hub's catalog (`catalog:get`): core genres + a card per game with a genre
 src/ledger/     Ledger: the only module that changes balances (`ledger_entries`, `balances`)
+src/inventory/  Túi đồ: what each account owns (`inventory_items`), equipping looks, profiles
+src/shop/       Chợ: `shop:list` and `shop:buy`, paid through the Ledger
 src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
 packages/shared/src/protocol.ts   The protocol as zod schemas (types, requests, events) + PROTOCOL_VERSION
 packages/shared/src/catalog.ts    Genre list (core data), GameCard, metaProblems (registry test)
+packages/shared/src/items.ts      Item catalog (ITEMS: id, slot, look, name, price), card backs
 packages/shared/src/registry.ts   games/getGame, from the generated (gitignored) src/generated/games.ts
 ```
 
@@ -66,6 +69,20 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   `match:<matchId>:<user>:<resource>`) and refuses totals above the game's `meta.rewardCap`.
   Each paid player's sockets get `reward` with the new balances; `session:resume` returns
   `balances`.
+
+## Inventory and Shop
+
+- Items are data in `packages/shared/src/items.ts` (`core:frame-<look>`,
+  `core:card-back-<look>`). Append new ones; never reuse or rename an id. Price 0 = everyone has
+  it, so free items are never stored.
+- `InventoryService` owns `inventory_items` (user, item). `inventory:get { userId? }` returns a
+  `Profile` (yours, or anyone's, read-only); `inventory:equip { itemId }` sets `users.frame` or
+  `users.card_back` through `AccountsService.setLooks`, then the gateway refreshes the user's
+  rooms so everyone sees the new look. `profile:update` also refuses a frame you don't own.
+- `ShopService.buy` charges through `LedgerService.apply` with key `shop:<user>:<item>`, so a
+  repeated buy is never charged twice; `insufficient` becomes "Không đủ xu", owned "Bạn đã có
+  món này".
+- `dev:coins { amount }` (dev mode only) adds coins, for tests and the sandbox.
 
 ## Match history
 

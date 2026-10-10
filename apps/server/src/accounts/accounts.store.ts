@@ -1,4 +1,13 @@
-import { AVATARS, type Avatar, DEFAULT_FRAME, FRAMES, type Frame, type User } from '@xomdao/shared';
+import {
+  AVATARS,
+  type Avatar,
+  CARD_BACKS,
+  DEFAULT_CARD_BACK,
+  DEFAULT_FRAME,
+  FRAMES,
+  type Frame,
+  type User,
+} from '@xomdao/shared';
 import { eq } from 'drizzle-orm';
 import type { Db } from '../db/db.module.js';
 import { sessions, users } from '../db/schema.js';
@@ -18,6 +27,12 @@ export interface ProfileChange {
   frame?: Frame;
 }
 
+/** How a player shows to others, as equipped from Túi đồ (each field left out stays). */
+export interface Looks {
+  frame?: Frame;
+  cardBack?: string;
+}
+
 /** Where accounts are kept: Postgres in real use, memory when there is no DATABASE_URL. */
 export interface AccountsStore {
   /** `null` when the username is taken. */
@@ -27,6 +42,8 @@ export interface AccountsStore {
   userBySession(tokenHash: string): Promise<User | null>;
   deleteSession(tokenHash: string): Promise<void>;
   updateProfile(userId: string, profile: ProfileChange): Promise<User | null>;
+  userById(userId: string): Promise<User | null>;
+  setLooks(userId: string, looks: Looks): Promise<User | null>;
 }
 
 type UserRow = typeof users.$inferSelect;
@@ -37,6 +54,9 @@ const toUser = (row: UserRow): User => ({
   name: row.name,
   avatar: (AVATARS as readonly string[]).includes(row.avatar) ? (row.avatar as Avatar) : 'boy',
   frame: (FRAMES as readonly string[]).includes(row.frame) ? (row.frame as Frame) : DEFAULT_FRAME,
+  cardBack: (CARD_BACKS as readonly string[]).includes(row.cardBack)
+    ? row.cardBack
+    : DEFAULT_CARD_BACK,
 });
 
 export class PgAccountsStore implements AccountsStore {
@@ -77,6 +97,17 @@ export class PgAccountsStore implements AccountsStore {
     const [row] = await this.db.update(users).set(profile).where(eq(users.id, userId)).returning();
     return row ? toUser(row) : null;
   }
+
+  async userById(userId: string) {
+    const [row] = await this.db.select().from(users).where(eq(users.id, userId));
+    return row ? toUser(row) : null;
+  }
+
+  async setLooks(userId: string, looks: Looks) {
+    if (!looks.frame && !looks.cardBack) return this.userById(userId);
+    const [row] = await this.db.update(users).set(looks).where(eq(users.id, userId)).returning();
+    return row ? toUser(row) : null;
+  }
 }
 
 /** Used by tests and when the server runs without a database (accounts vanish on restart). */
@@ -86,7 +117,7 @@ export class MemoryAccountsStore implements AccountsStore {
 
   async createUser({ passwordHash, ...rest }: NewUser) {
     if ([...this.users.values()].some((u) => u.user.username === rest.username)) return null;
-    const user: User = { id: crypto.randomUUID(), ...rest };
+    const user: User = { id: crypto.randomUUID(), cardBack: DEFAULT_CARD_BACK, ...rest };
     this.users.set(user.id, { user, passwordHash });
     return { ...user };
   }
@@ -115,6 +146,18 @@ export class MemoryAccountsStore implements AccountsStore {
     if (!found) return null;
     const { frame, ...rest } = profile;
     Object.assign(found.user, rest, frame && { frame });
+    return { ...found.user };
+  }
+
+  async userById(userId: string) {
+    const found = this.users.get(userId);
+    return found ? { ...found.user } : null;
+  }
+
+  async setLooks(userId: string, { frame, cardBack }: Looks) {
+    const found = this.users.get(userId);
+    if (!found) return null;
+    Object.assign(found.user, frame && { frame }, cardBack && { cardBack });
     return { ...found.user };
   }
 }

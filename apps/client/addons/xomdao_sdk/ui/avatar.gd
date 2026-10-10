@@ -2,7 +2,8 @@ class_name XomDaoAvatar
 extends Control
 ## A round picture in a bamboo ring, used everywhere a player shows (lobby profile, table,
 ## rankings, waiting room). Without a picture it shows the first letter of the name.
-## `turn` (0..1) draws the brass turn timer around the ring; -1 hides it.
+## `turn` (0..1) draws the brass turn timer around the ring; -1 hides it. `frame` (an id from
+## Túi đồ, XomDaoLooks) puts that frame in place of the bamboo ring.
 
 ## How much of the picture's width its round face takes: the app's avatars are a disc of radius
 ## 100 on a 256 × 256 canvas.
@@ -24,11 +25,20 @@ var turn: float = -1.0:
 		turn = value
 		queue_redraw()
 
+## The frame the player wears ("jade"); "" keeps the bamboo ring.
+var frame: String = "":
+	set(value):
+		frame = value
+		_frame = XomDaoLooks.frame(value)
+		queue_redraw()
+
 ## The 👑 of the room's host.
 var crown: bool = false:
 	set(value):
 		crown = value
 		queue_redraw()
+
+var _frame: Texture2D
 
 
 func _init() -> void:
@@ -41,9 +51,11 @@ func _draw() -> void:
 	var c: Vector2 = size / 2.0
 	var ring: float = maxf(4.0, r * 0.13)
 	draw_circle(c + Vector2(3.0, 4.0), r, XomDaoUi.SHADOW, true, -1.0, true)
-	draw_circle(c, r, XomDaoUi.BAMBOO_DARK, true, -1.0, true)
-	draw_circle(c, r - ring * 0.35, XomDaoUi.BAMBOO, true, -1.0, true)
-	var inner: float = r - ring
+	if _frame == null:
+		draw_circle(c, r, XomDaoUi.BAMBOO_DARK, true, -1.0, true)
+		draw_circle(c, r - ring * 0.35, XomDaoUi.BAMBOO, true, -1.0, true)
+	# A frame's ring covers the outer fifth of its picture.
+	var inner: float = r - ring if _frame == null else r * 0.82
 	if picture != null:
 		_draw_picture(c, inner)
 	else:
@@ -55,8 +67,10 @@ func _draw() -> void:
 		)
 		var base := Vector2(c.x - text_size.x / 2.0, c.y + font.get_ascent(font_size) * 0.38)
 		draw_string(font, base, initial, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, XomDaoUi.CREAM)
+	if _frame != null:
+		draw_texture_rect(_frame, Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), false)
 	# Bamboo joints: short dark marks around the ring.
-	for i: int in 8:
+	for i: int in 8 if _frame == null else 0:
 		var angle: float = i * TAU / 8.0 + PI / 8.0
 		var dir := Vector2(cos(angle), sin(angle))
 		draw_line(c + dir * (r - ring), c + dir * r, XomDaoUi.BAMBOO_DARK, 2.0, true)

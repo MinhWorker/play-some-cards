@@ -60,7 +60,7 @@ xong thì chạy `npm run gen:protocol` để sinh lại GDScript; `npm run chec
 Màn đầu tiên là sảnh: vòng đảo thể loại trên biển (Cờ, Bài, rồi thể loại phụ; đảo Sắp có khi chưa
 có thể loại phụ). Vuốt ngang hoặc chạm một đảo để xoay; chạm lại đảo đang chọn hoặc thẻ trò ở dưới
 phải để mở màn chọn trò. HUD: hồ sơ trên trái, số xu và ⚙ trên phải, banner Chợ, hàng Nhà, Chợ,
-Đình, Bến dưới trái (Nhà, Chợ, Đình còn "Sắp có"), thẻ trò đang chọn với **CHƠI** và **Tạo phòng**.
+Đình, Bến dưới trái (Đình còn "Sắp có"), thẻ trò đang chọn với **CHƠI** và **Tạo phòng**.
 
 - **CHƠI** là ghép nhanh: vào phòng đang chờ của trò đó, không ai tới thì sau vài giây máy ngồi ghế
   trống và ván bắt đầu.
@@ -69,6 +69,11 @@ phải để mở màn chọn trò. HUD: hồ sơ trên trái, số xu và ⚙ t
 - **Chọn trò**: tab thể loại, thẻ trò kéo ngang, bảng chi tiết với Chọn, Luật, Tạo phòng, Danh
   sách phòng. Chọn thẻ là gói `.pck` của trò bắt đầu tải ngầm. Trò chưa có bản Godot hiện mờ, có
   ổ khoá.
+- **Nhà**: thẻ hồ sơ (ảnh đại diện với khung đang dùng, lưng bài) và kệ có tab Túi đồ, Thành
+  tích, Xếp hạng (hai tab sau còn "Sắp có"). Túi đồ có món đã mua trước, rồi món ai cũng có; "Dùng"
+  để đeo. Chạm một người trong phòng chờ là xem Nhà của họ, chỉ đọc.
+- **Chợ**: món bán theo tab Khung và Lưng bài, mỗi món có giá và "Mua", món đã mua hiện "Đã có".
+  Thiếu xu thì báo "Không đủ xu"; bấm hai lần chỉ trả tiền một lần.
 - **Bến**: gõ mã phòng rồi "Vào", hoặc chọn một phòng đang mở của trò đang chọn.
 - **Trong ván** chỉ có nút ☰ (rời phòng có hỏi lại khi đang giữa ván, luật, cài đặt, biểu cảm).
 - **Kết quả**: thứ hạng, phần thưởng từng người (tăng xanh, giảm đỏ), xu bay vào số dư; "Chơi

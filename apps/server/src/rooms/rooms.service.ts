@@ -28,6 +28,7 @@ interface Member {
   bot?: boolean;
   avatar?: string;
   frame?: string;
+  cardBack?: string;
 }
 
 /** The account entering a room (from the logged-in socket). */
@@ -36,6 +37,7 @@ export interface Account {
   name: string;
   avatar?: string;
   frame?: string;
+  cardBack?: string;
 }
 
 export interface Room {
@@ -269,10 +271,10 @@ export class RoomsService {
   }
 
   /** The account changed its name or picture: update it in its room (returned, if any). */
-  rename(userId: string, { name, avatar, frame }: Omit<Account, 'id'>) {
+  rename(userId: string, { name, avatar, frame, cardBack }: Omit<Account, 'id'>) {
     const room = this.roomOf(userId);
     const member = room && this.members(room).find((m) => m.id === userId);
-    if (member) Object.assign(member, { name, avatar, frame });
+    if (member) Object.assign(member, { name, avatar, frame, cardBack });
     return room;
   }
 
@@ -537,13 +539,14 @@ export class RoomsService {
   /** What `memberId` is allowed to see. Never send `room.state` directly. */
   snapshotFor(room: Room, memberId: PlayerId): RoomSnapshot {
     const isPlayer = room.players.some((p) => p.id === memberId);
-    const info = ({ id, name, connected, bot, avatar, frame }: Member) => ({
+    const info = ({ id, name, connected, bot, avatar, frame, cardBack }: Member) => ({
       id,
       name,
       connected,
       ...(bot && { bot }),
       ...(avatar && { avatar }),
       ...(frame && { frame }),
+      ...(cardBack && { cardBack }),
     });
     return {
       code: room.code,
@@ -720,8 +723,8 @@ export class RoomsService {
   }
 
   private newMember(account: Account): Member {
-    const { id, name, avatar, frame } = account;
-    return { id, name, avatar, frame, connected: true };
+    const { id, name, avatar, frame, cardBack } = account;
+    return { id, name, avatar, frame, cardBack, connected: true };
   }
 
   private newCode() {

@@ -7,6 +7,7 @@ var username: String = ""
 var name: String = ""
 var avatar: String = ""
 var frame: String = ""
+var card_back: String = ""
 
 
 static func from_dict(d: Dictionary) -> XomDaoUser:
@@ -16,6 +17,7 @@ static func from_dict(d: Dictionary) -> XomDaoUser:
 	o.name = str(d.get("name", ""))
 	o.avatar = str(d.get("avatar", ""))
 	o.frame = str(d.get("frame", ""))
+	o.card_back = str(d.get("cardBack", ""))
 	return o
 
 
@@ -26,6 +28,8 @@ func to_dict() -> Dictionary:
 	d["name"] = name
 	d["avatar"] = avatar
 	d["frame"] = frame
+	if card_back != "":
+		d["cardBack"] = card_back
 	return d
 
 

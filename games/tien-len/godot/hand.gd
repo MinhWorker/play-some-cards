@@ -18,6 +18,13 @@ var card_width: float = 84.0:
 			card_width = value
 			_layout(false)
 
+## The back of your cards (the one you wear), shown while they are dealt.
+var back: Texture2D = XomDaoLooks.card_back(""):
+	set(value):
+		back = value
+		for view: CardView in _views.values():
+			view.back = value
+
 ## The cards in the hand, in order.
 var cards: Array[int] = []
 ## The picked cards, in the order they were picked.
@@ -57,6 +64,7 @@ func set_cards(next: Array[int]) -> void:
 	for card: int in sorted:
 		if not _views.has(card):
 			var view: CardView = CardView.create(card, card_width) as CardView
+			view.back = back
 			view.name = "Card_%d" % card
 			add_child(view)
 			_views[card] = view

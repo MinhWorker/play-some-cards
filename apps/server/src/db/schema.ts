@@ -26,6 +26,8 @@ export const users = pgTable('users', {
   avatar: text('avatar').notNull(),
   /** The ring drawn around the avatar (`Frame` in @xomdao/shared). */
   frame: text('frame').notNull().default('gold'),
+  /** The back of their cards (`CardBack` in @xomdao/shared), equipped from Túi đồ. */
+  cardBack: text('card_back').notNull().default('lattice'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -106,4 +108,20 @@ export const balances = pgTable(
     amount: bigint('amount', { mode: 'number' }).notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.userId, t.resource] })],
+);
+
+/**
+ * Túi đồ (apps/server/src/inventory): the items each account bought or won (`ITEMS` in
+ * @xomdao/shared). Free items are everyone's and never stored. Only the inventory writes it.
+ */
+export const inventoryItems = pgTable(
+  'inventory_items',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    itemId: text('item_id').notNull(),
+    acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.itemId] })],
 );

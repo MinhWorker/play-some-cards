@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   type OnGatewayDisconnect,
   type OnGatewayInit,
@@ -9,6 +10,7 @@ import { MESSAGE_METADATA } from '@nestjs/websockets/constants.js';
 import { ConsoleError, type ConsoleIssue } from '@xomdao/sdk';
 import {
   type ClientToServerEvents,
+  COIN,
   type JoinedRoom,
   PROTOCOL_MISMATCH,
   PROTOCOL_VERSION,
@@ -21,8 +23,10 @@ import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { CatalogService } from '../catalog/catalog.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';
 import { followRoomLog } from '../dev/room-log.js';
+import { InventoryError, InventoryService } from '../inventory/inventory.service.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { MatchesService } from '../matches/matches.service.js';
+import { ShopError, ShopService } from '../shop/shop.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 export interface SocketData {
@@ -91,6 +95,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     private readonly matches: MatchesService,
     private readonly catalog: CatalogService,
     private readonly ledger: LedgerService,
+    private readonly inventory: InventoryService,
+    private readonly shop: ShopService,
   ) {
     rooms.onFinished((game) => {
       this.matches.record(game).catch((err) => console.error('Could not save a match', err));
@@ -156,6 +162,14 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     return undefined;
   }
 
+  /** The account changed how it shows: its sockets and its room (pushed to everyone) follow. */
+  private changed(user: User) {
+    for (const s of this.socketsOf(user.id)) s.data.user = user;
+    const room = this.rooms.rename(user.id, user);
+    if (room) this.broadcast(room);
+    return user;
+  }
+
   /** Offline only when none of the account's sockets still shows the room. */
   handleDisconnect(socket: Client) {
     this.stopDevLogs(socket);
@@ -181,11 +195,43 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('profile:update')
   updateProfile(socket: Client, req: unknown) {
     return this.handle(async () => {
-      const user = await this.accounts.updateProfile(socket.data.user.id, req);
-      for (const s of this.socketsOf(user.id)) s.data.user = user;
-      const room = this.rooms.rename(user.id, user);
-      if (room) this.broadcast(room);
-      return { user };
+      const me = socket.data.user;
+      // A frame is worn from Túi đồ: one you don't own can't be picked here either.
+      const frame = (req as { frame?: unknown } | null)?.frame;
+      if (
+        typeof frame === 'string' &&
+        frame !== me.frame &&
+        !(await this.inventory.ownsLook(me.id, 'frame', frame))
+      ) {
+        throw new InventoryError('Bạn chưa có khung này');
+      }
+      return { user: this.changed(await this.accounts.updateProfile(me.id, req)) };
+    });
+  }
+
+  @SubscribeMessage('shop:list')
+  shopList(socket: Client) {
+    return this.handle(async () => ({ items: await this.shop.list(socket.data.user.id) }));
+  }
+
+  @SubscribeMessage('shop:buy')
+  shopBuy(socket: Client, req: { itemId?: unknown }) {
+    return this.handle(() => this.shop.buy(socket.data.user.id, String(req?.itemId ?? '')));
+  }
+
+  @SubscribeMessage('inventory:get')
+  inventoryGet(socket: Client, req: { userId?: unknown } | undefined) {
+    return this.handle(() => {
+      const userId = typeof req?.userId === 'string' ? req.userId : socket.data.user.id;
+      return this.inventory.profile(userId);
+    });
+  }
+
+  @SubscribeMessage('inventory:equip')
+  equip(socket: Client, req: { itemId?: unknown }) {
+    return this.handle(async () => {
+      const user = await this.inventory.equip(socket.data.user.id, String(req?.itemId ?? ''));
+      return { user: this.changed(user) };
     });
   }
 
@@ -333,6 +379,24 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       this.requireDev();
       const { roomCode, playerId } = this.requireSeat(socket);
       return this.devConsole.schema(this.rooms.devRoom(roomCode, playerId));
+    });
+  }
+
+  @SubscribeMessage('dev:coins')
+  devCoins(socket: Client, req: { amount?: unknown }) {
+    return this.handle(async () => {
+      this.requireDev();
+      const amount = Number(req?.amount);
+      if (!Number.isInteger(amount) || amount <= 0) throw new RoomError('Số xu không hợp lệ');
+      const userId = socket.data.user.id;
+      await this.ledger.apply({
+        userId,
+        resource: COIN,
+        amount,
+        reason: 'dev:coins',
+        key: `dev:${randomUUID()}`,
+      });
+      return { balances: await this.ledger.balances(userId) };
     });
   }
 
@@ -492,7 +556,12 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       return { ok: true, ...(await fn()) };
     } catch (err) {
       if (err instanceof ConsoleError) return { ok: false, error: err.message, issue: err.issue };
-      if (err instanceof RoomError || err instanceof AccountError) {
+      if (
+        err instanceof RoomError ||
+        err instanceof AccountError ||
+        err instanceof InventoryError ||
+        err instanceof ShopError
+      ) {
         return { ok: false, error: err.message };
       }
       console.error(err);
