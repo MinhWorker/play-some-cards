@@ -116,14 +116,14 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
       chơi, thẻ trò, ô lựa chọn, thông báo nhanh, chấm đỏ, menu ☰, âm thanh giao diện; màn gallery
       `?gallery=<trang>` để chụp và duyệt
 - [ ] Art hub theo `docs/art-direction.md`
-- [ ] `npm run new:game` tạo cả luật TS, thư mục `godot/`, kịch bản e2e, RULES.md
+- [x] `npm run new:game` tạo cả luật TS, thư mục `godot/`, kịch bản e2e, RULES.md
 
 **Xong khi:** ở sảnh chọn Caro, bấm CHƠI, chơi với bot, thắng thì được cộng tiền và thấy số dư mới.
 
 ## Phase 3: trò thật đầu tiên
 
 - [ ] Tiến Lên bằng Godot, art và hiệu ứng đầy đủ
-- [ ] Skill cho agent trong `.claude/skills/`: tạo nội dung mới, chuyển một trò Phaser sang Godot,
+- [x] Skill cho agent trong `.claude/skills/`: tạo nội dung mới, chuyển một trò Phaser sang Godot,
       làm một asset, kiểm tra trên điện thoại
 
 **Xong khi:** chủ dự án mời bạn bè chơi.
@@ -134,8 +134,8 @@ Làm dần, theo thứ tự chủ dự án muốn:
 
 - Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
 - Thể loại phụ đầu tiên thay đảo Sắp có, kèm Bom Nguyên Tố
-- `npm run new:event` (khung `event` đã có: ngày mở/đóng, mốc thưởng, đảo Sự kiện, sự kiện mẫu
-  `games/trung-thu`)
+- Sự kiện theo mùa: `npm run new:event` tạo khung (ngày mở/đóng, mốc thưởng, bố cục Hành động);
+  ví dụ đầy đủ `games/trung-thu`
 - Thêm vật phẩm và loại vật phẩm cho túi đồ, Chợ
 - Thêm thành tích (dữ liệu trong `meta.achievements`) và bảng xếp hạng (khung đã có: `ctx.stat`,
   cấp theo kinh nghiệm, Nhà và Đình)

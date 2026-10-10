@@ -1,22 +1,34 @@
 # Làm một game
 
-Một game là một thư mục, `games/<id>/`. Bạn không bao giờ phải sửa gì bên ngoài nó: ứng dụng tự
-tìm mọi thư mục trong `games/`.
+Một game là một thư mục, `games/<id>/`, cộng kịch bản e2e của nó. Bạn không phải sửa gì khác:
+ứng dụng tự tìm mọi thư mục trong `games/`.
 
 ```
-npm run new:game -- my-game "Tên tiếng Việt"
-npm run dev
+npm run new:game -- my-game "Tên tiếng Việt" --genre bai    # hoặc --genre co; --layout hanh-dong
+npm run new:event -- hoi-lang "Hội làng"                    # sự kiện: --opens/--closes YYYY-MM-DD
+npm run godot:check
 ```
 
-Lệnh này tạo một game nhỏ chạy được ("đua tới 21"), đánh dấu `wip`. Biến nó thành game của bạn
-từng bước một, lúc nào cũng giữ cho nó chơi được.
+`new:game` tạo một game nhỏ chạy được ("đua tới 21", có người chơi máy), đánh dấu `wip`, đã
+có đảo thể loại nên hiện ngay trong sảnh Godot. `new:event` tạo một sự kiện nhỏ ("hái lộc") mở
+từ hôm nay trong 4 tuần, nếu không chỉ định ngày. Cả hai viết sẵn:
 
-- **Chơi một mình:** http://localhost:5033/?play=my-game&players=2 chạy game ngay trong trình
-  duyệt: không cần server, không cần tài khoản. Các nút ở trên cùng đổi ghế ngồi ("Khán giả" cho
-  thấy người xem thấy gì). Lưu file là trang tự tải lại. Chạy được cả ở bản xem trước của PR,
-  không có trên trang thật.
-- **Chơi thật:** mở http://localhost:5033, đăng nhập, chọn đảo của game; mở thêm một cửa sổ (ẩn
-  danh) để làm người chơi còn lại.
+- luật TypeScript và test (`src/`), `RULES.md`, README và tranh thẻ tạm (`assets/island.webp`);
+- bàn chơi trong client Godot (`godot/`) theo một bố cục mẫu: **Bàn** (mặc định) hoặc
+  **Hành động** (`--layout hanh-dong`; sự kiện luôn dùng Hành động), kèm test GUT;
+- kịch bản e2e `scripts/e2e/scenarios/godot-<id>.mjs` chơi hết một ván trên khổ điện thoại.
+
+`npm run godot:check` lần đầu để Godot viết các file `.uid`; commit chúng cùng game. Rồi biến
+game mẫu thành game của bạn từng bước một, lúc nào cũng giữ cho nó chơi được.
+
+- **Chơi một mình trong Godot:** `npm run godot:export -- --debug`, `npm run dev`, rồi mở
+  http://localhost:5033/godot/?play=my-game: một phòng thật với máy ngồi các ghế còn lại.
+- **Chơi một mình trong web app cũ (Phaser):** http://localhost:5033/?play=my-game&players=2
+  chạy game ngay trong trình duyệt, không cần server hay tài khoản.
+- **Chơi thật:** mở http://localhost:5033/godot/, chọn đảo và thẻ của game; mở thêm một cửa sổ
+  ẩn danh để làm người chơi còn lại.
+- **Kịch bản e2e:** `npm run e2e -- --only godot-my-game` (cần bản debug và `npm run dev`). CI
+  chạy mọi kịch bản `godot-*`.
 
 Nếu `package-lock.json` bị xung đột khi bạn merge `main` vào nhánh của mình, chạy `npm install`.
 
@@ -41,8 +53,13 @@ ghế, chủ phòng, tỉ số, tuỳ chọn.
                                                                     onState(ctx)         hiện state
 ```
 
-Mẫu tối thiểu nằm trong `scripts/templates/game/`. Ví dụ hoàn chỉnh: `games/tic-tac-toe`
-(Caro: tuỳ chọn phòng, người chơi máy, màn cài đặt).
+Trong client Godot, phần màn hình là `godot/main.gd` thay cho `GameView`: nó vẽ
+`snapshot.view` mỗi khi có `state_changed` và gửi sự kiện bằng `_client.send('add', {...})`
+(xem mục "Màn hình Godot" bên dưới).
+
+Mẫu tối thiểu nằm trong `scripts/templates/` (`game/`, `event/`, `godot/`, `e2e/`). Ví dụ hoàn
+chỉnh: `games/tic-tac-toe` (Caro: tuỳ chọn phòng, người chơi máy, màn cài đặt) và
+`games/tien-len` (Tiến Lên trong Godot: bài, hiệu ứng, âm thanh).
 
 ## Các hook
 
@@ -84,7 +101,12 @@ games/<id>/
     MyView.ts           màn hình game
   assets/             hình (.webp/.png) và âm thanh (.wav/.mp3), dùng theo tên file
   sources/            file gốc tuỳ chọn (PNG lớn, .psd/.kra, âm thanh thô); xem bên dưới
-  README.md           luật chơi và ghi công
+  godot/              bàn chơi trong client Godot (GDScript)
+    main.tscn, main.gd  bàn chơi: vẽ snapshot.view, gửi sự kiện
+    test/test_main.gd   test GUT (npm run godot:check)
+    art/, sounds/       hình và âm thanh bàn chơi dùng (kèm file .import Godot viết)
+  RULES.md            luật hiện tại cho người chơi (bảng Luật trong client đọc file này)
+  README.md           các file nằm ở đâu và ghi công
 ```
 
 Chỉ `src/index.ts` và `src/client.ts` là bắt buộc; phần còn lại sắp xếp tuỳ bạn. Giữ `game/` không
@@ -104,10 +126,42 @@ thích, chỉ việc điền vào. Chạy từ thư mục gốc của repo kèm 
 | `npm run new -- logic <id> [Tên]` | `src/game/<Tên>Game.ts` (một `Game`) và file test |
 | `npm run new -- view <id> [Tên]` | `src/scenes/<Tên>View.ts` (một `GameView`) |
 | `npm run new -- setup <id> [Tên]` | `src/scenes/<Tên>Setup.ts` (màn "Tạo phòng") và `src/game/options.ts` |
-| `npm run new -- game <id> ["Tên"]` | cả một thư mục game (giống `npm run new:game`) |
+| `npm run new:game -- <id> "Tên" --genre <g> [--layout ban\|hanh-dong]` | cả một game: luật, test, `godot/`, e2e, RULES.md, README |
+| `npm run new:event -- <id> "Tên" [--opens …] [--closes …]` | cả một sự kiện, như trên, thêm ngày mở/đóng và dải thưởng |
 
 Lệnh in ra dòng cần thêm vào `index.ts` hoặc `client.ts` để dùng file mới. Các mẫu nằm trong
 `scripts/templates/`.
+
+## Màn hình Godot (`godot/`)
+
+Client Godot (`apps/client/`) chỉ vẽ state và gửi nước đi; luật vẫn ở TypeScript trên server.
+Mỗi game có `godot/main.tscn`, gốc là một `Control` có script `main.gd`:
+
+- `bind(client: XomDaoClient)`: hub gọi một lần khi ván bắt đầu. Nghe `client.state_changed`,
+  vẽ `client.snapshot` (`snapshot.view` là `view` của game, khoá camelCase như trên server;
+  `snapshot.seats`, `snapshot.status`, `client.player_id`).
+- Gửi sự kiện: `await _client.send("add", {"amount": 2})`.
+- `sandbox_options() -> Dictionary`: tuỳ chọn phòng cho `?play=<id>` (bản debug), thường là có
+  máy chơi.
+- `room_setup() -> Array`: các hàng của bảng Tạo phòng,
+  `{key, label, options: [[nhãn, giá trị], …], default?}`, khớp `room.options`.
+- Hub vẽ nút ☰, phòng chờ, bảng kết quả và bảng Luật (đọc `RULES.md`). Game để trống ô vuông
+  88 × 88 ở góc trên trái cho nút ☰ và chỉ vẽ bàn chơi.
+- Theo một bố cục mẫu trong `docs/experience.md`: **Bàn** (bàn ở giữa cao gần trọn khung, ô
+  người chơi quanh bàn, của mình ở dưới, nút hành động dưới phải) hoặc **Hành động** (cảnh chơi,
+  mục tiêu trên trái dưới ☰, bộ đếm trên phải, điều khiển dưới trái, nút hành động dưới phải).
+- Dựng giao diện bằng bộ UI chung (`XomDaoButton`, `XomDaoPlayerSlot`, `XomDaoChip`, màu và font
+  trong `XomDaoUi`), không tự làm nút hay font riêng. Toạ độ là đơn vị thiết kế trên khung cao
+  720, rộng 960 đến 1600; đặt vị trí trong `_layout()` theo `XomDaoFrame.safe_inset(self)` và lề
+  `XomDaoSettings.current().margin`.
+- Script của game chỉ dùng thư mục của nó (`res://content/<id>/`) và `res://addons/xomdao_sdk/`;
+  `npm run godot:check` kiểm tra điều này, định dạng, lint và chạy test GUT.
+- Đặt tên mọi node mà test bấm hoặc đọc (`Add_1`, `Seat_0`, `Status`): test GUT tìm theo tên,
+  kịch bản e2e bấm qua `window.xomdao` (`scripts/e2e/godot.mjs`).
+
+Chuyển một game Phaser sang Godot: giữ nguyên luật, thêm `godot/` theo một bố cục mẫu, test GUT
+và kịch bản `godot-<id>.mjs`. Agent có skill `.claude/skills/port-phaser-game/` cho việc này;
+`apps/client/AGENTS.md` có đủ quy tắc của client.
 
 ## Phần logic (`Game`)
 
@@ -571,8 +625,8 @@ meta: {
 
 ## Sự kiện
 
-Sự kiện là một trò có ngày mở và ngày đóng. Mẫu là `games/trung-thu` (Câu cá Trung Thu, một
-người chơi).
+Sự kiện là một trò có ngày mở và ngày đóng. `npm run new:event -- <id> "Tên"` tạo một sự kiện
+mẫu; ví dụ đầy đủ là `games/trung-thu` (Câu cá Trung Thu, một người chơi).
 
 ```ts
 meta: {
