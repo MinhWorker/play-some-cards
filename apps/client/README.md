@@ -94,6 +94,8 @@ cần bấm hay đọc đều có tên, ví dụ ô Caro là `Cell_<x>_<y>`.
 
 - `npm run e2e -- --only godot-lobby`: từ sảnh bấm CHƠI, thắng máy, số dư tăng; bạn vào bằng link.
 - `npm run e2e -- --only godot-caro`: hai người chơi Caro qua mã phòng ở Bến, thêm một ván sandbox.
+- `npm run e2e -- --only godot-tien-len`: ba vòng Tiến Lên với ba máy trong sandbox, chọn bài bằng
+  chuột thật, tới bảng kết quả.
 - `npm run shots -- --path '/godot/?play=tic-tac-toe'`: ảnh chụp trên các cỡ điện thoại.
 
 ## Xuất bản

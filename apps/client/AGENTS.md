@@ -46,7 +46,8 @@ export_presets.cfg  The Web preset: single-threaded, PWA
   XomDaoClient)` once in the tree, draws `client.snapshot` and follows `state_changed`. It may
   define `sandbox_options() -> Dictionary`, the room options for `?play=<id>` (debug builds: a
   real room with the computer in the seats, started at once), and `room_setup() -> Array`, the
-  Tạo phòng board's rows (`{key, label, options: [[label, value], …]}`, first is the default).
+  Tạo phòng board's rows (`{key, label, options: [[label, value], …], default?}`: the first
+  option is picked, or the one at index `default`).
   The hub draws the ☰ menu, the room, the result and Luật (the game's RULES.md, which
   `godot:export` puts in its pack); the game draws only its table.
 - A catalog card is playable here only when the client has its pack (`ContentLoader.available()`);
@@ -100,7 +101,7 @@ export_presets.cfg  The Web preset: single-threaded, PWA
 In the browser: `npm run dev` serves `dist/` at http://localhost:5033/godot/ (export again to see
 changes) and proxies `/ws`. `npm run e2e -- --only godot-caro` and
 `npm run shots -- --path '/godot/?play=tic-tac-toe'` need a debug export there. CI's `godot` job
-runs that scenario; `e2e-plan` skips it. Vercel builds the client too (`tools/godot/vercel.mjs`:
+runs every `godot-*` scenario (listed in `ci.yml`: add a new one there); `e2e-plan` skips them. Vercel builds the client too (`tools/godot/vercel.mjs`:
 release on production, debug on previews) and serves it at `/godot/`.
 
 Format a script with `.tools/gdtoolkit/bin/gdformat <file>`.

@@ -18,6 +18,7 @@ Tiến Lên miền Nam cho 2–4 người, chơi nhiều vòng và tính điểm
 | Lá bài và kiểu mặt bài | `src/scenes/Card.ts`, `deck.ts` |
 | Kết quả và thông báo | `src/scenes/Standings.ts`, `Callout.ts` |
 | Tạo phòng | `src/scenes/Setup.ts` |
+| Bàn trong client Godot | `godot/main.gd` (bàn, ghế, hiệu ứng), `hand.gd` (bài trên tay), `card.gd` (lá bài), `rules.gd` (bộ và chặn, chép từ `cards.ts`); test: `godot/test/` |
 
 `src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
 `assets/` chứa hình và âm thanh dùng trực tiếp, `sources/` chứa nguồn và prompt.
@@ -26,6 +27,8 @@ Test nằm cạnh phần logic với đuôi `.test.ts`.
 ## Phát triển
 
 Chạy `npm run dev` ở gốc repo rồi mở `http://localhost:5033/?play=tien-len&players=4`.
+Bản Godot: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=tien-len`
+(ba máy, ba vòng, trên server thật).
 Kiểm tra bằng `npm run check`. Hướng dẫn SDK và Dev Console:
 [tạo game](../../docs/making-a-game.md).
 
@@ -33,5 +36,6 @@ Kiểm tra bằng `npm run check`. Hướng dẫn SDK và Dev Console:
 
 Hình tạo bằng Codex (`sources/prompts.json`); vân chiếu tạo bằng `scripts/mat-texture.mjs`.
 Kiểu mặt bài khai báo trong `src/scenes/deck.ts`. Âm thanh dùng trực tiếp từ `assets/`;
-bản gốc ở `assets/games/tien-len/audio/`. Nguồn Pixabay và giấy phép ghi ở
+bản gốc ở `assets/games/tien-len/audio/`. Bản Godot giữ bản sao của hình và âm thanh nó dùng trong
+`godot/art/` và `godot/sounds/`, vì gói của trò chỉ được đọc thư mục của nó. Nguồn Pixabay và giấy phép ghi ở
 [LICENSE-ASSETS.md](../../LICENSE-ASSETS.md).
