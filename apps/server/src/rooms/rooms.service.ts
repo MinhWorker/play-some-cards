@@ -64,6 +64,11 @@ export interface Room {
   startedAt: number | null;
   endedAt: number | null;
   createdAt: number;
+  /**
+   * Made by quick match (CHƠI): others quick-matching into this game join it, and the computer
+   * fills its empty seats after a while (`fillQuick`). Off once its first game starts.
+   */
+  quick?: boolean;
   /** Available only when the server starts with XOMDAO_DEV=1. */
   dev?: RoomDev;
 }
@@ -152,6 +157,51 @@ export class RoomsService {
     this.rooms.set(room.code, room);
     logRoom(room, { kind: 'room', level: 'info', text: `${player.name} tạo phòng` });
     return { room, player };
+  }
+
+  /**
+   * Quick match (CHƠI): a seat in a waiting quick-match room of this game, or a new one
+   * (`created`). The gateway starts it once full, or fills it with bots after a while.
+   */
+  quickMatch(gameId: string, account: Account) {
+    const open = [...this.rooms.values()].find(
+      (room) =>
+        room.quick &&
+        room.game.id === gameId &&
+        this.seatError(room) === null &&
+        room.players.some((p) => !p.bot && p.connected),
+    );
+    if (open) return { ...this.join(open.code, account, 'player'), created: false };
+    const made = this.create(gameId, account);
+    made.room.quick = true;
+    return { ...made, created: true };
+  }
+
+  /** A quick-match room has a player in every seat: time to start. */
+  isFull(room: Room) {
+    return room.players.length >= room.game.maxPlayers;
+  }
+
+  /**
+   * Nobody else came to a quick-match room: the computer takes the empty seats (when the game
+   * lets it, `room.withBots`) and the game starts. Returns the room when it changed.
+   */
+  fillQuick(code: string) {
+    const room = this.rooms.get(code);
+    if (!room?.quick || room.status !== 'lobby' || room.hostId === null) return undefined;
+    const humans = room.players.filter((p) => !p.bot);
+    const setup = room.game.room;
+    const wanted = room.game.maxPlayers - humans.length;
+    if (wanted > 0 && room.game.bot && setup?.withBots) {
+      const parsed = setup.options.safeParse(setup.withBots(room.options, wanted));
+      if (parsed.success) {
+        const bots = this.botCount(room.game, parsed.data);
+        room.options = parsed.data;
+        room.players = [...humans, ...this.newBots(bots)];
+      }
+    }
+    if (room.players.length < room.game.minPlayers) return undefined;
+    return this.start(code, room.hostId);
   }
 
   /** Rooms of one game that someone is still in: open seats first, then oldest first. */
@@ -326,6 +376,7 @@ export class RoomsService {
       ),
     );
     room.status = 'playing';
+    room.quick = false;
     room.result = null;
     room.startedAt = Date.now();
     room.endedAt = null;

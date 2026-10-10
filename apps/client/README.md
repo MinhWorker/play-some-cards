@@ -55,12 +55,27 @@ Protocol chỉ viết một lần, bằng schema zod trong `packages/shared/src/
 xong thì chạy `npm run gen:protocol` để sinh lại GDScript; `npm run check` báo lỗi nếu quên.
 `npm run godot:net` chạy server thật (không DB) rồi chạy test GUT kết nối với nó.
 
-## Màn tạm (Caro)
+## Sảnh và các màn
 
-Tới khi có sảnh vòng đảo, màn đầu tiên là màn tạm của Caro: "Chơi với máy", "Tạo phòng", hoặc gõ
-mã phòng rồi "Vào". Phòng hiện mã, người chơi, nút "Mời bạn" (sao chép link `?room=<mã>`) và
-"Bắt đầu" cho chủ phòng. Hết ván có bảng kết quả với "Về sảnh" và "Chơi ván mới". Lần đầu vào
-trò, client tải gói `.pck` của trò đó (`ContentLoader`) và giữ nó trong `user://` cho lần sau.
+Màn đầu tiên là sảnh: vòng đảo thể loại trên biển (Cờ, Bài, rồi thể loại phụ; đảo Sắp có khi chưa
+có thể loại phụ). Vuốt ngang hoặc chạm một đảo để xoay; chạm lại đảo đang chọn hoặc thẻ trò ở dưới
+phải để mở màn chọn trò. HUD: hồ sơ trên trái, số xu và ⚙ trên phải, banner Chợ, hàng Nhà, Chợ,
+Đình, Bến dưới trái (Nhà, Chợ, Đình còn "Sắp có"), thẻ trò đang chọn với **CHƠI** và **Tạo phòng**.
+
+- **CHƠI** là ghép nhanh: vào phòng đang chờ của trò đó, không ai tới thì sau vài giây máy ngồi ghế
+  trống và ván bắt đầu.
+- **Tạo phòng** mở bảng tuỳ chọn do trò điền (`room_setup()`), rồi tới phòng chờ có mã, người
+  chơi, "Mời bạn" (sao chép link `?room=<mã>`) và "Bắt đầu" cho chủ phòng.
+- **Chọn trò**: tab thể loại, thẻ trò kéo ngang, bảng chi tiết với Chọn, Luật, Tạo phòng, Danh
+  sách phòng. Chọn thẻ là gói `.pck` của trò bắt đầu tải ngầm. Trò chưa có bản Godot hiện mờ, có
+  ổ khoá.
+- **Bến**: gõ mã phòng rồi "Vào", hoặc chọn một phòng đang mở của trò đang chọn.
+- **Trong ván** chỉ có nút ☰ (rời phòng có hỏi lại khi đang giữa ván, luật, cài đặt, biểu cảm).
+- **Kết quả**: thứ hạng, phần thưởng từng người (tăng xanh, giảm đỏ), xu bay vào số dư; "Chơi
+  tiếp" và "Về sảnh".
+
+Trò đang chọn được nhớ theo tài khoản trên máy này. Lần đầu vào trò, client tải gói `.pck` của
+trò đó (`ContentLoader`) và giữ nó trong `user://` cho lần sau.
 
 Link:
 
@@ -77,7 +92,8 @@ Bản debug có cầu nối test `window.xomdao` cho e2e và `npm run shots`: `s
 `text(tên)`, `rect(tên)`, `click(tên)`, `state()` (xem đầu `core/test_bridge.gd`). Node nào test
 cần bấm hay đọc đều có tên, ví dụ ô Caro là `Cell_<x>_<y>`.
 
-- `npm run e2e -- --only godot-caro`: hai người chơi Caro qua mã phòng, thêm một ván sandbox.
+- `npm run e2e -- --only godot-lobby`: từ sảnh bấm CHƠI, thắng máy, số dư tăng; bạn vào bằng link.
+- `npm run e2e -- --only godot-caro`: hai người chơi Caro qua mã phòng ở Bến, thêm một ván sandbox.
 - `npm run shots -- --path '/godot/?play=tic-tac-toe'`: ảnh chụp trên các cỡ điện thoại.
 
 ## Xuất bản

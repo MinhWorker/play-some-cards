@@ -1,7 +1,8 @@
-// Caro in the Godot client (#113): a host on a desktop makes a room and a friend on a phone joins
-// it by typing the code. They play to a win; the board grows at its edges. Then a rematch, and
-// the host leaves. Meanwhile a third phone plays the sandbox (?play=tic-tac-toe) against the
-// computer. Needs the debug web build at /godot/ (npm run godot:export -- --debug).
+// Caro in the Godot client (#113, #117): a host on a desktop makes a room (Tạo phòng) and a
+// friend on a phone joins it by typing the code at Bến. They play to a win; the board grows at
+// its edges. Then a rematch, and the host leaves mid-game. Meanwhile a third phone plays the
+// sandbox (?play=tic-tac-toe) against the computer. Needs the debug web build at /godot/
+// (npm run godot:export -- --debug).
 
 import { caroTap, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
@@ -14,13 +15,16 @@ export default async function run(t) {
   const guest = await openGodot(t, await t.page(PHONE));
   const solo = await openGodot(t, await t.page(PHONE), '?play=tic-tac-toe');
 
-  await onScene(host, 'home');
-  await host.screenshot({ path: t.shot('1-home.png') });
+  await onScene(host, 'lobby');
   await tap(host, 'CreateRoom');
+  await host.screenshot({ path: t.shot('1-create.png') });
+  await tap(host, 'ConfirmCreate');
   await onScene(host, 'room');
   const code = await godotText(host, 'RoomCode', /^[A-Z0-9]{4}$/);
 
-  await onScene(guest, 'home');
+  await onScene(guest, 'lobby');
+  await tap(guest, 'Place_ben');
+  await onScene(guest, 'ben');
   await tap(guest, 'CodeInput');
   await guest.keyboard.type(code.toLowerCase());
   // Godot takes the keys on its next frames.
@@ -70,7 +74,8 @@ export default async function run(t) {
   });
   await tap(host, 'Menu');
   await tap(host, 'Leave');
-  await onScene(host, 'home');
+  await tap(host, 'ConfirmLeave');
+  await onScene(host, 'lobby');
   await onScene(guest, 'room');
   await godotText(guest, 'Start', 'Bắt đầu');
 

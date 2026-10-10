@@ -15,6 +15,11 @@ var currency: XomDaoResourceIcon.Currency = XomDaoResourceIcon.Currency.COIN:
 		currency = value
 		_icon.currency = value
 
+## The number as shown right now (it rolls during count_to).
+var text: String:
+	get:
+		return _label.text
+
 var _pill := Panel.new()
 var _label := Label.new()
 var _icon := XomDaoResourceIcon.new()

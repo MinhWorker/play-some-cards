@@ -93,6 +93,8 @@ games/<id>/          Only index.ts + client.ts are required
   - `room.options` is a zod schema, and `optionsSchema.parse({})` must work.
   - A game reads the options as `ctx.options` in both the `Game` and the `GameView`.
   - `room.bots` seats computer players, whose moves come from `bot(ctx)`.
+  - `room.withBots(options, count)` gives the options with the computer in `count` empty seats:
+    quick match (CHƠI) fills a room with it when nobody else comes (`QUICK_WAIT_MS`).
   - The host changes options between games through "Tuỳ chỉnh" or `changeOptions`.
 - **Snapshots** carry `round` and `last` (the last event). `ctx.lastResult` is how the room's
   previous game ended.

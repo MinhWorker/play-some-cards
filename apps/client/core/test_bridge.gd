@@ -2,12 +2,12 @@ extends Node
 ## window.xomdao, for headless browser tests (scripts/e2e, npm run shots). Debug web builds only;
 ## a release build has none of it.
 ##
-##   xomdao.scene()         the current screen: "home", "room", the game's id…
+##   xomdao.scene()         the current screen: "lobby", "select", "ben", "room", the game's id…
 ##   xomdao.tree(depth)     visible nodes as { name, type, text?, children? }
 ##   xomdao.text(name)      the text of the first visible node with that name, or null
 ##   xomdao.rect(name)      its box in CSS pixels of the page { x, y, width, height }, or null
 ##   xomdao.click(name)     presses that button (BaseButton.pressed); false when there is none
-##   xomdao.state()         { scene, user, room: the latest room snapshot, downloaded }
+##   xomdao.state()         { scene, user, room: the latest room snapshot, balances, downloaded }
 ##
 ## Each call runs synchronously in Godot (single-threaded build) and returns plain JSON data.
 
@@ -100,6 +100,7 @@ func _state() -> Dictionary:
 		"user": client.user.to_dict() if client.user != null else null,
 		"playerId": client.player_id,
 		"room": client.snapshot.to_dict() if client.snapshot != null else null,
+		"balances": client.balances,
 		"downloaded": ContentLoader.downloaded,
 	}
 

@@ -23,5 +23,9 @@ export default definePlugin({
     duration: { min: 2, max: 5 },
   },
   game: new BaiCaoGame(),
-  room: { options: optionsSchema, bots: (options) => options.bots },
+  room: {
+    options: optionsSchema,
+    bots: (options) => options.bots,
+    withBots: (options, count) => ({ ...options, bots: count }),
+  },
 });

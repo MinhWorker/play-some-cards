@@ -19,5 +19,9 @@ export default definePlugin({
     duration: { min: 20, max: 40 },
   },
   game: new CoCaNguaGame(),
-  room: { options: optionsSchema, bots: (options) => options.bots },
+  room: {
+    options: optionsSchema,
+    bots: (options) => options.bots,
+    withBots: (options, count) => ({ ...options, bots: count }),
+  },
 });

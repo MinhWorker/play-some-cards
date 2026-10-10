@@ -25,7 +25,7 @@ import { avatarSchema, frameSchema, profileSchema } from './account.js';
  * version). CI fails when this file changes without a bump, unless the PR has the
  * `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
 /** Error when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -316,6 +316,12 @@ export const requests = {
     req: z.object({ gameId: z.string(), options: z.unknown().optional() }),
     res: JoinedRoom,
   },
+  /**
+   * Quick match (CHƠI): a seat in a waiting quick-match room of this game, else a new one. It
+   * starts once full; if nobody else comes for a while, the computer takes the empty seats
+   * (games with `room.withBots`) and it starts.
+   */
+  'room:quick': { req: z.object({ gameId: z.string() }), res: JoinedRoom },
   /** Joins by the room's short code (any case), as a player or to watch. */
   'room:join': { req: z.object({ roomCode: z.string(), role: RoomRole }), res: JoinedRoom },
   /**

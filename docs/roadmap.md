@@ -102,10 +102,12 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 - [x] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự, chính/phụ): bản đầu chỉ có hai thể
       loại chính Cờ và Bài; plugin
       khai báo `kind` (`table`, `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
-- [ ] Sảnh: Xóm + hai đảo lớn Cờ, Bài ở chỗ cố định + thể loại phụ gom vào khoảng trống còn lại
-      (lúc đầu là đảo Sắp có) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
-      tải ngầm `.pck` của trò
-- [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
+- [x] Sảnh: vòng đảo thể loại xoay được (Cờ, Bài, rồi thể loại phụ; đảo Sắp có khi chưa có thể
+      loại phụ) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì tải ngầm
+      `.pck` của trò. Đảo còn vẽ tạm bằng code, chờ ảnh `hub/genres/<island>.webp`
+- [x] CHƠI ghép nhanh (`room:quick`, máy ngồi ghế trống sau một lúc), Bến (mã phòng, phòng mở),
+      tạo/vào phòng, kết quả có xu bay vào số dư
+- [ ] Đăng nhập, hồ sơ (Nhà)
 - [x] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
       khai báo của trò. Bảng dữ liệu thiết kế sẵn cho nhiều loại tài nguyên
 - [x] Bộ thành phần giao diện Godot trong `xomdao_sdk/ui`: theme, nút, bảng, hàng tiền, ô người

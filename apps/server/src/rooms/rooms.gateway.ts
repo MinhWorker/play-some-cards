@@ -54,6 +54,11 @@ const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
  * sets BOT_DELAY_MS lower: a test doesn't need to follow along.
  */
 const BOT_DELAY_MS = Number(process.env.BOT_DELAY_MS) || 700;
+/**
+ * How long a new quick-match room (CHƠI) waits for other people before the computer takes the
+ * empty seats (QUICK_WAIT_MS overrides it).
+ */
+const QUICK_WAIT_MS = Number(process.env.QUICK_WAIT_MS) || 6000;
 
 /**
  * Translates Socket.IO events into RoomsService calls. Each handler's return value
@@ -74,6 +79,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   private readonly botTimers = new Map<string, NodeJS.Timeout>();
   /** Pending game timers (`ctx.setTimer`), by room code. */
   private readonly gameTimers = new Map<string, NodeJS.Timeout>();
+  /** Quick-match rooms waiting for people before the computer fills them, by room code. */
+  private readonly quickTimers = new Map<string, NodeJS.Timeout>();
   /** Clients on the other transport (`WsGateway`). */
   private readonly extra = new Set<Client>();
 
@@ -215,6 +222,21 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       this.leaveCurrentRoom(socket);
       const { room } = this.rooms.create(req.gameId, socket.data.user, req.options);
       return this.enter(socket, room);
+    });
+  }
+
+  @SubscribeMessage('room:quick')
+  quick(socket: Client, req: { gameId: string }) {
+    return this.handle(() => {
+      this.leaveCurrentRoom(socket);
+      const { room, created } = this.rooms.quickMatch(req?.gameId, socket.data.user);
+      const joined = this.enter(socket, room);
+      if (this.rooms.isFull(room)) this.fillQuick(room.code);
+      else if (created) {
+        const timer = setTimeout(() => this.fillQuick(room.code), QUICK_WAIT_MS);
+        this.quickTimers.set(room.code, timer);
+      }
+      return joined;
     });
   }
 
@@ -375,8 +397,22 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     return [...this.server.sockets.sockets.values(), ...this.extra];
   }
 
+  /** Starts a quick-match room, with the computer in the seats nobody came for. */
+  private fillQuick(code: string) {
+    clearTimeout(this.quickTimers.get(code));
+    this.quickTimers.delete(code);
+    try {
+      const room = this.rooms.fillQuick(code);
+      if (room) this.broadcast(room);
+    } catch (err) {
+      console.error(`Quick match ${code} could not start:`, err);
+    }
+  }
+
   /** Sends everyone still in a deleted room back out, then refreshes the room list. */
   private disband(room: Room) {
+    clearTimeout(this.quickTimers.get(room.code));
+    this.quickTimers.delete(room.code);
     for (const socket of this.clients()) {
       if (socket.data.roomCode !== room.code) continue;
       socket.emit('room:closed', { gameId: room.game.id, reason: 'Phòng đã giải tán' });

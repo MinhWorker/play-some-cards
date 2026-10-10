@@ -30,6 +30,7 @@ var quality: XomDaoChoice = XomDaoChoice.create(QUALITY_LABELS)
 
 var _settings: XomDaoSettings
 var _shade := ColorRect.new()
+var _side := VBoxContainer.new()
 
 
 func _init(settings: XomDaoSettings = null) -> void:
@@ -57,6 +58,19 @@ func is_open() -> bool:
 
 
 func open() -> void:
+	board.title = "Menu"
+	_side.visible = true
+	_show()
+
+
+## Only the settings (⚙ outside a game): no leaving, rules or emotes.
+func open_settings() -> void:
+	board.title = "Cài đặt"
+	_side.visible = false
+	_show()
+
+
+func _show() -> void:
 	_shade.visible = true
 	_layout()
 	board.open()
@@ -115,7 +129,7 @@ func _build_board() -> void:
 		grid.add_child(choice)
 	columns.add_child(grid)
 	# Right: leave, rules, then the emotes.
-	var side := VBoxContainer.new()
+	var side: VBoxContainer = _side
 	side.add_theme_constant_override("separation", 12)
 	side.custom_minimum_size.x = 3.0 * XomDaoIconButton.SIZE + 16.0
 	columns.add_child(side)

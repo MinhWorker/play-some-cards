@@ -22,5 +22,9 @@ export default definePlugin({
     rewardCap: { 'core:coin': WIN_COINS },
   },
   game: new TienLenGame(),
-  room: { options: optionsSchema, bots: (options) => options.bots },
+  room: {
+    options: optionsSchema,
+    bots: (options) => options.bots,
+    withBots: (options, count) => ({ ...options, bots: count }),
+  },
 });

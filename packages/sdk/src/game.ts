@@ -136,6 +136,11 @@ export interface RoomSetup<Options> {
   options: z.ZodType<Options>;
   /** How many seats the computer takes in a new room (needs `rules.bot`). */
   bots?(options: Options): number;
+  /**
+   * The options of a quick-match room (CHƠI in the hub) once the computer takes `count` empty
+   * seats, which `bots` must then report. Without it, quick-match rooms wait for people.
+   */
+  withBots?(options: Options, count: number): Options;
 }
 
 /** How a game appears in the app. */
