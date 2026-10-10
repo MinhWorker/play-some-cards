@@ -1,7 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build -w @xomdao/shared && npm run build -w @xomdao/web",
+  "buildCommand": "npm run build -w @xomdao/shared && node tools/godot/vercel.mjs && npm run build -w @xomdao/web",
   "outputDirectory": "apps/web/dist",
-  "framework": null
+  "framework": null,
+  "redirects": [{ "source": "/godot", "destination": "/godot/" }],
+  "headers": [
+    {
+      "source": "/godot/content/(.*)\\.pck",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
 }

@@ -19,39 +19,3 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.56078434, 0.827451, 0.95686275, 1)
-
-[node name="Core" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -480.0
-offset_top = -360.0
-offset_right = 480.0
-offset_bottom = 360.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.68235296, 0.8784314, 0.972549, 1)
-
-[node name="Title" type="Label" parent="Core"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -240.0
-offset_top = -48.0
-offset_right = 240.0
-offset_bottom = 48.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0.1254902, 0.33333334, 0.5019608, 1)
-theme_override_constants/outline_size = 12
-theme_override_font_sizes/font_size = 64
-text = "Xóm Đảo"
-horizontal_alignment = 1
-vertical_alignment = 1

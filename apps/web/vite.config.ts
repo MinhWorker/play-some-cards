@@ -1,9 +1,10 @@
 import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { cpSync, createReadStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
 import { PROTOCOL_VERSION } from '@xomdao/shared';
-import { defaultClientConditions, defineConfig } from 'vite';
+import { defaultClientConditions, defineConfig, type Plugin } from 'vite';
 
 // Ports can be moved (e.g. to run a second copy of the repo next to the first one):
 // WEB_PORT for this dev server, PORT for the game server it forwards to (same as the server's).
@@ -30,9 +31,54 @@ const deployment = {
   waitForServer: process.env.VERCEL_ENV === 'production',
 };
 
+// The Godot client's web build (npm run godot:export → apps/client/dist) lives at /godot/: served
+// from there in dev, copied into this app's dist/ by `vite build` when it exists.
+const godotDist = fileURLToPath(new URL('../client/dist', import.meta.url));
+const GODOT_TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.json': 'application/json',
+  '.wasm': 'application/wasm',
+  '.png': 'image/png',
+};
+function godot(): Plugin {
+  let outDir = '';
+  return {
+    name: 'xomdao-godot',
+    configResolved: (config) => {
+      outDir = join(config.root, config.build.outDir);
+    },
+    configureServer: (server) => {
+      server.middlewares.use('/godot', (req, res) => {
+        const path = normalize(decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname));
+        if (req.originalUrl?.split('?')[0] === '/godot') {
+          res.writeHead(302, { Location: req.originalUrl.replace('/godot', '/godot/') }).end();
+          return;
+        }
+        const file = join(godotDist, path === '/' ? 'index.html' : path);
+        if (!file.startsWith(godotDist) || !existsSync(file) || statSync(file).isDirectory()) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end(existsSync(godotDist) ? 'Not found' : 'No Godot build: npm run godot:export');
+          return;
+        }
+        res.writeHead(200, {
+          'Content-Type': GODOT_TYPES[extname(file)] ?? 'application/octet-stream',
+          'Cache-Control': 'no-cache',
+        });
+        createReadStream(file).pipe(res);
+      });
+    },
+    closeBundle: () => {
+      if (existsSync(join(godotDist, 'index.html')))
+        cpSync(godotDist, join(outDir, 'godot'), { recursive: true });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
+    godot(),
     {
       name: 'xomdao-build',
       transformIndexHtml: () => [
@@ -65,6 +111,8 @@ export default defineConfig({
     proxy: {
       '/api': api,
       '/socket.io': { target: api, ws: true },
+      // The Godot client's WebSocket (/godot/ above).
+      '^/ws$': { target: api, ws: true },
     },
   },
 });

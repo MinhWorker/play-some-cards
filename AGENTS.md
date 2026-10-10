@@ -50,7 +50,7 @@ docs/              Shared guides for people: making-a-game, ui-guide, deploy
 | `npm run gen:protocol` | Regenerate the Godot protocol classes from the zod schemas in `packages/shared/src/protocol.ts` |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run setup:godot` | Install the pinned Godot, web templates, gdtoolkit and GUT into `.tools/` (Linux, macOS) |
-| `npm run godot -- <args>` | The pinned Godot on `apps/client`; `godot:check`, `godot:link`, `godot:export`, `godot:smoke` in `apps/client/AGENTS.md` |
+| `npm run godot -- <args>` | The pinned Godot on `apps/client`; `godot:check`, `godot:link`, `godot:export`, `godot:smoke`, `godot:measure` in `apps/client/AGENTS.md`. `npm run dev` serves the export at `/godot/` |
 | `npm run setup:blender` | Install bpy + Pillow into `.tools/blender` (needs Python 3.13) |
 | `npm run blender -- <id> [names…]` | Bake game art with the `.tools/blender` bpy, Blender or `XOMDAO_BLENDER_PYTHON`; see `assets/AGENTS.md` |
 | `npm run e2e [url]` | Headless Chromium plays every scenario in `scripts/e2e/scenarios/` through the real UI, side by side (needs a running dev server). `-- --only <names>`, `-- --changed origin/main`; flags at the top of `scripts/e2e.mjs`. Screenshots in `.e2e/<scenario>/` |

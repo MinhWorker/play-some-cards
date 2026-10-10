@@ -14,6 +14,7 @@ Hai người chơi Caro trên bàn mở rộng, với bạn hoặc máy.
 | Máy | `src/game/bot.ts` |
 | Bàn và tạo phòng | `src/scenes/CaroView.ts`, `Setup.ts` |
 | Màu quân | `src/scenes/theme.ts` |
+| Bàn trong client Godot | `godot/main.tscn`, `godot/main.gd` (test: `godot/test/`) |
 
 `src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
 `assets/` chứa hình và âm thanh dùng trực tiếp, `sources/` chứa nguồn và prompt.
@@ -22,6 +23,8 @@ Test nằm cạnh phần logic với đuôi `.test.ts`.
 ## Phát triển
 
 Chạy `npm run dev` ở gốc repo rồi mở `http://localhost:5033/?play=tic-tac-toe&players=2`.
+Bản Godot: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=tic-tac-toe`
+(chơi với máy trên server thật).
 Kiểm tra bằng `npm run check`. Hướng dẫn SDK và Dev Console:
 [tạo game](../../docs/making-a-game.md).
 

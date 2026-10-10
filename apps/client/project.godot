@@ -24,6 +24,7 @@ Net="*res://core/net.gd"
 Session="*res://core/session.gd"
 Wallet="*res://core/wallet.gd"
 ContentLoader="*res://core/content_loader.gd"
+TestBridge="*res://core/test_bridge.gd"
 
 [debug]
 
