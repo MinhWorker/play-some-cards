@@ -63,7 +63,8 @@ Quy tắc:
 
 - Cả hai đủ dấu tiếng Việt. Baloo 2 đang dùng ở bản web, nên hai bản trông giống nhau trong lúc
   chuyển tiếp. Be Vietnam Pro được vẽ cho tiếng Việt, dấu không đè lên nhau ở cỡ 24.
-- File `.ttf` đặt trong `apps/client/ui/fonts/` kèm `OFL.txt`; ghi nguồn ở `LICENSE-ASSETS.md`.
+- File `.ttf` đặt trong `apps/client/addons/xomdao_sdk/ui/fonts/` kèm giấy phép OFL; ghi nguồn ở
+  `LICENSE-ASSETS.md`.
 - Cỡ theo [ui-guide.md](ui-guide.md#đơn-vị-và-cỡ-tối-thiểu): nhỏ nhất 24, chữ thường 32–36, tiêu đề
   48–72. Số tiền dùng Baloo 2 với chữ số đều (`tnum`), dấu chấm ngăn nghìn (`2.450`).
 - Chữ trên nút viết hoa chữ đầu (`Tạo phòng`), riêng nút **CHƠI** viết hoa hết.

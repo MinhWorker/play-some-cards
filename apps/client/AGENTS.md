@@ -21,8 +21,9 @@ shows state and sends moves. Folder guide (Vietnamese): `apps/client/README.md`.
 project.godot       960 × 720 base, canvas_items + expand, landscape, Compatibility renderer
 core/               Autoloads: Net (holds the app's XomDaoClient), Session, Wallet, ContentLoader
 hub/                The lobby and each platform module's screen (hub/<module>/); main.tscn starts
-ui/                 Shared theme and widgets (not yet)
+  gallery/          Every UI kit component on 4 pages: ?gallery=<page> or `-- --gallery=<page>`
 addons/xomdao_sdk/  The only API a game's Godot code uses: XomDaoFrame, XomDaoClient (client.gd)
+  ui/               The shared UI kit (theme, widgets, fonts, Phosphor icons, UI sounds)
   generated/        XomDao<Type> classes + XomDaoProtocol from npm run gen:protocol (never edit)
 content/<id>        Symlinks to games/<id>/godot, made by npm run godot:link (ignored)
 test/               GUT tests of the core (test_*.gd)
@@ -44,6 +45,22 @@ export_presets.cfg  The Web preset: single-threaded, PWA
   reconnects and resumes by itself. Its header is the API reference.
 - Protocol classes come from zod (`packages/shared/src/protocol.ts`): change the schema, then run
   `npm run gen:protocol`. JSON keys stay camelCase; fields are snake_case.
+- Screens and games build their UI from the kit in `addons/xomdao_sdk/ui/`
+  (docs/art-direction.md made into code), never their own buttons, fonts or HUD colours:
+  - `XomDaoUi`: palette, fonts, icons (`XomDaoUi.icon("gear")`, Phosphor Fill), `theme()`,
+    `money()` / `delta()`, `play()` for the shared sounds, `bounce()`;
+  - widgets: `XomDaoButton` (colour by `XomDaoUi.Kind`), `XomDaoIconButton`, `XomDaoBoard`,
+    `XomDaoMoney`, `XomDaoDelta`, `XomDaoChip`, `XomDaoAvatar`, `XomDaoPlayerSlot`,
+    `XomDaoGameTile`, `XomDaoChoice`, `XomDaoToast`, `XomDaoDot`, `XomDaoDivider`, `XomDaoMenu`;
+  - `XomDaoSettings`: sound, HUD scale, margin, picture quality (user://settings.cfg). The
+    quality is saved but does not change the rendering yet.
+  Each script's header shows its use. Add a new component to the gallery
+  (`hub/gallery/gallery.gd`) and check it there.
+- Look at a gallery page without a browser:
+  `xvfb-run -a npm run godot -- --rendering-driver opengl3 --resolution 1280x720 -- --gallery=2 --save=/tmp/g2.png`.
+  For real phone sizes, serve `dist/` after `godot:export` and run
+  `npm run shots -- <url> --path '/?gallery=2' --wait 12000`.
+- `node scripts/ui-sounds.mjs` synthesizes the UI sounds (tap, panel, coin) again.
 - Commit the `.uid` files Godot writes next to scripts.
 
 ## Commands

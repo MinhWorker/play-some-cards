@@ -23,6 +23,12 @@ Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `
   `assets/audio/sfx/pw23check-winning-218995.mp3` ("winning" của pw23check, Pixabay). Âm thanh
   của Mậu Binh (`games/mau-binh/assets/mau-binh-*`) là bản sao đổi tên của các file Tiến Lên trên
   nên theo cùng nguồn và giấy phép.
+- **Font và icon của client Godot** (`apps/client/addons/xomdao_sdk/ui/`): font
+  [Baloo 2](https://github.com/EkType/Baloo2) và [Be Vietnam Pro](https://github.com/bettergui/BeVietnamPro)
+  theo SIL Open Font License 1.1 (giấy phép kèm trong `fonts/`); icon
+  [Phosphor Icons](https://phosphoricons.com) kiểu Fill theo giấy phép MIT (Copyright (c) 2023
+  Phosphor Icons, kèm trong `icons/`). Ba âm thanh giao diện trong `sounds/` được tổng hợp bằng
+  code (`scripts/ui-sounds.mjs`) và theo giấy phép chung ở trên.
 - **Ảnh của Long** (`assets/shared/images/Long-look-at-u.jpg` và avatar làm từ nó,
   `apps/web/public/shared/images/avatar-long.webp`), là ảnh người thật: không được dùng lại bên
   ngoài game này.
