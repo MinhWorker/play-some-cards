@@ -81,6 +81,8 @@ var _revealed_seen: Array = []
 var _shown: Array[String] = []
 var _ended: bool = false
 var _tick: int = -1
+## When the last snapshot came (ms), to count its timer down.
+var _shown_at: int = 0
 var _center := Vector2.ZERO
 
 
@@ -208,6 +210,7 @@ func _art(name_of: String) -> Texture2D:
 
 func _show(snapshot: XomDaoRoomSnapshot) -> void:
 	_snapshot = snapshot
+	_shown_at = Time.get_ticks_msec()
 	if snapshot.view is not Dictionary:
 		return
 	var view: Dictionary = snapshot.view
@@ -732,7 +735,8 @@ func _show_countdown() -> void:
 	if not counting:
 		_countdown.text = ""
 		return
-	var left: int = ceili(maxf(0.0, timer.left) / 1000.0)
+	var left_ms: float = timer.left - (Time.get_ticks_msec() - _shown_at)
+	var left: int = ceili(maxf(0.0, left_ms) / 1000.0)
 	_countdown.text = "%d giây" % left
 	var acting: bool = (_bets.size() > 0 and _bets[0].visible) or _reveal.visible
 	if acting and left <= 3 and left > 0 and left != _tick:
