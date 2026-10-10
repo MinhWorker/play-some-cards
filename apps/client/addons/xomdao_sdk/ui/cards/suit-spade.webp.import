@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://byl43xv2u3kya"
-path="res://.godot/imported/face-classic.webp-6edff48aacc5daff8c6dc38edea457d4.ctex"
+uid="uid://dde6s1wuaaa10"
+path="res://.godot/imported/suit-spade.webp-964564f206740f1844b1d0a17becbb52.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/tien-len/art/face-classic.webp"
-dest_files=["res://.godot/imported/face-classic.webp-6edff48aacc5daff8c6dc38edea457d4.ctex"]
+source_file="res://addons/xomdao_sdk/ui/cards/suit-spade.webp"
+dest_files=["res://.godot/imported/suit-spade.webp-964564f206740f1844b1d0a17becbb52.ctex"]
 
 [params]
 

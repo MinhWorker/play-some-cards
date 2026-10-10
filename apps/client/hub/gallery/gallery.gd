@@ -135,6 +135,15 @@ func _players_page() -> Control:
 	hoa.show_turn()
 	slots.add_child(hoa)
 	row.add_child(slots)
+	var cards := _column(12)
+	for face: Array in [["A", 3], ["10", 0], ["", 0]]:
+		var card := XomDaoCard.new()
+		card.custom_minimum_size = Vector2(72.0, 72.0 * XomDaoCard.RATIO)
+		card.rank = face[0]
+		card.suit = face[1]
+		card.picked = face[0] == "A"
+		cards.add_child(card)
+	row.add_child(cards)
 	var chosen := XomDaoGameTile.new()
 	chosen.title = "Tiến Lên"
 	chosen.art = load(SAMPLES + "tien-len.webp")

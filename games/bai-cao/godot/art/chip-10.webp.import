@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://chesssifpxu8n"
-path="res://.godot/imported/suit-spade.webp-8de76de899d15b5ac3d5ddb386333866.ctex"
+uid="uid://dfddvuqn8ifyc"
+path="res://.godot/imported/chip-10.webp-5c187dfa37fdb562faba74b3dc5922a3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/tien-len/art/suit-spade.webp"
-dest_files=["res://.godot/imported/suit-spade.webp-8de76de899d15b5ac3d5ddb386333866.ctex"]
+source_file="res://content/bai-cao/art/chip-10.webp"
+dest_files=["res://.godot/imported/chip-10.webp-5c187dfa37fdb562faba74b3dc5922a3.ctex"]
 
 [params]
 

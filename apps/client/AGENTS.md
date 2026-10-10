@@ -82,6 +82,7 @@ export_presets.cfg  The Web preset: single-threaded, PWA
   - widgets: `XomDaoButton` (colour by `XomDaoUi.Kind`), `XomDaoIconButton`, `XomDaoBoard`,
     `XomDaoMoney`, `XomDaoDelta`, `XomDaoChip`, `XomDaoAvatar`, `XomDaoPlayerSlot`,
     `XomDaoGameTile`, `XomDaoChoice`, `XomDaoToast`, `XomDaoDot`, `XomDaoDivider`, `XomDaoMenu`;
+  - card games: `XomDaoCard` (a playing card, face or back) and `XomDaoMat` (the straw mat);
   - `XomDaoSettings`: sound, HUD scale, margin, picture quality (user://settings.cfg). The
     quality is saved but does not change the rendering yet.
   Each script's header shows its use. Add a new component to the gallery

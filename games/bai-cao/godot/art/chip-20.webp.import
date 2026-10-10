@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d212ihvuxqq2b"
-path="res://.godot/imported/suit-heart.webp-33ea46ab77fca3b6c9c0ea006fd6bc54.ctex"
+uid="uid://fbuksj7oe5it"
+path="res://.godot/imported/chip-20.webp-b292e88638385ef4fb5f5e96abd8c1b2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/tien-len/art/suit-heart.webp"
-dest_files=["res://.godot/imported/suit-heart.webp-33ea46ab77fca3b6c9c0ea006fd6bc54.ctex"]
+source_file="res://content/bai-cao/art/chip-20.webp"
+dest_files=["res://.godot/imported/chip-20.webp-b292e88638385ef4fb5f5e96abd8c1b2.ctex"]
 
 [params]
 

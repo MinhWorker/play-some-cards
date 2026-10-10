@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddyenfwh4ulhx"
-path="res://.godot/imported/suit-club.webp-07df4148741620549432a46cd9b826cf.ctex"
+uid="uid://8ukmkq11345j"
+path="res://.godot/imported/chip-5.webp-6330445d132b4a43bbf45b372bfb8fb3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/tien-len/art/suit-club.webp"
-dest_files=["res://.godot/imported/suit-club.webp-07df4148741620549432a46cd9b826cf.ctex"]
+source_file="res://content/bai-cao/art/chip-5.webp"
+dest_files=["res://.godot/imported/chip-5.webp-6330445d132b4a43bbf45b372bfb8fb3.ctex"]
 
 [params]
 

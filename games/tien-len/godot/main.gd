@@ -41,16 +41,12 @@ const DEAL_SHUFFLE := 0.76
 const DEAL_STEP := 0.028
 const DEAL_FLY := 0.24
 const INTRO_ROUND := 1.2
-## How wide one tile of mat.webp (512 px) lies on the table, in units.
-const MAT_TILE := 220.0
 const CARD_WIDTH := 84.0
 ## The face-down cards by the others' seats.
 const FAN_CARD := 34.0
 const PILE_CARD := 72.0
 const BUTTON_WIDTH := 200.0
 const THROW_SECONDS := 0.23
-const RED := Color("#B0261E")
-const GREEN := Color("#26683A")
 
 var _client: XomDaoClient
 var _snapshot: XomDaoRoomSnapshot
@@ -58,8 +54,7 @@ var _view: Dictionary = {}
 ## Your seat, or -1 for a spectator (who looks from seat 0).
 var _me: int = -1
 
-var _mat := TextureRect.new()
-var _pattern := Control.new()
+var _mat := XomDaoMat.new()
 var _pile := Control.new()
 var _fx := Control.new()
 var _hand: HandView
@@ -131,20 +126,7 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	theme = XomDaoUi.theme()
 	clip_contents = true
-	var sea := ColorRect.new()
-	sea.color = Color("#C9A86A")
-	sea.set_anchors_preset(Control.PRESET_FULL_RECT)
-	sea.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(sea)
-	_mat.texture = load("res://content/tien-len/art/mat.webp")
-	_mat.stretch_mode = TextureRect.STRETCH_TILE
-	_mat.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
-	_mat.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_mat.scale = Vector2.ONE * MAT_TILE / 512.0
 	add_child(_mat)
-	_pattern.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_pattern.draw.connect(_draw_pattern)
-	add_child(_pattern)
 	_pile.name = "Pile"
 	_pile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_pile)
@@ -617,9 +599,6 @@ func _layout() -> void:
 	var right: float = size.x - edge
 	var top: float = edge
 	var bottom: float = size.y - edge
-	_mat.size = size / _mat.scale
-	_pattern.size = size
-	_pattern.queue_redraw()
 
 	# Action buttons, bottom right: Đánh over Bỏ lượt.
 	for button: XomDaoButton in [_play, _pass]:
@@ -669,34 +648,6 @@ func _layout() -> void:
 	_pile.position = Vector2(size.x / 2.0, pile_y)
 	_round_board.reset_size()
 	_round_board.position = (Vector2(size.x / 2.0, pile_y) - _round_board.size / 2.0)
-
-
-func _draw_pattern() -> void:
-	# A red band and a thin green one woven into the mat around the play area, a flower in each
-	# corner (src/scenes/Mat.ts).
-	var edge: float = float(XomDaoSettings.current().margin) + 8.0
-	var frame := Rect2(Vector2(edge, edge), size - Vector2(edge, edge) * 2.0)
-	_pattern.draw_rect(frame, Color(RED, 0.55), false, 10.0)
-	_pattern.draw_rect(frame.grow(-17.0), Color(GREEN, 0.5), false, 4.0)
-	for corner: Vector2 in [
-		frame.position + Vector2(48, 48),
-		Vector2(frame.end.x - 48, frame.position.y + 48),
-		Vector2(frame.position.x + 48, frame.end.y - 48),
-		frame.end - Vector2(48, 48),
-	]:
-		var points := PackedVector2Array(
-			[
-				corner + Vector2(0, -22),
-				corner + Vector2(22, 0),
-				corner + Vector2(0, 22),
-				corner + Vector2(-22, 0)
-			]
-		)
-		_pattern.draw_colored_polygon(points, Color(GREEN, 0.3))
-		points.append(points[0])
-		_pattern.draw_polyline(points, Color(RED, 0.55), 3.0, true)
-	var light := Color(1.0, 0.95, 0.8, 0.12)
-	_pattern.draw_circle(size / 2.0, minf(size.x, size.y) * 0.32, light)
 
 
 func _draw_fan(fan: Control) -> void:
