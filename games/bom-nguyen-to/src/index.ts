@@ -8,6 +8,7 @@ export default definePlugin({
     minPlayers: 1,
     maxPlayers: 4,
     status: 'ready',
+    genre: 'hanh-dong',
     portal: { image: 'island' },
     tagline: 'Đặt bom trong khu vườn đồ chơi, ai trụ lại cuối cùng thì thắng.',
     duration: { min: 3, max: 8 },

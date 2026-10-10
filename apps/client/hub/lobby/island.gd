@@ -184,6 +184,17 @@ func _draw_mark(at: Vector2, k: float) -> void:
 			_ellipse(at, 12.0 * k, 22.0 * k, XomDaoUi.LACQUER_DARK, 2.0 * k)
 			draw_rect(Rect2(at + Vector2(-10, -26) * k, Vector2(20, 6) * k), XomDaoUi.GOLD)
 			draw_rect(Rect2(at + Vector2(-10, 20) * k, Vector2(20, 6) * k), XomDaoUi.GOLD)
+		"hanh-dong":
+			# A round bomb with a lit fuse.
+			var bomb: Vector2 = at + Vector2(0, 4) * k
+			draw_circle(bomb + Vector2(2, 3) * k, 24.0 * k, XomDaoUi.SHADOW)
+			draw_circle(bomb, 24.0 * k, XomDaoUi.INK)
+			draw_circle(bomb - Vector2(8, 8) * k, 7.0 * k, Color(1, 1, 1, 0.35))
+			draw_rect(Rect2(bomb + Vector2(-7, -31) * k, Vector2(14, 9) * k), XomDaoUi.HONEY_DARK)
+			var fuse: Vector2 = bomb + Vector2(12, -42) * k
+			draw_line(bomb + Vector2(0, -30) * k, fuse, XomDaoUi.HONEY, 3.0 * k, true)
+			draw_circle(fuse, 7.0 * k, XomDaoUi.GOLD)
+			draw_circle(fuse, 3.5 * k, XomDaoUi.LANTERN)
 		_:
 			var font: Font = XomDaoUi.display_font(800)
 			var letter: String = title.left(1)

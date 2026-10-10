@@ -58,10 +58,10 @@ nghiêng trên biển, nhìn chéo từ trên như một băng chuyền:
 | --- | --- |
 | **Cờ** | Cờ Tướng, Cờ Vua, Cờ Vây, Cờ Đam, Caro, Cờ Cá Ngựa, Cờ tỷ phú, Bắn Tàu |
 | **Bài** | Tiến Lên, Mậu Binh, Bài Cào |
-| **Sắp có** | Đảo sương mù có ổ khoá, chưa có trò |
+| **Sự kiện** | Trò của sự kiện đang mở |
+| **Hành động** | Bom Nguyên Tố |
 
-Bom Nguyên Tố không hợp với Cờ hay Bài. Nó chờ một thể loại phụ đầu tiên, và tới lúc đó vẫn chơi
-trên client Phaser.
+Khi chưa có thể loại phụ nào, vòng có thêm đảo **Sắp có**: đảo sương mù có ổ khoá, chưa có trò.
 
 Vòng nhận bao nhiêu đảo cũng được: đảo càng nhiều thì vòng càng rộng và đảo phía sau càng nhỏ, nhưng
 đảo đang chọn luôn cùng cỡ. Chạm Sắp có chỉ hiện thông báo nhanh "Sắp có".
