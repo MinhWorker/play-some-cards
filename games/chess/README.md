@@ -41,6 +41,8 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 | Nền vải | `src/scenes/ChessBackground.ts` |
 | Form tạo phòng | `src/scenes/Setup.ts` |
 | Tên quân, màu và câu kết quả | `src/scenes/theme.ts` |
+| Màn hình Godot: bàn, quân, phong cấp, cut-in, thống kê, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
+| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
 `src/client.ts` đăng ký bàn, form và nền phía trình duyệt. `assets/` là tài nguyên dùng trực tiếp;
 `sources/` giữ prompt gốc và script tái tạo.
@@ -88,6 +90,13 @@ Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
 `npm run shots -- --path '/?play=chess&players=2' --audit`.
 Test logic có perft khai cuộc, Kiwipete, tàn cuộc và phong cấp; chiếu hết, hết nước, lặp thế,
 50 nước, xin hoà và máy chơi. Kịch bản trình duyệt nằm trong `scripts/e2e/scenarios/chess*.mjs`.
+
+Bản Godot (`godot/`) có cùng bàn, quân, toạ độ, cột thống kê, phong cấp, cut-in chiếu tướng và các
+nút như trên; quân là từng ảnh cắt từ atlas `assets/pieces.webp`, chưa có đèn normal map. Nước đi
+hợp lệ lấy từ `moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm ở
+TypeScript. Chơi thử bằng `npm run godot:export -- --debug` rồi mở
+http://localhost:5033/godot/?play=chess; test GUT ở `godot/test/`, kịch bản trình duyệt ở
+`scripts/e2e/scenarios/godot-chess.mjs`.
 
 Hoạt ảnh, âm thanh và xác nhận đầu hàng dùng runtime SDK. Ván mới, đổi người xem, kết nối lại,
 bật/tắt hiệu ứng và rời bàn huỷ tác vụ cũ. Dựng lại bàn từ trạng thái hiện tại không phát lại
