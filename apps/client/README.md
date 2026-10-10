@@ -60,7 +60,7 @@ xong thì chạy `npm run gen:protocol` để sinh lại GDScript; `npm run chec
 Màn đầu tiên là sảnh: vòng đảo thể loại trên biển (Cờ, Bài, rồi thể loại phụ; đảo Sắp có khi chưa
 có thể loại phụ). Vuốt ngang hoặc chạm một đảo để xoay; chạm lại đảo đang chọn hoặc thẻ trò ở dưới
 phải để mở màn chọn trò. HUD: hồ sơ trên trái, số xu và ⚙ trên phải, banner (sự kiện đang mở, hoặc Chợ), hàng Nhà, Chợ,
-Đình, Bến dưới trái (Đình còn "Sắp có"), thẻ trò đang chọn với **CHƠI** và **Tạo phòng**.
+Đình, Bến dưới trái, thẻ trò đang chọn với **CHƠI** và **Tạo phòng**. Cạnh tên có chip cấp.
 
 - **CHƠI** là ghép nhanh: vào phòng đang chờ của trò đó, không ai tới thì sau vài giây máy ngồi ghế
   trống và ván bắt đầu.
@@ -69,9 +69,13 @@ phải để mở màn chọn trò. HUD: hồ sơ trên trái, số xu và ⚙ t
 - **Chọn trò**: tab thể loại, thẻ trò kéo ngang, bảng chi tiết với Chọn, Luật, Tạo phòng, Danh
   sách phòng. Chọn thẻ là gói `.pck` của trò bắt đầu tải ngầm. Trò chưa có bản Godot hiện mờ, có
   ổ khoá.
-- **Nhà**: thẻ hồ sơ (ảnh đại diện với khung đang dùng, lưng bài) và kệ có tab Túi đồ, Thành
-  tích, Xếp hạng (hai tab sau còn "Sắp có"). Túi đồ có món đã mua trước, rồi món ai cũng có; "Dùng"
-  để đeo. Chạm một người trong phòng chờ là xem Nhà của họ, chỉ đọc.
+- **Nhà**: thẻ hồ sơ (ảnh đại diện với khung đang dùng, cấp và thanh kinh nghiệm, số ván và số ván
+  thắng, lưng bài) và kệ có tab Túi đồ, Thành tích, Xếp hạng. Túi đồ có món đã mua trước, rồi món
+  ai cũng có; "Dùng" để đeo. Thành tích đã đạt đứng trước; Xếp hạng có một ô "Hạng N" cho mỗi
+  bảng. Chạm một người trong phòng chờ là xem Nhà của họ, chỉ đọc.
+- **Đình**: bảng xếp hạng với tab Cả xóm (theo kinh nghiệm) và từng trò (theo số ván thắng); hàng
+  của bạn tô màu, nằm dưới danh sách nếu bạn ngoài top. Hết ván, thành tích vừa đạt hiện thành
+  thông báo "Thành tích: …".
 - **Sự kiện**: khi có sự kiện đang mở, đảo Sự kiện sáng lên và cắm cờ "Còn N ngày", banner cột
   phải đổi sang sự kiện (màu của nó, chấm đỏ). Bảng chi tiết của sự kiện mang màu sự kiện, có số
   điểm của bạn, dải mốc thưởng với **Nhận**, và **Tham gia** thay cho Chọn. Hết ván, kết quả ghi

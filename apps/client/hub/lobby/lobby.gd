@@ -36,6 +36,7 @@ var create: XomDaoButton = XomDaoButton.create("Tạo phòng", XomDaoUi.Kind.SOC
 var _game_id: String = ""
 var _profile := HBoxContainer.new()
 var _name := Label.new()
+var _level: XomDaoChip = XomDaoChip.create("Cấp 1", "star", XomDaoUi.HONEY_DARK)
 var _banner := Button.new()
 var _banner_icon := TextureRect.new()
 var _banner_title := Label.new()
@@ -118,6 +119,12 @@ func show_user(user: XomDaoUser) -> void:
 	avatar.frame = user.frame if user != null else ""
 
 
+## The level chip by the name (`stats:get`).
+func show_level(level: int) -> void:
+	_level.text = "Cấp %d" % level
+	_level.visible = true
+
+
 ## The card at the bottom right: the selected game, or "Sắp có" when there is none to play.
 func show_game(card: XomDaoGameCard, can_play: bool) -> void:
 	_game_id = card.id if card != null else ""
@@ -179,6 +186,11 @@ func _build_profile() -> void:
 	_name.custom_minimum_size.y = 56.0
 	_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	pill.add_child(_name)
+	_level.name = "LobbyLevel"
+	_level.compact()
+	_level.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_level.visible = false
+	_profile.add_child(_level)
 	# The profile opens Nhà.
 	_profile.mouse_filter = Control.MOUSE_FILTER_STOP
 	_profile.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND

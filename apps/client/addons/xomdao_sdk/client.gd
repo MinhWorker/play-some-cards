@@ -26,6 +26,8 @@ signal state_changed(snapshot: XomDaoRoomSnapshot)
 signal room_changed(room_code: String)
 ## The game you played paid you; `balances` is already updated.
 signal rewarded(notice: XomDaoRewardNotice)
+## A game you played got you achievements (their rewards are already in `balances`).
+signal achieved(notice: XomDaoAchievementNotice)
 ## Any pushed event, as XomDaoProtocol.parse_event makes it (lobby:rooms, room:closed…).
 signal event_received(event: String, data: Variant)
 ## A request failed: the server's message (Vietnamese), or "offline".
@@ -217,6 +219,9 @@ func _receive(text: String) -> void:
 	elif data is XomDaoRewardNotice:
 		balances = data.balances
 		rewarded.emit(data)
+	elif data is XomDaoAchievementNotice:
+		balances = data.balances
+		achieved.emit(data)
 	event_received.emit(event, data)
 
 

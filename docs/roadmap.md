@@ -137,7 +137,8 @@ Làm dần, theo thứ tự chủ dự án muốn:
 - `npm run new:event` (khung `event` đã có: ngày mở/đóng, mốc thưởng, đảo Sự kiện, sự kiện mẫu
   `games/trung-thu`)
 - Thêm vật phẩm và loại vật phẩm cho túi đồ, Chợ
-- Thống kê, thành tích, xếp hạng
+- Thêm thành tích (dữ liệu trong `meta.achievements`) và bảng xếp hạng (khung đã có: `ctx.stat`,
+  cấp theo kinh nghiệm, Nhà và Đình)
 - Nhiều loại tài nguyên
 - Khi không còn trò nào dùng Phaser: xoá `apps/web` và cổng Socket.IO
 

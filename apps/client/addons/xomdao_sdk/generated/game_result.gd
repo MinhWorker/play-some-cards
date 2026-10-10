@@ -4,6 +4,7 @@ extends RefCounted
 
 var winners: Array[String] = []
 var rewards: Array[XomDaoReward] = []
+var stats: Array[Dictionary] = []
 
 
 static func from_dict(d: Dictionary) -> XomDaoGameResult:
@@ -13,6 +14,9 @@ static func from_dict(d: Dictionary) -> XomDaoGameResult:
 	for item: Variant in _list(d, "rewards"):
 		if item is Dictionary:
 			o.rewards.append(XomDaoReward.from_dict(item))
+	for item: Variant in _list(d, "stats"):
+		if item is Dictionary:
+			o.stats.append(item)
 	return o
 
 
@@ -20,6 +24,7 @@ func to_dict() -> Dictionary:
 	var d: Dictionary = {}
 	d["winners"] = winners
 	d["rewards"] = _dicts(rewards)
+	d["stats"] = stats
 	return d
 
 

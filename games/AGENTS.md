@@ -90,6 +90,11 @@ games/<id>/          Only index.ts + client.ts are required
   `ctx.reward(player, EVENT_POINTS, n)` within `meta.rewardCap`; the server keeps them per event and
   pays `meta.event.tiers` on claim. `games/trung-thu` is the sample; see "Sự kiện" in
   `docs/making-a-game.md`.
+- **Stats and achievements**: `ctx.stat(playerId, 'chop', n = 1)` counts something a player did
+  (lowercase-dash names; `played` and `won` are counted by the server). `meta.achievements`
+  (`{ id, name, stat, at, xp?, reward? }`) are data: the server unlocks and pays them. Never rename
+  or reuse a shipped achievement id. `testGame` shows counts in `result.stats`. See "Thống kê và
+  thành tích" in `docs/making-a-game.md`.
 - **Timers**: `ctx.setTimer(ms, 'name')` calls `onName(ctx)`. There is one timer per game, and
   the gateway runs it. Use it for a turn clock or a pause between rounds. The view shows
   countdowns with `ctx.timer`.

@@ -11,12 +11,14 @@ src/ledger/     Ledger: the only module that changes balances (`ledger_entries`,
 src/inventory/  Túi đồ: what each account owns (`inventory_items`), equipping looks, profiles
 src/shop/       Chợ: `shop:list` and `shop:buy`, paid through the Ledger
 src/events/     Sự kiện: event points (`event_points`), claimed tiers (`event_claims`), EventClock
+src/stats/      Stats, achievements, rankings (`player_stats`, `stat_matches`, `achievements`)
 src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
 packages/shared/src/protocol.ts   The protocol as zod schemas (types, requests, events) + PROTOCOL_VERSION
 packages/shared/src/catalog.ts    Genre list (core data), GameCard, metaProblems (registry test)
 packages/shared/src/items.ts      Item catalog (ITEMS: id, slot, look, name, price), card backs
+packages/shared/src/achievements.ts  ACHIEVEMENTS (the hub's own + each game's), levels, boards
 packages/shared/src/registry.ts   games/getGame, from the generated (gitignored) src/generated/games.ts
 ```
 
@@ -100,6 +102,18 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   `event:claim { eventId, tier }` pays the tier's `reward` through `LedgerService.apply` with key
   `event:<event>:<user>:<tier>:<resource>` and records it in `event_claims`, so it pays once
   ("Chưa đủ điểm", "Bạn đã nhận mốc này").
+
+## Stats
+
+- `StatsService.recordMatch` (on `RoomsService.onFinished`, after the ledger paid the game) counts
+  once per match and person (`stat_matches`): `played`, `won`, the game's `result.stats`
+  (`ctx.stat`) into `player_stats` by game, and `XP_PER_GAME` into game `core`, stat `xp`.
+- Then every `ACHIEVEMENTS` entry the counts reach (the hub's own sum over all games) is unlocked
+  (`achievements`), adds its `xp` and pays its `reward` through `LedgerService.apply` with key
+  `achievement:<user>:<id>:<resource>`. The gateway pushes `achievement { achievements, balances }`.
+- `stats:get { userId? }` returns `PlayerStats` (level from `levelOf(xp)`, totals, every
+  achievement with progress, ranks). `ranking:get { board }` returns the top `RANKING_LIMIT`:
+  `core` by `xp`, a game's id by `won`; ties share a rank; `me` is your row when you are on it.
 
 ## Match history
 

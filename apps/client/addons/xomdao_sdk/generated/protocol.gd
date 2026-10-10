@@ -3,7 +3,7 @@ extends RefCounted
 ## Generated from packages/shared/src/protocol.ts by npm run gen:protocol. Do not edit.
 ## Requests (`{ id, event, data }` on /ws) and the events the server pushes (`{ event, data }`).
 
-const VERSION := 7
+const VERSION := 8
 const MISMATCH := "protocol-mismatch"
 const COIN := "core:coin"
 
@@ -21,6 +21,8 @@ const INVENTORY_GET := "inventory:get"
 const INVENTORY_EQUIP := "inventory:equip"
 const EVENT_GET := "event:get"
 const EVENT_CLAIM := "event:claim"
+const STATS_GET := "stats:get"
+const RANKING_GET := "ranking:get"
 const HISTORY_RECENT := "history:recent"
 const CATALOG_GET := "catalog:get"
 const LOBBY_WATCH := "lobby:watch"
@@ -40,6 +42,7 @@ const ROOM_STATE := "room:state"
 const LOBBY_ROOMS := "lobby:rooms"
 const ROOM_CLOSED := "room:closed"
 const REWARD := "reward"
+const ACHIEVEMENT := "achievement"
 
 const ROOM_STATUS: Array[String] = ["lobby", "playing", "finished"]
 const ROOM_ROLE: Array[String] = ["player", "spectator"]
@@ -54,6 +57,8 @@ static var _replies: Dictionary = {
 	"inventory:get": XomDaoProfile,
 	"event:get": XomDaoEventProgress,
 	"event:claim": XomDaoEventClaim,
+	"stats:get": XomDaoPlayerStats,
+	"ranking:get": XomDaoRanking,
 	"catalog:get": XomDaoCatalog,
 	"lobby:watch": XomDaoRoomList,
 	"room:create": XomDaoJoinedRoom,
@@ -65,6 +70,7 @@ static var _events: Dictionary = {
 	"lobby:rooms": XomDaoLobbyRooms,
 	"room:closed": XomDaoRoomClosed,
 	"reward": XomDaoRewardNotice,
+	"achievement": XomDaoAchievementNotice,
 }
 
 

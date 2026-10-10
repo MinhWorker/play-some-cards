@@ -1,4 +1,5 @@
 export * from './account.js';
+export * from './achievements.js';
 export * from './catalog.js';
 export * from './game.js';
 export * from './history.js';

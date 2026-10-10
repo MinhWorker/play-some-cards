@@ -75,3 +75,20 @@ func ordered_genres() -> Array[XomDaoGenre]:
 			if genre.id == entry["id"]:
 				out.append(genre)
 	return out
+
+
+## Every card's name, by game id.
+func names() -> Dictionary:
+	var out: Dictionary = {}
+	for item: XomDaoGameCard in catalog.games:
+		out[item.id] = item.name
+	return out
+
+
+## Đình's game boards: the table games this client plays, as [[id, name], …] in catalog order.
+func ranked_games() -> Array:
+	var out: Array = []
+	for item: XomDaoGameCard in catalog.games:
+		if item.kind == "table" and can_play(item.id):
+			out.append([item.id, item.name])
+	return out

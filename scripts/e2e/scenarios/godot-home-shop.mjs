@@ -3,7 +3,7 @@
 // Hùng joins it at Bến, sees her new frame, and opens her Nhà (read-only). Needs the debug web
 // build at /godot/ (npm run godot:export -- --debug) and a dev server (XOMDAO_DEV=1).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
+import { godotText, launch, onScene, openGodot, room, tap, typeInto } from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['tic-tac-toe'];
@@ -52,9 +52,7 @@ export default async function run(t) {
   await onScene(hung, 'lobby');
   await tap(hung, 'Place_ben');
   await onScene(hung, 'ben');
-  await tap(hung, 'CodeInput');
-  await hung.keyboard.type(code.toLowerCase());
-  await godotText(hung, 'CodeInput', code.toLowerCase());
+  await typeInto(hung, 'CodeInput', code.toLowerCase());
   await tap(hung, 'Join');
   await onScene(hung, 'room');
   const lanId = await lan.evaluate(() => window.xomdao.state().user.id);

@@ -509,6 +509,35 @@ ctx.reward(player.id, 'core:coin', WIN_COINS); // tài nguyên có không gian t
   chơi. Caro và Tiến Lên thưởng xu khi thắng (`WIN_COINS` trong `src/game/model.ts`, con số tạm).
 - Trong test, phần thưởng nằm ở `game.result.rewards`.
 
+## Thống kê và thành tích
+
+Server tự đếm cho mọi ván xong: `played` (số ván) và `won` (số ván thắng), theo từng người và
+từng trò, không đếm máy. Game đếm thêm điều riêng của nó bằng `ctx.stat`:
+
+```ts
+if (isChop(combo, table)) ctx.stat(player.id, 'chop'); // tên chữ thường, có thể có gạch nối
+ctx.stat(player.id, 'golden-carp', 2);                 // số nguyên > 0, mặc định 1
+```
+
+Thành tích là dữ liệu trong `meta.achievements`, không cần viết code:
+
+```ts
+achievements: [
+  { id: 'chop', name: 'Chặt heo', stat: 'chop', at: 1, xp: 30, reward: { 'core:coin': 30 } },
+],
+```
+
+- Khi số đếm của `stat` trong trò này chạm `at`, server mở thành tích, cộng `xp` vào kinh nghiệm
+  và trả `reward` qua sổ cái đúng một lần. Người chơi nhận thông báo "Thành tích: …".
+- Thành tích chung của cả xóm (Ván đầu tiên, Mười trận thắng…) ở
+  `packages/shared/src/achievements.ts`; chúng đếm `played` và `won` trên mọi trò.
+- Kinh nghiệm: 10 cho mỗi ván, cộng `xp` của các thành tích đã đạt. Cấp N bắt đầu ở
+  50 × N × (N − 1) kinh nghiệm: cấp 2 ở 100, cấp 3 ở 300, cấp 4 ở 600.
+- Xếp hạng: Cả xóm theo kinh nghiệm, mỗi trò theo số ván thắng. Xem ở Đình, và hạng của từng người
+  ở tab Xếp hạng trong Nhà.
+- Đừng đổi hay dùng lại `id` của thành tích đã phát hành: người chơi giữ thành tích theo nó.
+- Trong test, số đếm nằm ở `game.result.stats`.
+
 ## Thẻ trò trong sảnh
 
 `meta` trong `src/index.ts` cũng là thẻ trò của game ở sảnh Godot:

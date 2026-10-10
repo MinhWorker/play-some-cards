@@ -14,7 +14,29 @@ export interface GameResult {
    * players' balances once, within the game's `meta.rewardCap`.
    */
   rewards?: Reward[];
+  /**
+   * What the game counted with `ctx.stat` (absent when nothing). The server adds it to each
+   * person's statistics for this game, once.
+   */
+  stats?: Stat[];
 }
+
+/** One `ctx.stat(player, name, amount)`. */
+export interface Stat {
+  player: PlayerId;
+  /** The game's own name for it (`bomb`, `chop`): see `STAT_NAME`. */
+  name: string;
+  /** A whole number above 0, added to the player's count. */
+  amount: number;
+}
+
+/**
+ * What a game's stat names look like: lowercase words with dashes. `played` and `won` are the
+ * server's own (every finished game counts them) and can't be given with `ctx.stat`.
+ */
+export const STAT_NAME = /^[a-z][a-z0-9-]*$/;
+/** Stats the server counts for every game: games finished and games won. */
+export const CORE_STATS = ['played', 'won'] as const;
 
 /** One `ctx.reward(player, resource, amount)`. */
 export interface Reward {
@@ -181,6 +203,28 @@ export interface GameMeta {
   rewardCap?: Record<string, number>;
   /** Required when `kind` is `event`: when it is open and its reward tiers. */
   event?: EventMeta;
+  /** This game's achievements: data only, see `AchievementMeta`. */
+  achievements?: AchievementMeta[];
+}
+
+/**
+ * An achievement: reached once a player's count of `stat` in this game gets to `at`. The server
+ * unlocks it after the game that gets there and pays `reward` once (within nothing else: it is
+ * the achievement's own reward). `xp` adds to the player's level.
+ */
+export interface AchievementMeta {
+  /** Unique in the game (`ten-wins`); the hub's id is `<game>:<id>`. */
+  id: string;
+  /** Vietnamese, short: "Mười ván thắng". */
+  name: string;
+  /** A stat the game counts with `ctx.stat`, or `played` / `won`. */
+  stat: string;
+  /** The count that reaches it, a whole number above 0. */
+  at: number;
+  /** Paid once when it is reached (`{ 'core:coin': 50 }`). */
+  reward?: Record<string, number>;
+  /** Experience it gives; 0 when absent. */
+  xp?: number;
 }
 
 /** `meta.kind`: see `GameMeta`. */

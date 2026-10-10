@@ -3,6 +3,12 @@ import { Game, gameRules, validateConsoleDefinitions } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import {
+  ACHIEVEMENTS,
+  achievementProblems,
+  coreAchievementProblems,
+  levelOf,
+} from './achievements.js';
+import {
   EVENT_GENRE,
   eventOpen,
   gameCard,
@@ -151,9 +157,41 @@ describe('genres and the hub catalog', () => {
     ]);
   });
 
+  it('catches bad achievements', () => {
+    const good = { id: 'five-wins', name: 'Năm ván thắng', stat: 'won', at: 5 };
+    expect(metaProblems({ ...meta, achievements: [good] })).toEqual([]);
+    expect(
+      achievementProblems([
+        good,
+        { ...good, stat: 'Bomb', at: 0 },
+        { ...good, id: 'x', reward: { coin: 5 } },
+      ]),
+    ).toEqual([
+      expect.stringContaining('duplicate id'),
+      expect.stringContaining('not a stat name'),
+      expect.stringContaining('whole number ≥ 1'),
+      expect.stringContaining('reward keys'),
+    ]);
+  });
+
   it('leaves games without a genre out of the catalog and defaults the card', () => {
     expect(gameCard({ ...meta, genre: undefined })).toBeNull();
     expect(gameCard(meta)).toMatchObject({ kind: 'table', card: 'island', rewardCap: {} });
+  });
+});
+
+describe('achievements and levels', () => {
+  it('declares the hub achievements well, with unique ids', () => {
+    expect(coreAchievementProblems()).toEqual([]);
+    const ids = ACHIEVEMENTS.map((a) => a.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('goes up a level every 100 more experience than the last', () => {
+    expect(levelOf(0)).toEqual({ level: 1, levelXp: 0, nextXp: 100 });
+    expect(levelOf(99).level).toBe(1);
+    expect(levelOf(100)).toEqual({ level: 2, levelXp: 100, nextXp: 300 });
+    expect(levelOf(600)).toEqual({ level: 4, levelXp: 600, nextXp: 1000 });
   });
 });
 

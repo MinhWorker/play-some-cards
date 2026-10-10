@@ -60,6 +60,7 @@ func _ready() -> void:
 	_client.state_changed.connect(func(_s: XomDaoRoomSnapshot) -> void: _refresh())
 	_client.room_changed.connect(_on_room_changed)
 	_client.rewarded.connect(_on_rewarded)
+	_client.achieved.connect(_on_achieved)
 	_client.event_received.connect(_on_event)
 	_client.disconnected.connect(func() -> void: _say("Mất kết nối, đang nối lại"))
 	_show_status("Đang kết nối")
@@ -175,6 +176,8 @@ func _show_place() -> void:
 			_show_home()
 		"cho":
 			_show_shop()
+		"dinh":
+			_show_dinh()
 		_:
 			_show_lobby()
 
@@ -186,6 +189,7 @@ func _show_lobby() -> void:
 	var lobby := HubLobby.new()
 	_set_screen("lobby", lobby)
 	lobby.show_user(_client.user)
+	_fill_level(lobby)
 	lobby.money.show_balance(_coins)
 	lobby.money.settings_pressed.connect(_menu.open_settings)
 	lobby.show_catalog(_catalog, _genre)
@@ -220,6 +224,8 @@ func _on_place(place: String) -> void:
 			_show_home()
 		"cho":
 			_show_shop()
+		"dinh":
+			_show_dinh()
 		_:
 			XomDaoToast.show_on(self, "Sắp có", "lock-simple")
 
@@ -252,7 +258,8 @@ func _show_profile_of(user_id: String) -> void:
 		home.queue_free()
 
 
-## Fills a Nhà with `inventory:get` (yours for ""), naming the items from `shop:list`.
+## Fills a Nhà with `inventory:get` (yours for ""), naming the items from `shop:list`, then
+## its level, achievements and ranks (`stats:get`).
 func _fill_home(home: HubHome, user_id: String) -> bool:
 	var data: Dictionary = {} if user_id == "" else {"userId": user_id}
 	var reply: Dictionary = await _client.request(XomDaoProtocol.INVENTORY_GET, data)
@@ -260,9 +267,45 @@ func _fill_home(home: HubHome, user_id: String) -> bool:
 	if reply.get("ok") != true or list.get("ok") != true:
 		_say(str(reply.get("error", list.get("error", "Không tải được"))))
 		return false
-	if is_instance_valid(home):
-		home.show_profile(XomDaoProfile.from_dict(reply), XomDaoShopList.from_dict(list).items)
+	if not is_instance_valid(home):
+		return true
+	home.show_profile(XomDaoProfile.from_dict(reply), XomDaoShopList.from_dict(list).items)
+	var stats: Dictionary = await _client.request(XomDaoProtocol.STATS_GET, data)
+	if stats.get("ok") == true and is_instance_valid(home):
+		home.show_stats(XomDaoPlayerStats.from_dict(stats), _catalog.names())
 	return true
+
+
+## The level chip by your name in the lobby.
+func _fill_level(lobby: HubLobby) -> void:
+	var reply: Dictionary = await _client.request(XomDaoProtocol.STATS_GET)
+	if reply.get("ok") == true and is_instance_valid(lobby):
+		lobby.show_level(XomDaoPlayerStats.from_dict(reply).level)
+
+
+## Đình: the rankings, Cả xóm first.
+func _show_dinh() -> void:
+	_place = "dinh"
+	if _shown == "dinh":
+		return
+	var dinh := HubDinh.new()
+	_set_screen("dinh", dinh)
+	dinh.top.money.show_balance(_coins)
+	dinh.top.money.settings_pressed.connect(_menu.open_settings)
+	dinh.back_pressed.connect(_back_to_lobby)
+	dinh.board_changed.connect(_fill_ranking.bind(dinh))
+	dinh.set_boards(_catalog.ranked_games())
+
+
+func _fill_ranking(board: String, dinh: HubDinh) -> void:
+	var reply: Dictionary = await _client.request(XomDaoProtocol.RANKING_GET, {"board": board})
+	if reply.get("ok") != true:
+		_say(str(reply.get("error", "Không tải được")))
+		return
+	if is_instance_valid(dinh):
+		dinh.show_ranking(
+			XomDaoRanking.from_dict(reply), _client.user.id if _client.user != null else ""
+		)
 
 
 func _equip(item_id: String, home: HubHome) -> void:
@@ -520,6 +563,17 @@ func _show_result(snapshot: XomDaoRoomSnapshot) -> void:
 	# The ledger may have paid before the board came up.
 	if _balance() != _coins:
 		_on_rewarded(null)
+
+
+## Achievements a game got you: one notice naming them; their coins join the balance.
+func _on_achieved(notice: XomDaoAchievementNotice) -> void:
+	var names: Array[String] = []
+	for info: XomDaoAchievementInfo in notice.achievements:
+		names.append(info.name)
+	var toast: XomDaoToast = XomDaoToast.show_on(self, "Thành tích: " + ", ".join(names), "trophy")
+	toast.name = "AchievementToast"
+	XomDaoUi.play(self, XomDaoUi.SOUND_COIN)
+	_on_rewarded(null)
 
 
 func _on_rewarded(_notice: XomDaoRewardNotice) -> void:
