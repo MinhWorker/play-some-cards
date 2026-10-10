@@ -1,8 +1,11 @@
-import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes, randomInt, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   type AuthResponse,
+  AVATARS,
+  DEFAULT_FRAME,
+  displayNameSchema,
   firstIssue,
   loginSchema,
   profileSchema,
@@ -52,6 +55,28 @@ export class AccountsService {
     });
     if (!user) throw new AccountError('Tên đăng nhập này đã có người dùng');
     return this.startSession(user);
+  }
+
+  /**
+   * A guest: a new account with only a display name. Its username (`khach…`) and password are
+   * random and never shown, so the login token is the only way back in.
+   */
+  async guest(input: unknown): Promise<AuthResponse> {
+    const name = displayNameSchema.safeParse(input);
+    if (!name.success) throw new AccountError(firstIssue(name.error));
+    for (let tries = 0; tries < 5; tries++) {
+      const username = `khach${randomBytes(8).toString('hex').slice(0, 12)}`;
+      const passwordHash = await hashPassword(randomBytes(24).toString('hex'));
+      const user = await this.store.createUser({
+        username,
+        passwordHash,
+        name: name.data,
+        avatar: AVATARS[randomInt(AVATARS.length)] ?? 'boy',
+        frame: DEFAULT_FRAME,
+      });
+      if (user) return this.startSession(user);
+    }
+    throw new AccountError('Không tạo được tài khoản khách, thử lại sau');
   }
 
   async login(input: unknown): Promise<AuthResponse> {

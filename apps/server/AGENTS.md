@@ -2,7 +2,8 @@
 
 ```
 src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = socket events,
-                login + protocol check, plays bot moves and game timers
+                login + protocol check, plays bot moves and game timers; ws.gateway.ts = the
+                Godot client's plain WebSocket on /ws, reusing rooms.gateway's handlers
 src/dev/        gated console commands, snapshots, undo/RNG frames and per-room logs
 src/accounts/   Username/password (scrypt) and login tokens
 src/catalog/    The hub's catalog (`catalog:get`): core genres + a card per game with a genre
@@ -10,7 +11,7 @@ src/ledger/     Ledger: the only module that changes balances (`ledger_entries`,
 src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
-packages/shared/src/protocol.ts   Socket events + PROTOCOL_VERSION
+packages/shared/src/protocol.ts   The protocol as zod schemas (types, requests, events) + PROTOCOL_VERSION
 packages/shared/src/catalog.ts    Genre list (core data), GameCard, metaProblems (registry test)
 packages/shared/src/registry.ts   games/getGame, from the generated (gitignored) src/generated/games.ts
 ```
@@ -34,6 +35,12 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 
 - Everyone plays logged in, with a username and password and no email.
 - The socket connects with `auth: { token, protocol }`.
+- The Godot client speaks plain WebSocket + JSON on `/ws` (same port): `{ id, event, data }`
+  requests, `{ id, ack }` replies, `{ event, data }` pushes. It logs in first with `auth:token`,
+  `auth:login` or `auth:guest` (a new account with only a name), each carrying `protocol`.
+  `WsGateway` then runs the same `RoomsGateway` handler (`handlerFor`) as Socket.IO;
+  `RoomsGateway.clients()` covers both transports, so broadcasts reach everyone.
+- Room codes are 4 characters without 0/O/1/I; `room:join` takes them in any case.
 - Being in a room belongs to the account. After every connect, the client sends `session:resume`
   to get back to its seat from any tab or device.
 - Accounts, tokens and match history live in Postgres (Neon, `DATABASE_URL`). Without it they
@@ -78,7 +85,9 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 - Nest DI needs the runtime value, so `import` classes that Nest injects as values.
 - The server typechecks against built packages. Root scripts run `npm run build -w @xomdao/shared`
   (= `scripts/libs.mjs`) first.
-- **New socket events** go in `protocol.ts` first.
+- **New socket events** go in `protocol.ts` first, as zod schemas in `requests` / `events`
+  (and `types` for a new named shape). Then run `npm run gen:protocol` to regenerate the GDScript
+  in `apps/client/addons/xomdao_sdk/generated/`; `npm run check` fails when you forget.
 - Web and server deploy separately and compare `PROTOCOL_VERSION` on connect: an old page
   reloads, and a newer page waits for the server. Bump it when old clients or servers would
   break. Details: `docs/deploy.md`.

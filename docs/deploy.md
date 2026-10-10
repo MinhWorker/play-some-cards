@@ -56,7 +56,7 @@ Phiên bản đang chạy hiện ở cuối bảng âm thanh (`v0.1.0 · <commit
 (`version`, `commit`, `protocol`).
 
 Web và server triển khai riêng (Render chậm hơn Vercel vài phút), nên chúng so `PROTOCOL_VERSION`
-khi socket kết nối. Trang cũ hơn server tự tải lại; trang mới hơn server hiện màn cập nhật
+khi socket kết nối (client Godot cũng gửi nó trong lệnh đăng nhập ở `/ws`). Trang cũ hơn server tự tải lại; trang mới hơn server hiện màn cập nhật
 và thử lại tới khi server theo kịp. Bản xem trước của PR nói chuyện với server thật, nên bản
 xem trước nào tăng protocol cũng chờ cập nhật.
 

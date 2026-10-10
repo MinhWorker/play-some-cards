@@ -1,20 +1,5 @@
-import type { EventMeta, GameKind, GameMeta } from '@xomdao/sdk';
-
-/**
- * A genre island in the hub. The two `main` genres (Cờ, Bài) have fixed big islands beside
- * Xóm; the others fill the small island slots behind it in `order` (docs/experience.md).
- */
-export interface Genre {
-  /** Kebab-case; games name it in `meta.genre`. */
-  id: string;
-  /** Vietnamese name shown to players. */
-  name: string;
-  /** Sort key: tabs and islands go in increasing `order`. */
-  order: number;
-  /** Its island art in the client: `apps/client/hub/genres/<island>.webp`. */
-  island: string;
-  main: boolean;
-}
+import type { GameMeta } from '@xomdao/sdk';
+import type { GameCard, Genre } from './protocol.js';
 
 /**
  * Every genre. Adding one is adding a row here and its island art; the hub lays it out. The
@@ -25,37 +10,6 @@ export const genres: Genre[] = [
   { id: 'co', name: 'Cờ', order: 1, island: 'co', main: true },
   { id: 'bai', name: 'Bài', order: 2, island: 'bai', main: true },
 ];
-
-/** One game card in the hub's catalog (`catalog:get`). */
-export interface GameCard {
-  id: string;
-  name: string;
-  kind: GameKind;
-  genre: string;
-  tagline: string;
-  minPlayers: number;
-  maxPlayers: number;
-  /** Minutes one game takes. */
-  duration: { min: number; max: number };
-  /** Card art: a file name in the game's assets (no extension). */
-  card: string;
-  /** `wip` cards only reach servers that show works in progress (dev, previews). */
-  status: 'ready' | 'wip';
-  /** Most one player wins from one game, per resource (`core:coin`). */
-  rewardCap: Record<string, number>;
-  event?: EventMeta;
-  /** People seated in its rooms right now. */
-  playing: number;
-  /** Its rooms with a free seat. */
-  openRooms: number;
-}
-
-export interface Catalog {
-  /** In `order`. */
-  genres: Genre[];
-  /** Ready cards first, then by name. */
-  games: GameCard[];
-}
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const RESOURCE = /^[a-z0-9-]+:[a-z0-9-]+$/;

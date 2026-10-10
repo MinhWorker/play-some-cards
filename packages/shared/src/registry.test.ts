@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import { Game, gameRules, validateConsoleDefinitions } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { type Genre, gameCard, genreProblems, genres, metaProblems } from './catalog.js';
+import { gameCard, genreProblems, genres, metaProblems } from './catalog.js';
+import type { Genre } from './protocol.js';
 import { games } from './registry.js';
 
 const gameDir = (id: string) => new URL(`../../../games/${id}/`, import.meta.url);

@@ -5,6 +5,7 @@ import { devModeProvider } from '../dev/dev-mode.js';
 import { DevSnapshots } from '../dev/dev-snapshots.js';
 import { RoomsGateway } from './rooms.gateway.js';
 import { RoomsService } from './rooms.service.js';
+import { WsGateway } from './ws.gateway.js';
 
 @Module({
   providers: [
@@ -15,6 +16,7 @@ import { RoomsService } from './rooms.service.js';
     RoomsService,
     CatalogService,
     RoomsGateway,
+    WsGateway,
   ],
 })
 export class RoomsModule {}

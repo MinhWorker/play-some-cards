@@ -87,7 +87,8 @@ export interface FinishedGame {
   result: GameResult;
 }
 
-// No 0/O/1/I so codes are easy to read. Codes are internal ids; players pick rooms from a list.
+// Four characters with no 0/O/1/I, so a code is easy to read aloud and type: players share it
+// (or a link with it) and friends join by code (`room:join`, any case, spaces ignored).
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 /**
@@ -658,7 +659,11 @@ export class RoomsService {
   }
 
   private get(code: string) {
-    const room = this.rooms.get(code.toUpperCase());
+    const room = this.rooms.get(
+      String(code ?? '')
+        .replace(/\s/g, '')
+        .toUpperCase(),
+    );
     if (!room) throw new RoomError('Phòng không còn nữa');
     return room;
   }

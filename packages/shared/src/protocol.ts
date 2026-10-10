@@ -1,135 +1,390 @@
 import type { ConsoleIssue, DevConsoleSchema } from '@xomdao/sdk';
+import { z } from 'zod';
 
 export type { DevCommandInfo, DevConsoleSchema } from '@xomdao/sdk';
 
-import type { ProfileUpdate, User } from './account.js';
-import type { Catalog } from './catalog.js';
-import type { GameResult, PlayerId } from './game.js';
-import type { MatchRecord } from './history.js';
+import { avatarSchema, frameSchema, profileSchema } from './account.js';
 
 /**
- * Socket.IO contract between web and server. Both sides import these types,
- * so changing an event here makes TypeScript point at every place to update.
- * The socket only connects when logged in: the client passes `auth: { token }` (from
- * POST /api/auth/login or /register) and the server refuses the connection otherwise.
+ * The contract between the clients and the server, written once as zod schemas. The server
+ * speaks it over two transports:
+ *   - Socket.IO (the Phaser web app): `ClientToServerEvents` / `ServerToClientEvents` below;
+ *   - plain WebSocket + JSON on `/ws` (the Godot client), see `WsClientMessage`.
+ * `npm run gen:protocol` turns `types`, `requests` and `events` into GDScript
+ * (apps/client/addons/xomdao_sdk/generated/); CI fails when it is stale.
+ *
+ * To add or change a message: edit the schema here, then run `npm run gen:protocol`. TypeScript
+ * then points at every place to update.
  */
 
 /**
  * Bump this whenever a change here breaks older clients or servers (renamed/removed events,
- * changed payloads). Web and server deploy separately, so they compare it on connect: the
- * client sends it in `auth.protocol`, and the server refuses a mismatch with
- * `PROTOCOL_MISMATCH` (the error's `data.protocol` is the server's version). CI fails when this
- * file changes without a bump, unless the PR has the `protocol:compatible` label.
+ * changed payloads). Clients and server deploy separately, so they compare it on connect: the
+ * client sends it (Socket.IO `auth.protocol`, WebSocket `auth:*` requests), and the server refuses
+ * a mismatch with `PROTOCOL_MISMATCH` (Socket.IO: the error's `data.protocol` is the server's
+ * version). CI fails when this file changes without a bump, unless the PR has the
+ * `protocol:compatible` label.
  */
 export const PROTOCOL_VERSION = 4;
 
-/** `connect_error` message when the client's PROTOCOL_VERSION differs from the server's. */
+/** Error when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
 
-/** What the client passes as Socket.IO `auth` when connecting. */
+/** What the Socket.IO client passes as `auth` when connecting. */
 export interface HandshakeAuth {
   token: string;
   protocol: number;
 }
 
-export interface PlayerInfo {
-  id: PlayerId;
-  name: string;
-  connected: boolean;
-  /** A seat the computer plays (never a host, always connected). */
-  bot?: boolean;
-  /** The account's picture (`Avatar`) and the ring around it (`Frame`); bots have none. */
-  avatar?: string;
-  frame?: string;
-  /** In `seats` only: left the room during this game. */
-  left?: boolean;
-}
+/** The main currency. */
+export const COIN = 'core:coin';
 
-export type RoomStatus = 'lobby' | 'playing' | 'finished';
+// ── Data ────────────────────────────────────────────────────────────────────────────────────
+
+/** The logged-in player, as the server sends it to themselves. */
+export const User = z.object({
+  id: z.string(),
+  username: z.string(),
+  name: z.string(),
+  avatar: avatarSchema,
+  frame: frameSchema,
+});
+export type User = z.infer<typeof User>;
+
+export const PlayerInfo = z.object({
+  id: z.string(),
+  name: z.string(),
+  connected: z.boolean(),
+  /** A seat the computer plays (never a host, always connected). */
+  bot: z.boolean().optional(),
+  /** The account's picture (`Avatar`) and the ring around it (`Frame`); bots have none. */
+  avatar: z.string().optional(),
+  frame: z.string().optional(),
+  /** In `seats` only: left the room during this game. */
+  left: z.boolean().optional(),
+});
+export type PlayerInfo = z.infer<typeof PlayerInfo>;
+
+export const RoomStatus = z.enum(['lobby', 'playing', 'finished']);
+export type RoomStatus = z.infer<typeof RoomStatus>;
 
 /** Players take a seat (limited to the game's maxPlayers); spectators only watch (no limit). */
-export type RoomRole = 'player' | 'spectator';
+export const RoomRole = z.enum(['player', 'spectator']);
+export type RoomRole = z.infer<typeof RoomRole>;
 
 /**
  * Wins per seat (seat = position in `players`, e.g. Caro seat 0 is red X, seat 1 blue O) and
  * draws, counted over every game played in the room. Only reset when the room is disbanded.
  */
-export interface RoomScore {
-  wins: number[];
-  draws: number;
-}
+export const RoomScore = z.object({ wins: z.array(z.int()), draws: z.int() });
+export type RoomScore = z.infer<typeof RoomScore>;
+
+/** One `ctx.reward` of a game (`GameResult.rewards`). */
+export const Reward = z.object({ player: z.string(), resource: z.string(), amount: z.int() });
+
+/** How a game ended (`GameResult` in @xomdao/sdk). */
+export const GameResultSchema = z.object({
+  /** Empty means a draw. */
+  winners: z.array(z.string()),
+  rewards: z.array(Reward).optional(),
+});
+
+export const LastMove = z.object({ seq: z.int(), player: z.string(), move: z.unknown() });
+export const RoomTimer = z.object({ event: z.string(), ms: z.number(), left: z.number() });
+export const Played = z.object({ ms: z.number(), running: z.boolean() });
 
 /** What one specific member sees of a room. `view` is already filtered by `getView`. */
-export interface RoomSnapshot {
-  code: string;
-  gameId: string;
+export const RoomSnapshot = z.object({
+  /** The room's short code: share it to let friends in (`room:join`). */
+  code: z.string(),
+  gameId: z.string(),
   /** `null` when every seat is empty (only spectators left); the next to sit becomes host. */
-  hostId: PlayerId | null;
-  players: PlayerInfo[];
-  spectators: PlayerInfo[];
+  hostId: z.string().nullable(),
+  players: z.array(PlayerInfo),
+  spectators: z.array(PlayerInfo),
   /**
    * Everyone seated when the current (or last) game began, in seat order, `left` marking who
    * has gone since: what the board shows. `null` before the first game.
    */
-  seats: PlayerInfo[] | null;
-  status: RoomStatus;
-  view: unknown;
-  result: GameResult | null;
-  score: RoomScore;
+  seats: z.array(PlayerInfo).nullable(),
+  status: RoomStatus,
+  view: z.unknown(),
+  result: GameResultSchema.nullable(),
+  score: RoomScore,
   /** Chosen on the game's setup screen when the room was created (see `RoomSetup`). */
-  options: unknown;
+  options: z.unknown(),
   /** Counts games started in this room: a new number means a new game began. */
-  round: number;
+  round: z.int(),
   /**
    * The last move of this game, for boards to animate "who just did what" (`move` as the game's
    * `moveView` lets this member see it). `null` before the first move. `seq` goes up by one each.
    */
-  last: { seq: number; player: PlayerId; move: unknown } | null;
+  last: LastMove.nullable(),
   /** The game's timer: which one, its full length and how much was left when this was sent. */
-  timer: { event: string; ms: number; left: number } | null;
+  timer: RoomTimer.nullable(),
   /**
    * How long the current (or last) game has lasted when this was sent; `running` until it
    * ends. `null` when no game is on the board.
    */
-  played: { ms: number; running: boolean } | null;
-}
+  played: Played.nullable(),
+});
+export type RoomSnapshot = z.infer<typeof RoomSnapshot>;
 
 /** One row in a game's room list. */
-export interface RoomSummary {
-  code: string;
-  hostName: string;
-  players: number;
-  maxPlayers: number;
+export const RoomSummary = z.object({
+  code: z.string(),
+  hostName: z.string(),
+  players: z.int(),
+  maxPlayers: z.int(),
   /** Connected spectators. */
-  spectators: number;
-  status: RoomStatus;
+  spectators: z.int(),
+  status: RoomStatus,
   /** True when a new player can take a seat right now. */
-  canJoin: boolean;
-}
+  canJoin: z.boolean(),
+});
+export type RoomSummary = z.infer<typeof RoomSummary>;
+
+export const JoinedRoom = z.object({
+  roomCode: z.string(),
+  /** Your member id in the room: your account's user id. */
+  playerId: z.string(),
+});
+export type JoinedRoom = z.infer<typeof JoinedRoom>;
 
 /** An account's amount of each resource it has (`core:coin`); resources never held are missing. */
-export type Balances = Record<string, number>;
-
-/** The main currency. */
-export const COIN = 'core:coin';
+export const Balances = z.record(z.string(), z.int());
+export type Balances = z.infer<typeof Balances>;
 
 /** What a player received when a game ended (`reward`). */
-export interface RewardNotice {
-  userId: string;
-  gameId: string;
-  rewards: { resource: string; amount: number }[];
+export const RewardNotice = z.object({
+  userId: z.string(),
+  gameId: z.string(),
+  rewards: z.array(z.object({ resource: z.string(), amount: z.int() })),
   /** Balances after the reward. */
-  balances: Balances;
-}
+  balances: Balances,
+});
+export type RewardNotice = z.infer<typeof RewardNotice>;
+
+/** Someone who sat at the table, as they were when the game began. */
+export const MatchPlayer = z.object({
+  name: z.string(),
+  avatar: z.string().optional(),
+  frame: z.string().optional(),
+  bot: z.boolean(),
+  won: z.boolean(),
+  /** Left during the game (games that go on without them). */
+  left: z.boolean(),
+  /** The player asking for their history. */
+  me: z.boolean(),
+});
+export type MatchPlayer = z.infer<typeof MatchPlayer>;
+
+/** One finished game, seen by one of its players. */
+export const MatchRecord = z.object({
+  id: z.string(),
+  gameId: z.string(),
+  /** How it ended for the player asking. */
+  outcome: z.enum(['win', 'loss', 'draw']),
+  /** Epoch milliseconds. */
+  startedAt: z.number(),
+  endedAt: z.number(),
+  /** In seat order. */
+  players: z.array(MatchPlayer),
+});
+export type MatchRecord = z.infer<typeof MatchRecord>;
+
+/**
+ * A genre island in the hub. The two `main` genres (Cờ, Bài) have fixed big islands beside
+ * Xóm; the others fill the small island slots behind it in `order` (docs/experience.md).
+ */
+export const Genre = z.object({
+  /** Kebab-case; games name it in `meta.genre`. */
+  id: z.string(),
+  /** Vietnamese name shown to players. */
+  name: z.string(),
+  /** Sort key: tabs and islands go in increasing `order`. */
+  order: z.int(),
+  /** Its island art in the client: `apps/client/hub/genres/<island>.webp`. */
+  island: z.string(),
+  main: z.boolean(),
+});
+export type Genre = z.infer<typeof Genre>;
+
+const Amounts = z.record(z.string(), z.int());
+
+/** A time-limited event (`EventMeta` in @xomdao/sdk). */
+export const EventInfo = z.object({
+  opensAt: z.string(),
+  closesAt: z.string(),
+  tiers: z.array(z.object({ points: z.int(), reward: Amounts })),
+});
+
+/** One game card in the hub's catalog (`catalog:get`). */
+export const GameCard = z.object({
+  id: z.string(),
+  name: z.string(),
+  kind: z.enum(['table', 'event']),
+  genre: z.string(),
+  tagline: z.string(),
+  minPlayers: z.int(),
+  maxPlayers: z.int(),
+  /** Minutes one game takes. */
+  duration: z.object({ min: z.int(), max: z.int() }),
+  /** Card art: a file name in the game's assets (no extension). */
+  card: z.string(),
+  /** `wip` cards only reach servers that show works in progress (dev, previews). */
+  status: z.enum(['ready', 'wip']),
+  /** Most one player wins from one game, per resource (`core:coin`). */
+  rewardCap: Amounts,
+  event: EventInfo.optional(),
+  /** People seated in its rooms right now. */
+  playing: z.int(),
+  /** Its rooms with a free seat. */
+  openRooms: z.int(),
+});
+export type GameCard = z.infer<typeof GameCard>;
+
+export const Catalog = z.object({
+  /** In `order`. */
+  genres: z.array(Genre),
+  /** Ready cards first, then by name. */
+  games: z.array(GameCard),
+});
+export type Catalog = z.infer<typeof Catalog>;
+
+// ── Requests and events ─────────────────────────────────────────────────────────────────────
+
+const Empty = z.object({});
+const Auth = { protocol: z.int() };
+
+/** Reply of every `auth:*` request: keep `token` to log in again (`auth:token`) later. */
+export const AuthReply = z.object({ token: z.string(), user: User });
+/** Reply of `session:resume`. */
+export const SessionInfo = z.object({
+  user: User,
+  room: JoinedRoom.nullable(),
+  balances: Balances,
+});
+/** A game's room list (`lobby:watch` reply). */
+export const RoomList = z.object({ rooms: z.array(RoomSummary) });
+/** A new room list for the game you watch. */
+export const LobbyRooms = z.object({ gameId: z.string(), rooms: z.array(RoomSummary) });
+/** The room was disbanded, or you left it from another device. */
+export const RoomClosed = z.object({ gameId: z.string(), reason: z.string() });
+
+/**
+ * Before any other request on the WebSocket transport, one of these logs the connection in
+ * (Socket.IO logs in with `auth` when connecting instead). Each carries the client's
+ * `protocol` (PROTOCOL_VERSION); a mismatch is refused with `PROTOCOL_MISMATCH`.
+ */
+export const authRequests = {
+  /** A token from an earlier login (kept by the client). */
+  'auth:token': { req: z.object({ ...Auth, token: z.string() }), res: AuthReply },
+  'auth:login': {
+    req: z.object({ ...Auth, username: z.string(), password: z.string() }),
+    res: AuthReply,
+  },
+  /** A new guest account with only a display name (no password; the token is the key). */
+  'auth:guest': { req: z.object({ ...Auth, name: z.string() }), res: AuthReply },
+};
+
+/** What a logged-in client may ask, with each reply's data (`{ ok: true, ...data }`). */
+export const requests = {
+  /**
+   * Sent after every (re)connect: who you are, the room your account is in (if any) and your
+   * balances. Being in a room follows the account, not the browser: closing the tab and logging
+   * in anywhere puts you back in your seat. An account is in at most one room.
+   */
+  'session:resume': { req: Empty, res: SessionInfo },
+  /** Change display name, avatar and frame (also updates your name in your current room). */
+  'profile:update': { req: profileSchema, res: z.object({ user: User }) },
+  /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
+  'history:recent': { req: Empty, res: z.object({ matches: z.array(MatchRecord) }) },
+  /**
+   * The hub's catalog: genres and game cards with how many people play each and its open rooms.
+   * Works in progress are left out on servers that hide them (production).
+   */
+  'catalog:get': { req: Empty, res: Catalog },
+  /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
+  'lobby:watch': { req: z.object({ gameId: z.string() }), res: RoomList },
+  'lobby:unwatch': { req: Empty, res: Empty },
+  /**
+   * Creating or joining a room first leaves the room you were in (if it is another one).
+   * `options` come from the game's own setup screen, if it has one (checked by `room.options`).
+   */
+  'room:create': {
+    req: z.object({ gameId: z.string(), options: z.unknown().optional() }),
+    res: JoinedRoom,
+  },
+  /** Joins by the room's short code (any case), as a player or to watch. */
+  'room:join': { req: z.object({ roomCode: z.string(), role: RoomRole }), res: JoinedRoom },
+  /**
+   * A player leaving mid-game cancels that game; during or after a game the room goes back
+   * to the lobby. When the host leaves, the next
+   * player becomes host; when no player is left, the room is disbanded ('room:closed').
+   */
+  'room:leave': { req: Empty, res: Empty },
+  /** A spectator takes a free seat (only before the game starts or after it ends). */
+  'room:sit': { req: Empty, res: Empty },
+  /**
+   * Host only, not during a game: replace the room's options (a board's `changeOptions`). The
+   * next game starts with them. Can't change how many seats the computer has.
+   */
+  'room:options': { req: z.object({ options: z.unknown() }), res: Empty },
+  'game:start': { req: Empty, res: Empty },
+  /** `move` is `{ event, payload }`: one of the game's events. */
+  'game:move': { req: z.object({ move: z.unknown() }), res: Empty },
+  'game:restart': { req: Empty, res: Empty },
+};
+
+/** What the server pushes. */
+export const events = {
+  'room:state': RoomSnapshot,
+  'lobby:rooms': LobbyRooms,
+  /** The room was disbanded (no players left); everyone still inside is sent out. */
+  'room:closed': RoomClosed,
+  /** A game you played ended and paid you (once per game, within its `meta.rewardCap`). */
+  reward: RewardNotice,
+};
+
+/**
+ * The named data shapes, for `npm run gen:protocol`: each becomes a GDScript class (an object
+ * schema) or a constant list (an enum). Add a schema here when a request or event uses it.
+ */
+export const types = {
+  User,
+  PlayerInfo,
+  RoomStatus,
+  RoomRole,
+  RoomScore,
+  Reward,
+  GameResult: GameResultSchema,
+  LastMove,
+  RoomTimer,
+  Played,
+  RoomSnapshot,
+  RoomSummary,
+  JoinedRoom,
+  RewardNotice,
+  MatchPlayer,
+  MatchRecord,
+  Genre,
+  EventInfo,
+  GameCard,
+  Catalog,
+  ProfileUpdate: profileSchema,
+  AuthReply,
+  SessionInfo,
+  RoomList,
+  LobbyRooms,
+  RoomClosed,
+};
 
 /** Every request gets either `{ ok: true, ...data }` or `{ ok: false, error }`. */
 export type Ack<T = object> = (res: ({ ok: true } & T) | { ok: false; error: string }) => void;
 
-export interface JoinedRoom {
-  roomCode: string;
-  /** Your member id in the room: your account's user id. */
-  playerId: PlayerId;
-}
+type Requests = typeof requests;
+type Events = typeof events;
 
 /** Dev logs contain full game details and are only sent to opted-in members in dev mode. */
 export interface DevLogEntry {
@@ -142,53 +397,11 @@ export interface DevLogEntry {
   data?: unknown;
 }
 
-export interface ClientToServerEvents {
-  /**
-   * Sent after every (re)connect: who you are, and the room your account is in (if any). Being
-   * in a room follows the account, not the browser: closing the tab and logging in anywhere
-   * puts you back in your seat. An account is in at most one room.
-   */
-  'session:resume': (
-    req: Record<string, never>,
-    ack: Ack<{ user: User; room: JoinedRoom | null; balances: Balances }>,
-  ) => void;
-  /** Change display name, avatar and frame (also updates your name in your current room). */
-  'profile:update': (req: ProfileUpdate, ack: Ack<{ user: User }>) => void;
-  /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
-  'history:recent': (req: Record<string, never>, ack: Ack<{ matches: MatchRecord[] }>) => void;
-  /**
-   * The hub's catalog: genres and game cards with how many people play each and its open rooms.
-   * Works in progress are left out on servers that hide them (production).
-   */
-  'catalog:get': (req: Record<string, never>, ack: Ack<Catalog>) => void;
-  /** Subscribe to a game's room list; the server then pushes 'lobby:rooms' on every change. */
-  'lobby:watch': (req: { gameId: string }, ack: Ack<{ rooms: RoomSummary[] }>) => void;
-  'lobby:unwatch': (req: Record<string, never>, ack: Ack) => void;
-  /**
-   * Creating or joining a room first leaves the room you were in (if it is another one).
-   * `options` come from the game's own setup screen, if it has one (checked by `room.options`).
-   */
-  'room:create': (req: { gameId: string; options?: unknown }, ack: Ack<JoinedRoom>) => void;
-  'room:join': (req: { roomCode: string; role: RoomRole }, ack: Ack<JoinedRoom>) => void;
-  /**
-   * A player leaving mid-game cancels that game; during or after a game the room goes back
-   * to the lobby. When the host leaves, the next
-   * player becomes host; when no player is left, the room is disbanded ('room:closed').
-   */
-  'room:leave': (req: Record<string, never>, ack: Ack) => void;
-  /** A spectator takes a free seat (only before the game starts or after it ends). */
-  'room:sit': (req: Record<string, never>, ack: Ack) => void;
-  /**
-   * Host only, not during a game: replace the room's options (a board's `changeOptions`). The
-   * next game starts with them. Can't change how many seats the computer has.
-   */
-  'room:options': (req: { options: unknown }, ack: Ack) => void;
-  'game:start': (req: Record<string, never>, ack: Ack) => void;
-  'game:move': (req: { move: unknown }, ack: Ack) => void;
-  'game:restart': (req: Record<string, never>, ack: Ack) => void;
-  /** Dev only: start or stop following the current room's log. */
+/** Dev only (Socket.IO): older clients need none of these. */
+interface DevClientEvents {
+  /** Start or stop following the current room's log. */
   'dev:logs': (req: { on: boolean }, ack: Ack<{ entries: DevLogEntry[] }>) => void;
-  /** Dev only: execute in the sender's room. Older clients need none of these events. */
+  /** Execute in the sender's room. */
   'dev:command': (
     req: { line: string },
     ack: (
@@ -198,13 +411,35 @@ export interface ClientToServerEvents {
   'dev:schema': (req: Record<string, never>, ack: Ack<DevConsoleSchema>) => void;
 }
 
-export interface ServerToClientEvents {
+/** The Socket.IO events a client sends, from `requests`. */
+export type ClientToServerEvents = {
+  [E in keyof Requests]: (
+    req: z.input<Requests[E]['req']>,
+    ack: Ack<z.output<Requests[E]['res']>>,
+  ) => void;
+} & DevClientEvents;
+
+/** The Socket.IO events the server pushes, from `events`. */
+export type ServerToClientEvents = {
+  [E in keyof Events]: (payload: z.output<Events[E]>) => void;
+} & {
   /** Dev only: the next room log entry, while following dev:logs. */
   'dev:log': (entry: DevLogEntry) => void;
-  'room:state': (snapshot: RoomSnapshot) => void;
-  'lobby:rooms': (update: { gameId: string; rooms: RoomSummary[] }) => void;
-  /** The room was disbanded (no players left); everyone still inside is sent out. */
-  'room:closed': (info: { gameId: string; reason: string }) => void;
-  /** A game you played ended and paid you (once per game, within its `meta.rewardCap`). */
-  reward: (notice: RewardNotice) => void;
+};
+
+/**
+ * WebSocket transport (`/ws`), one JSON object per text frame:
+ *   client → server  `{ id, event, data }`: a request (`authRequests`, then `requests`);
+ *   server → client  `{ id, ack }`: its reply (`{ ok: true, ...data }` or `{ ok: false, error }`);
+ *   server → client  `{ event, data }`: a pushed event (`events`).
+ * Ids are the client's own, echoed back. Requests other than `auth:*` before logging in get
+ * `{ ok: false, error: 'unauthorized' }`.
+ */
+export interface WsClientMessage {
+  id: number;
+  event: string;
+  data?: unknown;
 }
+export type WsServerMessage =
+  | { id: number; ack: { ok: boolean; [key: string]: unknown } }
+  | { event: string; data: unknown };

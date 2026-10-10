@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { User } from './protocol.js';
 
 /**
  * Accounts: a username + password that identifies a player across devices. The username is
@@ -97,15 +98,6 @@ export const profileSchema = z.object({
 export type RegisterRequest = z.input<typeof registerSchema>;
 export type LoginRequest = z.input<typeof loginSchema>;
 export type ProfileUpdate = z.input<typeof profileSchema>;
-
-/** The logged-in player, as the server sends it to themselves. */
-export interface User {
-  id: string;
-  username: string;
-  name: string;
-  avatar: Avatar;
-  frame: Frame;
-}
 
 /** Reply of POST /api/auth/register and /api/auth/login. */
 export interface AuthResponse {

@@ -41,6 +41,8 @@ jobs:
           key: godot-${{ runner.os }}-${{ hashFiles('tools/godot/version.json') }}
       - run: npm run setup:godot
       - run: npm run godot:check
+      # The SDK against a real server (dev, no database): two clients play Caro by room code.
+      - run: npm run godot:net
       - run: npm run godot:export
       - id: playwright
         run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
