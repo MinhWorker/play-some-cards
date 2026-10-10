@@ -201,6 +201,19 @@ tên trò, chủ phòng và số ghế là hai chip riêng, nút "Vào". Bến c
 - Thẻ hồ sơ bên trái: ảnh đại diện, tên, cấp và thanh tiến độ, vài con số tổng.
 - Bên phải là kệ gỗ, chia theo **thẻ đánh dấu** (bookmark) gỗ: Túi đồ, Thành tích, Xếp hạng.
 - Túi đồ là các ô trên kệ. Vật phẩm nào cũng có biểu tượng vuông, nền trong suốt, để đặt được vào ô.
+- Cấp tính từ kinh nghiệm: 10 cho mỗi ván, cộng kinh nghiệm của mỗi thành tích đã đạt. Cấp N bắt
+  đầu ở 50 × N × (N − 1) (cấp 2 ở 100, cấp 3 ở 300). Thanh tiến độ dưới chip cấp cho biết còn bao
+  xa tới cấp sau.
+- Thành tích là ô trên kệ: chiếc cúp (vàng khi đã đạt), tên, "Đã đạt" hoặc số đếm như "3/10", và
+  phần thưởng. Ô đã đạt đứng trước.
+- Xếp hạng là ô cho mỗi bảng có tên người đó: Cả xóm (theo kinh nghiệm) và từng trò (theo số ván
+  thắng), mỗi ô ghi "Hạng N".
+
+## Đình: xếp hạng
+
+- Một bảng gỗ "Xếp hạng" với tab Cả xóm rồi từng trò. Mỗi hàng có hạng (vương miện cho hạng 1),
+  ảnh đại diện, tên và con số xếp hạng. Ai bằng điểm thì cùng hạng.
+- Hàng của chính bạn tô màu cát; nếu bạn ngoài top, hàng của bạn nằm dưới danh sách.
 - Hồ sơ của người khác (chạm vào ô người chơi) dùng cùng thẻ, chỉ đọc.
 
 ## Sự kiện
@@ -267,6 +280,5 @@ Một trò hay sự kiện **không được**:
 
 ## Còn để ngỏ
 
-- Cấp người chơi tính từ đâu (tổng ván, kinh nghiệm riêng)?
 - Ngọc (tài nguyên thứ hai) dùng vào việc gì.
 - Có chat chữ hay chỉ biểu cảm.

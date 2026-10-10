@@ -1,8 +1,9 @@
 class_name HubHome
 extends Control
 ## Nhà (docs/experience.md): a player's profile card on the left (their avatar in the frame they
-## wear, their name, the back of their cards) and a shelf on the right with tabs Túi đồ, Thành
-## tích and Xếp hạng. In your own Nhà each item in Túi đồ has Dùng; someone else's is read-only.
+## wear, their level and its progress, games played and won, the back of their cards) and a shelf
+## on the right with tabs Túi đồ, Thành tích and Xếp hạng. In your own Nhà each item in Túi đồ has
+## Dùng; someone else's is read-only.
 
 signal back_pressed
 ## Dùng on an item of Túi đồ (your own Nhà only).
@@ -14,11 +15,19 @@ var top := HubTopBar.new()
 var editable: bool = true
 
 var _profile: XomDaoProfile
+## Level, achievements and ranks (`stats:get`); null until they come.
+var _stats: XomDaoPlayerStats
+## Game names by id, for achievements and ranks.
+var _games: Dictionary = {}
 ## Every item (`shop:list`), for names and pictures.
 var _items: Array[XomDaoShopItem] = []
 var _card: XomDaoBoard = XomDaoBoard.create("")
 var _avatar := XomDaoAvatar.new()
 var _back := TextureRect.new()
+var _level: XomDaoChip = XomDaoChip.create("Cấp 1", "star", XomDaoUi.HONEY_DARK)
+var _xp := ProgressBar.new()
+var _played: XomDaoChip = XomDaoChip.create("0 ván")
+var _won: XomDaoChip = XomDaoChip.create("0 thắng", "trophy")
 var _board: XomDaoBoard = XomDaoBoard.create("")
 var _shelf := HubShelf.new()
 
@@ -40,6 +49,26 @@ func _init(settings: XomDaoSettings = null, own: bool = true) -> void:
 	_avatar.custom_minimum_size = Vector2(150.0, 150.0)
 	_avatar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(_avatar)
+	_level.name = "HomeLevel"
+	_level.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(_level)
+	_xp.name = "HomeXp"
+	_xp.show_percentage = false
+	_xp.custom_minimum_size = Vector2(CARD_WIDTH - 20.0, 16.0)
+	_xp.add_theme_stylebox_override(
+		"background", XomDaoUi.box(XomDaoUi.PAPER_DARK, Color.TRANSPARENT, 0, 8.0)
+	)
+	_xp.add_theme_stylebox_override("fill", XomDaoUi.box(XomDaoUi.GOLD, Color.TRANSPARENT, 0, 8.0))
+	column.add_child(_xp)
+	var totals := HBoxContainer.new()
+	totals.alignment = BoxContainer.ALIGNMENT_CENTER
+	totals.add_theme_constant_override("separation", 8)
+	column.add_child(totals)
+	for chip: XomDaoChip in [_played, _won]:
+		chip.compact()
+		totals.add_child(chip)
+	_played.name = "HomePlayed"
+	_won.name = "HomeWon"
 	var backs := HBoxContainer.new()
 	backs.alignment = BoxContainer.ALIGNMENT_CENTER
 	backs.add_theme_constant_override("separation", 12)
@@ -76,17 +105,58 @@ func show_profile(profile: XomDaoProfile, items: Array[XomDaoShopItem]) -> void:
 	_layout.call_deferred()
 
 
+## Shows their level, totals, achievements and ranks (`stats:get`); `games` names games by id.
+func show_stats(stats: XomDaoPlayerStats, games: Dictionary) -> void:
+	_stats = stats
+	_games = games
+	_level.text = "Cấp %d" % stats.level
+	_xp.max_value = maxi(1, stats.next_xp - stats.level_xp)
+	_xp.value = stats.xp - stats.level_xp
+	_played.text = "%s ván" % XomDaoUi.money(stats.played)
+	_won.text = "%s thắng" % XomDaoUi.money(stats.won)
+	_show_shelf()
+	_layout.call_deferred()
+
+
 func _show_shelf() -> void:
-	if _profile == null:
-		return
-	var tiles: Array[HubItemTile] = []
-	if _shelf.tab == "tui-do":
+	if _shelf.tab == "thanh-tich":
+		_show_achievements()
+	elif _shelf.tab == "xep-hang":
+		_show_ranks()
+	elif _profile != null:
+		var tiles: Array[HubItemTile] = []
 		# What was bought first, then what everyone has.
 		for bought: bool in [true, false]:
 			for item: XomDaoShopItem in _items:
 				if _profile.owned.has(item.id) and (item.price > 0) == bought:
 					tiles.append(_tile(item))
-	_shelf.show_tiles(tiles, "Túi đồ trống" if _shelf.tab == "tui-do" else "Sắp có")
+		_shelf.show_tiles(tiles, "Túi đồ trống")
+
+
+## Reached first, then the rest in their order (the hub's own, then each game's).
+func _show_achievements() -> void:
+	var tiles: Array[Control] = []
+	if _stats != null:
+		for reached: bool in [true, false]:
+			for info: XomDaoAchievementInfo in _stats.achievements:
+				if info.unlocked == reached:
+					tiles.append(HubAchievementTile.create(info, str(_games.get(info.game_id, ""))))
+	_shelf.show_nodes(tiles, "Đang tải")
+
+
+func _show_ranks() -> void:
+	var tiles: Array[Control] = []
+	if _stats != null:
+		for info: XomDaoRankInfo in _stats.ranks:
+			var core: bool = info.board == "core"
+			tiles.append(
+				HubRankTile.create(
+					info,
+					"Cả xóm" if core else str(_games.get(info.board, info.board)),
+					"kinh nghiệm" if core else "ván thắng"
+				)
+			)
+	_shelf.show_nodes(tiles, "Chưa có hạng" if _stats != null else "Đang tải")
 
 
 func _tile(item: XomDaoShopItem) -> HubItemTile:

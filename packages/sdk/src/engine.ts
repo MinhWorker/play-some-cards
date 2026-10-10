@@ -22,13 +22,24 @@
  * When a game ends, ctx.reward(player, 'core:coin', amount) gives a seated player coins, within
  * meta.rewardCap; the server pays them once (see GameResult.rewards). An event's game gives its
  * points the same way: ctx.reward(player, EVENT_POINTS, amount) (see EventMeta).
+ * ctx.stat(player, 'bomb') counts something a player did (see GameResult.stats); the server
+ * keeps the counts per player and game, and meta.achievements turns them into achievements.
  * Synchronous console.log/info/warn/error is available to pure game builds and captured per room
  * when the server starts with XOMDAO_DEV=1. All command hooks still return new state and use ctx.rng.
  */
 import { z } from 'zod';
 import { commandHookName, validateConsoleDefinitions } from './console/definitions.js';
 import type { Catalogs } from './console/parser.js';
-import type { GameResult, GameRules, PlayerId, Reward, RoomContext } from './game.js';
+import {
+  CORE_STATS,
+  type GameResult,
+  type GameRules,
+  type PlayerId,
+  type Reward,
+  type RoomContext,
+  STAT_NAME,
+  type Stat,
+} from './game.js';
 import { type Rng, seededRng } from './rng.js';
 
 /** Someone at the table. `seat` is their place (0, 1, …) and never changes during a game. */
@@ -71,6 +82,12 @@ export interface GameContext<State, Options = undefined> {
    * `meta.rewardCap`; bots get nothing. Games never change balances themselves.
    */
   reward(player: PlayerId, resource: string, amount: number): void;
+  /**
+   * Counts `amount` (a whole number above 0, default 1) of `name` for a seated player in this
+   * game (`ctx.stat(p, 'bomb')`). The server adds the counts when the game ends, once per game;
+   * bots' are dropped. `played` and `won` are counted by the server itself.
+   */
+  stat(player: PlayerId, name: string, amount?: number): void;
   /**
    * In `ms`, the server runs the hook of `event` (`'turn-over'` → `onTurnOver(ctx)`, which gets
    * `payload`), e.g. a turn clock or a pause between rounds. There is one timer: setting it again
@@ -196,14 +213,19 @@ export interface Stored<State> {
   timers: number;
   /** `ctx.reward` calls so far; copied into `result.rewards` when the game ends. */
   rewards?: Reward[];
+  /** `ctx.stat` calls so far; copied into `result.stats` when the game ends. */
+  stats?: Stat[];
 }
 
 const RESOURCE = /^[a-z0-9-]+:[a-z0-9-]+$/;
 
 class Rejected extends Error {}
 
-const withRewards = (result: GameResult, rewards: Reward[]): GameResult =>
-  rewards.length ? { ...result, rewards } : result;
+const withRewards = (result: GameResult, rewards: Reward[], stats: Stat[]): GameResult => ({
+  ...result,
+  ...(rewards.length && { rewards }),
+  ...(stats.length && { stats }),
+});
 
 /**
  * Turns a `Game` into the rules the server runs (`definePlugin({ rules: gameRules(game) })`).
@@ -245,6 +267,7 @@ export function gameRules<State, Options, View>(
       timer: stored.timer,
       timers: stored.timers,
       rewards: [] as Reward[],
+      stats: [] as Stat[],
     };
     const ctx: GameContext<State, Options> = {
       state: stored.state,
@@ -268,6 +291,18 @@ export function gameRules<State, Options, View>(
           throw new Error(`ctx.reward: ${amount} is not a whole number above 0`);
         }
         out.rewards.push({ player, resource, amount });
+      },
+      stat: (player, name, amount = 1) => {
+        if (!stored.players.some((p) => p.id === player)) {
+          throw new Error(`ctx.stat: ${player} is not seated at this game`);
+        }
+        if (!STAT_NAME.test(name) || (CORE_STATS as readonly string[]).includes(name)) {
+          throw new Error(`ctx.stat: "${name}" is not a stat name a game can count (bomb-played)`);
+        }
+        if (!Number.isInteger(amount) || amount <= 0) {
+          throw new Error(`ctx.stat: ${amount} is not a whole number above 0`);
+        }
+        out.stats.push({ player, name, amount });
       },
       setTimer: (ms, event, payload) => {
         if (!hookOf(event)) {
@@ -293,7 +328,8 @@ export function gameRules<State, Options, View>(
     let state = call(ctx);
     if (out.result && hooks.onEnd) state = hooks.onEnd({ ...ctx, state });
     const rewards = [...(stored.rewards ?? []), ...out.rewards];
-    const result = out.result ? withRewards(out.result, rewards) : stored.result;
+    const stats = [...(stored.stats ?? []), ...out.stats];
+    const result = out.result ? withRewards(out.result, rewards, stats) : stored.result;
     return {
       ...stored,
       state,
@@ -301,6 +337,7 @@ export function gameRules<State, Options, View>(
       timer: result ? null : out.timer,
       timers: out.timers,
       ...(rewards.length && { rewards }),
+      ...(stats.length && { stats }),
     };
   };
 
@@ -370,7 +407,7 @@ export function gameRules<State, Options, View>(
       const { state: _, ...start } = ctx;
       const state = game.onStart(start);
       const timer = out.result ? null : out.timer;
-      const result = out.result && withRewards(out.result, out.rewards);
+      const result = out.result && withRewards(out.result, out.rewards, out.stats);
       return {
         ...empty,
         state,
@@ -378,6 +415,7 @@ export function gameRules<State, Options, View>(
         timer,
         timers: out.timers,
         ...(out.rewards.length && { rewards: out.rewards }),
+        ...(out.stats.length && { stats: out.stats }),
       };
     },
 

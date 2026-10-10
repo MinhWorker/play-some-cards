@@ -21,6 +21,16 @@ export default definePlugin({
     tagline: 'Xếp năm quân liền hàng trước đối thủ.',
     duration: { min: 5, max: 15 },
     rewardCap: { 'core:coin': WIN_COINS },
+    achievements: [
+      {
+        id: 'five-wins',
+        name: 'Năm ván Caro thắng',
+        stat: 'won',
+        at: 5,
+        xp: 40,
+        reward: { 'core:coin': 50 },
+      },
+    ],
   },
   game: new CaroGame(),
   room: {

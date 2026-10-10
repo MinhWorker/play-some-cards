@@ -47,14 +47,16 @@ export default async function run(t) {
   if (!quick.players.some((p) => p.bot)) throw new Error('Quick match seated no computer');
   await caroPlayToEnd(host);
   await godotText(host, 'ResultTitle', 'Bạn thắng!');
-  await godotText(host, 'Coins', coins(before + 20));
+  // 20 for the win, then 20 + 20 for the first game's achievements (Ván đầu tiên, Trận thắng đầu).
+  const after = before + 20 + 40;
+  await godotText(host, 'Coins', coins(after));
   await host.screenshot({ path: t.shot('4-result.png') });
 
   // Back in the lobby with Caro still on CHƠI; Tạo phòng, then a friend opens the link.
   await tap(host, 'Home');
   await onScene(host, 'lobby');
   await godotText(host, 'SelectedName', 'Caro');
-  await godotText(host, 'Coins', coins(before + 20));
+  await godotText(host, 'Coins', coins(after));
   await tap(host, 'CreateRoom');
   await tap(host, 'ConfirmCreate');
   await onScene(host, 'room');

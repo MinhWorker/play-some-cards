@@ -20,6 +20,17 @@ export default definePlugin({
     tagline: 'Đánh hết bài trên tay trước mọi người.',
     duration: { min: 5, max: 15 },
     rewardCap: { 'core:coin': WIN_COINS },
+    achievements: [
+      { id: 'chop', name: 'Chặt heo', stat: 'chop', at: 1, xp: 30, reward: { 'core:coin': 30 } },
+      {
+        id: 'ten-wins',
+        name: 'Mười ván Tiến Lên thắng',
+        stat: 'won',
+        at: 10,
+        xp: 80,
+        reward: { 'core:coin': 100 },
+      },
+    ],
   },
   game: new TienLenGame(),
   room: {

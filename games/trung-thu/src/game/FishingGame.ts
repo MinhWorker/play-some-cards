@@ -1,7 +1,8 @@
 /**
  * Câu cá Trung Thu, the sample event (`kind: 'event'`): one player casts CASTS times; each cast
  * brings up a catch drawn with `ctx.rng`. When the casts run out, the catches' points go to the
- * event (`ctx.reward(player, EVENT_POINTS, points)`) and the game ends.
+ * event (`ctx.reward(player, EVENT_POINTS, points)`), golden carps are counted
+ * (`ctx.stat`, for the "Cá chép vàng" achievement) and the game ends.
  */
 import { EVENT_POINTS, type EventContext, Game, type StartContext } from '@xomdao/sdk';
 import { z } from 'zod';
@@ -24,6 +25,8 @@ export class FishingGame extends Game<State> {
     if (caught.length >= CASTS) {
       const points = pointsOf(caught);
       if (points > 0) ctx.reward(ctx.player.id, EVENT_POINTS, points);
+      const golden = caught.filter((c) => c === 'golden-carp').length;
+      if (golden > 0) ctx.stat(ctx.player.id, 'golden-carp', golden);
       ctx.finish([ctx.player.id]);
     }
     return { caught };

@@ -25,6 +25,10 @@ describe('Câu cá Trung Thu', () => {
     expect(t.result?.rewards ?? []).toEqual(
       points > 0 ? [{ player: 'lan', resource: EVENT_POINTS, amount: points }] : [],
     );
+    const golden = t.state.caught.filter((c) => c === 'golden-carp').length;
+    expect(t.result?.stats ?? []).toEqual(
+      golden > 0 ? [{ player: 'lan', name: 'golden-carp', amount: golden }] : [],
+    );
     expect(t.error('lan', 'cast')).toBe('Ván đã kết thúc');
   });
 

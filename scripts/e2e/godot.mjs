@@ -54,6 +54,25 @@ export async function tap(page, name, timeout = 30_000) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
+/**
+ * Types `text` into a LineEdit by name. Under load Godot can miss the tap's focus or some keys,
+ * so it checks the field and, cleared, types again (three tries).
+ */
+export async function typeInto(page, name, text) {
+  for (let i = 0; ; i++) {
+    await tap(page, name);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Backspace');
+    await page.keyboard.type(text, { delay: 20 });
+    try {
+      // Godot takes the keys on its next frames.
+      return await godotText(page, name, text, 5000);
+    } catch (err) {
+      if (i === 2) throw err;
+    }
+  }
+}
+
 /** The latest room snapshot the client has (the protocol's RoomSnapshot), or null. */
 export function room(page) {
   return page.evaluate(() => window.xomdao.state().room);

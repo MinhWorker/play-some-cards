@@ -1,6 +1,6 @@
 class_name HubShelf
 extends VBoxContainer
-## Tabs over a row of item tiles that scrolls sideways (Nhà's shelf, Chợ's counters). A tab shows
+## Tabs over a row of tiles that scrolls sideways (Nhà's shelf, Chợ's counters). A tab shows
 ## its tiles, or a line of text when it has none.
 
 signal tab_changed(tab: String)
@@ -62,10 +62,17 @@ func select(id: String) -> void:
 
 ## Shows these tiles, or `empty` when there are none.
 func show_tiles(tiles: Array[HubItemTile], empty: String = "") -> void:
+	var nodes: Array[Control] = []
+	nodes.assign(tiles)
+	show_nodes(nodes, empty)
+
+
+## Shows these tiles of any kind (achievements, ranks), or `empty` when there are none.
+func show_nodes(tiles: Array[Control], empty: String = "") -> void:
 	for child: Node in _row.get_children():
 		_row.remove_child(child)
 		child.queue_free()
-	for tile: HubItemTile in tiles:
+	for tile: Control in tiles:
 		_row.add_child(tile)
 	_scroll.visible = not tiles.is_empty()
 	_empty.visible = tiles.is_empty()

@@ -15,6 +15,8 @@ import { MemoryMatchesStore } from '../matches/matches.store.js';
 import { RoomsGateway } from '../rooms/rooms.gateway.js';
 import { RoomsService } from '../rooms/rooms.service.js';
 import { ShopService } from '../shop/shop.service.js';
+import { StatsService } from '../stats/stats.service.js';
+import { MemoryStatsStore } from '../stats/stats.store.js';
 import { DevConsoleService } from './dev-console.service.js';
 import { DevSnapshots } from './dev-snapshots.js';
 import { logRoom } from './room-log.js';
@@ -36,6 +38,7 @@ function setup(dev: boolean) {
     inventory,
     new ShopService(ledger, inventory),
     new EventsService(new MemoryEventsStore(), ledger, new EventClock()),
+    new StatsService(new MemoryStatsStore(), ledger, accounts),
   );
   const socket = {
     data: { user: { id: 'a', name: 'A' }, roomCode: room.code },

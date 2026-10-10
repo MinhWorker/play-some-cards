@@ -28,6 +28,7 @@ import { InventoryError, InventoryService } from '../inventory/inventory.service
 import { LedgerService } from '../ledger/ledger.service.js';
 import { MatchesService } from '../matches/matches.service.js';
 import { ShopError, ShopService } from '../shop/shop.service.js';
+import { StatsError, StatsService } from '../stats/stats.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
 export interface SocketData {
@@ -99,12 +100,13 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     private readonly inventory: InventoryService,
     private readonly shop: ShopService,
     private readonly events: EventsService,
+    private readonly stats: StatsService,
   ) {
     rooms.onFinished((game) => {
       this.matches.record(game).catch((err) => console.error('Could not save a match', err));
     });
     rooms.onFinished((game) => {
-      this.ledger.rewardMatch(game).then(
+      const paid = this.ledger.rewardMatch(game).then(
         (notices) => {
           for (const notice of notices) {
             for (const s of this.socketsOf(notice.userId)) s.emit('reward', notice);
@@ -112,6 +114,17 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
         },
         (err) => console.error('Could not pay rewards', err),
       );
+      // After the game's own rewards, so an achievement's balances include them.
+      paid
+        .then(() => this.stats.recordMatch(game))
+        .then(
+          (notices) => {
+            for (const { userId, ...notice } of notices) {
+              for (const s of this.socketsOf(userId)) s.emit('achievement', notice);
+            }
+          },
+          (err) => console.error('Could not count stats', err),
+        );
     });
     rooms.onFinished((game) => {
       this.events.recordMatch(game).catch((err) => console.error('Could not count points', err));
@@ -250,6 +263,19 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.handle(() =>
       this.events.claim(socket.data.user.id, String(req?.eventId ?? ''), Number(req?.tier)),
     );
+  }
+
+  @SubscribeMessage('stats:get')
+  statsGet(socket: Client, req: { userId?: unknown } | undefined) {
+    return this.handle(() => {
+      const userId = typeof req?.userId === 'string' ? req.userId : socket.data.user.id;
+      return this.stats.playerStats(userId);
+    });
+  }
+
+  @SubscribeMessage('ranking:get')
+  rankingGet(socket: Client, req: { board?: unknown }) {
+    return this.handle(() => this.stats.ranking(String(req?.board ?? ''), socket.data.user.id));
   }
 
   @SubscribeMessage('history:recent')
@@ -600,7 +626,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
         err instanceof AccountError ||
         err instanceof InventoryError ||
         err instanceof ShopError ||
-        err instanceof EventError
+        err instanceof EventError ||
+        err instanceof StatsError
       ) {
         return { ok: false, error: err.message };
       }

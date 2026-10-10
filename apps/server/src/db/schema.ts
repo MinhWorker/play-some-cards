@@ -1,7 +1,7 @@
 // Database tables (Drizzle ORM). After changing this file run `npm run db:generate -w @xomdao/server`
 // to write a migration into `apps/server/drizzle/`; the server applies pending migrations on start.
 // Rooms and games still live in memory (see rooms.service.ts); accounts, finished games
-// (match history), the ledger, Túi đồ and event progress are stored here. Each module owns its
+// (match history), the ledger, Túi đồ, event progress, stats and achievements are stored here. Each module owns its
 // own tables (docs/adr/0002-modules.md).
 import {
   bigint,
@@ -156,4 +156,51 @@ export const eventClaims = pgTable(
     claimedAt: timestamp('claimed_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.eventId, t.tier] })],
+);
+
+/**
+ * Thống kê (apps/server/src/stats): each account's count of each stat in each game (`played`,
+ * `won`, a game's own `ctx.stat`), and its experience as game `core`, stat `xp`. Only the Stats
+ * module writes it.
+ */
+export const playerStats = pgTable(
+  'player_stats',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    gameId: text('game_id').notNull(),
+    name: text('name').notNull(),
+    value: integer('value').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.gameId, t.name] }),
+    index('player_stats_board').on(t.gameId, t.name, t.value),
+  ],
+);
+
+/** The games already counted in `player_stats`, so a game counts once per account. */
+export const statMatches = pgTable(
+  'stat_matches',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    matchId: text('match_id').notNull(),
+    countedAt: timestamp('counted_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.matchId] })],
+);
+
+/** The achievements (`ACHIEVEMENTS` ids) each account reached. */
+export const achievements = pgTable(
+  'achievements',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    achievementId: text('achievement_id').notNull(),
+    unlockedAt: timestamp('unlocked_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.achievementId] })],
 );

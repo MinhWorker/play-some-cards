@@ -19,7 +19,7 @@ import {
 } from '@xomdao/sdk';
 import { z } from 'zod';
 import { botPlay } from './bot.js';
-import { beats, type Card, cardName, comboOf, fullDeck } from './cards.js';
+import { beats, type Card, cardName, comboOf, fullDeck, isChop } from './cards.js';
 import { roundPoints, standings } from './match.js';
 import {
   dealMs,
@@ -91,6 +91,8 @@ export class TienLenGame extends Game<State, Options, View> {
     }
     const table = state.table && comboOf(state.table.cards);
     if (combo && !beats(combo, table)) reject('Bài này không chặn được');
+    // A bomb on a 2 or on another bomb: counted for the "Chặt heo" achievement.
+    if (combo && table && isChop(combo, table)) ctx.stat(player.id, 'chop');
     return playCards(ctx, player.seat, payload.cards);
   }
 

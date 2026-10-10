@@ -21,6 +21,16 @@ export default definePlugin({
     tagline: 'Thả câu dưới trăng rằm, gom điểm nhận quà.',
     duration: { min: 1, max: 2 },
     rewardCap: { [EVENT_POINTS]: MAX_POINTS },
+    achievements: [
+      {
+        id: 'golden-carp',
+        name: 'Cá chép vàng',
+        stat: 'golden-carp',
+        at: 1,
+        xp: 30,
+        reward: { 'core:coin': 30 },
+      },
+    ],
     event: {
       opensAt: '2026-09-18T00:00:00+07:00',
       closesAt: '2026-10-04T00:00:00+07:00',

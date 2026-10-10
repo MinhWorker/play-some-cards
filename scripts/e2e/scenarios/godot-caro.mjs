@@ -4,7 +4,7 @@
 // sandbox (?play=tic-tac-toe) against the computer. Needs the debug web build at /godot/
 // (npm run godot:export -- --debug).
 
-import { caroTap, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
+import { caroTap, godotText, launch, onScene, openGodot, room, tap, typeInto } from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['tic-tac-toe'];
@@ -25,10 +25,7 @@ export default async function run(t) {
   await onScene(guest, 'lobby');
   await tap(guest, 'Place_ben');
   await onScene(guest, 'ben');
-  await tap(guest, 'CodeInput');
-  await guest.keyboard.type(code.toLowerCase());
-  // Godot takes the keys on its next frames.
-  await godotText(guest, 'CodeInput', code.toLowerCase());
+  await typeInto(guest, 'CodeInput', code.toLowerCase());
   await tap(guest, 'Join');
   await onScene(guest, 'room');
   await host.waitForFunction(() => window.xomdao.state().room?.players.length === 2);

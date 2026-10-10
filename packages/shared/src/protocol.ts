@@ -26,7 +26,7 @@ import { ITEM_SLOTS } from './items.js';
  * version). CI fails when this file changes without a bump, unless the PR has the
  * `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 7;
+export const PROTOCOL_VERSION = 8;
 
 /** Error when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -92,6 +92,8 @@ export const GameResultSchema = z.object({
   /** Empty means a draw. */
   winners: z.array(z.string()),
   rewards: z.array(Reward).optional(),
+  /** What the game counted with `ctx.stat`. */
+  stats: z.array(z.object({ player: z.string(), name: z.string(), amount: z.int() })).optional(),
 });
 
 export const LastMove = z.object({ seq: z.int(), player: z.string(), move: z.unknown() });
@@ -302,6 +304,76 @@ export type EventProgress = z.infer<typeof EventProgress>;
 /** Reply of `event:claim`: the progress with that tier claimed, and your new balances. */
 export const EventClaim = z.object({ progress: EventProgress, balances: Balances });
 
+/** One achievement (`ACHIEVEMENTS`) and how far a player is in it. */
+export const AchievementInfo = z.object({
+  /** `core:won-10`, `tien-len:chop`. */
+  id: z.string(),
+  name: z.string(),
+  /** The game it counts in; `""` for the hub's own, which count over every game. */
+  gameId: z.string(),
+  /** The stat it counts: `played`, `won` or a game's own. */
+  stat: z.string(),
+  at: z.int(),
+  /** The player's count so far (may pass `at`). */
+  progress: z.int(),
+  unlocked: z.boolean(),
+  reward: Amounts,
+  xp: z.int(),
+});
+export type AchievementInfo = z.infer<typeof AchievementInfo>;
+
+/**
+ * Where a player stands on one board: `core` (everyone, by experience) or a game's id (by wins
+ * in it). `rank` is 1 for the first; ties share a rank.
+ */
+export const RankInfo = z.object({ board: z.string(), value: z.int(), rank: z.int() });
+export type RankInfo = z.infer<typeof RankInfo>;
+
+/** Someone's statistics (`stats:get`): level, totals, achievements and ranks. */
+export const PlayerStats = z.object({
+  userId: z.string(),
+  level: z.int(),
+  /** Experience so far; the level started at `levelXp` and the next one is at `nextXp`. */
+  xp: z.int(),
+  levelXp: z.int(),
+  nextXp: z.int(),
+  /** Games finished and won, over every game. */
+  played: z.int(),
+  won: z.int(),
+  /** Every achievement, the hub's own first. */
+  achievements: z.array(AchievementInfo),
+  /** The boards they are on (`core` first, then games by wins); none before their first game. */
+  ranks: z.array(RankInfo),
+});
+export type PlayerStats = z.infer<typeof PlayerStats>;
+
+/** One row of a ranking. */
+export const RankingEntry = z.object({
+  rank: z.int(),
+  id: z.string(),
+  name: z.string(),
+  avatar: z.string(),
+  frame: z.string(),
+  /** Experience on `core`, wins on a game's board. */
+  value: z.int(),
+});
+export type RankingEntry = z.infer<typeof RankingEntry>;
+
+/** A board's top players (`ranking:get`), and your own row when you are on it. */
+export const Ranking = z.object({
+  board: z.string(),
+  entries: z.array(RankingEntry),
+  me: RankingEntry.nullable(),
+});
+export type Ranking = z.infer<typeof Ranking>;
+
+/** Achievements you just reached (`achievement`), paid through the ledger, and your balances. */
+export const AchievementNotice = z.object({
+  achievements: z.array(AchievementInfo),
+  balances: Balances,
+});
+export type AchievementNotice = z.infer<typeof AchievementNotice>;
+
 // ── Requests and events ─────────────────────────────────────────────────────────────────────
 
 const Empty = z.object({});
@@ -365,6 +437,10 @@ export const requests = {
    */
   'event:get': { req: z.object({ eventId: z.string() }), res: EventProgress },
   'event:claim': { req: z.object({ eventId: z.string(), tier: z.int() }), res: EventClaim },
+  /** Someone's level, achievements and ranks (yours without `userId`). */
+  'stats:get': { req: z.object({ userId: z.string().optional() }), res: PlayerStats },
+  /** The top `RANKING_LIMIT` of a board: `core` (by experience) or a game's id (by wins). */
+  'ranking:get': { req: z.object({ board: z.string() }), res: Ranking },
   /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
   'history:recent': { req: Empty, res: z.object({ matches: z.array(MatchRecord) }) },
   /**
@@ -418,6 +494,8 @@ export const events = {
   'room:closed': RoomClosed,
   /** A game you played ended and paid you (once per game, within its `meta.rewardCap`). */
   reward: RewardNotice,
+  /** A game you played got you achievements; their rewards are paid. */
+  achievement: AchievementNotice,
 };
 
 /**
@@ -451,6 +529,12 @@ export const types = {
   Profile,
   EventProgress,
   EventClaim,
+  AchievementInfo,
+  RankInfo,
+  PlayerStats,
+  RankingEntry,
+  Ranking,
+  AchievementNotice,
   ProfileUpdate: profileSchema,
   AuthReply,
   SessionInfo,

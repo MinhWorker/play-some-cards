@@ -114,6 +114,19 @@ describe('tiến lên', () => {
     expect(game.state.points.reduce((a, b) => a + b)).toBe(2 * (3 + 2 + 1));
   });
 
+  it('counts each chặt as a stat for the "Chặt heo" achievement', () => {
+    const chops: string[] = [];
+    for (let seed = 1; seed <= 40 && !chops.length; seed++) {
+      const game = playRound(start(PLAYERS, { rounds: 1 }, seed), PLAYERS);
+      for (const stat of game.result?.stats ?? []) {
+        expect(stat).toMatchObject({ name: 'chop', amount: 1 });
+        chops.push(stat.player);
+      }
+    }
+    expect(chops.length).toBeGreaterThan(0);
+    expect(PLAYERS).toEqual(expect.arrayContaining(chops));
+  });
+
   it('runs a turn clock only with two or more people', () => {
     const people = start(PLAYERS, { turnSeconds: 15 });
     expect(people.timer).toEqual({ event: 'turn-over', ms: 15000 });

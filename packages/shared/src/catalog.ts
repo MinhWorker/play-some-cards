@@ -2,6 +2,7 @@ import type { EventMeta, GameMeta } from '@xomdao/sdk';
 
 export { EVENT_POINTS } from '@xomdao/sdk';
 
+import { achievementProblems } from './achievements.js';
 import type { GameCard, Genre } from './protocol.js';
 
 /**
@@ -42,7 +43,7 @@ const isAmounts = (value: Record<string, number>) =>
 
 /**
  * Problems with a game's hub declaration (`meta.kind`, `genre`, `tagline`, `duration`,
- * `rewardCap`, `event`); empty when it is fine. The registry test runs it on every game.
+ * `rewardCap`, `event`, `achievements`); empty when it is fine. The registry test runs it on every game.
  */
 export function metaProblems(meta: GameMeta, list: Genre[] = genres): string[] {
   const problems: string[] = [];
@@ -85,6 +86,7 @@ export function metaProblems(meta: GameMeta, list: Genre[] = genres): string[] {
       });
     }
   } else if (meta.event) add('only kind "event" has meta.event');
+  for (const problem of achievementProblems(meta.achievements ?? [])) add(problem);
   return problems;
 }
 
