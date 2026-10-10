@@ -293,7 +293,7 @@ export class CaroView extends GameView<State, Options> {
   }
 
   private pieceScale(piece: Phaser.GameObjects.Image) {
-    return (UNIT * 0.72) / piece.width;
+    return (UNIT * 1.0) / piece.width;
   }
 
   /** The winning pieces bounce and glow gold while the result is shown. */
