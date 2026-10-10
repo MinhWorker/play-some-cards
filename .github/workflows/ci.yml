@@ -52,8 +52,8 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - run: npx playwright install --with-deps --only-shell chromium
       - run: npm run godot:smoke
-      # Caro end to end in the debug build (it has the test bridge), against the dev app, which
-      # serves the build at /godot/. scripts/e2e/scenarios/godot-caro.mjs.
+      # The Godot scenarios (scripts/e2e/scenarios/godot-*.mjs) in the debug build (it has the
+      # test bridge), against the dev app, which serves the build at /godot/.
       - run: npm run godot:export -- --debug
       - name: Start the app
         env:
@@ -65,7 +65,7 @@ jobs:
             sleep 1
           done
           cat dev.log; exit 1
-      - run: npm run e2e -- --only godot-caro --retries 1
+      - run: npm run e2e -- --only godot-caro,godot-lobby,godot-tien-len --retries 1
       - name: Dev server log
         if: failure()
         run: cat dev.log
@@ -99,7 +99,7 @@ jobs:
         env:
           PAUSED: 'true'
           # Scenarios of the Godot client: the godot job runs them on its own build.
-          GODOT: godot-caro
+          GODOT: godot-caro,godot-lobby,godot-tien-len
           EVENT: ${{ github.event_name }}
           BASE: origin/${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}

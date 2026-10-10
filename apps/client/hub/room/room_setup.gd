@@ -3,8 +3,8 @@ extends Control
 ## Tạo phòng: a board the game fills with its own options. The game's main scene describes them
 ## with `room_setup()`, a list of
 ##   { "key": "opponent", "label": "Chơi với", "options": [["Bạn bè", "human"], ["Máy", "bot"]] }
-## and the hub draws one row of choices per option (the first is the default). Tạo sends the
-## picked values as the room's options.
+## and the hub draws one row of choices per option: the first is picked, or the one at the
+## optional "default" index. Tạo sends the picked values as the room's options.
 
 signal created(options: Dictionary)
 signal cancelled
@@ -49,7 +49,9 @@ func show_setup(game_name: String, spec: Array) -> void:
 		var labels: Array[String] = []
 		for pair: Variant in option.get("options", []):
 			labels.append(str(pair[0]))
-		var choice := XomDaoChoice.create(labels)
+		var choice := XomDaoChoice.create(
+			labels, clampi(int(option.get("default", 0)), 0, maxi(0, labels.size() - 1))
+		)
 		choice.name = "Option_" + str(option.get("key", ""))
 		choices[str(option.get("key", ""))] = choice
 		grid.add_child(choice)
