@@ -9,32 +9,24 @@ Game đã mở trên bản chính thức; chọn đảo Cờ Vây để tạo ph
 
 ## Tạo phòng
 
-Form gồm **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó) và **Bạn cầm quân**
+Bảng Tạo phòng gồm **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó) và **Bạn cầm quân**
 (Đen đi trước, hoặc Trắng). Mọi ván đều dùng bàn 19 × 19; không có tuỳ chọn cỡ bàn.
-Chủ phòng đổi các tuỳ chọn giữa hai ván bằng "Tuỳ chỉnh".
 
-Trên điện thoại, giữ và rê ngón tay để xem trước giao điểm trong kính phóng đại, thả tay để
-đặt quân; rê ra khỏi bàn để huỷ. Bàn tận dụng khoảng trống giữa hai cụm HUD và chiếm gần hết
-chiều cao màn hình ngang; người chơi và nút điều khiển nằm hai bên.
-Người 1 ở góc dưới phải, người 2 ở góc trên trái, kể cả khi đổi màu quân. HUD không có khung:
-ảnh đại diện bên trái, tên và số quân đã bắt bên phải; vòng vàng quanh avatar chỉ bên đang có lượt.
-Hai cụm chừa chỗ cho thanh phòng và nút cài đặt chung. Trạng thái lượt và số nước nằm bên phải bàn.
-Nút "Bỏ lượt" ở bên trái bàn. Đầu hàng là nút lá cờ trắng nằm riêng bên phải, dưới trạng thái
-lượt; chạm vào mở hộp xác nhận "Đầu hàng?" với hai nút "Chơi tiếp" và "Đầu hàng" (chạm ra ngoài
-hộp cũng là chơi tiếp).
-Mỗi người có hộp mây và nắp riêng: đầu ván nắp trượt mở, hộp chứa 181 quân Đen hoặc 180 quân Trắng.
-Quân được đặt xuống bàn ngay, số quân trong hộp vơi dần; quân bắt được bay lên nắp của người bắt.
-Quân vừa đặt có vòng đỏ, điểm cướp có ô vuông. Khi đếm điểm,
-quân chết mờ đi và ô vuông nhỏ đen/trắng cho biết giao điểm đó tính cho ai. Hai bên sửa đánh dấu,
-cùng "Đồng ý" để kết thúc, hoặc "Đánh tiếp" để trở lại ván.
+## Chơi
 
-Kết thúc ván, panel giữa bàn thông báo "Chiến thắng!" hoặc "Thua rồi" theo người đang xem;
-khán giả thấy màu quân thắng. Panel hiển thị người thắng, lý do kết thúc, số nước, quân đã bắt
-và thời gian chơi. Khi hai bên đồng ý đếm điểm, điểm Đen và Trắng được hiển thị riêng, đã gồm
-điểm bù của Trắng. Nút riêng "Xem bàn cờ" ẩn panel, "Tổng kết" mở lại; không có khung kết quả
-phụ. Chủ phòng mở ván tiếp bằng "Chơi ván mới" ở giữa thanh trên, cạnh "Tuỳ chỉnh".
-Khi kết nối lại hoặc đổi ghế, bàn và số quân trong hộp/nắp được dựng lại đúng trạng thái;
-ở ván đã kết thúc, panel hiện lại không phát âm thanh.
+Bố cục **Bàn** ([experience.md](../../docs/experience.md)): bàn gỗ ở giữa, cao gần trọn khung.
+Cột bên trái có hai người chơi (mình ở dưới, đối thủ dưới nút ☰ của hub), mỗi người một hộp quân
+và một nắp đựng quân đã bắt. Cột bên phải có trạng thái, số nước hoặc số đếm, và các nút Bỏ lượt,
+Đồng ý, Đánh tiếp, Đầu hàng.
+
+Tới lượt mình, quân sắp đặt đi theo chuột; khi ngón tay (hoặc chuột) giữ trên bàn, kính lúp hiện
+các giao điểm quanh đó, thả tay là đặt quân. Quân vừa đặt có vòng đỏ, điểm cướp có ô vuông. Quân
+bị bắt bay vào nắp của bên bắt. Sau hai lần bỏ lượt thì vào đếm điểm: quân chết mờ đi và mỗi
+giao điểm thuộc về một bên có ô vuông nhỏ màu bên đó; chạm một nhóm quân để đánh dấu chết hoặc
+sống, "Đồng ý" để kết thúc, "Đánh tiếp" để trở lại ván. "Đầu hàng" hỏi lại trước.
+
+Kết thúc ván, bảng kết quả của hub thêm lý do kết thúc và số liệu của ván (`result_detail()`);
+khi hai bên đồng ý đếm điểm, điểm Đen và Trắng hiện riêng, đã gồm điểm bù của Trắng.
 
 Máy chơi theo kinh nghiệm: bắt quân, cứu nhóm còn một khí, chiếm đường 3–4 lúc đầu, tránh lấp
 mắt mình và ước lượng vùng chắc bằng các ván ngẫu nhiên. Chưa có đồng hồ và chấp quân.
@@ -47,45 +39,33 @@ mắt mình và ước lượng vùng chắc bằng các ván ngẫu nhiên. Ch�
 | Đặt quân, bắt quân, cướp, đếm điểm và đoán quân chết | `src/game/rules.ts` |
 | Lượt, bỏ lượt, đồng ý, đánh tiếp và đầu hàng | `src/game/GoGame.ts` |
 | Máy chơi | `src/game/bot.ts` |
-| Bàn, quân, hiệu ứng và âm thanh | `src/scenes/GoView.ts` |
-| Thông báo chiến thắng và thống kê cuối ván | `src/scenes/ResultPanel.ts` |
-| Nút lá cờ trắng và hộp xác nhận đầu hàng | `src/scenes/ResignDialog.ts` |
-| Hộp, nắp và các chồng quân theo số lượng | `src/scenes/StoneBowl.ts` |
-| Nền vải xanh trầm | `src/scenes/GoBackground.ts` |
-| Form tạo phòng | `src/scenes/Setup.ts` |
-| Màn hình Godot: bàn, quân, kính lúp, đếm điểm, hộp và nắp, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
-| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
+| Bàn chơi: bàn, quân, kính lúp, đếm điểm, hộp và nắp, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` (test: `godot/test/`) |
+| Hình, âm thanh và nhạc của bàn | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
-`src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
-`assets/` chứa hình và âm thanh dùng trực tiếp; `sources/` chứa script và prompt tạo tài nguyên.
-Test nằm cạnh phần logic với đuôi `.test.ts`; e2e ở `scripts/e2e/scenarios/go.mjs`.
+`src/index.ts` đăng ký game phía server. `assets/` chứa hình và âm thanh cỡ đầy đủ (bàn chép bản
+cần dùng vào `godot/`); `sources/` chứa script và prompt tạo tài nguyên.
+Test nằm cạnh phần logic với đuôi `.test.ts`; e2e ở `scripts/e2e/scenarios/godot-go.mjs`.
 
 ## Phát triển
 
-Chạy `npm run dev` ở gốc repo rồi mở http://localhost:5033/?play=go&players=2.
-Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
-`npm run shots -- --path '/?play=go&players=2' --audit`.
+Chạy `npm run godot:export -- --debug` và `npm run dev` ở gốc repo rồi mở
+http://localhost:5033/?play=go. Kiểm tra bằng `npm run check`, `npm run godot:check`,
+`npm run e2e -- --only godot-go` và `npm run shots -- --path '/?play=go'`.
 Hướng dẫn SDK: [tạo game](../../docs/making-a-game.md).
 
-Bản Godot (`godot/`) có cùng bàn kaya, đường kẻ và chín sao, quân có bóng, vòng đỏ ở nước vừa đi,
-ô vuông ở điểm cướp, quân mờ theo chuột và kính lúp 3 × 3 khi nhấn giữ. Khi đếm điểm, quân chết mờ
-đi và mỗi điểm thuộc về một bên có ô vuông nhỏ màu bên đó; chạm một nhóm quân để đánh dấu chết
-hoặc sống. Hai hộp đầy quân còn lại, quân bị bắt bay vào nắp của bên bắt. Đầu hàng hỏi lại trong
-hộp xác nhận. Chưa có đèn normal map. Điểm được đi lấy từ `moves` trong view của server (chỉ có
-khi tới lượt mình), số đếm lấy từ `count`, nên luật chỉ nằm ở TypeScript. Chơi thử bằng
-`npm run godot:export -- --debug` rồi mở http://localhost:5033/godot/?play=go; test GUT ở
-`godot/test/`, kịch bản trình duyệt ở `scripts/e2e/scenarios/godot-go.mjs`.
+Điểm được đi lấy từ `moves` trong view của server (chỉ có khi tới lượt mình), số đếm lấy từ
+`count`, nên luật chỉ nằm ở TypeScript. Chưa có đèn normal map.
 
 ## Hình và âm thanh
 
 - Bàn gỗ kaya viền mỏng, quân đá phiến đen/đá trắng ngà mài bóng, nền vải và nút gỗ kết xuất bằng
   Blender: `npm run blender -- go`. Helper chung ở `tools/blender/xomdao_bake/`;
   cũng dùng được Python với bpy như [hướng dẫn](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Góc nhìn thẳng từ trên
-  xuống, ánh sáng mềm từ trên trái. Nền vải liền mép là tile 256×256 POT phủ màn hình bằng `this.tiled('cloth')`;
-  tái tạo bằng `npm run blender -- go cloth`. Đường kẻ và chín sao do Phaser vẽ để khớp giao điểm.
+  xuống, ánh sáng mềm từ trên trái. Nền vải liền mép là tile 256×256 POT lát kín màn hình;
+  tái tạo bằng `npm run blender -- go cloth`. Đường kẻ và chín sao vẽ bằng code để khớp giao điểm.
 - Hộp và nắp mây đan được dựng riêng theo ảnh tham khảo, kết xuất trong suốt bằng
-  `npm run blender -- go bowl bowl-lid`; chồng quân và bóng tròn do Phaser vẽ.
-- Đảo Cờ Vây trên bản đồ tạo bằng Image Gen; prompt ở `sources/prompts.json`. Sinh lại bằng `npm run gen:asset -- go/island`.
+  `npm run blender -- go bowl bowl-lid`; chồng quân và bóng tròn vẽ bằng code.
+- Tranh đảo Cờ Vây (`island`) tạo bằng Image Gen; prompt ở `sources/prompts.json`. Sinh lại bằng `npm run gen:asset -- go/island`.
 - Ba tiếng đặt quân là các đoạn va chạm trong bản ghi của dự án
   `assets/audio/sfx/xomdao-wood-marker-place-veo.mp3`, được cắt, lọc phần ù thấp và làm đuôi ngắn.
   Tiếng bắt quân ghép vài va chạm nhỏ; tiếng bỏ lượt/đánh dấu nhẹ hơn. Không thêm tiếng trống
@@ -95,7 +75,3 @@ khi tới lượt mình), số đếm lấy từ `count`, nên luật chỉ nằ
 - Tạo lại âm thanh: `python games/go/sources/prepare_audio.py` (cần ffmpeg, numpy, scipy;
   tải bản ghi nguồn bằng Git LFS). Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.
   Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
-
-Quân đặt xuống bàn ngay, không bay từ hộp; hộp vơi dần, quân bị bắt chuyển sang nắp đối thủ, hộp/nắp rung nhẹ.
-Nước đi và âm thanh dùng runtime SDK: ván mới, đổi ghế, kết nối lại và
-rời bàn huỷ hiệu ứng cũ; dựng lại bàn không phát lại nước đi hoặc nhạc kết thúc.

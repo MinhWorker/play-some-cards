@@ -1,5 +1,5 @@
 /**
- * Small vector effects for Bom Nguyên Tố, packed as the `cartoon-fx` Phaser atlas: crate
+ * Small vector effects for Bom Nguyên Tố, packed as the `cartoon-fx` JSON atlas: crate
  * splinters, dust, dash streaks, the freeze shell, dizzy stars, skill bursts and victory confetti.
  * Characters, bombs, blasts and items are Codex art packed by pack-sprites.py.
  * Run from the repository root: node games/bom-nguyen-to/sources/bake-effects.mjs

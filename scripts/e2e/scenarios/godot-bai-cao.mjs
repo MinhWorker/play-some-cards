@@ -1,11 +1,10 @@
 // Bài Cào in the Godot client (#121): the sandbox (?play=bai-cao) plays a 5-round game against
 // three computer players. Each round you bet (unless you are the dealer), open one card with a
 // tap, squeeze another open by dragging it up, then Lật bài; the count shows at the seats and
-// the hub's result comes at the end. Needs the debug web build at /godot/
+// the hub's result comes at the end. Needs the debug web build
 // (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 
 export const games = ['bai-cao'];
 export { launch };

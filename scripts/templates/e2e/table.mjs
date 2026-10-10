@@ -1,9 +1,8 @@
 // __NAME__ in the Godot client: the sandbox (?play=__ID__), a real room against the computer,
-// played to the end with the +1 / +2 / +3 buttons on a phone. Needs the debug web build at
-// /godot/ (npm run godot:export -- --debug).
+// played to the end with the +1 / +2 / +3 buttons on a phone. Needs the debug web build
+// (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot } from '../godot.mjs';
-import { PHONE } from '../lib.mjs';
+import { godotText, launch, onScene, openGodot, PHONE } from '../godot.mjs';
 
 export const games = ['__ID__'];
 export { launch };

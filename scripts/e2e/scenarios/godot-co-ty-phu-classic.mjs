@@ -2,10 +2,9 @@
 // computer players. You play a few real turns through the buttons (Gieo, then Mua, Xác nhận, Từ
 // bỏ, Trả nợ or Hết lượt as the turn asks; Trao đổi once), open the card of a square, then the Dev Console
 // leaves one computer player with 10 ₫ in front of your hotel and steps it until it goes
-// bankrupt and you win. Needs the debug web build at /godot/ (npm run godot:export -- --debug).
+// bankrupt and you win. Needs the debug web build (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 
 export const games = ['co-ty-phu-classic'];
 export { launch };

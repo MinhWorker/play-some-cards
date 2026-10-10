@@ -1,4 +1,4 @@
-"""Pack Bom Nguyên Tố's Codex sprite frames into Phaser JSON atlases.
+"""Pack Bom Nguyên Tố's Codex sprite frames into JSON atlases (godot/atlas.gd reads them).
 
 Codex draws every pose on its own canvas at its own scale, so each frame is trimmed, scaled to
 the character's standing height (times a per-pose ratio), and placed with its feet on one
@@ -126,8 +126,8 @@ def actor_frames(element):
 
 def pack(name, images, frames, pivot, quality=90, max_width=2048):
     """Shelf-pack trimmed images; `frames` maps each frame name to an image id. `pivot` is the
-    anchor of every frame, or a function of the frame name: Phaser re-applies a frame's pivot as
-    the sprite's origin each time an animation changes frame."""
+    anchor of every frame, or a function of the frame name: a frame's pivot becomes the sprite's
+    origin each time an animation changes frame."""
     padding = 3
     boxes = {}
     for key, image in images.items():

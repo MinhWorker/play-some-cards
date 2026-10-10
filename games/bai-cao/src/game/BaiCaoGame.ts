@@ -1,7 +1,7 @@
 /**
  * The game's logic, on the server. A player's event (or a timer) runs its hook, which gets the
  * whole room in `ctx` and returns the next state; everyone's screen then gets what `view` lets
- * them see (scenes/BaiCaoView.ts).
+ * them see (godot/main.gd).
  *
  *   bet          before the deal: how much you bet against the dealer this round
  *   reveal       after the deal: turn your three cards over for everyone

@@ -24,7 +24,8 @@ village by the sea, warm paper and lacquer, thick outlines).
    subject, style from art-direction.md, size, `transparent: true` for objects.
 2. `npm run gen:asset -- <id>/<name>`; small fixes with `--edit <name> "<change>"`.
 3. Look at the file (Read the image). Check the alpha is real, not a painted checkerboard.
-4. `npm run assets -- <id>` makes `games/<id>/assets/<name>.webp`.
+4. `npm run assets -- <id>` makes `games/<id>/assets/<name>.webp` (a hub image lands in
+   `assets/app/images/<name>.webp`).
 
 ## Blender bake
 
@@ -39,8 +40,8 @@ village by the sea, warm paper and lacquer, thick outlines).
    (sounds: `godot/sounds/<name>.wav`). Keep names short; the folder is the game's pack.
 2. `npm run godot -- --headless --import` (or `npm run godot:check`) so Godot writes
    `<name>.webp.import`; commit it next to the file.
-3. Use it with `preload("res://content/<id>/art/<name>.webp")`; a hub asset goes in
-   `apps/client/` and is used by the hub only.
+3. Use it with `preload("res://content/<id>/art/<name>.webp")`. A hub asset's app-ready file
+   lives in `assets/app/` (`images/`, `audio/`); copy it into `apps/client/` where the hub uses it.
 4. Card art for the hub's game card is a 2:3 picture; until a game ships one, the hub draws a
    stand-in (`apps/client/hub/card_art.gd`).
 5. Check it in place: a headless screenshot (`phone-check` skill), and judge sharpness on the

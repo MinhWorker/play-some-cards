@@ -1,7 +1,7 @@
 /**
  * The game's logic, on the server (WXF 2018 rules for two players). A player's event runs its
  * hook, which gets the whole room in `ctx` and returns the next state; everyone's screen then
- * gets it (scenes/XiangqiView.ts).
+ * gets it (godot/main.gd).
  *
  *   move          a piece from one point to another (legal moves: rules.ts)
  *   offer-draw    offer a draw, or accept the other side's offer

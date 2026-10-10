@@ -2,10 +2,19 @@
 // few stones by tapping the points with the mouse, a pass, then Đầu hàng through its dialog; the
 // result board says how it ended, Xem bàn puts it away and Kết quả brings it back. Then a host on
 // a desktop makes a room for two friends: the host plays Black and White waits. Needs the debug
-// web build at /godot/ (npm run godot:export -- --debug).
+// web build (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, tap, tapCard, typeInto } from '../godot.mjs';
-import { DESKTOP, PHONE } from '../lib.mjs';
+import {
+  DESKTOP,
+  godotText,
+  launch,
+  onScene,
+  openGodot,
+  PHONE,
+  tap,
+  tapCard,
+  typeInto,
+} from '../godot.mjs';
 
 export const games = ['go'];
 export { launch };

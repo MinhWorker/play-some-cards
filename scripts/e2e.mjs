@@ -1,10 +1,11 @@
-// Headless browser tests of the real app, one scenario per file in scripts/e2e/scenarios/.
+// Headless browser tests of the Godot client (its debug web build, `npm run godot:export --
+// --debug`) against a real server, one scenario per file in scripts/e2e/scenarios/.
 // Scenarios are independent (own browser, own accounts, own room names), so they run side by
 // side here and on separate machines in CI. Screenshots go to .e2e/<scenario>/.
 // Needs a server with XOMDAO_DEV=1 (`npm run dev` sets it). Never opens a visible window.
 //
 //   npm run e2e [webUrl]                 every scenario, default http://localhost:5033
-//   npm run e2e -- --only tien-len       some scenarios (comma separated; godot-* = every godot-…)
+//   npm run e2e -- --only godot-caro     some scenarios (comma separated; godot-* = every godot-…)
 //   npm run e2e -- --changed origin/main only the scenarios the changes since that ref touch
 //   npm run e2e -- --list [...]          print the picked scenario names as JSON, run nothing
 //   --skip a,b   leave these scenarios out (godot-* works here too)
@@ -56,6 +57,8 @@ const INERT = [
   /^docs\//,
   /^LICENSE/,
   /^games\/[^/]+\/sources\//,
+  // Art originals: a game's godot/ folder holds the copies the client draws.
+  /^games\/[^/]+\/assets\//,
   /^\.github\/(?!workflows\/ci\.yml)/,
   /^\.vscode\//,
   /^\.claude\//,

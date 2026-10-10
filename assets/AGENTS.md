@@ -9,16 +9,20 @@
 ## Where files live
 
 - **A game**:
-  - `games/<id>/assets/` holds files used as they are.
+  - `games/<id>/assets/` holds the app-ready files (full size, plus atlases and normals).
   - The optional `games/<id>/sources/` holds originals; `npm run assets -- <id>` makes
     `assets/<name>.webp` from them.
-  - The game's image on the home map is `island`.
+  - `games/<id>/godot/` holds the copies the Godot table uses (`art/`, `sounds/`, `music/`): the
+    folder is the game's pack, so copy only what it draws or plays.
+  - The game's picture on its hub card is `island`.
 - **The app**:
   - Originals are in `assets/` (`shared/`, older game audio in `games/<id>/audio/`, and unsorted
     experiments in `audio/`).
-  - App-ready files are in `apps/web/public/shared/`.
+  - App-ready files are in `assets/app/` (`images/`, `audio/`, unsorted sounds in
+    `audio/unsorted/`). The Godot client copies what it uses into its own folders
+    (`apps/client/addons/xomdao_sdk/ui/`, `apps/client/hub/`).
 - **Storage**: originals are Git LFS, and a new binary type needs a pattern in `.gitattributes`.
-  App-ready files are plain git.
+  App-ready files (`assets/app/`, `games/<id>/assets/`, `godot/`) are plain git.
 - **Avatars and frames are separate images** of the same 256×256 canvas: `avatar-<id>.webp` is a
   round, frameless picture (a disc of radius 100), `frame-<id>.webp` the ring drawn over it. The ids
   are `AVATARS` and `FRAMES` in `packages/shared/src/account.ts`; `avatar-bot` keeps its own frame.
@@ -58,15 +62,14 @@ Notes on the options and on Codex:
   `blender -b --python x.py -- <names>` work too. PNG intermediates stay in ignored `.blender/`;
   commit Python sources and app-ready files, without adding LFS originals or `.blend` files.
 - `assets/<name>.normal.webp` pairs with image/atlas `<name>`. Same dimensions, frame placement
-  and unrotated/untrimmed canvases, and **opaque** (RGB, no alpha): Phaser uploads images
-  premultiplied, so alpha below 255 shrinks the vectors and mis-shades edges. Empty canvas is
+  and unrotated/untrimmed canvases, and **opaque** (RGB, no alpha): a premultiplied upload would
+  shrink the vectors where alpha is below 255 and mis-shade edges. Empty canvas is
   the flat normal; edges blend toward it (`opaque_normals` in xomdao_bake). Camera-space +X right, +Y up, +Z toward the viewer;
   flat normals are (128,128,255). Bake with Raw (Standard applies sRGB), disable dithering and
   save normals losslessly. Never run them through image cropping, grading or lossy compression.
-- Group lit sprites in `GameScene.litLayer()`. Different diffuse/normal pairs still flush Phaser's
-  lit batch; pack many pieces into one aligned atlas pair (chess's `pieces`) to keep draws low.
-- Cloth is a seamless 256×256 POT tile: `GameBackgroundScene.tiled('cloth')` covers the bleed at
-  one texel per canvas pixel.
+- Pack many pieces into one aligned atlas pair (chess's `pieces`) rather than one file each.
+- Cloth is a seamless 256×256 POT tile; the table tiles it (`TextureRect.STRETCH_TILE`) to cover
+  the whole screen.
 - Art baked before the shared rig keeps its own settings so a re-bake matches what is committed:
   `setup(…, lights=LEGACY_RIG)` (chess board/buttons, checkers at 96 samples) and go's disk rig.
   Only change a game's rig when you re-bake all of its art.
@@ -76,9 +79,10 @@ Notes on the options and on Codex:
 ## Sounds
 
 - **The app-ready files are the real ones**, with no build step:
-  - `apps/web/public/shared/audio/`;
+  - `assets/app/audio/`;
   - `games/<id>/assets/`;
-  - unsorted ones in `apps/web/public/audio/`.
+  - unsorted ones in `assets/app/audio/unsorted/`.
+  A Godot table plays its copies in `godot/sounds/`; copy again after changing one.
 - Originals (Veo clips in `assets/**/sfx-selected/`, `xomdao-*` files, downloads in
   `assets/**/sfx/`) are kept as an archive.
 - **To change a sound**, edit the app-ready file in place with ffmpeg, then measure it with
@@ -89,7 +93,9 @@ Notes on the options and on Codex:
 - **Formats**:
   - Short effects are mono 16-bit WAV, because MP3 starts with about 25 ms of padding.
   - Music is 128 kbps MP3.
-- **Music**: a game's music is every `music*` file in its `assets/`, and a random one plays on its
-  board. The app's music is `APP_MUSIC` in `apps/web/src/lib/sound.ts`.
+- **Music**: a game's music is every track in its `godot/music/`; the hub's `HubMusic` plays a
+  random one while its table shows. The app's own tracks (`music-hub-*`, `music-sky-*`) are in
+  `assets/app/audio/`.
 - Asset provenance and license exceptions live in `LICENSE-ASSETS.md` and the game README.
-  Find playback triggers in the game scenes; avoid duplicating them in audio planning documents.
+  Find playback triggers in the game's `godot/` scripts; avoid duplicating them in audio planning
+  documents.

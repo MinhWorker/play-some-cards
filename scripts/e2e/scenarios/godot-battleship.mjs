@@ -1,10 +1,9 @@
 // Bắn Tàu in the Godot client (#122): the sandbox (?play=battleship) plays the computer (easy).
 // You drag a ship to a new place, turn another with two taps, press Sẵn sàng, then fire cell by
 // cell on your turns until a fleet is sunk and the hub's result comes. Needs the debug web build
-// at /godot/ (npm run godot:export -- --debug).
+// (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 
 export const games = ['battleship'];
 export { launch };

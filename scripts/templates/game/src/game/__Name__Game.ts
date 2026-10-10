@@ -1,8 +1,7 @@
 /**
  * The game's logic, on the server. Players send events (listed in `events`); each event runs its
  * hook (`add` → `onAdd`), which gets the whole room in `ctx` and returns the next state. Every
- * screen then gets the new state and hears the event (godot/main.gd in the Godot client,
- * scenes/__Name__View.ts in the web app).
+ * screen then gets the new state and hears the event (godot/main.gd).
  *
  * Starter game ("race to 21"): players take turns adding 1, 2 or 3 to a shared total; whoever
  * reaches exactly 21 wins. Replace it with your game.

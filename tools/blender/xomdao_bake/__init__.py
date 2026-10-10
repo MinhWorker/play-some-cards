@@ -1,9 +1,9 @@
 """Shared Blender sprite baking. Works with Blender's Python or the PyPI bpy module.
 
 Normal maps are camera-space (+X right, +Y up, +Z toward the viewer), stored raw, losslessly
-and opaque, with the same size as their diffuse image. No sRGB conversion. Phaser uploads image
-textures premultiplied, so any alpha below 255 would shrink the encoded vectors: edges blend
-toward the flat normal (128,128,255) instead.
+and opaque, with the same size as their diffuse image. No sRGB conversion. A renderer that
+uploads textures premultiplied would shrink the encoded vectors wherever alpha is below 255, so
+edges blend toward the flat normal (128,128,255) instead.
 """
 import math
 import json
@@ -160,7 +160,7 @@ def normal_material():
     links.new(geometry.outputs['Normal'], camera.inputs['Vector'])
     encode = nodes.new('ShaderNodeVectorMath')
     encode.operation = 'MULTIPLY_ADD'
-    # Blender's shader CAMERA space points +Z into the screen; Phaser expects +Z out.
+    # Blender's shader CAMERA space points +Z into the screen; the maps store +Z out.
     encode.inputs[1].default_value = (0.5, 0.5, -0.5)
     encode.inputs[2].default_value = (0.5, 0.5, 0.5)
     links.new(camera.outputs['Vector'], encode.inputs[0])

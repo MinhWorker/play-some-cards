@@ -1,4 +1,3 @@
-import type { ConsoleIssue, DevConsoleSchema } from '@xomdao/sdk';
 import { z } from 'zod';
 
 export type { DevCommandInfo, DevConsoleSchema } from '@xomdao/sdk';
@@ -7,10 +6,8 @@ import { avatarSchema, frameSchema, profileSchema } from './account.js';
 import { ITEM_SLOTS } from './items.js';
 
 /**
- * The contract between the clients and the server, written once as zod schemas. The server
- * speaks it over two transports:
- *   - Socket.IO (the Phaser web app): `ClientToServerEvents` / `ServerToClientEvents` below;
- *   - plain WebSocket + JSON on `/ws` (the Godot client), see `WsClientMessage`.
+ * The contract between the Godot client and the server, written once as zod schemas. The server
+ * speaks it over plain WebSocket + JSON on `/ws`, see `WsClientMessage`.
  * `npm run gen:protocol` turns `types`, `requests` and `events` into GDScript
  * (apps/client/addons/xomdao_sdk/generated/); CI fails when it is stale.
  *
@@ -21,21 +18,14 @@ import { ITEM_SLOTS } from './items.js';
 /**
  * Bump this whenever a change here breaks older clients or servers (renamed/removed events,
  * changed payloads). Clients and server deploy separately, so they compare it on connect: the
- * client sends it (Socket.IO `auth.protocol`, WebSocket `auth:*` requests), and the server refuses
- * a mismatch with `PROTOCOL_MISMATCH` (Socket.IO: the error's `data.protocol` is the server's
- * version). CI fails when this file changes without a bump, unless the PR has the
+ * client sends it with its `auth:*` request, and the server refuses a mismatch with
+ * `PROTOCOL_MISMATCH` (the reply's `protocol` is the server's version). CI fails when this file changes without a bump, unless the PR has the
  * `protocol:compatible` label.
  */
 export const PROTOCOL_VERSION = 8;
 
 /** Error when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
-
-/** What the Socket.IO client passes as `auth` when connecting. */
-export interface HandshakeAuth {
-  token: string;
-  protocol: number;
-}
 
 /** The main currency. */
 export const COIN = 'core:coin';
@@ -395,8 +385,7 @@ export const LobbyRooms = z.object({ gameId: z.string(), rooms: z.array(RoomSumm
 export const RoomClosed = z.object({ gameId: z.string(), reason: z.string() });
 
 /**
- * Before any other request on the WebSocket transport, one of these logs the connection in
- * (Socket.IO logs in with `auth` when connecting instead). Each carries the client's
+ * Before any other request, one of these logs the connection in. Each carries the client's
  * `protocol` (PROTOCOL_VERSION); a mismatch is refused with `PROTOCOL_MISMATCH`.
  */
 export const authRequests = {
@@ -476,7 +465,7 @@ export const requests = {
   /** A spectator takes a free seat (only before the game starts or after it ends). */
   'room:sit': { req: Empty, res: Empty },
   /**
-   * Host only, not during a game: replace the room's options (a board's `changeOptions`). The
+   * Host only, not during a game: replace the room's options. The
    * next game starts with them. Can't change how many seats the computer has.
    */
   'room:options': { req: z.object({ options: z.unknown() }), res: Empty },
@@ -546,7 +535,6 @@ export const types = {
 /** Every request gets either `{ ok: true, ...data }` or `{ ok: false, error }`. */
 export type Ack<T = object> = (res: ({ ok: true } & T) | { ok: false; error: string }) => void;
 
-type Requests = typeof requests;
 type Events = typeof events;
 
 /** Dev logs contain full game details and are only sent to opted-in members in dev mode. */
@@ -560,36 +548,7 @@ export interface DevLogEntry {
   data?: unknown;
 }
 
-/** Dev only (Socket.IO): older clients need none of these. */
-interface DevClientEvents {
-  /** Start or stop following the current room's log. */
-  'dev:logs': (req: { on: boolean }, ack: Ack<{ entries: DevLogEntry[] }>) => void;
-  /** Execute in the sender's room. */
-  'dev:command': (
-    req: { line: string },
-    ack: (
-      res: { ok: true; output: string } | { ok: false; error: string; issue?: ConsoleIssue },
-    ) => void,
-  ) => void;
-  'dev:schema': (req: Record<string, never>, ack: Ack<DevConsoleSchema>) => void;
-  /** Adds coins to your own balance through the ledger (e2e: something to spend at Chợ). */
-  'dev:coins': (req: { amount: number }, ack: Ack<{ balances: Balances }>) => void;
-  /**
-   * Moves the server's event clock to `at` (an ISO date), or back to the real time with `null`
-   * (e2e: open or close an event).
-   */
-  'dev:clock': (req: { at: string | null }, ack: Ack<{ now: string }>) => void;
-}
-
-/** The Socket.IO events a client sends, from `requests`. */
-export type ClientToServerEvents = {
-  [E in keyof Requests]: (
-    req: z.input<Requests[E]['req']>,
-    ack: Ack<z.output<Requests[E]['res']>>,
-  ) => void;
-} & DevClientEvents;
-
-/** The Socket.IO events the server pushes, from `events`. */
+/** The events the server pushes, from `events`. */
 export type ServerToClientEvents = {
   [E in keyof Events]: (payload: z.output<Events[E]>) => void;
 } & {

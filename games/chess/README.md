@@ -1,29 +1,26 @@
 # Cờ Vua
 
 Cờ Vua cho hai người theo [luật hiện tại](RULES.md), chơi với bạn bè hoặc máy ở ba mức.
-Bàn gỗ và quân Staunton trắng ngà/đen đá được kết xuất bằng Blender, chiếu sáng bằng normal map trong Phaser, đặt trên nền vải xanh đêm dạng tile 256×256.
-Đèn mềm đi theo hover hoặc kéo; các quân cùng một layer và atlas để giữ draw call thấp.
-Đảo trên bản đồ tạo bằng Image Gen.
+Bàn gỗ và quân Staunton trắng ngà/đen đá được kết xuất bằng Blender, đặt trên nền vải xanh đêm
+dạng tile 256×256. Tranh đảo tạo bằng Image Gen.
 
 ## Chơi
 
-Form tạo phòng có **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó) và **Bạn cầm quân**
-(Trắng đi trước, hoặc Đen). Chủ phòng đổi tuỳ chọn giữa hai ván bằng “Tuỳ chỉnh”. Người cầm Đen
-thấy bàn xoay ngược, quân mình ở dưới.
+Bảng Tạo phòng có **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó) và **Bạn cầm quân**
+(Trắng đi trước, hoặc Đen). Người cầm Đen thấy bàn xoay ngược, quân mình ở dưới.
+
+Bố cục **Bàn** ([experience.md](../../docs/experience.md)): bàn gỗ ở giữa, cao gần trọn khung.
+Cột bên trái có hai người chơi (mình ở dưới, đối thủ dưới nút ☰ của hub) và số nước giữa họ; cột
+bên phải có trạng thái và các nút **Xin hoà**, **Đầu hàng**, **Hiệu ứng**.
 
 Chạm quân của mình để chọn, rồi chạm ô có chấm để đi; vòng tròn đánh dấu quân ăn được. Ô nước
-vừa đi tô vàng, Vua bị chiếu tô đỏ. Khi chiếu tướng (hoặc chiếu hết), một cut-in kiểu huy hiệu Anh
-hiện giữa màn hình: huy chương xanh viền vàng có vòng nguyệt quế mang quân đang chiếu, dải
-ruy-băng đỏ thẫm mở ra với chữ “CHIẾU TƯỚNG!” (hoặc “CHIẾU HẾT!” trước bảng kết quả); tắt
-hiệu ứng thì chỉ còn âm thanh và dòng trạng thái “Chiếu!”. Khi Tốt tới hàng cuối, bảng **Phong cấp** cho chọn Hậu, Xe,
-Tượng hoặc Mã. Hai nút **Xin hoà** và **Đầu hàng** ở bên phải; đầu hàng cần chạm xác nhận lần hai
-trong ba giây. Chơi với máy không có nút xin hoà.
+vừa đi tô vàng, Vua bị chiếu tô đỏ. Quân trượt tới ô mới (Xe cũng trượt khi nhập thành), quân bị
+ăn bay về ghế của bên ăn. Khi chiếu tướng (hoặc chiếu hết), một dải ruy-băng đỏ thẫm mang quân
+đang chiếu hiện trên bàn với chữ “CHIẾU TƯỚNG!” (hoặc “CHIẾU HẾT!”). **Hiệu ứng: Tắt** bỏ chuyển
+động nhưng giữ âm thanh. Khi Tốt tới hàng cuối, bảng **Phong cấp** cho chọn Hậu, Xe, Tượng hoặc Mã.
 
-Cột trái có hai thẻ người chơi: tên, màu quân, số ván thắng và số quân đã ăn;
-vạch đồng đánh dấu người đang đi. Số nước nằm giữa hai thẻ. Kết thúc
-ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi bên ăn được. **Xem bàn cờ** đóng bảng;
-**Kết quả** mở lại. **Hiệu ứng: Bật/Tắt** lưu trên máy, tắt chuyển động nhưng giữ âm thanh;
-âm thanh và nhạc điều khiển bằng nút loa chung của ứng dụng.
+Kết thúc ván, bảng kết quả của hub thêm số liệu của ván (`result_detail()`); **Xem bàn** đóng
+bảng, **Kết quả** mở lại.
 
 ## Thành phần
 
@@ -33,19 +30,11 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 | Luật, nhập thành, bắt tốt qua đường, phong cấp | `src/game/rules.ts` |
 | Máy chơi alpha-beta | `src/game/bot.ts` |
 | Lượt, xin hoà, đầu hàng | `src/game/ChessGame.ts` |
-| Bàn, quân, chọn nước, hiệu ứng và âm thanh | `src/scenes/ChessView.ts` |
-| Bảng kết quả | `src/scenes/ResultPanel.ts` |
-| Cut-in chiếu tướng, chiếu hết | `src/scenes/cutin.ts` |
-| Thẻ người chơi và thống kê bên trái | `src/scenes/PlayerInfo.ts` |
-| Kiểu nút xanh đêm và ngà | `src/scenes/buttons.ts` |
-| Nền vải | `src/scenes/ChessBackground.ts` |
-| Form tạo phòng | `src/scenes/Setup.ts` |
-| Tên quân, màu và câu kết quả | `src/scenes/theme.ts` |
-| Màn hình Godot: bàn, quân, phong cấp, cut-in, thống kê, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
-| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
+| Bàn chơi: bàn, quân, phong cấp, cut-in, thống kê, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` (test: `godot/test/`) |
+| Hình, âm thanh và nhạc của bàn | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
-`src/client.ts` đăng ký bàn, form và nền phía trình duyệt. `assets/` là tài nguyên dùng trực tiếp;
-`sources/` giữ prompt gốc và script tái tạo.
+`assets/` là tài nguyên cỡ đầy đủ (bàn chép bản cần dùng vào `godot/`); `sources/` giữ prompt gốc
+và script tái tạo.
 
 ## Hình và âm thanh
 
@@ -60,15 +49,17 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
   `npm run blender -- chess piece-white-bishop piece-black-bishop`. Normal map raw, lossless, đục (không alpha) và hướng đèn trên trái. Bàn và nút vẫn
   dùng bộ đèn cũ (`LEGACY_RIG`) để kết xuất lại khớp hình đã có.
   Có thể dùng Python 3.13 với `bpy==5.1.2` qua `XOMDAO_BLENDER_PYTHON`; xem
-  [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Toạ độ, chấm nước đi và màu đánh dấu do Phaser vẽ.
+  [hướng dẫn Blender](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map). Toạ độ, chấm
+  nước đi và màu đánh dấu vẽ bằng code.
 - Đảo Cờ Vua: Image Gen, prompt trong `sources/prompts.json`. PNG gốc khoảng 2 MB được lưu
   bằng Git thường theo ngoại lệ trong `.gitattributes`, vì kết nối hiện tại không xác thực
   được dịch vụ upload Git LFS.
   Sinh lại bằng `npm run gen:asset -- chess/island`. Đảo dùng bàn đúng 8 hàng × 8 cột và chỉ
   sáu quân để thấy rõ lưới.
-- Nút riêng kết xuất bằng Blender: `button.webp` xanh đêm và `button-secondary.webp` ngà,
-  viền đồng mảnh, co giãn nine-slice. Tái tạo bằng `npm run blender -- chess button button-secondary`.
-- Nền vải liền mép 256×256 POT phủ màn hình bằng `this.tiled('cloth')`, nét ở mọi mật độ; tái tạo bằng `npm run blender -- chess cloth`.
+- `assets/` còn có hai nút kết xuất bằng Blender (`button.webp` xanh đêm, `button-secondary.webp`
+  ngà; `npm run blender -- chess button button-secondary`); bàn Godot dùng nút chung của bộ giao
+  diện.
+- Nền vải liền mép 256×256 POT lát kín màn hình; tái tạo bằng `npm run blender -- chess cloth`.
 - Âm thanh dùng lại của dự án theo bảng dưới; không dùng nguồn
   ngoài. Tái tạo bằng `python3 games/chess/sources/prepare_audio.py` (cần ffmpeg).
   Hiệu ứng mono PCM 16-bit WAV 48 kHz; nhạc MP3 128 kbps.
@@ -83,21 +74,13 @@ ván có bảng kết quả, thời gian, số lượt đi và số quân mỗi 
 
 Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
 
-## Phát triển và vòng đời
+## Phát triển
 
-Chạy `npm run dev` từ gốc repo, chơi thử http://localhost:5033/?play=chess&players=2.
-Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
-`npm run shots -- --path '/?play=chess&players=2' --audit`.
+Chạy `npm run godot:export -- --debug` và `npm run dev` từ gốc repo, chơi thử
+http://localhost:5033/?play=chess. Kiểm tra bằng `npm run check`, `npm run godot:check`,
+`npm run e2e -- --only godot-chess` và `npm run shots -- --path '/?play=chess'`.
 Test logic có perft khai cuộc, Kiwipete, tàn cuộc và phong cấp; chiếu hết, hết nước, lặp thế,
-50 nước, xin hoà và máy chơi. Kịch bản trình duyệt nằm trong `scripts/e2e/scenarios/chess*.mjs`.
+50 nước, xin hoà và máy chơi; test GUT ở `godot/test/`.
 
-Bản Godot (`godot/`) có cùng bàn, quân, toạ độ, cột thống kê, phong cấp, cut-in chiếu tướng và các
-nút như trên; quân là từng ảnh cắt từ atlas `assets/pieces.webp`, chưa có đèn normal map. Nước đi
-hợp lệ lấy từ `moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm ở
-TypeScript. Chơi thử bằng `npm run godot:export -- --debug` rồi mở
-http://localhost:5033/godot/?play=chess; test GUT ở `godot/test/`, kịch bản trình duyệt ở
-`scripts/e2e/scenarios/godot-chess.mjs`.
-
-Hoạt ảnh, âm thanh và xác nhận đầu hàng dùng runtime SDK. Ván mới, đổi người xem, kết nối lại,
-bật/tắt hiệu ứng và rời bàn huỷ tác vụ cũ. Dựng lại bàn từ trạng thái hiện tại không phát lại
-nước đi, âm thanh bắt đầu hoặc kết thúc.
+Quân là từng ảnh cắt từ atlas `assets/pieces.webp`, chưa có đèn normal map. Nước đi hợp lệ lấy
+từ `moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm ở TypeScript.

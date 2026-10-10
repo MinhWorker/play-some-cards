@@ -1,10 +1,9 @@
 // Tiến Lên in the Godot client (#118): the sandbox (?play=tien-len) deals a 3-round match against
 // three computer players. Each round is dealt, you play your lowest card when you may (tapping it
 // in the hand, then Đánh) or pass; the round's ranking shows between rounds and the hub's result
-// at the end. Needs the debug web build at /godot/ (npm run godot:export -- --debug).
+// at the end. Needs the debug web build (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room } from '../godot.mjs';
 
 export const games = ['tien-len'];
 export { launch };

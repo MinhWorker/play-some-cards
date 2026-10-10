@@ -2,8 +2,9 @@
 // hub's catalog; two create/join a room from the room list and play tic-tac-toe to a win (the
 // winner is paid coins) while the third one watches. Mid-game Bob closes his "browser" and logs
 // in on another "device": he must be put back in his seat.
+// It speaks the clients' transport: plain WebSocket + JSON on /ws (packages/shared/src/protocol.ts).
 // Usage: node scripts/smoke.mjs [serverUrl]
-import { io } from 'socket.io-client';
+import WebSocket from 'ws';
 
 const url = process.argv[2] ?? 'http://localhost:8033';
 
@@ -26,24 +27,40 @@ async function auth(path, body) {
 const signUp = (name) =>
   auth('register', { username: `${name}${tag}`, password: 'smoke123', name, avatar: 'boy' });
 
-function client(token) {
-  const socket = io(url, { transports: ['websocket'], auth: { token, protocol } });
-  const send = (event, payload) =>
-    new Promise((resolve, reject) =>
-      socket.emit(event, payload, (res) => (res.ok ? resolve(res) : reject(new Error(res.error)))),
-    );
+/** A logged-in connection: `send` resolves with the reply, or rejects with its error. */
+async function client(token) {
+  const socket = new WebSocket(`${url.replace(/^http/, 'ws')}/ws`);
+  const waiting = new Map();
+  let next = 0;
   let last = null;
   const rewards = [];
-  socket.on('room:state', (s) => {
-    last = s;
+  socket.on('message', (raw) => {
+    const message = JSON.parse(String(raw));
+    if ('id' in message) {
+      const { resolve, reject } = waiting.get(message.id);
+      waiting.delete(message.id);
+      if (message.ack.ok) resolve(message.ack);
+      else reject(new Error(message.ack.error));
+    } else if (message.event === 'room:state') last = message.data;
+    else if (message.event === 'reward') rewards.push(message.data);
   });
-  socket.on('reward', (r) => rewards.push(r));
+  await new Promise((resolve, reject) => {
+    socket.once('open', resolve);
+    socket.once('error', reject);
+  });
+  const send = (event, data) =>
+    new Promise((resolve, reject) => {
+      next += 1;
+      waiting.set(next, { resolve, reject });
+      socket.send(JSON.stringify({ id: next, event, data }));
+    });
+  await send('auth:token', { token, protocol });
   return { socket, send, state: () => last, rewards };
 }
 
-const alice = client(await signUp('Alice'));
-let bob = client(await signUp('Bob'));
-const cam = client(await signUp('Cam'));
+const alice = await client(await signUp('Alice'));
+let bob = await client(await signUp('Bob'));
+const cam = await client(await signUp('Cam'));
 try {
   const room = await alice.send('room:create', { gameId: 'tic-tac-toe' });
   const catalog = await bob.send('catalog:get', {});
@@ -70,7 +87,7 @@ try {
   bob.socket.close();
   await new Promise((r) => setTimeout(r, 200));
   if (alice.state()?.players[1]?.connected !== false) throw new Error('Bob should be offline');
-  bob = client(await auth('login', { username: `BOB${tag}`, password: 'smoke123' }));
+  bob = await client(await auth('login', { username: `BOB${tag}`, password: 'smoke123' }));
   const resumed = await bob.send('session:resume', {});
   if (resumed.room?.roomCode !== room.roomCode) throw new Error('Bob was not put back in his room');
   await new Promise((r) => setTimeout(r, 200));
@@ -97,7 +114,8 @@ try {
   if (!coins || bob.rewards.length)
     throw new Error(`Wrong rewards: ${JSON.stringify(alice.rewards)}`);
   const resumed2 = await alice.send('session:resume', {});
-  if (resumed2.balances['core:coin'] !== coins)
+  // Achievements (a first game, a first win) may have paid more on top.
+  if (!(resumed2.balances['core:coin'] >= coins))
     throw new Error('Alice has no coins after a resume');
   console.log(
     `OK: room ${room.roomCode}, Bob came back from another device, Alice won ${coins} coins, Cam watched`,

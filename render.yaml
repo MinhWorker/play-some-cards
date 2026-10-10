@@ -1,4 +1,4 @@
-# Render Blueprint for the game server (apps/server). The web app is on Vercel.
+# Render Blueprint for the game server (apps/server). The Godot client is on Vercel.
 services:
   - type: web
     name: xomdao-server

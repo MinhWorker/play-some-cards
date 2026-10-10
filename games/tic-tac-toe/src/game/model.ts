@@ -45,7 +45,7 @@ export interface State {
 }
 
 /**
- * Room options. Picked on the setup screen (scenes/Setup.ts); the host can change `swap`
+ * Room options. Picked on the setup screen (godot/main.gd, room_setup); the host can change `swap`
  * between games from the board. `optionsSchema.parse({})` gives the defaults.
  */
 export const optionsSchema = z.object({

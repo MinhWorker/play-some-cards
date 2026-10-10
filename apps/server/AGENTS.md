@@ -1,9 +1,12 @@
 # Server (@xomdao/server) and the socket protocol (@xomdao/shared)
 
+The server is only the API: rooms over the `/ws` WebSocket and `/api` over HTTP. It serves no web
+files; Vercel serves the Godot client (`docs/deploy.md`).
+
 ```
-src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = socket events,
-                login + protocol check, plays bot moves and game timers; ws.gateway.ts = the
-                Godot client's plain WebSocket on /ws, reusing rooms.gateway's handlers
+src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = the `@On(event)`
+                handlers, broadcasts, bot moves and game timers; ws.gateway.ts = the transport:
+                plain WebSocket + JSON on /ws, login + protocol check, then RoomsGateway's handlers
 src/dev/        gated console commands, snapshots, undo/RNG frames and per-room logs
 src/accounts/   Username/password (scrypt) and login tokens
 src/catalog/    The hub's catalog (`catalog:get`): core genres + a card per game with a genre
@@ -30,8 +33,8 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   - join as a player, when a seat is free and no game is running;
   - watch.
 - Leaving means quitting. The next player becomes host, and an empty room is disbanded.
-- A player leaving mid-game stops it for everyone unless the game has `onLeave`. The room page
-  asks first (`pages/Room/LeaveConfirm.tsx`).
+- A player leaving mid-game stops it for everyone unless the game has `onLeave`. The client asks
+  first (Rời ván? in `apps/client/hub/main.gd`).
 - Rooms keep a score.
 - Room options are checked with the game's zod schema and kept for the room's life. The host may
   replace them between games (`room:options`); bots then join or leave to match.
@@ -40,12 +43,11 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 ## Accounts and connection
 
 - Everyone plays logged in, with a username and password and no email.
-- The socket connects with `auth: { token, protocol }`.
-- The Godot client speaks plain WebSocket + JSON on `/ws` (same port): `{ id, event, data }`
+- The client speaks plain WebSocket + JSON on `/ws` (same port as `/api`): `{ id, event, data }`
   requests, `{ id, ack }` replies, `{ event, data }` pushes. It logs in first with `auth:token`,
   `auth:login` or `auth:guest` (a new account with only a name), each carrying `protocol`.
-  `WsGateway` then runs the same `RoomsGateway` handler (`handlerFor`) as Socket.IO;
-  `RoomsGateway.clients()` covers both transports, so broadcasts reach everyone.
+  `WsGateway` then runs the matching `RoomsGateway` handler (`handlerFor`);
+  `RoomsGateway.clients()` lists every connected client for broadcasts.
 - Room codes are 4 characters without 0/O/1/I; `room:join` takes them in any case.
 - Being in a room belongs to the account. After every connect, the client sends `session:resume`
   to get back to its seat from any tab or device.
@@ -136,12 +138,13 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 - **New socket events** go in `protocol.ts` first, as zod schemas in `requests` / `events`
   (and `types` for a new named shape). Then run `npm run gen:protocol` to regenerate the GDScript
   in `apps/client/addons/xomdao_sdk/generated/`; `npm run check` fails when you forget.
-- Web and server deploy separately and compare `PROTOCOL_VERSION` on connect: an old page
-  reloads, and a newer page waits for the server. Bump it when old clients or servers would
-  break. Details: `docs/deploy.md`.
+- Client (Vercel) and server (Render) deploy separately and compare `PROTOCOL_VERSION` on
+  login (`ws.gateway.ts` refuses another version with `protocol-mismatch`); the client then shows
+  "Đã có bản mới" with Tải lại. Bump it when old clients or servers would break. Details:
+  `docs/deploy.md`.
 - **DB**: edit `src/db/schema.ts`, then run `npm run db:generate -w @xomdao/server`. Migrations apply
   on server start.
-- A migration must work with the previous web build: add first, remove later.
+- A migration must work with the previous server build: add first, remove later.
 
 ## Dev Console
 
@@ -160,5 +163,6 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
 - `room-log.ts` retains 500 entries per room, truncates details near 20 KB, and captures
   synchronous game `console.log/info/warn/error` calls while still printing to the terminal.
   Always restore console methods in `finally`. Socket followers stop on leave/disconnect.
-- Use `npm run dev` with memory accounts (`DATABASE_URL=''`) for local e2e. The shared
-  `cmd(page, line)` helper uses the same `runCommand` path as the keyboard console and pins.
+- Use `npm run dev` with memory accounts (`DATABASE_URL=''`) for local e2e. Scenarios run a
+  console line with `window.xomdao.request('dev:command', { line })` (a `cmd(page, line)` helper in
+  the scenarios that need it).

@@ -3,8 +3,7 @@
 //   npm run new:game -- <id> "Tên" --genre <g> [--layout ban|hanh-dong]   a whole game
 //   npm run new:event -- <id> "Tên" [--opens 2026-11-01] [--closes 2026-11-30]   a whole event
 //   npm run new -- logic <game> [Name]            src/game/<Name>Game.ts + test: a `Game`
-//   npm run new -- view <game> [Name]             src/scenes/<Name>View.ts: a `GameView`
-//   npm run new -- setup <game> [Name]            src/scenes/<Name>Setup.ts (+ src/game/options.ts)
+//   npm run new -- options <game>                 src/game/options.ts: the room's options
 //
 // A game or event is a small working one: rules + tests (src/), its Godot table in a sample
 // layout (godot/: Bàn or Hành động, docs/experience.md) with GUT tests, an e2e scenario
@@ -41,8 +40,7 @@ const USAGE = `Usage:
   npm run new:event -- <id> "Tên" [--opens YYYY-MM-DD] [--closes YYYY-MM-DD]
                                                 a new event (default: open today for 4 weeks)
   npm run new -- logic <game> [Name]            src/game/<Name>Game.ts + test (a Game)
-  npm run new -- view <game> [Name]             src/scenes/<Name>View.ts (a GameView)
-  npm run new -- setup <game> [Name]            src/scenes/<Name>Setup.ts (a RoomSetupScene)
+  npm run new -- options <game>                 src/game/options.ts (the room's options)
 Inside games/<id>/ you can leave out <game>.`;
 
 function fail(message) {
@@ -163,7 +161,7 @@ Created games/${id}/ (status: 'wip', locked on the production site until you set
   npm run godot:check   GDScript checks and GUT tests (writes .uid files: commit them)
   npm run check   lint, type checks and tests
   npm run godot:export -- --debug, then npm run dev (restart it if it was running) and open
-    http://localhost:5033/godot/?play=${id}   to try it alone
+    http://localhost:5033/?play=${id}   to try it alone
   npm run e2e -- --only godot-${id}
 `);
 }
@@ -175,7 +173,7 @@ function findGame() {
   const cwd = relative(join(root, 'games'), process.env.INIT_CWD ?? process.cwd());
   const here = cwd && !cwd.startsWith('..') ? cwd.split(sep)[0] : undefined;
   const named = args[0] && existsSync(join(root, 'games', args[0])) ? args[0] : undefined;
-  // `new view co-ca-ngua Score`, `new view co-ca-ngua`, or from games/co-ca-ngua: `new view Score`.
+  // `new logic co-ca-ngua Score`, `new logic co-ca-ngua`, or from games/co-ca-ngua: `new logic Score`.
   if (named && (args.length > 1 || !here)) return { id: named, name: args[1] };
   if (here) return { id: here, name: args[0] };
   fail(args[0] ? `There is no games/${args[0]}` : 'Which game?');
@@ -185,15 +183,6 @@ function findGame() {
 function className(name, id, suffix) {
   const base = pascal(name ?? id);
   return base.endsWith(suffix) && base !== suffix ? base.slice(0, -suffix.length) : base;
-}
-
-/** The logic file a view imports its `State` from: the game's only `*Game.ts`, if there is one. */
-function logicOf(dir) {
-  const gameDir = join(dir, 'src/game');
-  const files = existsSync(gameDir)
-    ? readdirSync(gameDir).filter((f) => /Game\.ts$/.test(f) && !f.endsWith('.test.ts'))
-    : [];
-  return files.length === 1 ? files[0].replace(/\.ts$/, '') : null;
 }
 
 function newFile() {
@@ -207,30 +196,14 @@ function newFile() {
     write(join(src, `game/${Name}Game.ts`), 'logic.ts', values);
     write(join(src, `game/${Name}Game.test.ts`), 'logic.test.ts', values);
     console.log(`\nUse it in src/index.ts:  game: new ${Name}Game()`);
-  } else if (kind === 'view') {
-    const Name = className(name, id, 'View');
-    const logic = logicOf(dir);
-    const file = join(src, `scenes/${Name}View.ts`);
-    if (write(file, 'view.ts', { __Name__: Name, __LOGIC__: logic ?? '' }) && !logic) {
-      // No logic to take the state from (yet): the view says what it expects.
-      const text = readFileSync(file, 'utf8').replace(
-        "import type { State } from '../game/.js';",
-        "\n/** What the game's `view` sends this screen (import your game's State here). */\ntype State = unknown;",
-      );
-      writeFileSync(file, text);
-    }
-    console.log(`\nShow it in src/client.ts:  defineClient({ scene: ${Name}View })`);
   } else {
-    const Name = className(name, id, 'Setup');
-    write(join(src, `scenes/${Name}Setup.ts`), 'setup.ts', { __Name__: Name });
     write(join(src, 'game/options.ts'), 'options.ts', {});
     console.log(`
-Wire it up:
-  src/client.ts   defineClient({ scene: …, setup: ${Name}Setup })
-  src/index.ts    room: { options: optionsSchema }   (from './game/options.js')`);
+Use it in src/index.ts:  room: { options: optionsSchema }   (from './game/options.js')
+Its rows on Tạo phòng come from room_setup() in godot/main.gd.`);
   }
 }
 
 if (kind === 'game' || kind === 'event') newGame(kind === 'event', ...args);
-else if (['logic', 'view', 'setup'].includes(kind)) newFile();
+else if (['logic', 'options'].includes(kind)) newFile();
 else fail(kind ? `Unknown kind "${kind}"` : 'What should it make?');

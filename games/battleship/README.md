@@ -20,25 +20,17 @@ Xem [luật chơi](RULES.md).
 
 ## Tạo phòng
 
-Mọi tuỳ chọn nằm trong một form: **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó),
+Mọi tuỳ chọn nằm trong bảng Tạo phòng: **Đối thủ** (bạn bè hoặc máy), **Máy chơi** (Dễ, Vừa, Khó),
 **Xếp tàu** (không sát nhau hoặc được sát nhau), **Bắn trúng** (được bắn tiếp hoặc đổi lượt) và
 **Lượt bắn** (bạn bắn trước hoặc đối thủ bắn trước).
-
-Lúc xếp tàu, biển lớn là của bạn: kéo thả tàu bằng chuột hoặc cảm ứng, với hình tàu mờ ở vị trí
-đích. Vị trí hợp lệ hiện màu xanh; vị trí chồng tàu, sát tàu khi phòng cấm hoặc vượt mép biển
-hiện màu đỏ. Thả ở vị trí không hợp lệ hoặc ngoài biển giữ tàu ở chỗ cũ. Có thể chạm một tàu
-để chọn, chạm lần nữa để xoay, chạm một ô trống để dời tàu tới đó; "Xếp lại" xếp ngẫu nhiên cả
-hạm đội. Vào trận, biển lớn là của đối phương
-(chạm một ô để bắn khi tới lượt), biển của bạn thu nhỏ ở cột trái; cột phải liệt kê các tàu đối
-phương, tàu đã chìm bị làm mờ.
 
 Máy chơi: Dễ bắn ngẫu nhiên và hay bắn quanh chỗ vừa trúng; Vừa bắn theo ô cờ rồi lần theo
 đường thẳng để đánh chìm tàu; Khó tính xem các tàu còn lại có thể nằm ở đâu và bắn vào ô có nhiều
 khả năng nhất. Máy chỉ biết những gì người chơi biết (ô đã bắn, trúng hay trượt, tàu đã chìm).
 
-## Bản Godot
+## Bàn chơi
 
-`godot/main.gd` dựng bàn trong client Godot: biển lớn ở giữa, cột người chơi bên trái (biển của
+`godot/main.gd` dựng bàn theo bố cục **Bàn**: biển lớn ở giữa, cột người chơi bên trái (biển của
 bạn thu nhỏ giữa hai ô người chơi khi vào trận), trạng thái, phát bắn vừa rồi, hạm đội đối phương
 và các nút bên phải. Xếp tàu: kéo thả tàu với ô đích xanh/đỏ, chạm chọn, chạm lần nữa để xoay,
 chạm ô trống để dời; **Xếp lại**, **Sẵn sàng**. Vào trận chạm ô biển đối phương để bắn; trượt có
@@ -46,33 +38,28 @@ cột nước, trúng có chớp lửa, **Đầu hàng** hỏi lại một lần
 `godot/rules.gd` kiểm tra vị trí tàu (chép từ `rules.ts`); hình ở `godot/art/`, âm thanh ở
 `godot/sounds/`, nhạc ở `godot/music/`; test: `godot/test/`.
 
-Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=battleship`
-(đấu máy Dễ, trên server thật).
+Chạy: `npm run godot:export -- --debug` và `npm run dev`, rồi mở
+`http://localhost:5033/?play=battleship` (đấu máy Dễ, trên server thật). Kiểm tra bằng
+`npm run check` và `npm run godot:check`.
 
 ## Các thứ nằm ở đâu
 
 ```
 src/
   index.ts                  đầu vào phía server: meta, phần logic và tuỳ chọn phòng
-  client.ts                 đầu vào phía trình duyệt: form tạo phòng và hai vùng biển
   game/model.ts             dữ liệu: State, View (giấu hạm đội đối phương), tuỳ chọn phòng
   game/rules.ts             tàu, kiểm tra hạm đội, xếp ngẫu nhiên, phần biển mỗi người được thấy
   game/bot.ts               máy bắn (ba mức)
   game/BattleshipGame.ts    các sự kiện: arrange (bí mật), shuffle, ready, fire, resign
-  scenes/BattleshipView.ts  hai vùng biển: xếp tàu, bắn, trúng/trượt/chìm
-  scenes/Setup.ts           form tạo phòng
-assets/                     hình (.webp) và âm thanh (.wav/.mp3), dùng theo tên file
+godot/
+  main.tscn, main.gd        bàn: hai vùng biển, xếp tàu, bắn, trúng/trượt/chìm
+  sea.gd, rules.gd          một vùng biển; kiểm tra vị trí tàu
+  art/, sounds/, music/     hình, âm thanh và nhạc bàn dùng
+assets/                     hình (.webp) và âm thanh (.wav/.mp3) cỡ đầy đủ
 ```
 
-`OceanBackground.ts` dựng nền biển phủ toàn màn hình. Bàn lớn và bản đồ hạm đội dùng cùng
-sprite tàu nhìn từ trên xuống, xoay theo hướng tàu; tàu đã chìm sẫm màu, ô trúng có dấu lửa,
-ô trượt có vòng nước. Đạn bay tới ô bắn, trượt tạo cột nước, trúng tạo chớp lửa; tàu chìm
-lún xuống và rung theo chiều dài. Khán giả thấy hiệu ứng đúng vùng biển, chỉ thấy tàu đã chìm.
-Bàn và hai cột HUD của game nằm dưới hàng HUD dùng chung, kể cả khi thanh phòng thấp hơn
-nút cài đặt hoặc người chơi đổi cỡ HUD; chữ người chơi căn theo mép trên của khối.
-
-Âm thanh riêng cho đặt tàu, sẵn sàng, bắn, trượt, trúng, chìm và thắng. Nhạc nền nhẹ được
-app phát qua kênh nhạc; hiệu ứng đi qua kênh âm thanh và tuân theo cài đặt tắt tiếng.
+Âm thanh riêng cho đặt tàu, sẵn sàng, bắn, trượt, trúng, chìm và thắng, cùng một bản nhạc nền
+nhẹ.
 
 ## Hình và âm thanh
 
@@ -85,7 +72,7 @@ cùng chuẩn với các đảo khác. Khi tạo lại bằng `npm run gen:asset
 Các hình trên bàn và âm thanh là tác phẩm gốc tạo bằng code trong `sources/render_assets.py`.
 Asset phát hành theo giấy phép MIT của repo, không dùng mẫu tải ngoài.
 Hình WebP có nền trong suốt (trừ biển), hiệu ứng WAV mono 16-bit 44,1 kHz, nhạc MP3 128 kbps.
-Tạo lại từ thư mục gốc (cần `npm install`, Python 3 và ffmpeg):
+Bàn dùng bản sao trong `godot/art/`, `godot/sounds/` và `godot/music/`. Tạo lại từ thư mục gốc (cần `npm install`, Python 3 và ffmpeg):
 
 ```sh
 python3 games/battleship/sources/render_assets.py
@@ -94,12 +81,3 @@ npm run assets -- battleship
 
 Tạo lại đảo bằng image generation: `npm run gen:asset -- battleship/island`.
 Script Python chỉ tạo hình trên bàn và âm thanh, không ghi đè đảo.
-
-Test: `npm run check`. Chơi thử một mình: http://localhost:5033/?play=battleship&players=2 (khi
-đang chạy `npm run dev`).
-
-## Vòng đời bàn chơi
-
-Hoạt ảnh và thời gian xác nhận đầu hàng dùng runtime của SDK. Khi mở ván mới, kết nối lại
-hoặc rời bàn, các hiệu ứng cũ được huỷ; kết nối lại dựng bàn từ trạng thái hiện tại,
-không phát lại nước đi trước đó.

@@ -1,5 +1,5 @@
 extends RefCounted
-## The board and the moves the table shows, ported from src/game/model.ts and src/scenes/board.ts
+## The board and the moves the table shows, ported from src/game/model.ts and the board picture
 ## (the server decides; this lights up the horses that can go and places them). A horse's
 ## position: -1 in the paddock, 0–51 the distance from its start, 52–57 home squares 1–6.
 

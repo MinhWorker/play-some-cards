@@ -5,7 +5,7 @@
 // Godot's export filters do not see through symlinks, so the export runs on a copy of the client
 // in .tools/export/ with the games copied in, and with the game presets added to its
 // export_presets.cfg. The copy keeps its .godot/ import cache between runs.
-// XOMDAO_SERVER_URL (or VITE_SERVER_URL, as on Vercel) bakes the game server's URL into the page
+// XOMDAO_SERVER_URL (or the older VITE_SERVER_URL) bakes the game server's URL into the page
 // (window.XOMDAO_SERVER); without it the client talks to the page's own origin (core/net.gd).
 import { createHash } from 'node:crypto';
 import {

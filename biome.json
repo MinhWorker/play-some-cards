@@ -43,53 +43,17 @@
                     "group": [
                       "**",
                       "!@xomdao/sdk",
-                      "!@xomdao/sdk/client",
-                      "!phaser",
                       "!zod",
                       "!vitest",
                       "!./**",
                       "!../*",
                       "!../*/**"
                     ],
-                    "message": "A game may import only @xomdao/sdk, @xomdao/sdk/client, phaser, zod, vitest (tests) and its own files (./..., ../game/...)."
+                    "message": "A game may import only @xomdao/sdk, zod, vitest (tests) and its own files (./..., ../game/...)."
                   },
                   {
                     "group": ["../../**"],
-                    "message": "Stay inside your game's src/ (folders one level deep, e.g. src/game/ and src/scenes/)."
-                  }
-                ]
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "includes": ["games/co-ty-phu-classic/src/scenes/*/**"],
-      "linter": {
-        "rules": {
-          "style": {
-            "noRestrictedImports": {
-              "level": "error",
-              "options": {
-                "patterns": [
-                  {
-                    "group": [
-                      "**",
-                      "!@xomdao/sdk",
-                      "!@xomdao/sdk/client",
-                      "!phaser",
-                      "!zod",
-                      "!vitest",
-                      "!./**",
-                      "!../**",
-                      "!../../**"
-                    ],
-                    "message": "A game may import only the SDK, Phaser, zod, vitest and its own source files."
-                  },
-                  {
-                    "group": ["../../../**"],
-                    "message": "Stay inside this game's src/ when importing from a nested scene folder."
+                    "message": "Stay inside your game's src/ (folders one level deep, e.g. src/game/)."
                   }
                 ]
               }
@@ -109,7 +73,7 @@
                 "patterns": [
                   {
                     "group": ["@xomdao/game-*", "**/games/*/src/**"],
-                    "message": "Core code reaches games only through the generated list (@xomdao/shared `games`) and apps/web/src/games/index.ts."
+                    "message": "Core code reaches games only through the generated list (@xomdao/shared `games`)."
                   }
                 ]
               }

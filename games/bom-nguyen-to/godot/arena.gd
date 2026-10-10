@@ -1,7 +1,7 @@
 extends Control
-## The garden arena (src/scenes/BomNguyenToView.ts): grass and dirt tiles in a wooden fence seen
-## from slightly above, stones and gift crates standing on them, the ticking bombs, the blasts and
-## the five friends walking the lanes. `show_view` takes each snapshot, `step` runs every frame:
+## The garden arena: grass and dirt tiles in a wooden fence seen from slightly above, stones and
+## gift crates standing on them, the ticking bombs, the blasts and the five friends walking the
+## lanes. `show_view` takes each snapshot, `step` runs every frame:
 ## your own fighter walks ahead of the server (it follows where this screen shows you), the
 ## others glide to their snapshot positions.
 ##

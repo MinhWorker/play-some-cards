@@ -8,8 +8,7 @@
       "xomdao-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./client": "./src/client.ts"
+    }
   },
   "scripts": {
     "new": "node ../../scripts/new.mjs",
@@ -19,8 +18,5 @@
   "dependencies": {
     "@xomdao/sdk": "*",
     "zod": "^4.6.5"
-  },
-  "peerDependencies": {
-    "phaser": "^4.2.1"
   }
 }

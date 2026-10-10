@@ -1,10 +1,9 @@
 // Bom Nguyên Tố in the Godot client (#123): the sandbox (?play=bom-nguyen-to) puts you against one
 // easy computer player. You pick a friend and get ready, hold the D-pad to walk, drop a bomb and
 // watch it blow, use the skill and the dash; then the Dev Console knocks the computer out and the
-// hub's result comes. Needs the debug web build at /godot/ (npm run godot:export -- --debug).
+// hub's result comes. Needs the debug web build (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
-import { DESKTOP } from '../lib.mjs';
+import { DESKTOP, godotText, launch, onScene, openGodot, room, tap } from '../godot.mjs';
 
 export const games = ['bom-nguyen-to'];
 export { launch };

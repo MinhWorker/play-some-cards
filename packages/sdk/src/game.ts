@@ -63,7 +63,7 @@ export interface RoomContext<Options = unknown> {
 }
 
 /**
- * What the server and the sandbox run: a `Game` turned into plain functions by `gameRules`
+ * What the server runs: a `Game` turned into plain functions by `gameRules`
  * (`definePlugin` does it). Games don't write these; they write a `Game`.
  */
 export interface GameRules<State, Move, View = State, Options = undefined> {
@@ -146,14 +146,15 @@ export interface GameRules<State, Move, View = State, Options = undefined> {
 }
 
 /**
- * A game's room options: the object its setup scene (`RoomSetupScene`, client side) passes to
- * `submit`. The server checks it here, then keeps it for the room's whole life: `setup` and
- * `bot` receive it, the board reads it as `props.options`. A game without `room` has no options.
+ * A game's room options: the object the client's Tạo phòng board sends (its rows come from the
+ * game's `room_setup()` in godot/main.gd). The server checks it here, then keeps it for the room's
+ * whole life: `setup` and `bot` receive it, the table reads it as `snapshot.options`. A game
+ * without `room` has no options.
  */
 export interface RoomSetup<Options> {
   /**
    * Checks what the client sent and fills defaults. `parse({})` must work: it gives the options
-   * of a room created without the setup scene (e.g. the sandbox).
+   * of a room created without the Tạo phòng board (e.g. quick match).
    */
   options: z.ZodType<Options>;
   /** How many seats the computer takes in a new room (needs `rules.bot`). */

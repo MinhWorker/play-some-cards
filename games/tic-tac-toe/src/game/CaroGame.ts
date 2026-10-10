@@ -1,6 +1,6 @@
 /**
  * The game's logic, on the server. A player's event runs its hook, which gets the whole room in
- * `ctx` and returns the next state; everyone's screen then gets it (scenes/CaroView.ts).
+ * `ctx` and returns the next state; everyone's screen then gets it (godot/main.gd).
  */
 import { type BotContext, type EventContext, Game, type StartContext } from '@xomdao/sdk';
 import { z } from 'zod';

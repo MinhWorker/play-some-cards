@@ -1,7 +1,7 @@
 /**
  * The game's logic, on the server (FIDE rules for two players). A player's event runs its hook,
  * which gets the whole room in `ctx` and returns the next state; everyone's screen then gets it
- * (scenes/ChessView.ts).
+ * (godot/main.gd).
  *
  *   move          a piece from one square to another (legal moves: rules.ts), with the piece a
  *                 pawn becomes on the last rank

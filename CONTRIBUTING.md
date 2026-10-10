@@ -16,9 +16,9 @@ hãy chắc rằng nó chạy và bạn hiểu nó.
    - phạm vi tuỳ chọn cho một game: `feat(xiangqi): cannon captures`
 
    Commit bên trong nhánh viết sao cũng được; khi merge chúng được gộp lại (squash).
-4. **CI** chạy lint, kiểm tra kiểu, unit test, build và một bài test trình duyệt không giao diện
-   (headless). Vercel gửi link xem trước để chơi thử nhánh của bạn. Nếu đổi giao diện, đính kèm
-   ảnh chụp cỡ điện thoại và cỡ máy tính.
+4. **CI** chạy lint, kiểm tra kiểu, unit test, build, kiểm tra và test GUT của client Godot, rồi
+   các kịch bản e2e trên trình duyệt không giao diện (headless). Vercel gửi link xem trước để chơi
+   thử nhánh của bạn. Nếu đổi giao diện, đính kèm ảnh chụp cỡ điện thoại và cỡ máy tính.
 5. **Review, rồi squash merge.** Merge vào `main` là triển khai lên bản thật.
 
 Trước khi push, `npm run check` chạy đúng các bước kiểm tra đó trên máy bạn.
@@ -27,7 +27,7 @@ Trước khi push, `npm run check` chạy đúng các bước kiểm tra đó tr
 
 Không ai tự sửa số phiên bản. Một bot giữ sẵn PR "release" liệt kê mọi thứ đã merge từ lần phát
 hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.md` và gắn tag `vX.Y.Z`. Phiên bản
-đang chạy hiện ở cuối bảng âm thanh.
+server đang chạy nằm trong `/api/health`.
 
 ## Quy tắc CI không kiểm được
 
@@ -40,7 +40,7 @@ hành trước. Merge PR đó sẽ tăng phiên bản, cập nhật `CHANGELOG.m
 - Ứng dụng chơi xoay ngang, theo [docs/ui-guide.md](docs/ui-guide.md). Thử giao diện bằng
   `npm run shots`: lệnh chụp một trang trên nhiều điện thoại, máy tính bảng và máy tính thật, xoay
   ngang, đúng độ phân giải của từng máy.
-- Migration database phải chạy được với bản web trước đó (thêm trước, xoá sau).
+- Migration database phải chạy được với bản server trước đó (thêm trước, xoá sau).
 - Thay đổi giao thức socket làm hỏng client cũ thì tăng `PROTOCOL_VERSION`
   (`packages/shared/src/protocol.ts`); CI sẽ nhắc bạn.
 
@@ -57,5 +57,5 @@ miễn phí thoải mái, ghi nguồn khi tiện. Chỉ đừng lấy tài nguy�
 có bàn chơi trong client Godot và kịch bản e2e; `npm run new:event` làm như vậy cho một sự kiện
 (`npm run new` thêm từng file từ mẫu). Mọi thứ về game nằm trong thư mục đó, nên nhiều người có
 thể làm game cùng lúc mà không đụng nhau. Chơi thử một mình ở
-`http://localhost:5033/godot/?play=<id>` sau `npm run godot:export -- --debug`. Xem
+`http://localhost:5033/?play=<id>` sau `npm run godot:export -- --debug`. Xem
 [docs/making-a-game.md](docs/making-a-game.md).

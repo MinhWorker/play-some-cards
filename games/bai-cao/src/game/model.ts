@@ -51,7 +51,7 @@ export interface View extends Omit<State, 'hands'> {
 }
 
 /**
- * Room options (scenes/Setup.ts). `optionsSchema.parse({})` gives the defaults: no computer
+ * Room options (godot/main.gd, room_setup). `optionsSchema.parse({})` gives the defaults: no computer
  * players, 10 rounds.
  */
 export const optionsSchema = z.object({

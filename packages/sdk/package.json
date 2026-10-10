@@ -3,14 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "Everything a game plugin may use: the Game class, rng helpers, testGame, and (in /client) GameView and RoomSetupScene.",
+  "description": "Everything a game's rules may use: the Game class, rng helpers and testGame.",
   "exports": {
     ".": {
       "xomdao-source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./client": "./src/client/index.ts"
+    }
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -18,9 +17,6 @@
   },
   "dependencies": {
     "zod": "^4.6.5"
-  },
-  "peerDependencies": {
-    "phaser": "^4.2.1"
   },
   "devDependencies": {
     "vitest": "^5.0.3"

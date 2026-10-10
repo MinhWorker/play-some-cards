@@ -6,8 +6,8 @@ Game ở trạng thái `ready`. Xem [luật chơi](RULES.md).
 
 ## Chơi
 
-Form tạo phòng có **Đối thủ**, **Máy chơi** và **Lượt đi**. Đen đi trước, mỗi bên 12 quân;
-người đi sau thấy bàn xoay ngược. Chủ phòng đổi tuỳ chọn giữa hai ván bằng “Tuỳ chỉnh”.
+Bảng Tạo phòng có **Đối thủ**, **Máy chơi** và **Lượt đi**. Đen đi trước, mỗi bên 12 quân;
+người đi sau thấy bàn xoay ngược.
 
 Quân đi được có vòng vàng. Chọn quân rồi chọn ô có chấm xanh; với nước ăn nhiều quân, chọn lần
 lượt từng ô đáp. Ô nước vừa đi tô vàng, đường đang chọn tô xanh. Quân di chuyển từng bước, quân
@@ -15,9 +15,8 @@ bị ăn bay về cột thống kê, phong Vua có vòng sáng và dấu vương
 
 Cột trái hiển thị tên, chủ phòng, số ván thắng, số quân đã ăn và số nước. Viền vàng đánh dấu
 người đang đi. Bên phải có trạng thái, **Xin hoà**, **Đầu hàng** (xác nhận lần hai trong ba giây)
-và **Hiệu ứng: Bật/Tắt**, lưu trên máy. Tắt hiệu ứng giữ âm thanh; loa chung điều khiển âm thanh
-và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt và quân đã ăn; **Xem bàn cờ** đóng bảng,
-**Kết quả** mở lại.
+và **Hiệu ứng: Bật/Tắt**. Tắt hiệu ứng giữ âm thanh. Kết thúc ván, bảng kết quả của hub thêm số
+lượt và quân đã ăn (`result_detail()`); **Xem bàn** đóng bảng, **Kết quả** mở lại.
 
 ## Thành phần
 
@@ -27,11 +26,8 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
 | Luật đi quân, ăn tùy chọn, Vua đi xa và phong Vua | `src/game/rules.ts` |
 | Máy chơi alpha-beta | `src/game/bot.ts` |
 | Lượt đi, xin hoà, đầu hàng | `src/game/CheckersGame.ts` |
-| Bàn, quân, thống kê, hiệu ứng và âm thanh | `src/scenes/CheckersView.ts` |
-| Bảng kết quả | `src/scenes/ResultPanel.ts` |
-| Nền vải, nút và form tạo phòng | `src/scenes/CheckersBackground.ts`, `buttons.ts`, `Setup.ts` |
-| Màn hình Godot: bàn, quân, thống kê, hiệu ứng, âm thanh, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
-| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
+| Bàn chơi: bàn, quân, thống kê, hiệu ứng, âm thanh, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` (test: `godot/test/`) |
+| Hình, âm thanh và nhạc của bàn | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
 ## Hình và âm thanh
 
@@ -40,12 +36,11 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
   `npm run blender -- checkers`. Thêm `island` hoặc `piece-black-king` sau id để chỉ kết xuất
   một hình. Helper vật liệu, hình học và đèn dùng chung ở `tools/blender/xomdao_bake/`; có thể
   chạy Python với bpy như [hướng dẫn](../../docs/making-a-game.md#kết-xuất-blender-và-normal-map).
-  PNG trung gian ở `.blender/checkers/`; WebP trực tiếp ở `assets/`.
-- Bàn walnut/maple và hai nút nine-slice là bản sao tài nguyên Blender của Cờ Vua
-  (`games/chess/assets/{board,button,button-secondary}.webp`). Mặt chơi chiếm 94% ảnh bàn,
-  khớp lề 3% trong scene; nút dùng slice 32.
-- Nền vải xanh đêm là tile 256×256 POT liền mép của riêng Cờ Đam, phủ màn hình bằng
-  `this.tiled('cloth')`; tái tạo bằng `npm run blender -- checkers cloth`.
+  PNG trung gian ở `.blender/checkers/`; WebP ở `assets/`, bản bàn dùng chép vào `godot/art/`.
+- Bàn walnut/maple là bản sao tài nguyên Blender của Cờ Vua (`games/chess/assets/board.webp`).
+  Mặt chơi chiếm 94% ảnh bàn.
+- Nền vải xanh đêm là tile 256×256 POT liền mép của riêng Cờ Đam, lát kín màn hình; tái tạo bằng
+  `npm run blender -- checkers cloth`.
 - Quân và đảo giữ thông số kết xuất cũ (96 mẫu, `LEGACY_RIG`) để kết xuất lại khớp hình đã có.
 - Âm thanh lấy từ dự án, không dùng nguồn ngoài. Tái tạo bằng
   `python3 games/checkers/sources/prepare_audio.py`. Hiệu ứng mono PCM 16-bit WAV 48 kHz,
@@ -60,19 +55,13 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
 
 Tài nguyên theo [giấy phép của dự án](../../LICENSE-ASSETS.md).
 
-## Phát triển và vòng đời
+## Phát triển
 
-Chạy `npm run dev`, chơi thử http://localhost:5033/?play=checkers&players=2.
-Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
-`npm run shots -- --path '/?play=checkers&players=2' --audit`.
-Test gồm nước khai cuộc, ăn tùy chọn, ăn liên tiếp, phong Vua, Vua đi và ăn xa, hoà và máy chơi.
-Kịch bản trình duyệt ở `scripts/e2e/scenarios/checkers*.mjs`.
+Chạy `npm run godot:export -- --debug` và `npm run dev`, rồi chơi thử
+http://localhost:5033/?play=checkers. Kiểm tra bằng `npm run check`, `npm run godot:check`,
+`npm run e2e -- --only godot-checkers` và `npm run shots -- --path '/?play=checkers'`.
+Test gồm nước khai cuộc, ăn tùy chọn, ăn liên tiếp, phong Vua, Vua đi và ăn xa, hoà và máy chơi;
+test GUT ở `godot/test/`.
 
-Bản Godot (`godot/`) vẽ cùng bàn, quân, cột thống kê và các nút như trên. Nước đi hợp lệ lấy từ
-`moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm ở TypeScript. Chơi thử
-bằng `npm run godot:export -- --debug` rồi mở http://localhost:5033/godot/?play=checkers; test
-GUT ở `godot/test/`, kịch bản trình duyệt ở `scripts/e2e/scenarios/godot-checkers.mjs`.
-
-Chuyển động, âm thanh và xác nhận đầu hàng dùng runtime SDK. Ván mới, kết nối lại, đổi người xem,
-bật/tắt hiệu ứng hoặc rời bàn huỷ tác vụ cũ. Dựng lại bàn từ trạng thái hiện tại không phát lại
-nước đi hay âm thanh bắt đầu/kết thúc. Bảng kết quả đợi chuỗi ăn và phong Vua hoàn tất.
+Nước đi hợp lệ lấy từ `moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm
+ở TypeScript.

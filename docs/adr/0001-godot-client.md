@@ -3,6 +3,10 @@
 - Trạng thái: Đã chấp nhận (Phase 0), xác nhận sau khi đo ở Phase 1
 - Ngày: 2026-10-09
 
+> **Cập nhật 2026-10-10:** client Phaser (`apps/web`) và cổng Socket.IO đã bị xoá (#127). Client
+> Godot là client duy nhất, phục vụ ở `/`; server chỉ còn WebSocket thuần + JSON ở `/ws`. Phần
+> dưới đây giữ nguyên như lúc quyết định.
+
 ## Bối cảnh
 
 Client hiện tại là React + Vite cho giao diện và Phaser 4 cho thế giới và bàn chơi. Dự án đổi

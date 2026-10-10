@@ -6,15 +6,15 @@ Mã nguồn theo MIT (xem `LICENSE`). Hình và âm thanh có giấy phép riên
 tự do, miễn là ghi nguồn "Xóm Đảo (github.com/MinhWorker/xom-dao)" và không dùng để
 kiếm tiền.
 
-Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `games/*/assets/`,
-`games/*/sources/` và `assets/`, trừ:
+Giấy phép này áp dụng cho hình và âm thanh trong `assets/`, `apps/client/`, `games/*/assets/`,
+`games/*/sources/` và `games/*/godot/`, trừ:
 
 - **File âm thanh của bên thứ ba** giữ ở dạng gốc, vẫn theo giấy phép của trang nguồn (ví dụ các
   file tải từ Pixabay/Freesound trong `assets/audio/sfx/`, `assets/shared/audio/sfx/*.mp3` và
-  `assets/shared/audio/music/Breezy_Heights.mp3`). Ứng dụng chỉ dùng hai file trong số đó: tiếng
-  click và tiếng hover của nút (`apps/web/public/shared/audio/button-click.wav` và
-  `button-hover.wav`, cắt từ `assets/shared/audio/sfx/button-click.mp3` và `button-hover.mp3`),
-  vẫn theo giấy phép gốc của chúng. Các hiệu ứng của Tiến Lên
+  `assets/shared/audio/music/Breezy_Heights.mp3`). Tiếng click và tiếng hover của nút
+  (`assets/app/audio/button-click.wav` và `button-hover.wav`, cắt từ
+  `assets/shared/audio/sfx/button-click.mp3` và `button-hover.mp3`) vẫn theo giấy phép gốc của
+  chúng. Các hiệu ứng của Tiến Lên
   (`games/tien-len/assets/tien-len-*.wav`, trừ `tien-len-bomb` và `tien-len-win`; bản gốc là
   `assets/games/tien-len/audio/xomdao-tien-len-*.wav`) được làm từ bản ghi "taking playing card"
   của oxidvideos trên Pixabay, theo giấy phép Pixabay; tiếng đập bài (`tien-len-card-play`,
@@ -30,9 +30,9 @@ Giấy phép này áp dụng cho hình và âm thanh trong `apps/web/public/`, `
   Phosphor Icons, kèm trong `icons/`). Ba âm thanh giao diện trong `sounds/` được tổng hợp bằng
   code (`scripts/ui-sounds.mjs`) và theo giấy phép chung ở trên.
 - **Ảnh của Long** (`assets/shared/images/Long-look-at-u.jpg` và avatar làm từ nó,
-  `apps/web/public/shared/images/avatar-long.webp`), là ảnh người thật: không được dùng lại bên
+  `assets/app/images/avatar-long.webp`), là ảnh người thật: không được dùng lại bên
   ngoài game này.
-- **Avatar con vật** (`apps/web/public/shared/images/avatar-<con vật>.webp`, làm bằng
+- **Avatar con vật** (`assets/app/images/avatar-<con vật>.webp`, làm bằng
   `scripts/avatars.mjs`): hình con vật là [Fluent Emoji](https://github.com/microsoft/fluentui-emoji)
   bản 3D của Microsoft, theo giấy phép MIT (Copyright (c) Microsoft Corporation), đặt trên nền trời
   của dự án.

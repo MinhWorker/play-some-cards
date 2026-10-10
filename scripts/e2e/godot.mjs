@@ -1,13 +1,18 @@
-// Helpers for scenarios that play the Godot client (/godot/, a debug build from
-// `npm run godot:export -- --debug`). They go through its test bridge, window.xomdao
+// Helpers every e2e scenario shares. Scenarios play the Godot client (a debug build from
+// `npm run godot:export -- --debug`) through its test bridge, window.xomdao
 // (apps/client/core/test_bridge.gd): nodes are found by name and tapped with the real mouse.
+// A scenario gets a `t` (see ../e2e.mjs): its own browser, a screenshot folder and a run tag.
+
+export const DESKTOP = { width: 1280, height: 760 };
+/** A phone held sideways (the app is played in landscape). */
+export const PHONE = { width: 844, height: 390 };
 
 /** Chromium flags: Godot needs WebGL 2, which headless Chromium gives through SwiftShader. */
 export const launch = { args: ['--use-gl=angle', '--use-angle=swiftshader'] };
 
 /** Opens the Godot client (with a query such as `?room=K7M2`) and waits for its first screen. */
 export async function openGodot(t, page, query = '') {
-  await page.goto(new URL(`/godot/${query}`, t.url).href);
+  await page.goto(new URL(`/${query}`, t.url).href);
   await page.waitForFunction(() => window.xomdao, null, { timeout: 60_000 });
   return page;
 }

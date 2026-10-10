@@ -1,21 +1,22 @@
 // Caro in the Godot client (#113, #117): a host on a desktop makes a room (Tạo phòng) and a
 // friend on a phone joins it by typing the code at Bến. They play to a win; the board grows at
 // its edges. Then a rematch, and the host leaves mid-game. Meanwhile a third phone plays the
-// sandbox (?play=tic-tac-toe) against the computer. Needs the debug web build at /godot/
+// sandbox (?play=tic-tac-toe) against the computer. Needs the debug web build
 // (npm run godot:export -- --debug).
 
 import {
   caroTap,
+  DESKTOP,
   godotText,
   launch,
   onScene,
   openGodot,
+  PHONE,
   room,
   tap,
   tapCard,
   typeInto,
 } from '../godot.mjs';
-import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['tic-tac-toe'];
 export { launch };

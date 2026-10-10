@@ -1,7 +1,7 @@
 /**
  * The game's logic, on the server (Chinese rules: area scoring, komi 7.5, no suicide, no
  * position may come back). A player's event runs its hook, which gets the whole room in `ctx`
- * and returns the next state; everyone's screen then gets it (scenes/GoView.ts).
+ * and returns the next state; everyone's screen then gets it (godot/main.gd).
  *
  *   place    put a stone on an empty point
  *   pass     skip a turn; two passes in a row stop play and start the count

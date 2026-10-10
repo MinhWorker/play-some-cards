@@ -1,20 +1,21 @@
 // The Godot hub (#117): from the island ring lobby, open Caro's card in the game select, choose
 // it, press CHƠI and play the computer that quick match seats after a wait; win, and the coins
 // fly into the balance. Then make a room and a friend opens its invite link. Needs the debug
-// web build at /godot/ (npm run godot:export -- --debug).
+// web build (npm run godot:export -- --debug).
 
 import {
   caroPlayToEnd,
   coins,
+  DESKTOP,
   godotText,
   launch,
   onScene,
   openGodot,
+  PHONE,
   room,
   tap,
   tapCard,
 } from '../godot.mjs';
-import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['tic-tac-toe'];
 export { launch };
