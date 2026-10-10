@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.23.0](https://github.com/MinhWorker/xom-dao/compare/v0.22.0...v0.23.0) (2026-10-10)
+
+
+### Features
+
+* **bai-cao:** play Bài Cào in the Godot client ([#151](https://github.com/MinhWorker/xom-dao/issues/151)) ([f3d06c8](https://github.com/MinhWorker/xom-dao/commit/f3d06c88bd20a0f020aa63830ea5af3a089e0ca4))
+* **battleship:** play Bắn Tàu in the Godot client ([#153](https://github.com/MinhWorker/xom-dao/issues/153)) ([da3ad32](https://github.com/MinhWorker/xom-dao/commit/da3ad326b0c70df2b5c06c0e79352ffe35f60180))
+* **bom-nguyen-to:** play Bom Nguyên Tố in the Godot client on the Hành động island ([#156](https://github.com/MinhWorker/xom-dao/issues/156)) ([f4fdc7b](https://github.com/MinhWorker/xom-dao/commit/f4fdc7bb3df148b3d62672bccaec03d4374fe73b))
+* **checkers:** play Cờ Đam in the Godot client ([#146](https://github.com/MinhWorker/xom-dao/issues/146)) ([accf963](https://github.com/MinhWorker/xom-dao/commit/accf963592a544ae651a772402171952ad712455))
+* **chess:** play Cờ Vua in the Godot client ([#147](https://github.com/MinhWorker/xom-dao/issues/147)) ([cf4d44e](https://github.com/MinhWorker/xom-dao/commit/cf4d44e834f77d6429166a4fb7cabf4ff412a77b))
+* **client:** Godot toolchain and client skeleton ([#131](https://github.com/MinhWorker/xom-dao/issues/131)) ([582527c](https://github.com/MinhWorker/xom-dao/commit/582527c847662f338e1c592e0c5fa4371c6201eb))
+* **client:** island ring lobby, game select, rooms and match shell ([#140](https://github.com/MinhWorker/xom-dao/issues/140)) ([ad28865](https://github.com/MinhWorker/xom-dao/commit/ad2886552b9a78d6759a0194c4ad240f693f2380))
+* **client:** shell UI kit in Godot ([#138](https://github.com/MinhWorker/xom-dao/issues/138)) ([3347066](https://github.com/MinhWorker/xom-dao/commit/33470661316ae020b603e1498025a55f298df802))
+* **client:** sign in, make an account and wait for a waking server in the Godot hub ([#157](https://github.com/MinhWorker/xom-dao/issues/157)) ([0556edd](https://github.com/MinhWorker/xom-dao/commit/0556edda4a55733c8ba44e5a5f624213a7244e21))
+* **co-ca-ngua:** play Cờ Cá Ngựa in the Godot client ([#154](https://github.com/MinhWorker/xom-dao/issues/154)) ([30db482](https://github.com/MinhWorker/xom-dao/commit/30db482beada65b0131bee1cd4909cd15ded1ad6))
+* **co-ty-phu-classic:** play Cờ tỷ phú Classic in the Godot client ([#155](https://github.com/MinhWorker/xom-dao/issues/155)) ([1d608bc](https://github.com/MinhWorker/xom-dao/commit/1d608bc011dcf2de83bd4699579eec2c9f89c583))
+* content registry with genres and game cards ([#134](https://github.com/MinhWorker/xom-dao/issues/134)) ([c281e5a](https://github.com/MinhWorker/xom-dao/commit/c281e5ad99bac73b0c794a568c3e84f36e0cd6bf))
+* event framework with a Trung Thu sample event ([#143](https://github.com/MinhWorker/xom-dao/issues/143)) ([865777f](https://github.com/MinhWorker/xom-dao/commit/865777f67ab39a66fb0b1a03f82dc051b62432da))
+* Godot game and event scaffolding, agent skills ([#145](https://github.com/MinhWorker/xom-dao/issues/145)) ([47bfdba](https://github.com/MinhWorker/xom-dao/commit/47bfdbae02b6578c28921a9bc54746493fef7a1d))
+* **go:** play Cờ Vây in the Godot client ([#149](https://github.com/MinhWorker/xom-dao/issues/149)) ([1e3b278](https://github.com/MinhWorker/xom-dao/commit/1e3b2786f94858b9aa01fd5dcb28b4572bdfec92))
+* **mau-binh:** play Mậu Binh in the Godot client ([#152](https://github.com/MinhWorker/xom-dao/issues/152)) ([8ed88ac](https://github.com/MinhWorker/xom-dao/commit/8ed88acd705d392e4441f37bcf21b09bb037c6b5))
+* Nhà and Chợ, buy and wear frames and card backs ([#142](https://github.com/MinhWorker/xom-dao/issues/142)) ([0316166](https://github.com/MinhWorker/xom-dao/commit/031616641e409e756fd07259ad92274ad653a68c))
+* **server:** ledger and match rewards ([#135](https://github.com/MinhWorker/xom-dao/issues/135)) ([7c3fd59](https://github.com/MinhWorker/xom-dao/commit/7c3fd590216f8cca5fe88f56a22202966be5b011))
+* stats, achievements and rankings ([#144](https://github.com/MinhWorker/xom-dao/issues/144)) ([008bd93](https://github.com/MinhWorker/xom-dao/commit/008bd93c6e4723e525635f4814a8c90b6b59044b))
+* **tic-tac-toe:** play Caro end to end in Godot ([#139](https://github.com/MinhWorker/xom-dao/issues/139)) ([0692574](https://github.com/MinhWorker/xom-dao/commit/069257407307d77225dbc99af5557182df83cbc5))
+* **tic-tac-toe:** redo Caro's art and Godot table ([#150](https://github.com/MinhWorker/xom-dao/issues/150)) ([4c7ec2e](https://github.com/MinhWorker/xom-dao/commit/4c7ec2e2fdad538989dffa1a1af0bf746059d95b))
+* **tien-len:** play Tiến Lên in the Godot client ([#141](https://github.com/MinhWorker/xom-dao/issues/141)) ([2c6f566](https://github.com/MinhWorker/xom-dao/commit/2c6f566647450da158ef8e1752015cbad282b83e))
+* WebSocket gateway, protocol codegen and xomdao_sdk ([#136](https://github.com/MinhWorker/xom-dao/issues/136)) ([87a7894](https://github.com/MinhWorker/xom-dao/commit/87a7894f9781b38f0fc450d1ac0c6a6d0795bece))
+* **xiangqi:** play Cờ Tướng in the Godot client ([#148](https://github.com/MinhWorker/xom-dao/issues/148)) ([aedfc7a](https://github.com/MinhWorker/xom-dao/commit/aedfc7a1bb867083b8df54f0d7d4d7fa6ecc7c84))
+
 ## [0.22.0](https://github.com/MinhWorker/xom-dao/compare/v0.21.0...v0.22.0) (2026-10-09)
 
 
