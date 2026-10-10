@@ -127,8 +127,8 @@ chơi.
 | `godot/rules.gd` | Dữ liệu 40 ô, toạ độ ô trên ảnh bàn, tiền thuê và thế chấp (chép từ `model.ts`, `rules.ts`, `boardGeometry.ts`) |
 
 Hình ở `godot/art/`, âm thanh ở `godot/sounds/`, nhạc ở `godot/music/`; test: `godot/test/`.
-Chưa có trong bản Godot: giá và tên in trên từng ô bàn (chạm ô để xem), bảng thế chấp nhiều ô một
-lần (thế chấp từng ô).
+Giá in trên từng ô đất. Chưa có trong bản Godot: tên in trên từng ô (chạm ô để xem), bảng thế
+chấp nhiều ô một lần (thế chấp từng ô).
 
 Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=co-ty-phu-classic`
 (ba máy, trên server thật).
