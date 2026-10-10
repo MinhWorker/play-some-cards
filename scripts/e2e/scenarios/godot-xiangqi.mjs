@@ -1,14 +1,13 @@
-// Cờ Đam in the Godot client (#120): the sandbox (?play=checkers) against the computer on a
-// phone. A few moves by tapping the squares with the mouse (captures first, landing square by
-// landing square), then Đầu hàng twice; the result board says how it ended, Xem bàn puts it away
-// and Kết quả brings it back. Then a host on a desktop makes a room for two friends and the
-// second player sees the board turned round. Needs the debug web build at /godot/
-// (npm run godot:export -- --debug).
+// Cờ Tướng in the Godot client (#120): the sandbox (?play=xiangqi) against the computer on a
+// phone. A few moves by tapping the points with the mouse (captures first), then Đầu hàng twice;
+// the result board says how it ended, Xem bàn puts it away and Kết quả brings it back. Then a
+// host on a desktop makes a room for two friends and Black sees the board turned round. Needs
+// the debug web build at /godot/ (npm run godot:export -- --debug).
 
 import { godotText, launch, onScene, openGodot, tap, tapCard, typeInto } from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
-export const games = ['checkers'];
+export const games = ['xiangqi'];
 export { launch };
 
 /** Your moves now (the view's `moves`), once it is your turn and nothing is moving. */
@@ -23,19 +22,19 @@ async function myMoves(page) {
 }
 
 export default async function run(t) {
-  const page = await openGodot(t, await t.page(PHONE), '?play=checkers');
-  await onScene(page, 'checkers', 60_000);
+  const page = await openGodot(t, await t.page(PHONE), '?play=xiangqi');
+  await onScene(page, 'xiangqi', 60_000);
   await godotText(page, 'Status', 'Tới lượt bạn');
   await page.screenshot({ path: t.shot('1-start.png') });
 
   for (let turn = 0; turn < 4; turn++) {
     const { over, moves, plies } = await myMoves(page);
     if (over) break;
-    const move = moves.find((m) => m.captures.length) ?? moves[0];
-    for (const sq of move.path) {
-      await page.waitForTimeout(150);
-      await tap(page, `Square_${sq}`);
-    }
+    const board = await page.evaluate(() => window.xomdao.state().room.view.board);
+    const move = moves.find((m) => board[m.to]) ?? moves[0];
+    await tap(page, `Square_${move.from}`);
+    await page.waitForTimeout(150);
+    await tap(page, `Square_${move.to}`);
     // Your move and the computer's reply.
     await page.waitForFunction(
       (before) => (window.xomdao.state().room?.view?.plies ?? 0) > before,
@@ -57,16 +56,16 @@ export default async function run(t) {
   await tap(page, 'ShowResult');
   await godotText(page, 'ResultTitle', 'Máy thắng!');
 
-  // Two friends: the host moves first (Đen, at the bottom); the guest sees it turned round.
+  // Two friends: the host plays Red (at the bottom); the guest, Black, sees it turned round.
   const host = await openGodot(t, await t.page(DESKTOP));
   const guest = await openGodot(t, await t.page(PHONE));
   await onScene(host, 'lobby');
   await tap(host, 'Island_co');
   await onScene(host, 'select');
-  await tapCard(host, 'checkers');
+  await tapCard(host, 'xiangqi');
   await tap(host, 'Choose');
   await onScene(host, 'lobby');
-  await godotText(host, 'SelectedName', 'Cờ Đam');
+  await godotText(host, 'SelectedName', 'Cờ Tướng');
   await tap(host, 'CreateRoom');
   await tap(host, 'ConfirmCreate');
   await onScene(host, 'room');
@@ -79,12 +78,12 @@ export default async function run(t) {
   await onScene(guest, 'room');
   await host.waitForFunction(() => window.xomdao.state().room?.players.length === 2);
   await tap(host, 'Start');
-  await onScene(host, 'checkers');
-  await onScene(guest, 'checkers');
+  await onScene(host, 'xiangqi');
+  await onScene(guest, 'xiangqi');
   await godotText(host, 'Status', 'Tới lượt bạn');
-  await godotText(guest, 'Status', /^Lượt Đen/);
-  const bottom = (p) => p.evaluate(() => window.xomdao.rect('Square_62').y);
-  const top = (p) => p.evaluate(() => window.xomdao.rect('Square_1').y);
+  await godotText(guest, 'Status', /^Lượt Đỏ/);
+  const bottom = (p) => p.evaluate(() => window.xomdao.rect('Square_85').y);
+  const top = (p) => p.evaluate(() => window.xomdao.rect('Square_4').y);
   if (!((await bottom(host)) > (await top(host))))
     throw new Error("The host's own side is not at the bottom");
   if (!((await bottom(guest)) < (await top(guest))))

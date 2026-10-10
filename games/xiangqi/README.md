@@ -16,6 +16,8 @@ Cờ Tướng cho hai người, chơi với bạn hoặc máy.
 | Cảnh đình và vườn riêng qua SDK | `src/scenes/XiangqiBackground.ts` |
 | Vỡ quân và thông báo chiếu | `src/scenes/shatter.ts`, `cutin.ts` |
 | Kết quả, tạo phòng và màu | `src/scenes/ResultPanel.ts`, `Setup.ts`, `theme.ts` |
+| Màn hình Godot: bàn, đường kẻ, quân, vỡ quân, cuộn chiếu tướng, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
+| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
 `src/index.ts` đăng ký game phía server; `src/client.ts` đăng ký giao diện.
 `assets/` chứa hình và âm thanh dùng trực tiếp, `sources/` chứa nguồn và prompt.
@@ -26,6 +28,14 @@ Test nằm cạnh phần logic với đuôi `.test.ts`.
 Chạy `npm run dev` ở gốc repo rồi mở `http://localhost:5033/?play=xiangqi&players=2`.
 Kiểm tra bằng `npm run check`. Hướng dẫn SDK và Dev Console:
 [tạo game](../../docs/making-a-game.md).
+
+Bản Godot (`godot/`) có cùng cảnh đình, bàn, đường kẻ, chữ 楚河 漢界, quân và bóng, vòng chiếu
+tướng nhấp nháy, cột thống kê và các nút như trên. Quân bị ăn bị đánh văng, xoay rồi tan; thông báo
+chiếu là một cuộn giấy mở ra rồi cuộn lại. Quân là từng ảnh cắt từ atlas `assets/pieces.webp`, chưa
+có đèn normal map. Nước đi hợp lệ lấy từ `moves` trong view của server (chỉ có khi tới lượt mình),
+nên luật chỉ nằm ở TypeScript. Chơi thử bằng `npm run godot:export -- --debug` rồi mở
+http://localhost:5033/godot/?play=xiangqi; test GUT ở `godot/test/`, kịch bản trình duyệt ở
+`scripts/e2e/scenarios/godot-xiangqi.mjs`.
 
 ## Tài nguyên
 
