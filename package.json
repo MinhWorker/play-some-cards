@@ -30,6 +30,7 @@
     "shots": "node scripts/shots.mjs",
     "new": "node scripts/new.mjs",
     "new:game": "node scripts/new.mjs game",
+    "new:event": "node scripts/new.mjs event",
     "assets": "node scripts/assets.mjs",
     "blender": "node scripts/blender.mjs",
     "setup:blender": "node tools/blender/setup.mjs",

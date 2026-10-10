@@ -4,8 +4,13 @@ Where to look:
 - **How to build a game** (Vietnamese, for people): `docs/making-a-game.md`.
 - **Every hook**: `docs/making-a-game.md` ("Các hook").
 - **Examples**:
-  - `scripts/templates/game/` is the minimal starter.
+  - `scripts/templates/` holds the starters `new:game` / `new:event` fill in: `game/` (rules,
+    bot, Phaser view), `event/` (over `game/`), `godot/<layout>/main.gd` (Bàn, Hành động, event),
+    `godot/test/`, `e2e/`.
   - `games/tic-tac-toe` (Caro) adds room options, a computer player and a setup screen.
+  - `games/tien-len` is the fullest Godot table (cards, effects, sounds, art).
+- **Skills** in `.claude/skills/`: `new-content` (a game or event from a brief),
+  `port-phaser-game`, `make-asset`, `phone-check`.
 - **The source of truth for the API** is the headers of `packages/sdk/src/engine.ts` and
   `packages/sdk/src/client/GameView.ts`.
 
@@ -22,11 +27,14 @@ games/<id>/          Only index.ts + client.ts are required
   assets/              App-ready images/sounds, used by file name (this.image('tile'), this.sfx('move'));
                        same-name .json = atlas; <name>.normal.webp = raw normals for image/atlas <name>
   sources/             Optional originals (Git LFS) + prompts.json (see assets/AGENTS.md)
+  godot/               The Godot table: main.tscn + main.gd, test/test_*.gd (GUT), art/, sounds/
+                       (rules in apps/client/AGENTS.md)
 ```
 
 | Command | What it does |
 | --- | --- |
-| `npm run new:game -- <id> "Tên"` | Create `games/<id>/` from the starter game (`scripts/templates/game`, status `wip`) |
+| `npm run new:game -- <id> "Tên" --genre <g> [--layout ban\|hanh-dong]` | A working game (status `wip`): rules + bot + tests, a Godot table in that layout + GUT test, RULES.md, README, stand-in card, `scripts/e2e/scenarios/godot-<id>.mjs`. Then `npm run godot:check` writes the `.uid` files to commit |
+| `npm run new:event -- <id> "Tên" [--opens YYYY-MM-DD] [--closes YYYY-MM-DD]` | The same for an event (`su-kien`, Hành động layout, dates default to today + 4 weeks, reward tiers) |
 | `npm run new -- logic\|view\|setup <id> [Name]` | Write a `Game` (+ test), a `GameView` or a setup screen from `scripts/templates/` (leave out `<id>` inside `games/<id>/`) |
 | `/?play=<id>&players=2` | Sandbox: the game's rules + board alone in the browser, in dev and PR previews |
 
@@ -59,10 +67,11 @@ games/<id>/          Only index.ts + client.ts are required
   `presentation/`; see `co-ty-phu-classic/AGENTS.md`. Its depth-specific Biome override still
   prevents imports outside the game's `src/`.
 - Every `Game` has tests with `testGame` (`src/game/<Name>Game.test.ts`).
-- A game's browser test is a scenario, `scripts/e2e/scenarios/<id>.mjs` with
-  `export const games = ['<id>']` (copy `tien-len.mjs`). CI runs it on its own machine whenever
-  `games/<id>/` changes (paused while the games move to Godot); see "E2E trong CI" in
-  `docs/deploy.md`.
+- A game's browser test in the Godot client is `scripts/e2e/scenarios/godot-<id>.mjs` with
+  `export const games = ['<id>']` (the generator writes one). CI's `godot` job runs every
+  `godot-*` scenario. A scenario that moves the event clock (`dev:clock`) exports
+  `lock = 'clock'` so such scenarios run one at a time. Phaser scenarios
+  (`scripts/e2e/scenarios/<id>.mjs`) are paused in CI; see "E2E trong CI" in `docs/deploy.md`.
 - When a mechanic or piece of data would help other games too, add it to the SDK instead of the
   game. Examples: a system event, a `ctx` property, a view helper, a test helper.
 - Changing an SDK API means, in the same change:

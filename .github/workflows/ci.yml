@@ -65,7 +65,7 @@ jobs:
             sleep 1
           done
           cat dev.log; exit 1
-      - run: npm run e2e -- --only godot-caro,godot-event,godot-home-shop,godot-lobby,godot-stats,godot-tien-len --retries 1
+      - run: npm run e2e -- --only 'godot-*' --retries 1
       - name: Dev server log
         if: failure()
         run: cat dev.log
@@ -99,7 +99,7 @@ jobs:
         env:
           PAUSED: 'true'
           # Scenarios of the Godot client: the godot job runs them on its own build.
-          GODOT: godot-caro,godot-event,godot-home-shop,godot-lobby,godot-stats,godot-tien-len
+          GODOT: 'godot-*'
           EVENT: ${{ github.event_name }}
           BASE: origin/${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}

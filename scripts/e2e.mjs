@@ -4,10 +4,10 @@
 // Needs a server with XOMDAO_DEV=1 (`npm run dev` sets it). Never opens a visible window.
 //
 //   npm run e2e [webUrl]                 every scenario, default http://localhost:5033
-//   npm run e2e -- --only tien-len       some scenarios (comma separated)
+//   npm run e2e -- --only tien-len       some scenarios (comma separated; godot-* = every godot-…)
 //   npm run e2e -- --changed origin/main only the scenarios the changes since that ref touch
 //   npm run e2e -- --list [...]          print the picked scenario names as JSON, run nothing
-//   --skip a,b   leave these scenarios out
+//   --skip a,b   leave these scenarios out (godot-* works here too)
 //   --jobs N     scenarios at once (default: half the CPUs)
 //   --retries N  run a failed scenario again, up to N times (CI: 1); a pass on retry warns
 //   --timeout S  a try that takes longer fails (default 600)
@@ -44,6 +44,7 @@ const scenarios = await Promise.all(
         run: mod.default,
         games: mod.games ?? [],
         always: mod.always ?? false,
+        lock: mod.lock,
         launch: mod.launch ?? {},
       };
     }),
@@ -91,19 +92,26 @@ function affected(ref) {
   return scenarios.filter((s) => picked.has(s.name));
 }
 
+/** Whether a scenario name matches one of a comma list (`godot-*` matches by prefix). */
+const matches = (list) => {
+  const names = list.split(',');
+  return (name) =>
+    names.some((n) => (n.endsWith('*') ? name.startsWith(n.slice(0, -1)) : n === name));
+};
+
 let picked = args.changed ? affected(args.changed) : scenarios;
 if (args.only) {
-  const only = args.only.split(',');
-  const unknown = only.filter((n) => !scenarios.some((s) => s.name === n));
+  const unknown = args.only.split(',').filter((n) => !scenarios.some((s) => matches(n)(s.name)));
   if (unknown.length) {
     console.error(`No such scenario: ${unknown.join(', ')}`);
     process.exit(1);
   }
-  picked = picked.filter((s) => only.includes(s.name));
+  const only = matches(args.only);
+  picked = picked.filter((s) => only(s.name));
 }
 if (args.skip) {
-  const skip = args.skip.split(',');
-  picked = picked.filter((s) => !skip.includes(s.name));
+  const skip = matches(args.skip);
+  picked = picked.filter((s) => !skip(s.name));
 }
 if (args.list) {
   console.log(JSON.stringify(picked.map((s) => s.name)));
@@ -211,7 +219,19 @@ const describe = (err) =>
     .filter(Boolean)
     .join(' ');
 
-async function runScenario(scenario) {
+/**
+ * Scenarios that export the same `lock` run one at a time: `'clock'` for those that move the
+ * server's event clock (dev:clock), which every scenario shares.
+ */
+const locks = new Map();
+function runScenario(scenario) {
+  if (!scenario.lock) return runOnce(scenario);
+  const run = (locks.get(scenario.lock) ?? Promise.resolve()).then(() => runOnce(scenario));
+  locks.set(scenario.lock, run);
+  return run;
+}
+
+async function runOnce(scenario) {
   const start = Date.now();
   const failures = [];
   const retries = Number(args.retries);

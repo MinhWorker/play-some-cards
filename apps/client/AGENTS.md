@@ -103,7 +103,7 @@ export_presets.cfg  The Web preset: single-threaded, PWA
 In the browser: `npm run dev` serves `dist/` at http://localhost:5033/godot/ (export again to see
 changes) and proxies `/ws`. `npm run e2e -- --only godot-caro` and
 `npm run shots -- --path '/godot/?play=tic-tac-toe'` need a debug export there. CI's `godot` job
-runs every `godot-*` scenario (listed in `ci.yml`: add a new one there); `e2e-plan` skips them. Vercel builds the client too (`tools/godot/vercel.mjs`:
+runs every `godot-*` scenario (`--only 'godot-*'`); `e2e-plan` skips them. Vercel builds the client too (`tools/godot/vercel.mjs`:
 release on production, debug on previews) and serves it at `/godot/`.
 
 Format a script with `.tools/gdtoolkit/bin/gdformat <file>`.

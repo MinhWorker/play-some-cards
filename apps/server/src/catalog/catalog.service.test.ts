@@ -65,7 +65,10 @@ describe('CatalogService', () => {
     const shown = new CatalogService(new RoomsService(), true).catalog().games;
     const hidden = new CatalogService(new RoomsService(), false).catalog().games;
     expect(shown.map((c) => c.id)).toContain('tic-tac-toe');
-    expect(shown.at(-1)?.id).toBe('tic-tac-toe');
+    // Ready cards first: Caro, now a work in progress, comes after all of them.
+    const firstWip = shown.findIndex((c) => c.status === 'wip');
+    expect(shown.slice(firstWip).every((c) => c.status === 'wip')).toBe(true);
+    expect(shown.findIndex((c) => c.id === 'tic-tac-toe')).toBeGreaterThanOrEqual(firstWip);
     expect(hidden.map((c) => c.id)).not.toContain('tic-tac-toe');
   });
 });

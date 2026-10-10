@@ -8,6 +8,8 @@ import { godotText, launch, onScene, openGodot, tap } from '../godot.mjs';
 import { DESKTOP } from '../lib.mjs';
 
 export const games = ['trung-thu'];
+// It moves the server's event clock: other scenarios with this lock wait for it.
+export const lock = 'clock';
 export { launch };
 
 const OPEN = '2026-09-25T20:00:00+07:00';
