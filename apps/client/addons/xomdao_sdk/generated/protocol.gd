@@ -3,7 +3,7 @@ extends RefCounted
 ## Generated from packages/shared/src/protocol.ts by npm run gen:protocol. Do not edit.
 ## Requests (`{ id, event, data }` on /ws) and the events the server pushes (`{ event, data }`).
 
-const VERSION := 6
+const VERSION := 7
 const MISMATCH := "protocol-mismatch"
 const COIN := "core:coin"
 
@@ -19,6 +19,8 @@ const SHOP_LIST := "shop:list"
 const SHOP_BUY := "shop:buy"
 const INVENTORY_GET := "inventory:get"
 const INVENTORY_EQUIP := "inventory:equip"
+const EVENT_GET := "event:get"
+const EVENT_CLAIM := "event:claim"
 const HISTORY_RECENT := "history:recent"
 const CATALOG_GET := "catalog:get"
 const LOBBY_WATCH := "lobby:watch"
@@ -50,6 +52,8 @@ static var _replies: Dictionary = {
 	"shop:list": XomDaoShopList,
 	"shop:buy": XomDaoPurchase,
 	"inventory:get": XomDaoProfile,
+	"event:get": XomDaoEventProgress,
+	"event:claim": XomDaoEventClaim,
 	"catalog:get": XomDaoCatalog,
 	"lobby:watch": XomDaoRoomList,
 	"room:create": XomDaoJoinedRoom,

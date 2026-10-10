@@ -530,14 +530,42 @@ meta: {
 ```
 
 - `genre` là id trong danh sách thể loại của lõi (`genres` trong
-  `packages/shared/src/catalog.ts`): `co` (Cờ) hoặc `bai` (Bài). Thêm thể loại là thêm một dòng ở
-  đó, không sửa code sảnh.
-- `kind` mặc định là `table`. Sự kiện dùng `kind: 'event'` và thêm
-  `event: { opensAt, closesAt, tiers }` (ngày ISO, dải thưởng theo mốc điểm tăng dần).
+  `packages/shared/src/catalog.ts`): `co` (Cờ), `bai` (Bài) hoặc `su-kien` (Sự kiện). Thêm thể
+  loại là thêm một dòng ở đó, không sửa code sảnh.
+- `kind` mặc định là `table`. Sự kiện dùng `kind: 'event'`, `genre: 'su-kien'` và thêm
+  `event: { opensAt, closesAt, tiers, color? }` (ngày ISO, dải thưởng theo mốc điểm tăng dần,
+  màu bảng chi tiết `#RRGGBB`). Xem mục "Sự kiện" bên dưới.
 - Test registry (`npm run check`) báo lỗi khi khai báo sai: thể loại không có, thời lượng ngược,
   tài nguyên không có không gian tên (`core:coin`), sự kiện thiếu ngày.
 - Server gửi danh mục qua `catalog:get`: thể loại, thẻ trò, số người đang chơi và số phòng còn
   chỗ. Trò `wip` không có trong danh mục của server thật (Render).
+
+## Sự kiện
+
+Sự kiện là một trò có ngày mở và ngày đóng. Mẫu là `games/trung-thu` (Câu cá Trung Thu, một
+người chơi).
+
+```ts
+meta: {
+  kind: 'event',
+  genre: 'su-kien',
+  rewardCap: { [EVENT_POINTS]: MAX_POINTS },           // điểm sự kiện tối đa một ván
+  event: {
+    opensAt: '2026-09-18T00:00:00+07:00',
+    closesAt: '2026-10-04T00:00:00+07:00',
+    color: '#B3261E',
+    tiers: [{ points: 10, reward: { 'core:coin': 50 } }, { points: 25, reward: { 'core:coin': 100 } }],
+  },
+}
+```
+
+- Game cho điểm sự kiện bằng `ctx.reward(player.id, EVENT_POINTS, n)` (`EVENT_POINTS` =
+  `'event:point'` trong `@xomdao/sdk`). Điểm không vào số dư: server cộng vào tiến độ của người chơi
+  trong sự kiện, mỗi ván một lần, chỉ khi sự kiện đang mở.
+- Người chơi bấm **Nhận** ở mỗi mốc đã đủ điểm; sổ cái trả `reward` của mốc đó đúng một lần.
+- Ngoài khoảng ngày, sự kiện không có trong danh mục và server từ chối mở phòng mới của nó.
+- Thử sự kiện ngoài ngày của nó: chạy server với `XOMDAO_NOW=2026-09-25T20:00:00+07:00`, hoặc gửi
+  `dev:clock { at }` (chế độ dev; `at: null` trả về giờ thật).
 
 ## Hình và âm thanh
 

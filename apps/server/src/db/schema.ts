@@ -1,8 +1,8 @@
 // Database tables (Drizzle ORM). After changing this file run `npm run db:generate -w @xomdao/server`
 // to write a migration into `apps/server/drizzle/`; the server applies pending migrations on start.
 // Rooms and games still live in memory (see rooms.service.ts); accounts, finished games
-// (match history) and the ledger are stored here. Each module owns its own tables
-// (docs/adr/0002-modules.md).
+// (match history), the ledger, Túi đồ and event progress are stored here. Each module owns its
+// own tables (docs/adr/0002-modules.md).
 import {
   bigint,
   boolean,
@@ -124,4 +124,36 @@ export const inventoryItems = pgTable(
     acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.itemId] })],
+);
+
+/**
+ * Sự kiện (apps/server/src/events): the points each game of an event gave each account, once
+ * per game. Progress is their sum. Only the Events module writes it.
+ */
+export const eventPoints = pgTable(
+  'event_points',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    eventId: text('event_id').notNull(),
+    matchId: text('match_id').notNull(),
+    points: integer('points').notNull(),
+    earnedAt: timestamp('earned_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.eventId, t.matchId] })],
+);
+
+/** The event reward tiers (indexes into `meta.event.tiers`) each account claimed. */
+export const eventClaims = pgTable(
+  'event_claims',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    eventId: text('event_id').notNull(),
+    tier: integer('tier').notNull(),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.eventId, t.tier] })],
 );

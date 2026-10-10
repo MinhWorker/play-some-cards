@@ -3,7 +3,8 @@ extends Control
 ## One genre island on the lobby's ring: its art (`hub/genres/<island>.webp`) or, until that is
 ## drawn, a toy island with the genre's sign on it (a board for Cờ, fanned cards for Bài). The
 ## selected island has a gold halo on the water and its name on a wooden sign; a locked one
-## (Sắp có, or a genre with no ready game) sits in fog with a lock.
+## (Sắp có, or a genre with no ready game) sits in fog with a lock. The Sự kiện island glows and
+## flies a pennant with the days left while an event is open.
 ##
 ## The ring sizes and places it (HubIslandRing); the island only draws.
 
@@ -37,6 +38,12 @@ var depth: float = 1.0:
 
 var art: Texture2D
 
+## An event island with an event open: it glows and flies a pennant with the days left (-1: none).
+var days_left: int = -1:
+	set(value):
+		days_left = value
+		queue_redraw()
+
 var _sign := Label.new()
 var _lock: Texture2D = XomDaoUi.icon("lock-simple")
 
@@ -48,6 +55,7 @@ static func create(entry: Dictionary) -> HubIsland:
 	island.name = "Island_" + island.genre_id
 	island.title = str(entry.get("name", ""))
 	island.locked = bool(entry.get("locked", false))
+	island.days_left = int(entry.get("days", -1))
 	var path: String = "res://hub/genres/%s.webp" % str(entry.get("island", ""))
 	if ResourceLoader.exists(path):
 		island.art = load(path)
@@ -99,6 +107,9 @@ func _draw() -> void:
 	var c := Vector2(body.get_center().x, body.position.y + body.size.y * 0.62)
 	var rx: float = body.size.x * 0.46
 	var ry: float = body.size.y * 0.3
+	if days_left >= 0 and not locked:
+		_ellipse(c, rx * 1.3, ry * 1.5, Color(XomDaoUi.LANTERN, 0.18), 0.0)
+		_ellipse(c, rx * 1.18, ry * 1.32, Color(XomDaoUi.GOLD, 0.22), 0.0)
 	if selected:
 		_ellipse(c + Vector2(0, ry * 0.25), rx * 1.12, ry * 1.25, Color(XomDaoUi.GOLD, 0.35), 0.0)
 		_ellipse(c + Vector2(0, ry * 0.25), rx * 1.12, ry * 1.25, XomDaoUi.GOLD, 4.0 * k)
@@ -119,6 +130,8 @@ func _draw() -> void:
 	else:
 		_draw_palm(c + Vector2(rx * 0.62, -ry * 0.2), k)
 		_draw_mark(c - Vector2(0, ry * 0.35), k)
+	if days_left >= 0 and not locked:
+		_draw_pennant(c + Vector2(-rx * 0.62, -ry * 0.1), k)
 
 
 ## The genre's sign on its island until it has art: a little board, or fanned cards.
@@ -164,6 +177,13 @@ func _draw_mark(at: Vector2, k: float) -> void:
 				var pip: Color = XomDaoUi.LACQUER if i != 1 else XomDaoUi.INK
 				draw_circle(card.get_center(), 6.0 * k, pip)
 			draw_set_transform(Vector2.ZERO)
+		"su-kien":
+			# A lantern on a stick.
+			draw_line(at + Vector2(0, -40) * k, at + Vector2(0, -26) * k, XomDaoUi.INK, 2.0 * k)
+			_ellipse(at, 26.0 * k, 22.0 * k, XomDaoUi.LANTERN, 0.0)
+			_ellipse(at, 12.0 * k, 22.0 * k, XomDaoUi.LACQUER_DARK, 2.0 * k)
+			draw_rect(Rect2(at + Vector2(-10, -26) * k, Vector2(20, 6) * k), XomDaoUi.GOLD)
+			draw_rect(Rect2(at + Vector2(-10, 20) * k, Vector2(20, 6) * k), XomDaoUi.GOLD)
 		_:
 			var font: Font = XomDaoUi.display_font(800)
 			var letter: String = title.left(1)
@@ -184,6 +204,35 @@ func _piece(at: Vector2, r: float, color: Color) -> void:
 	draw_circle(at + Vector2(1, 2), r, XomDaoUi.SHADOW)
 	draw_circle(at, r, XomDaoUi.CREAM)
 	draw_circle(at, r * 0.75, color, false, 2.0)
+
+
+## A red pennant on a pole with the event's days left.
+func _draw_pennant(at: Vector2, k: float) -> void:
+	var font: Font = XomDaoUi.display_font(800)
+	var font_size: int = int(20 * k)
+	var text: String = "Còn %d ngày" % days_left
+	var w: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x + 30.0 * k
+	var top: Vector2 = at + Vector2(0, -96) * k
+	draw_line(at, top, XomDaoUi.HONEY_DARK, 4.0 * k, true)
+	var flag := PackedVector2Array(
+		[
+			top,
+			top + Vector2(w, 4.0 * k),
+			top + Vector2(w - 12.0 * k, 20.0 * k),
+			top + Vector2(w, 36.0 * k),
+			top + Vector2(0, 40) * k,
+		]
+	)
+	draw_colored_polygon(flag, XomDaoUi.LACQUER)
+	draw_string(
+		font,
+		top + Vector2(8, 27) * k,
+		text,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		font_size,
+		XomDaoUi.CREAM
+	)
 
 
 func _draw_palm(at: Vector2, k: float) -> void:

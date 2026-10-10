@@ -30,6 +30,8 @@ var _result: HubResult
 var _ben: HubBen
 ## A shop:buy is on its way.
 var _buying: bool = false
+## An event:claim is on its way.
+var _claiming: bool = false
 ## The screen on now (the lobby, the waiting room…).
 var _current: Control
 
@@ -193,6 +195,11 @@ func _show_lobby() -> void:
 	lobby.create_pressed.connect(_open_setup)
 	lobby.select_opened.connect(_show_select)
 	lobby.place_pressed.connect(_on_place)
+	lobby.event_pressed.connect(
+		func(id: String) -> void:
+			_choose_game(id)
+			_show_select(_genre)
+	)
 
 
 func _on_genre_changed(genre_id: String, lobby: HubLobby) -> void:
@@ -323,7 +330,6 @@ func _show_select(genre_id: String) -> void:
 	_set_screen("select", select)
 	select.top.money.show_balance(_coins)
 	select.top.money.settings_pressed.connect(_menu.open_settings)
-	select.show_genre(_catalog, genre_id, _game_id)
 	select.back_pressed.connect(_back_to_lobby)
 	select.chosen.connect(
 		func(id: String) -> void:
@@ -337,6 +343,40 @@ func _show_select(genre_id: String) -> void:
 			_show_ben()
 	)
 	select.rules_pressed.connect(_show_rules)
+	select.progress_needed.connect(_fill_progress.bind(select))
+	select.join_pressed.connect(_quick_match)
+	select.claim_pressed.connect(_claim.bind(select))
+	select.show_genre(_catalog, genre_id, _game_id)
+
+
+## An event's progress (`event:get`) on the select's detail board.
+func _fill_progress(game_id: String, select: HubGameSelect) -> void:
+	var reply: Dictionary = await _client.request(XomDaoProtocol.EVENT_GET, {"eventId": game_id})
+	if reply.get("ok") == true and is_instance_valid(select):
+		select.show_progress(XomDaoEventProgress.from_dict(reply))
+
+
+## Nhận: an event tier's reward, paid by the server once.
+func _claim(game_id: String, tier: int, select: HubGameSelect) -> void:
+	if _claiming:
+		return
+	_claiming = true
+	var reply: Dictionary = await _client.request(
+		XomDaoProtocol.EVENT_CLAIM, {"eventId": game_id, "tier": tier}
+	)
+	_claiming = false
+	if reply.get("ok") != true:
+		_say(str(reply.get("error", "")))
+		return
+	var claim := XomDaoEventClaim.from_dict(reply)
+	var gained: int = int(claim.balances.get("core:coin", 0)) - _coins
+	_client.balances = claim.balances
+	_coins = _balance()
+	XomDaoUi.play(self, XomDaoUi.SOUND_COIN)
+	XomDaoToast.show_on(self, "Nhận %s xu" % XomDaoUi.money(gained), "gift")
+	if is_instance_valid(select):
+		select.top.money.show_balance(_coins)
+		select.show_progress(claim.progress)
 
 
 func _show_ben() -> void:
@@ -475,7 +515,8 @@ func _show_result(snapshot: XomDaoRoomSnapshot) -> void:
 	_result.money.settings_pressed.connect(_menu.open_settings)
 	_result.again_pressed.connect(_client.start_game)
 	_result.home_pressed.connect(_leave)
-	_result.show_result(snapshot, _client.player_id, _coins)
+	var card: XomDaoGameCard = _catalog.card(snapshot.game_id)
+	_result.show_result(snapshot, _client.player_id, _coins, card != null and card.kind == "event")
 	# The ledger may have paid before the board came up.
 	if _balance() != _coins:
 		_on_rewarded(null)
@@ -528,7 +569,10 @@ func _leave_game() -> void:
 
 func _leave() -> void:
 	_menu.close()
-	_place = "lobby"
+	# Out of an event's game, back to its board (your points and tiers); else the lobby.
+	var snapshot: XomDaoRoomSnapshot = _client.snapshot
+	var card: XomDaoGameCard = _catalog.card(snapshot.game_id) if snapshot != null else null
+	_place = "select" if card != null and card.kind == "event" else "lobby"
 	await _client.leave_room()
 
 

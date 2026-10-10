@@ -84,8 +84,10 @@ export interface Portal {
   locked: boolean;
 }
 
-/** Games on the home map: ready ones first, then works in progress. */
+/** Games on the home map: ready ones first, then works in progress. Events live only in the
+ * Godot hub, which knows their dates. */
 export const portals: Portal[] = Object.values(games)
+  .filter((game) => game.kind !== 'event')
   .sort((a, b) => Number(a.status === 'wip') - Number(b.status === 'wip'))
   .map((game) => ({
     gameId: game.id,

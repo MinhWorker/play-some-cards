@@ -31,12 +31,12 @@ static func ranks(snapshot: XomDaoRoomSnapshot) -> Dictionary:
 
 
 ## Each player's coins from this game (`core:coin` in the result's rewards).
-static func coins(snapshot: XomDaoRoomSnapshot) -> Dictionary:
+static func coins(snapshot: XomDaoRoomSnapshot, resource: String = "core:coin") -> Dictionary:
 	var out: Dictionary = {}
 	if snapshot.result == null:
 		return out
 	for reward: XomDaoReward in snapshot.result.rewards:
-		if reward.resource == "core:coin":
+		if reward.resource == resource:
 			out[reward.player] = int(out.get(reward.player, 0)) + reward.amount
 	return out
 
@@ -82,10 +82,16 @@ func _ready() -> void:
 	_layout()
 
 
-## Fills the board for player `me`; `balance` is the coins shown before this game's reward.
-func show_result(snapshot: XomDaoRoomSnapshot, me: String, balance: int) -> void:
+## Fills the board for player `me`; `balance` is the coins shown before this game's reward. An
+## event's game (`event`) is titled with the event points you got, also shown on your row.
+func show_result(
+	snapshot: XomDaoRoomSnapshot, me: String, balance: int, event: bool = false
+) -> void:
 	var winners: Array[String] = snapshot.result.winners if snapshot.result != null else []
-	if winners.is_empty():
+	var points: Dictionary = coins(snapshot, "event:point")
+	if event:
+		_title.text = "+%d điểm sự kiện" % int(points.get(me, 0))
+	elif winners.is_empty():
 		_title.text = "Hoà"
 	elif winners.has(me):
 		_title.text = "Bạn thắng!"
@@ -98,7 +104,17 @@ func show_result(snapshot: XomDaoRoomSnapshot, me: String, balance: int) -> void
 		func(a: XomDaoPlayerInfo, b: XomDaoPlayerInfo) -> bool: return rank[a.id] < rank[b.id]
 	)
 	for player: XomDaoPlayerInfo in seated:
-		_ranks.add_child(_row(player, int(rank[player.id]), int(paid.get(player.id, 0)), me))
+		var row: Control = _row(player, int(rank[player.id]), int(paid.get(player.id, 0)), me)
+		if event and not player.bot:
+			var got := XomDaoChip.create(
+				"+%d điểm" % int(points.get(player.id, 0)), "flag-banner", XomDaoUi.LACQUER
+			)
+			if player.id == me:
+				got.name = "EventReward"
+			got.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			row.add_child(got)
+			row.move_child(got, row.get_child_count() - 2)
+		_ranks.add_child(row)
 	_again.visible = snapshot.host_id == me
 	money.show_balance(balance)
 	_board.open()

@@ -186,14 +186,24 @@ export interface GameMeta {
 /** `meta.kind`: see `GameMeta`. */
 export type GameKind = 'table' | 'event';
 
-/** A time-limited event (`kind: 'event'`). */
+/**
+ * A time-limited event (`kind: 'event'`). Players earn its points with
+ * `ctx.reward(player, EVENT_POINTS, amount)` (`'event:point'`, within `meta.rewardCap`); the
+ * server adds them to each player's progress in this event while it is open, and pays a tier's
+ * `reward` once when the player claims it.
+ */
 export interface EventMeta {
-  /** ISO 8601 date-times, `opensAt` before `closesAt`. */
+  /** ISO 8601 date-times, `opensAt` before `closesAt`. Outside them the event is hidden. */
   opensAt: string;
   closesAt: string;
   /** Rewards by milestone, in increasing `points`. */
   tiers: { points: number; reward: Record<string, number> }[];
+  /** Its detail board's colour (`#RRGGBB`), e.g. lacquer red for Trung Thu. */
+  color?: string;
 }
+
+/** The resource an event's game gives points in (`ctx.reward(player, EVENT_POINTS, 3)`). */
+export const EVENT_POINTS = 'event:point';
 
 /** What `games/<id>/src/index.ts` exports by default. Safe to load on the server. */
 export interface GamePlugin<State = unknown, Move = unknown, View = State, Options = undefined> {

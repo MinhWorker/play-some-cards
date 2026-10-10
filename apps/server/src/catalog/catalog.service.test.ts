@@ -1,5 +1,6 @@
 import { games } from '@xomdao/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { EventClock } from '../events/event-clock.js';
 import { RoomsService } from '../rooms/rooms.service.js';
 import { CatalogService } from './catalog.service.js';
 
@@ -12,9 +13,9 @@ describe('CatalogService', () => {
     if (caro && status) caro.status = status;
   });
 
-  it('lists Cờ and Bài with their games, leaving out games without a genre', () => {
+  it('lists Cờ, Bài and Sự kiện with their games, leaving out games without a genre', () => {
     const { genres, games: cards } = new CatalogService(new RoomsService()).catalog();
-    expect(genres.map((g) => g.id)).toEqual(['co', 'bai']);
+    expect(genres.map((g) => g.id)).toEqual(['co', 'bai', 'su-kien']);
     const ids = cards.map((c) => c.id);
     expect(ids).toContain('tic-tac-toe');
     expect(ids).toContain('tien-len');
@@ -26,6 +27,25 @@ describe('CatalogService', () => {
       playing: 0,
       openRooms: 0,
     });
+  });
+
+  it('shows an event only while it is open', () => {
+    const clock = new EventClock();
+    const catalog = new CatalogService(new RoomsService(), true, clock);
+    const ids = () => catalog.catalog().games.map((c) => c.id);
+    clock.set('2026-09-17T23:59:00+07:00');
+    expect(ids()).not.toContain('trung-thu');
+    clock.set('2026-09-25T20:00:00+07:00');
+    expect(catalog.catalog().games.find((c) => c.id === 'trung-thu')).toMatchObject({
+      kind: 'event',
+      genre: 'su-kien',
+      event: { color: '#B3261E' },
+    });
+    const left = Date.parse('2026-10-04T00:00:00+07:00') - Date.parse('2026-09-25T20:00:00+07:00');
+    const card = catalog.catalog().games.find((c) => c.id === 'trung-thu');
+    expect(Math.abs((card?.closesIn ?? 0) - left)).toBeLessThan(1000);
+    clock.set('2026-10-04T00:00:00+07:00');
+    expect(ids()).not.toContain('trung-thu');
   });
 
   it('counts people playing and rooms with a free seat', () => {

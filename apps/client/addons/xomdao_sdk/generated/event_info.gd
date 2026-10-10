@@ -5,6 +5,7 @@ extends RefCounted
 var opens_at: String = ""
 var closes_at: String = ""
 var tiers: Array[Dictionary] = []
+var color: String = ""
 
 
 static func from_dict(d: Dictionary) -> XomDaoEventInfo:
@@ -14,6 +15,7 @@ static func from_dict(d: Dictionary) -> XomDaoEventInfo:
 	for item: Variant in _list(d, "tiers"):
 		if item is Dictionary:
 			o.tiers.append(item)
+	o.color = str(d.get("color", ""))
 	return o
 
 
@@ -22,6 +24,8 @@ func to_dict() -> Dictionary:
 	d["opensAt"] = opens_at
 	d["closesAt"] = closes_at
 	d["tiers"] = tiers
+	if color != "":
+		d["color"] = color
 	return d
 
 

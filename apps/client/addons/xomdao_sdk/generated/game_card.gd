@@ -14,6 +14,7 @@ var card: String = ""
 var status: String = ""
 var reward_cap: Dictionary = {}
 var event: XomDaoEventInfo
+var closes_in: int = 0
 var playing: int = 0
 var open_rooms: int = 0
 
@@ -33,6 +34,7 @@ static func from_dict(d: Dictionary) -> XomDaoGameCard:
 	o.reward_cap = _dict(d, "rewardCap")
 	if d.get("event") is Dictionary:
 		o.event = XomDaoEventInfo.from_dict(d["event"])
+	o.closes_in = int(d.get("closesIn", 0))
 	o.playing = int(d.get("playing", 0))
 	o.open_rooms = int(d.get("openRooms", 0))
 	return o
@@ -53,6 +55,8 @@ func to_dict() -> Dictionary:
 	d["rewardCap"] = reward_cap
 	if event != null:
 		d["event"] = event.to_dict()
+	if closes_in != 0:
+		d["closesIn"] = closes_in
 	d["playing"] = playing
 	d["openRooms"] = open_rooms
 	return d

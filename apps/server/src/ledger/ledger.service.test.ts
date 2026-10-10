@@ -61,6 +61,17 @@ describe('LedgerService', () => {
     vi.restoreAllMocks();
   });
 
+  it('leaves event points to the Events module', async () => {
+    const { store, ledger } = setup();
+    const game: FinishedGame = {
+      ...caroGame('m1', [{ player: 'lan', resource: 'event:point', amount: 7 }]),
+      gameId: 'trung-thu',
+      seats: [seat('lan')],
+    };
+    expect(await ledger.rewardMatch(game)).toEqual([]);
+    expect(store.entries).toEqual([]);
+  });
+
   it('keeps the right balance over many games', async () => {
     const { ledger } = setup();
     for (let i = 0; i < 5; i++) await ledger.rewardMatch(caroGame(`m${i}`, [coins('lan', 20)]));

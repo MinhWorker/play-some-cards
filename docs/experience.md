@@ -207,14 +207,15 @@ tên trò, chủ phòng và số ghế là hai chip riêng, nút "Vào". Bến c
 
 ![Đảo sự kiện Trung Thu](concepts/event-island.webp)
 
-- Bản đầu chưa có sự kiện. Khi khung sự kiện ra đời, **Sự kiện** là một thể loại phụ: một đảo trên
-  vòng đảo.
-- Khi có sự kiện đang mở, đảo Sự kiện sáng lên ở sảnh, có cờ hiệu và số ngày còn lại; nút Sự kiện ở
-  cột trái có chấm đỏ. Mỗi sự kiện là một thẻ trong thể loại Sự kiện.
+- **Sự kiện** là một thể loại phụ: một đảo trên vòng đảo. Mỗi sự kiện là một thẻ trong thể loại
+  này.
+- Khi có sự kiện đang mở, đảo Sự kiện sáng lên ở sảnh, có cờ hiệu và số ngày còn lại; banner cột
+  phải đổi sang sự kiện, mang màu của nó và chấm đỏ.
 - Bảng chi tiết của sự kiện có cùng bố cục với bảng chi tiết trò, nhưng **được đổi màu** (ví dụ
   sơn mài đỏ viền vàng cho Trung Thu) và có thêm **dải phần thưởng** theo mốc.
 - Nút chính là **Tham gia**. Bên trong, sự kiện là một trò bình thường và theo mọi quy tắc HUD ở
-  trên.
+  trên. Hết ván, kết quả ghi số điểm sự kiện vừa được; mỗi mốc đủ điểm có nút **Nhận**, nhận được
+  một lần.
 - Khi sự kiện đóng, thẻ của nó biến mất; vật phẩm đã nhận vẫn ở trong túi đồ. Không còn sự kiện nào
   thì đảo Sự kiện chìm vào sương.
 

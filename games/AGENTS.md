@@ -86,6 +86,10 @@ games/<id>/          Only index.ts + client.ts are required
   pay `WIN_COINS` from `model.ts`). Declare the most one player can win in `meta.rewardCap`; the
   server refuses more, pays once per game and skips bots. `testGame` shows them in
   `result.rewards`.
+- **Events** (`kind: 'event'`, genre `su-kien`, `meta.event`): points go through
+  `ctx.reward(player, EVENT_POINTS, n)` within `meta.rewardCap`; the server keeps them per event and
+  pays `meta.event.tiers` on claim. `games/trung-thu` is the sample; see "Sự kiện" in
+  `docs/making-a-game.md`.
 - **Timers**: `ctx.setTimer(ms, 'name')` calls `onName(ctx)`. There is one timer per game, and
   the gateway runs it. Use it for a turn clock or a pause between rounds. The view shows
   countdowns with `ctx.timer`.

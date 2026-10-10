@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AccountsService } from '../accounts/accounts.service.js';
 import { MemoryAccountsStore } from '../accounts/accounts.store.js';
 import { CatalogService } from '../catalog/catalog.service.js';
+import { EventClock } from '../events/event-clock.js';
+import { EventsService } from '../events/events.service.js';
+import { MemoryEventsStore } from '../events/events.store.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { MemoryInventoryStore } from '../inventory/inventory.store.js';
 import { LedgerService } from '../ledger/ledger.service.js';
@@ -32,6 +35,7 @@ function setup(dev: boolean) {
     ledger,
     inventory,
     new ShopService(ledger, inventory),
+    new EventsService(new MemoryEventsStore(), ledger, new EventClock()),
   );
   const socket = {
     data: { user: { id: 'a', name: 'A' }, roomCode: room.code },

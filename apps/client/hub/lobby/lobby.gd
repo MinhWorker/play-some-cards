@@ -2,8 +2,8 @@ class_name HubLobby
 extends Control
 ## The lobby (docs/experience.md, "Sảnh: vòng đảo thể loại"): the ring of genre islands on the
 ## sea, and a thin HUD around it. Top left the profile, top right the balance and ⚙, the right
-## column a banner, bottom left Nhà, Chợ, Đình, Bến, bottom right the selected game's card with
-## CHƠI and Tạo phòng.
+## column a banner (the open event with a red dot, else Chợ), bottom left Nhà, Chợ, Đình, Bến,
+## bottom right the selected game's card with CHƠI and Tạo phòng.
 ##
 ## The lobby only shows and reports: the hub (main.gd) acts on its signals.
 
@@ -15,6 +15,8 @@ signal select_opened(genre_id: String)
 signal place_pressed(place: String)
 ## The ring turned to another genre: the hub picks that genre's game for the card.
 signal genre_changed(genre_id: String)
+## The banner of an open event: open its card.
+signal event_pressed(game_id: String)
 
 const PLACES: Array = [
 	["nha", "Nhà", "house"],
@@ -35,6 +37,11 @@ var _game_id: String = ""
 var _profile := HBoxContainer.new()
 var _name := Label.new()
 var _banner := Button.new()
+var _banner_icon := TextureRect.new()
+var _banner_title := Label.new()
+var _banner_tag: XomDaoChip
+## The event on the banner ("" = Chợ).
+var _event_id: String = ""
 var _places := HBoxContainer.new()
 var _corner := HBoxContainer.new()
 var _card := PanelContainer.new()
@@ -72,12 +79,37 @@ func show_catalog(catalog: HubCatalog, genre_id: String) -> void:
 	var list: Array[Dictionary] = HubIslandRing.entries(
 		catalog.catalog.genres, catalog.ready_genres()
 	)
+	var events: Array[XomDaoGameCard] = catalog.open_events()
 	var index: int = 0
 	for i: int in list.size():
 		if list[i]["id"] == genre_id:
 			index = i
+		if not events.is_empty() and list[i]["id"] == events[0].genre:
+			list[i]["days"] = HubCatalog.days_left(events[0])
 	ring.set_entries(list, index)
+	show_event(events[0] if not events.is_empty() else null)
 	_layout()
+
+
+## The banner: an open event (its colour, the days left and a red dot), or Chợ when none is.
+func show_event(card: XomDaoGameCard) -> void:
+	_event_id = card.id if card != null else ""
+	var color: Color = XomDaoUi.LACQUER
+	if card != null and card.event != null and card.event.color != "":
+		color = Color(card.event.color)
+	var style: StyleBoxFlat = XomDaoUi.with_shadow(
+		XomDaoUi.box(color, XomDaoUi.GOLD, XomDaoUi.BORDER, 18.0)
+	)
+	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
+		_banner.add_theme_stylebox_override(state, style)
+	_banner_icon.texture = XomDaoUi.icon("moon-stars" if card != null else "storefront")
+	_banner_title.text = "Sự kiện" if card != null else "Chợ"
+	_banner_tag.text = "Còn %d ngày" % HubCatalog.days_left(card) if card != null else "Mới"
+	var dot: Node = _banner.get_node_or_null("Dot")
+	if card != null:
+		XomDaoDot.attach(_banner)
+	elif dot != null:
+		dot.queue_free()
 
 
 func show_user(user: XomDaoUser) -> void:
@@ -157,36 +189,36 @@ func _build_banner() -> void:
 	_banner.name = "Banner"
 	_banner.focus_mode = Control.FOCUS_NONE
 	_banner.custom_minimum_size = Vector2(150.0, 176.0)
-	var style: StyleBoxFlat = XomDaoUi.with_shadow(
-		XomDaoUi.box(XomDaoUi.LACQUER, XomDaoUi.GOLD, XomDaoUi.BORDER, 18.0)
-	)
-	for state: String in ["normal", "hover", "pressed", "hover_pressed"]:
-		_banner.add_theme_stylebox_override(state, style)
 	_banner.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
-	_banner.pressed.connect(place_pressed.emit.bind("cho"))
+	_banner.pressed.connect(
+		func() -> void:
+			if _event_id != "":
+				event_pressed.emit(_event_id)
+			else:
+				place_pressed.emit("cho")
+	)
 	add_child(_banner)
 	var column := VBoxContainer.new()
 	column.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
 	column.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_banner.add_child(column)
-	var picture := TextureRect.new()
-	picture.texture = XomDaoUi.icon("storefront")
-	picture.custom_minimum_size = Vector2(72.0, 72.0)
-	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	picture.modulate = XomDaoUi.CREAM
-	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	column.add_child(picture)
-	var title := Label.new()
-	title.text = "Chợ"
-	title.theme_type_variation = "HudLabel"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(title)
-	var tag := XomDaoChip.create("Mới", "", XomDaoUi.GOLD_DARK)
-	tag.compact()
-	tag.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	column.add_child(tag)
+	_banner_icon.custom_minimum_size = Vector2(72.0, 72.0)
+	_banner_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_banner_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_banner_icon.modulate = XomDaoUi.CREAM
+	_banner_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	column.add_child(_banner_icon)
+	_banner_title.name = "BannerTitle"
+	_banner_title.theme_type_variation = "HudLabel"
+	_banner_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(_banner_title)
+	_banner_tag = XomDaoChip.create("", "", XomDaoUi.GOLD_DARK)
+	_banner_tag.name = "BannerTag"
+	_banner_tag.compact()
+	_banner_tag.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(_banner_tag)
+	show_event(null)
 
 
 func _build_places() -> void:
