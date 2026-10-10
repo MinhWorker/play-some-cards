@@ -30,6 +30,8 @@ và nhạc. Kết thúc ván có bảng kết quả, thời gian, số lượt v
 | Bàn, quân, thống kê, hiệu ứng và âm thanh | `src/scenes/CheckersView.ts` |
 | Bảng kết quả | `src/scenes/ResultPanel.ts` |
 | Nền vải, nút và form tạo phòng | `src/scenes/CheckersBackground.ts`, `buttons.ts`, `Setup.ts` |
+| Màn hình Godot: bàn, quân, thống kê, hiệu ứng, âm thanh, `room_setup()` và `result_detail()` | `godot/main.gd`, `godot/main.tscn` |
+| Hình, âm thanh và nhạc của bản Godot | `godot/art/`, `godot/sounds/`, `godot/music/` |
 
 ## Hình và âm thanh
 
@@ -65,6 +67,11 @@ Kiểm tra bằng `npm run check`, `npm run e2e -- --changed origin/main` và
 `npm run shots -- --path '/?play=checkers&players=2' --audit`.
 Test gồm nước khai cuộc, ăn tùy chọn, ăn liên tiếp, phong Vua, Vua đi và ăn xa, hoà và máy chơi.
 Kịch bản trình duyệt ở `scripts/e2e/scenarios/checkers*.mjs`.
+
+Bản Godot (`godot/`) vẽ cùng bàn, quân, cột thống kê và các nút như trên. Nước đi hợp lệ lấy từ
+`moves` trong view của server (chỉ có khi tới lượt mình), nên luật chỉ nằm ở TypeScript. Chơi thử
+bằng `npm run godot:export -- --debug` rồi mở http://localhost:5033/godot/?play=checkers; test
+GUT ở `godot/test/`, kịch bản trình duyệt ở `scripts/e2e/scenarios/godot-checkers.mjs`.
 
 Chuyển động, âm thanh và xác nhận đầu hàng dùng runtime SDK. Ván mới, kết nối lại, đổi người xem,
 bật/tắt hiệu ứng hoặc rời bàn huỷ tác vụ cũ. Dựng lại bàn từ trạng thái hiện tại không phát lại

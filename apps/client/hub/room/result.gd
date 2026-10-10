@@ -1,8 +1,10 @@
 class_name HubResult
 extends Control
-## The end of a game, over the board: the ranks the game gave, each player's reward from the
-## ledger (green up, red down), the balance on the top right that the coins fly into, and Chơi
-## tiếp (a new game, same room) and Về sảnh.
+## The end of a game, over the board: how it ended and the game's own figures (its
+## `result_detail()`, after the time played), the ranks the game gave, each player's reward from
+## the ledger (green up, red down), the balance on the top right that the coins fly into, and Chơi
+## tiếp (a new game, same room), Về sảnh and Xem bàn (put the board away to look at the table;
+## Kết quả at the top brings it back).
 
 signal again_pressed
 signal home_pressed
@@ -12,7 +14,10 @@ var money := HubMoneyRow.new()
 var _shade := ColorRect.new()
 var _board: XomDaoBoard = XomDaoBoard.create("Hết ván")
 var _title := Label.new()
+var _reason := Label.new()
+var _rows := GridContainer.new()
 var _ranks := VBoxContainer.new()
+var _reopen: XomDaoButton = XomDaoButton.create("Kết quả", XomDaoUi.Kind.GO)
 var _again: XomDaoButton = XomDaoButton.create("Chơi tiếp", XomDaoUi.Kind.GO)
 var _reward_at: Control
 var _settings: XomDaoSettings
@@ -49,6 +54,8 @@ func _init(settings: XomDaoSettings = null) -> void:
 	_settings = settings if settings != null else XomDaoSettings.current()
 	name = "Result"
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Taps reach the table while the board is put away.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_shade.color = Color(XomDaoUi.INK, 0.45)
 	_shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_shade)
@@ -60,6 +67,18 @@ func _init(settings: XomDaoSettings = null) -> void:
 	_title.theme_type_variation = "TitleLabel"
 	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	column.add_child(_title)
+	_reason.name = "ResultReason"
+	_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_reason.add_theme_color_override("font_color", XomDaoUi.INK)
+	_reason.visible = false
+	column.add_child(_reason)
+	_rows.name = "ResultRows"
+	_rows.columns = 2
+	_rows.add_theme_constant_override("h_separation", 24)
+	_rows.add_theme_constant_override("v_separation", 4)
+	_rows.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_rows.visible = false
+	column.add_child(_rows)
 	_ranks.add_theme_constant_override("separation", 8)
 	column.add_child(_ranks)
 	column.add_child(XomDaoDivider.new())
@@ -71,10 +90,18 @@ func _init(settings: XomDaoSettings = null) -> void:
 	home.name = "Home"
 	home.pressed.connect(home_pressed.emit)
 	buttons.add_child(home)
+	var look: XomDaoButton = XomDaoButton.create("Xem bàn", XomDaoUi.Kind.INFO)
+	look.name = "ViewBoard"
+	look.pressed.connect(show_board.bind(true))
+	buttons.add_child(look)
 	_again.name = "Again"
 	_again.pressed.connect(again_pressed.emit)
 	buttons.add_child(_again)
 	add_child(money)
+	_reopen.name = "ShowResult"
+	_reopen.visible = false
+	_reopen.pressed.connect(show_board.bind(false))
+	add_child(_reopen)
 	resized.connect(_layout)
 
 
@@ -84,8 +111,13 @@ func _ready() -> void:
 
 ## Fills the board for player `me`; `balance` is the coins shown before this game's reward. An
 ## event's game (`event`) is titled with the event points you got, also shown on your row.
+## `detail` is the game's `result_detail()`: `{reason: String, rows: [[label, value], …]}`.
 func show_result(
-	snapshot: XomDaoRoomSnapshot, me: String, balance: int, event: bool = false
+	snapshot: XomDaoRoomSnapshot,
+	me: String,
+	balance: int,
+	event: bool = false,
+	detail: Dictionary = {}
 ) -> void:
 	var winners: Array[String] = snapshot.result.winners if snapshot.result != null else []
 	var points: Dictionary = coins(snapshot, "event:point")
@@ -97,6 +129,7 @@ func show_result(
 		_title.text = "Bạn thắng!"
 	else:
 		_title.text = "%s thắng!" % _name_of(snapshot, winners[0])
+	_show_detail(snapshot, detail)
 	var rank: Dictionary = ranks(snapshot)
 	var paid: Dictionary = coins(snapshot)
 	var seated: Array[XomDaoPlayerInfo] = _seated(snapshot)
@@ -119,6 +152,59 @@ func show_result(
 	money.show_balance(balance)
 	_board.open()
 	_layout.call_deferred()
+
+
+## `true` puts the board away to look at the table, with Kết quả to bring it back.
+func show_board(looking: bool) -> void:
+	_shade.visible = not looking
+	_board.visible = not looking
+	money.visible = not looking
+	_reopen.visible = looking
+	XomDaoUi.play(self, XomDaoUi.SOUND_PANEL)
+	_layout.call_deferred()
+
+
+## Whether the board is put away (Xem bàn).
+func looking() -> bool:
+	return _reopen.visible
+
+
+## How it ended (the game's words) and the figures: the time played, then the game's rows.
+func _show_detail(snapshot: XomDaoRoomSnapshot, detail: Dictionary) -> void:
+	var reason: String = str(detail.get("reason", ""))
+	_reason.text = reason
+	_reason.visible = reason != ""
+	for child: Node in _rows.get_children():
+		_rows.remove_child(child)
+		child.queue_free()
+	var rows: Array = []
+	if snapshot.played != null and snapshot.played.ms > 0.0:
+		rows.append(["Thời gian", played_text(snapshot.played.ms)])
+	var extra: Variant = detail.get("rows", [])
+	if extra is Array:
+		rows.append_array(extra)
+	for row: Variant in rows:
+		if row is not Array or (row as Array).size() < 2:
+			continue
+		var pair: Array = row
+		var label := Label.new()
+		label.text = str(pair[0])
+		label.add_theme_color_override("font_color", XomDaoUi.HONEY_DARK)
+		_rows.add_child(label)
+		var value := Label.new()
+		value.text = str(pair[1])
+		value.add_theme_color_override("font_color", XomDaoUi.INK)
+		value.add_theme_font_override("font", XomDaoUi.display_font(800))
+		_rows.add_child(value)
+	_rows.visible = _rows.get_child_count() > 0
+
+
+## "12:05" for 12 minutes 5 seconds; "1:02:05" past an hour.
+static func played_text(ms: float) -> String:
+	var seconds: int = int(ms / 1000.0)
+	if seconds >= 3600:
+		return "%d:%02d:%02d" % [seconds / 3600, seconds / 60 % 60, seconds % 60]
+	return "%d:%02d" % [seconds / 60, seconds % 60]
 
 
 ## The ledger paid: coins fly from your reward into the balance.
@@ -178,3 +264,5 @@ func _layout() -> void:
 	money.position = Vector2(size.x - inset.x - edge - money.size.x * k, inset.y + edge)
 	_board.reset_size()
 	_board.position = (size - _board.size) / 2.0
+	_reopen.reset_size()
+	_reopen.position = Vector2((size.x - _reopen.size.x) / 2.0, inset.y + edge)

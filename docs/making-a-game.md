@@ -145,7 +145,11 @@ Mỗi game có `godot/main.tscn`, gốc là một `Control` có script `main.gd`
   máy chơi.
 - `room_setup() -> Array`: các hàng của bảng Tạo phòng,
   `{key, label, options: [[nhãn, giá trị], …], default?}`, khớp `room.options`.
-- Hub vẽ nút ☰, phòng chờ, bảng kết quả và bảng Luật (đọc `RULES.md`). Game để trống ô vuông
+- `result_detail() -> Dictionary`: phần game thêm vào bảng kết quả, dưới dòng Thời gian của hub:
+  `{reason: "Đen thắng · Trắng hết nước", rows: [["Số lượt đi", 42], …]}`.
+- Nhạc nền: đặt file nhạc vào `godot/music/`; hub phát ngẫu nhiên một bài khi game đang chơi.
+- Hub vẽ nút ☰, phòng chờ, bảng kết quả (có **Xem bàn** để xem bàn cuối, **Kết quả** để mở lại)
+  và bảng Luật (đọc `RULES.md`). Game để trống ô vuông
   88 × 88 ở góc trên trái cho nút ☰ và chỉ vẽ bàn chơi.
 - Theo một bố cục mẫu trong `docs/experience.md`: **Bàn** (bàn ở giữa cao gần trọn khung, ô
   người chơi quanh bàn, của mình ở dưới, nút hành động dưới phải) hoặc **Hành động** (cảnh chơi,

@@ -27,6 +27,7 @@ var _game: Control
 var _game_id_shown: String = ""
 var _loading: bool = false
 var _result: HubResult
+var _music := HubMusic.new()
 var _ben: HubBen
 ## A shop:buy is on its way.
 var _buying: bool = false
@@ -57,6 +58,7 @@ func _ready() -> void:
 	_menu.leave_requested.connect(_leave_game)
 	_menu.rules_requested.connect(func() -> void: _show_rules(_client.snapshot.game_id))
 	add_child(_menu)
+	add_child(_music)
 	_client.state_changed.connect(func(_s: XomDaoRoomSnapshot) -> void: _refresh())
 	_client.room_changed.connect(_on_room_changed)
 	_client.rewarded.connect(_on_rewarded)
@@ -537,6 +539,7 @@ func _show_game(snapshot: XomDaoRoomSnapshot) -> void:
 			return
 		_game = scene.instantiate()
 		_set_screen("game", _game)
+		_music.play_for(snapshot.game_id)
 		if _game.has_method("bind"):
 			_game.call("bind", _client)
 		_refresh()
@@ -559,7 +562,14 @@ func _show_result(snapshot: XomDaoRoomSnapshot) -> void:
 	_result.again_pressed.connect(_client.start_game)
 	_result.home_pressed.connect(_leave)
 	var card: XomDaoGameCard = _catalog.card(snapshot.game_id)
-	_result.show_result(snapshot, _client.player_id, _coins, card != null and card.kind == "event")
+	var detail: Variant = _game.call("result_detail") if _game.has_method("result_detail") else {}
+	_result.show_result(
+		snapshot,
+		_client.player_id,
+		_coins,
+		card != null and card.kind == "event",
+		detail if detail is Dictionary else {}
+	)
 	# The ledger may have paid before the board came up.
 	if _balance() != _coins:
 		_on_rewarded(null)
@@ -674,6 +684,7 @@ func _set_screen(shown: String, screen: Control) -> void:
 
 
 func _drop_game() -> void:
+	_music.quiet()
 	if _game != null:
 		_game.queue_free()
 		_game = null

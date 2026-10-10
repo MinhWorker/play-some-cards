@@ -49,8 +49,12 @@ export_presets.cfg  The Web preset: single-threaded, PWA
   define `sandbox_options() -> Dictionary`, the room options for `?play=<id>` (debug builds: a
   real room with the computer in the seats, started at once), and `room_setup() -> Array`, the
   Tạo phòng board's rows (`{key, label, options: [[label, value], …], default?}`: the first
-  option is picked, or the one at index `default`).
-  The hub draws the ☰ menu, the room, the result and Luật (the game's RULES.md, which
+  option is picked, or the one at index `default`), and `result_detail() -> Dictionary`, what
+  the result board adds under its title: `{reason: String, rows: [[label, value], …]}` after the
+  hub's own Thời gian row.
+  A game's `music/` folder (`res://content/<id>/music/`) is its background music: the hub's
+  `HubMusic` plays a random track while the game is on, at the settings' music volume.
+  The hub draws the ☰ menu, the room, the result (Xem bàn puts it away to look at the final board, Kết quả brings it back) and Luật (the game's RULES.md, which
   `godot:export` puts in its pack); the game draws only its table.
 - A catalog card is playable here only when the client has its pack (`ContentLoader.available()`);
   the others show "Sắp có". The game on CHƠI is kept per account in `user://hub.cfg`.
