@@ -1,4 +1,7 @@
-import type { GameMeta } from '@xomdao/sdk';
+import type { EventMeta, GameMeta } from '@xomdao/sdk';
+
+export { EVENT_POINTS } from '@xomdao/sdk';
+
 import type { GameCard, Genre } from './protocol.js';
 
 /**
@@ -9,6 +12,7 @@ import type { GameCard, Genre } from './protocol.js';
 export const genres: Genre[] = [
   { id: 'co', name: 'Cờ', order: 1, island: 'co', main: true },
   { id: 'bai', name: 'Bài', order: 2, island: 'bai', main: true },
+  { id: 'su-kien', name: 'Sự kiện', order: 3, island: 'su-kien', main: false },
 ];
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -67,6 +71,12 @@ export function metaProblems(meta: GameMeta, list: Genre[] = genres): string[] {
         add('event.opensAt and event.closesAt must be ISO dates, opensAt first');
       }
       if (!event.tiers.length) add('event.tiers needs at least one tier');
+      if (event.color !== undefined && !/^#[0-9a-fA-F]{6}$/.test(event.color)) {
+        add('event.color must be #RRGGBB');
+      }
+      if (meta.genre !== undefined && meta.genre !== EVENT_GENRE) {
+        add(`an event goes in the "${EVENT_GENRE}" genre`);
+      }
       event.tiers.forEach((tier, i) => {
         if (i > 0 && tier.points <= (event.tiers[i - 1]?.points ?? 0)) {
           add('event.tiers must go up in points');
@@ -76,6 +86,14 @@ export function metaProblems(meta: GameMeta, list: Genre[] = genres): string[] {
     }
   } else if (meta.event) add('only kind "event" has meta.event');
   return problems;
+}
+
+/** The genre every event belongs to (its island lights up while one is open). */
+export const EVENT_GENRE = 'su-kien';
+
+/** Whether an event is open at `now` (ms): from `opensAt` until just before `closesAt`. */
+export function eventOpen(event: Pick<EventMeta, 'opensAt' | 'closesAt'>, now: number): boolean {
+  return Date.parse(event.opensAt) <= now && now < Date.parse(event.closesAt);
 }
 
 /** A game's card without its live counts, or `null` when it has no genre (not in the hub). */

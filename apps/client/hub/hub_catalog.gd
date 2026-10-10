@@ -50,6 +50,23 @@ func ready_genres() -> Array[String]:
 	return out
 
 
+## The events open now (the server lists only those), soonest to close first.
+func open_events() -> Array[XomDaoGameCard]:
+	var out: Array[XomDaoGameCard] = []
+	for item: XomDaoGameCard in catalog.games:
+		if item.kind == "event" and can_play(item.id):
+			out.append(item)
+	out.sort_custom(
+		func(a: XomDaoGameCard, b: XomDaoGameCard) -> bool: return a.closes_in < b.closes_in
+	)
+	return out
+
+
+## Whole days until an event closes, counting today ("Còn 1 ngày" on its last day).
+static func days_left(card: XomDaoGameCard) -> int:
+	return maxi(1, ceili(card.closes_in / 86_400_000.0))
+
+
 ## The genres in the order of the ring and the tabs (HubIslandRing.entries, without Sắp có).
 func ordered_genres() -> Array[XomDaoGenre]:
 	var out: Array[XomDaoGenre] = []

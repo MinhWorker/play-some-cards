@@ -134,7 +134,8 @@ Làm dần, theo thứ tự chủ dự án muốn:
 
 - Chuyển các trò còn lại của Cờ và Bài (trò đơn giản trước, Cờ tỷ phú sau cùng)
 - Thể loại phụ đầu tiên thay đảo Sắp có, kèm Bom Nguyên Tố
-- Khung `event`: ngày mở/đóng, phần thưởng riêng, đảo Sự kiện là một thể loại phụ; `npm run new:event`
+- `npm run new:event` (khung `event` đã có: ngày mở/đóng, mốc thưởng, đảo Sự kiện, sự kiện mẫu
+  `games/trung-thu`)
 - Thêm vật phẩm và loại vật phẩm cho túi đồ, Chợ
 - Thống kê, thành tích, xếp hạng
 - Nhiều loại tài nguyên

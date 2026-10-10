@@ -36,6 +36,13 @@
       "when": 1791627242717,
       "tag": "0004_inventory",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791629054198,
+      "tag": "0005_events",
+      "breakpoints": true
     }
   ]
 }

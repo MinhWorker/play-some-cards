@@ -20,7 +20,8 @@
  * parameters for @catalog:id references and Tab completion. The default value schema is number.
  * gameRules checks declarations at startup; testGame.command(line) uses the same pure parser.
  * When a game ends, ctx.reward(player, 'core:coin', amount) gives a seated player coins, within
- * meta.rewardCap; the server pays them once (see GameResult.rewards).
+ * meta.rewardCap; the server pays them once (see GameResult.rewards). An event's game gives its
+ * points the same way: ctx.reward(player, EVENT_POINTS, amount) (see EventMeta).
  * Synchronous console.log/info/warn/error is available to pure game builds and captured per room
  * when the server starts with XOMDAO_DEV=1. All command hooks still return new state and use ctx.rng.
  */

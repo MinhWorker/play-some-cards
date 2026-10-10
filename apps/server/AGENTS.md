@@ -10,6 +10,7 @@ src/catalog/    The hub's catalog (`catalog:get`): core genres + a card per game
 src/ledger/     Ledger: the only module that changes balances (`ledger_entries`, `balances`)
 src/inventory/  Túi đồ: what each account owns (`inventory_items`), equipping looks, profiles
 src/shop/       Chợ: `shop:list` and `shop:buy`, paid through the Ledger
+src/events/     Sự kiện: event points (`event_points`), claimed tiers (`event_claims`), EventClock
 src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
@@ -83,6 +84,22 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   repeated buy is never charged twice; `insufficient` becomes "Không đủ xu", owned "Bạn đã có
   món này".
 - `dev:coins { amount }` (dev mode only) adds coins, for tests and the sandbox.
+
+## Events
+
+- An event is a game with `meta.kind: 'event'` in the `su-kien` genre and `meta.event`
+  (`opensAt`, `closesAt`, `tiers`, `color`). `EventClock` is the time events go by: real time,
+  moved by `XOMDAO_NOW` at start or `dev:clock { at }` (dev mode; `null` = real time).
+- `CatalogService` lists an event only while it is open (`eventOpen`), with `closesIn` (ms). The
+  gateway refuses `room:create` / `room:quick` of a closed event ("Sự kiện chưa mở hoặc đã kết
+  thúc"); rooms already playing finish.
+- Points: an event's game gives `ctx.reward(player, EVENT_POINTS, n)`. `LedgerService.rewardMatch`
+  skips `event:point`; `EventsService.recordMatch` (on `RoomsService.onFinished`) adds it to
+  `event_points`, once per match, within `rewardCap`, only while the event is open.
+- `event:get { eventId }` returns `EventProgress` (points, claimed tier indexes);
+  `event:claim { eventId, tier }` pays the tier's `reward` through `LedgerService.apply` with key
+  `event:<event>:<user>:<tier>:<resource>` and records it in `event_claims`, so it pays once
+  ("Chưa đủ điểm", "Bạn đã nhận mốc này").
 
 ## Match history
 

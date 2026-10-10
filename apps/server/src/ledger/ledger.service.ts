@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { getGame, type RewardNotice } from '@xomdao/shared';
+import { EVENT_POINTS, getGame, type RewardNotice } from '@xomdao/shared';
 import type { FinishedGame } from '../rooms/rooms.service.js';
 import type { LedgerEntry, LedgerStore } from './ledger.store.js';
 
@@ -29,7 +29,8 @@ export class LedgerService {
 
   /**
    * Pays a finished game's `result.rewards` to the accounts at the table, once per game (keyed
-   * by its match id), refusing whatever goes above the game's `meta.rewardCap`. Returns what
+   * by its match id), refusing whatever goes above the game's `meta.rewardCap`. Event points
+   * (`EVENT_POINTS`) are left to the Events module. Returns what
    * each account received, with its new balances.
    */
   async rewardMatch({ gameId, matchId, seats, result }: FinishedGame): Promise<RewardNotice[]> {
@@ -37,7 +38,8 @@ export class LedgerService {
     const people = new Set(seats.filter((s) => !s.bot).map((s) => s.id));
     const totals = new Map<string, Map<string, number>>();
     for (const { player, resource, amount } of result.rewards ?? []) {
-      if (!people.has(player)) continue;
+      // Event points are progress, not a balance: the Events module keeps them.
+      if (!people.has(player) || resource === EVENT_POINTS) continue;
       const mine = totals.get(player) ?? new Map<string, number>();
       mine.set(resource, (mine.get(resource) ?? 0) + amount);
       totals.set(player, mine);

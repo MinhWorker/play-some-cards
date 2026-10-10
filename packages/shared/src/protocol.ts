@@ -26,7 +26,7 @@ import { ITEM_SLOTS } from './items.js';
  * version). CI fails when this file changes without a bump, unless the PR has the
  * `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 6;
+export const PROTOCOL_VERSION = 7;
 
 /** Error when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -222,6 +222,8 @@ export const EventInfo = z.object({
   opensAt: z.string(),
   closesAt: z.string(),
   tiers: z.array(z.object({ points: z.int(), reward: Amounts })),
+  /** The detail board's colour (`#RRGGBB`). */
+  color: z.string().optional(),
 });
 
 /** One game card in the hub's catalog (`catalog:get`). */
@@ -242,6 +244,8 @@ export const GameCard = z.object({
   /** Most one player wins from one game, per resource (`core:coin`). */
   rewardCap: Amounts,
   event: EventInfo.optional(),
+  /** Events: milliseconds until it closes, by the server's event clock. */
+  closesIn: z.int().optional(),
   /** People seated in its rooms right now. */
   playing: z.int(),
   /** Its rooms with a free seat. */
@@ -286,6 +290,17 @@ export const Profile = z.object({
   owned: z.array(z.string()),
 });
 export type Profile = z.infer<typeof Profile>;
+
+/** Your progress in an event: its points so far and the tiers (indexes) already claimed. */
+export const EventProgress = z.object({
+  eventId: z.string(),
+  points: z.int(),
+  claimed: z.array(z.int()),
+});
+export type EventProgress = z.infer<typeof EventProgress>;
+
+/** Reply of `event:claim`: the progress with that tier claimed, and your new balances. */
+export const EventClaim = z.object({ progress: EventProgress, balances: Balances });
 
 // ── Requests and events ─────────────────────────────────────────────────────────────────────
 
@@ -344,6 +359,12 @@ export const requests = {
   'inventory:get': { req: z.object({ userId: z.string().optional() }), res: Profile },
   /** Wear an item you own (also shows on you in your current room). */
   'inventory:equip': { req: z.object({ itemId: z.string() }), res: z.object({ user: User }) },
+  /**
+   * Your progress in an event (a game with `kind: 'event'`). `event:claim` pays a tier you have
+   * the points for through the ledger, once ("Chưa đủ điểm", "Bạn đã nhận mốc này").
+   */
+  'event:get': { req: z.object({ eventId: z.string() }), res: EventProgress },
+  'event:claim': { req: z.object({ eventId: z.string(), tier: z.int() }), res: EventClaim },
   /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
   'history:recent': { req: Empty, res: z.object({ matches: z.array(MatchRecord) }) },
   /**
@@ -428,6 +449,8 @@ export const types = {
   ShopList,
   Purchase,
   Profile,
+  EventProgress,
+  EventClaim,
   ProfileUpdate: profileSchema,
   AuthReply,
   SessionInfo,
@@ -467,6 +490,11 @@ interface DevClientEvents {
   'dev:schema': (req: Record<string, never>, ack: Ack<DevConsoleSchema>) => void;
   /** Adds coins to your own balance through the ledger (e2e: something to spend at Chợ). */
   'dev:coins': (req: { amount: number }, ack: Ack<{ balances: Balances }>) => void;
+  /**
+   * Moves the server's event clock to `at` (an ISO date), or back to the real time with `null`
+   * (e2e: open or close an event).
+   */
+  'dev:clock': (req: { at: string | null }, ack: Ack<{ now: string }>) => void;
 }
 
 /** The Socket.IO events a client sends, from `requests`. */

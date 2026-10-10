@@ -23,6 +23,7 @@ import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { CatalogService } from '../catalog/catalog.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';
 import { followRoomLog } from '../dev/room-log.js';
+import { EventError, EventsService } from '../events/events.service.js';
 import { InventoryError, InventoryService } from '../inventory/inventory.service.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { MatchesService } from '../matches/matches.service.js';
@@ -97,6 +98,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     private readonly ledger: LedgerService,
     private readonly inventory: InventoryService,
     private readonly shop: ShopService,
+    private readonly events: EventsService,
   ) {
     rooms.onFinished((game) => {
       this.matches.record(game).catch((err) => console.error('Could not save a match', err));
@@ -110,6 +112,9 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
         },
         (err) => console.error('Could not pay rewards', err),
       );
+    });
+    rooms.onFinished((game) => {
+      this.events.recordMatch(game).catch((err) => console.error('Could not count points', err));
     });
   }
 
@@ -235,6 +240,18 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
+  @SubscribeMessage('event:get')
+  eventGet(socket: Client, req: { eventId?: unknown }) {
+    return this.handle(() => this.events.progress(socket.data.user.id, String(req?.eventId ?? '')));
+  }
+
+  @SubscribeMessage('event:claim')
+  eventClaim(socket: Client, req: { eventId?: unknown; tier?: unknown }) {
+    return this.handle(() =>
+      this.events.claim(socket.data.user.id, String(req?.eventId ?? ''), Number(req?.tier)),
+    );
+  }
+
   @SubscribeMessage('history:recent')
   history(socket: Client) {
     return this.handle(async () => ({ matches: await this.matches.recent(socket.data.user.id) }));
@@ -265,6 +282,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('room:create')
   create(socket: Client, req: { gameId: string; options?: unknown }) {
     return this.handle(() => {
+      this.refuseClosedEvent(req?.gameId);
       this.leaveCurrentRoom(socket);
       const { room } = this.rooms.create(req.gameId, socket.data.user, req.options);
       return this.enter(socket, room);
@@ -274,6 +292,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('room:quick')
   quick(socket: Client, req: { gameId: string }) {
     return this.handle(() => {
+      this.refuseClosedEvent(req?.gameId);
       this.leaveCurrentRoom(socket);
       const { room, created } = this.rooms.quickMatch(req?.gameId, socket.data.user);
       const joined = this.enter(socket, room);
@@ -398,6 +417,26 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
       });
       return { balances: await this.ledger.balances(userId) };
     });
+  }
+
+  @SubscribeMessage('dev:clock')
+  devClock(_socket: Client, req: { at?: unknown }) {
+    return this.handle(() => {
+      this.requireDev();
+      try {
+        this.events.clock.set(typeof req?.at === 'string' ? req.at : null);
+      } catch {
+        throw new RoomError('Ngày không hợp lệ');
+      }
+      return { now: new Date(this.events.clock.now()).toISOString() };
+    });
+  }
+
+  /** An event's rooms open only while it is (rooms already playing finish their game). */
+  private refuseClosedEvent(gameId: unknown) {
+    if (typeof gameId === 'string' && this.events.closed(gameId)) {
+      throw new RoomError('Sự kiện chưa mở hoặc đã kết thúc');
+    }
   }
 
   private requireDev() {
@@ -560,7 +599,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
         err instanceof RoomError ||
         err instanceof AccountError ||
         err instanceof InventoryError ||
-        err instanceof ShopError
+        err instanceof ShopError ||
+        err instanceof EventError
       ) {
         return { ok: false, error: err.message };
       }

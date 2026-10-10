@@ -2,7 +2,14 @@ import { existsSync } from 'node:fs';
 import { Game, gameRules, validateConsoleDefinitions } from '@xomdao/sdk';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { gameCard, genreProblems, genres, metaProblems } from './catalog.js';
+import {
+  EVENT_GENRE,
+  eventOpen,
+  gameCard,
+  genreProblems,
+  genres,
+  metaProblems,
+} from './catalog.js';
 import type { Genre } from './protocol.js';
 import { games } from './registry.js';
 
@@ -57,11 +64,12 @@ describe('genres and the hub catalog', () => {
     expect(genres.filter((g) => g.main).map((g) => g.id)).toEqual(['co', 'bai']);
   });
 
-  it('puts every game in Cờ or Bài except Bom Nguyên Tố', () => {
+  it('puts every game in Cờ or Bài, and every event in Sự kiện, except Bom Nguyên Tố', () => {
     for (const game of Object.values(games)) {
+      const genre = game.kind === 'event' ? EVENT_GENRE : expect.stringMatching(/^(co|bai)$/);
       expect([game.id, gameCard(game)?.genre]).toEqual([
         game.id,
-        game.id === 'bom-nguyen-to' ? undefined : expect.stringMatching(/^(co|bai)$/),
+        game.id === 'bom-nguyen-to' ? undefined : genre,
       ]);
     }
   });
@@ -95,11 +103,19 @@ describe('genres and the hub catalog', () => {
     ],
   };
 
+  const party = { ...meta, kind: 'event' as const, genre: EVENT_GENRE };
+
   it('accepts a valid table game and event', () => {
     expect(metaProblems(meta)).toEqual([]);
-    expect(metaProblems({ ...meta, kind: 'event', event, rewardCap: { 'core:coin': 20 } })).toEqual(
-      [],
-    );
+    expect(metaProblems({ ...party, event: { ...event, color: '#B3261E' } })).toEqual([]);
+  });
+
+  it('knows when an event is open', () => {
+    const at = (iso: string) => Date.parse(iso);
+    expect(eventOpen(event, at('2026-09-19T23:59:59+07:00'))).toBe(false);
+    expect(eventOpen(event, at('2026-09-20T00:00:00+07:00'))).toBe(true);
+    expect(eventOpen(event, at('2026-10-04T23:59:59+07:00'))).toBe(true);
+    expect(eventOpen(event, at('2026-10-05T00:00:00+07:00'))).toBe(false);
   });
 
   it('catches bad hub declarations', () => {
@@ -116,16 +132,17 @@ describe('genres and the hub catalog', () => {
     expect(metaProblems({ ...meta, rewardCap: { 'core:coin': -1 } })).toEqual([
       expect.stringContaining('rewardCap'),
     ]);
-    expect(metaProblems({ ...meta, kind: 'event' })).toEqual([
-      expect.stringContaining('needs meta.event'),
+    expect(metaProblems({ ...party })).toEqual([expect.stringContaining('needs meta.event')]);
+    expect(metaProblems({ ...party, genre: 'co', event: { ...event, color: 'red' } })).toEqual([
+      expect.stringContaining('#RRGGBB'),
+      expect.stringContaining('"su-kien" genre'),
     ]);
     expect(metaProblems({ ...meta, event })).toEqual([
       expect.stringContaining('only kind "event"'),
     ]);
     expect(
       metaProblems({
-        ...meta,
-        kind: 'event',
+        ...party,
         event: { ...event, closesAt: event.opensAt, tiers: [...event.tiers].reverse() },
       }),
     ).toEqual([

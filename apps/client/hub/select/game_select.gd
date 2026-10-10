@@ -3,6 +3,9 @@ extends Control
 ## Choosing a game (docs/experience.md, "Chọn trò"): genre tabs on top, the genre's cards in a
 ## row that scrolls sideways, and the selected card's detail board on the right with Chọn, Tạo
 ## phòng, Danh sách phòng and Luật. Selecting a card starts loading its pack.
+##
+## An event's board takes the event's colour and shows its reward tiers (`show_progress`): your
+## points, Nhận on each tier you reached, and Tham gia instead of Chọn and the room buttons.
 
 signal back_pressed
 ## Chọn: this game goes on the lobby's CHƠI.
@@ -10,6 +13,11 @@ signal chosen(game_id: String)
 signal create_pressed(game_id: String)
 signal rooms_pressed(game_id: String)
 signal rules_pressed(game_id: String)
+## An event's card was selected: the hub fetches your progress (`show_progress`).
+signal progress_needed(game_id: String)
+## Tham gia (events): play it now.
+signal join_pressed(game_id: String)
+signal claim_pressed(game_id: String, tier: int)
 
 const DETAIL_WIDTH := 400.0
 const TILE_SCALE := 0.9
@@ -31,6 +39,12 @@ var _choose: XomDaoButton = XomDaoButton.create("Chọn", XomDaoUi.Kind.CONFIRM)
 var _create: XomDaoButton = XomDaoButton.create("Tạo phòng", XomDaoUi.Kind.SOCIAL)
 var _rooms: XomDaoButton = XomDaoButton.create("Danh sách phòng", XomDaoUi.Kind.SOCIAL)
 var _rules: XomDaoButton = XomDaoButton.create("Luật", XomDaoUi.Kind.INFO)
+var _join: XomDaoButton = XomDaoButton.create("Tham gia", XomDaoUi.Kind.PLAY)
+## The event's points and its tiers (events only).
+var _event := VBoxContainer.new()
+var _points := Label.new()
+var _tiers := VBoxContainer.new()
+var _wood: StyleBox
 
 
 func _init(settings: XomDaoSettings = null) -> void:
@@ -100,15 +114,87 @@ func select_game(game_id: String) -> void:
 	open.name = "OpenRooms"
 	open.compact()
 	_chips.add_child(open)
-	for button: XomDaoButton in [_choose, _create, _rooms]:
+	for button: XomDaoButton in [_choose, _create, _rooms, _join]:
 		button.disabled = not playable
+	var event: bool = card.kind == "event"
+	for button: XomDaoButton in [_choose, _create, _rooms]:
+		button.visible = not event
+	_join.visible = event
+	_event.visible = event
+	_chips.visible = not event
+	_detail.add_theme_stylebox_override("panel", _event_style(card) if event else _wood)
+	if event:
+		_show_tiers(card, null)
+		progress_needed.emit(game_id)
 	if playable:
 		ContentLoader.preload_game(game_id)
 	_layout.call_deferred()
 
 
+## Your progress in the selected event: points, and Nhận on the tiers reached but not claimed.
+func show_progress(progress: XomDaoEventProgress) -> void:
+	var card: XomDaoGameCard = _catalog.card(_game) if _catalog != null else null
+	if card != null and card.kind == "event" and progress.event_id == card.id:
+		_show_tiers(card, progress)
+
+
 func selected_game() -> String:
 	return _game
+
+
+func _show_tiers(card: XomDaoGameCard, progress: XomDaoEventProgress) -> void:
+	var points: int = progress.points if progress != null else 0
+	_points.text = "%d điểm" % points
+	for child: Node in _tiers.get_children():
+		_tiers.remove_child(child)
+		child.queue_free()
+	if card.event == null:
+		return
+	for i: int in card.event.tiers.size():
+		var tier: Dictionary = card.event.tiers[i]
+		var row := HBoxContainer.new()
+		row.name = "Tier_%d" % i
+		row.add_theme_constant_override("separation", 8)
+		var goal := XomDaoChip.create("%d điểm" % int(tier.get("points", 0)), "flag-banner")
+		goal.compact()
+		row.add_child(goal)
+		var coins: int = int((tier.get("reward", {}) as Dictionary).get("core:coin", 0))
+		var coin := XomDaoResourceIcon.new()
+		coin.custom_minimum_size = Vector2(32.0, 32.0)
+		coin.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(coin)
+		var amount := Label.new()
+		amount.text = XomDaoUi.money(coins)
+		amount.add_theme_color_override("font_color", XomDaoUi.INK)
+		amount.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(amount)
+		if progress != null and progress.claimed.has(i):
+			var done := XomDaoChip.create("Đã nhận", "check-circle", XomDaoUi.BAMBOO_DARK)
+			done.name = "Claimed_%d" % i
+			done.compact()
+			row.add_child(done)
+		else:
+			var claim: XomDaoButton = XomDaoButton.create("Nhận", XomDaoUi.Kind.CONFIRM)
+			claim.name = "Claim_%d" % i
+			claim.custom_minimum_size = Vector2(110.0, 48.0)
+			claim.disabled = points < int(tier.get("points", 0))
+			claim.pressed.connect(claim_pressed.emit.bind(card.id, i))
+			row.add_child(claim)
+		_tiers.add_child(row)
+	_layout.call_deferred()
+
+
+## An event's board: its colour (lacquer by default) with a gold rim, paper inside as usual.
+func _event_style(card: XomDaoGameCard) -> StyleBox:
+	var color: Color = XomDaoUi.LACQUER
+	if card.event != null and card.event.color != "":
+		color = Color(card.event.color)
+	var frame: StyleBoxFlat = XomDaoUi.with_shadow(
+		XomDaoUi.box(color, XomDaoUi.GOLD, XomDaoUi.BORDER, XomDaoUi.RADIUS)
+	)
+	frame.set_content_margin_all(12.0)
+	frame.content_margin_top = 8.0
+	return frame
 
 
 func _build_tabs() -> void:
@@ -172,12 +258,27 @@ func _build_detail() -> void:
 	_rooms.pressed.connect(func() -> void: rooms_pressed.emit(_game))
 	_rules.name = "GameRules"
 	_rules.pressed.connect(func() -> void: rules_pressed.emit(_game))
+	_join.name = "JoinEvent"
+	_join.pressed.connect(func() -> void: join_pressed.emit(_game))
+	_wood = _detail.get_theme_stylebox("panel")
+	_event.name = "EventTiers"
+	_event.add_theme_constant_override("separation", 6)
+	_event.visible = false
+	_points.name = "EventPoints"
+	_points.add_theme_font_override("font", XomDaoUi.display_font(800))
+	_points.add_theme_font_size_override("font_size", XomDaoUi.TEXT)
+	_points.add_theme_color_override("font_color", XomDaoUi.INK)
+	_event.add_child(_points)
+	_tiers.add_theme_constant_override("separation", 6)
+	_event.add_child(_tiers)
+	column.add_child(_event)
 	var pair := HBoxContainer.new()
 	pair.add_theme_constant_override("separation", 12)
 	column.add_child(pair)
-	for button: XomDaoButton in [_choose, _rules]:
+	for button: XomDaoButton in [_choose, _join, _rules]:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		pair.add_child(button)
+	_join.visible = false
 	column.add_child(_create)
 	column.add_child(_rooms)
 
