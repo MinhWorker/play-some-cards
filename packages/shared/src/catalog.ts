@@ -2,9 +2,9 @@ import type { GameMeta } from '@xomdao/sdk';
 import type { GameCard, Genre } from './protocol.js';
 
 /**
- * Every genre. Adding one is adding a row here and its island art; the hub lays it out. The
- * "Sắp có" island is not a genre: the client draws it in the first small slot while there are
- * no secondary genres.
+ * Every genre. Adding one is adding a row here and its island art; the hub puts it on the island
+ * ring, main genres first. The "Sắp có" island is not a genre: the client adds it to the ring
+ * while there are no secondary genres.
  */
 export const genres: Genre[] = [
   { id: 'co', name: 'Cờ', order: 1, island: 'co', main: true },

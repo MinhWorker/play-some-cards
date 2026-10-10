@@ -48,10 +48,10 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 - [x] [vision.md](vision.md), [ADR 0001](adr/0001-godot-client.md), kế hoạch này
 - [x] [experience.md](experience.md): khung trải nghiệm chung (HUD, cách vào trò, kết quả, Nhà,
       sự kiện) kèm ảnh concept
-- [ ] `docs/art-direction.md`: phong cách (hoạt hình phẳng, ít texture), bảng màu, ánh sáng, ảnh
+- [x] [art-direction.md](art-direction.md): phong cách, bảng màu, ánh sáng, ảnh
       mẫu, cách viết prompt. Hub phải trông như game, không như app (xem
       [vision.md](vision.md#ba-trụ-cột))
-- [ ] Vẽ lại theo phong cách hoạt hình phẳng các ảnh concept ván đấu, kết quả, danh sách phòng
+- [x] Vẽ lại các ảnh concept sảnh, ván đấu, kết quả, danh sách phòng và bộ thành phần
 
 **Xong khi:** chủ dự án duyệt các tài liệu trên và hướng nghệ thuật.
 
