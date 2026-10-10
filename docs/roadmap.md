@@ -108,6 +108,9 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 - [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
 - [x] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
       khai báo của trò. Bảng dữ liệu thiết kế sẵn cho nhiều loại tài nguyên
+- [x] Bộ thành phần giao diện Godot trong `xomdao_sdk/ui`: theme, nút, bảng, hàng tiền, ô người
+      chơi, thẻ trò, ô lựa chọn, thông báo nhanh, chấm đỏ, menu ☰, âm thanh giao diện; màn gallery
+      `?gallery=<trang>` để chụp và duyệt
 - [ ] Art hub theo `docs/art-direction.md`
 - [ ] `npm run new:game` tạo cả luật TS, thư mục `godot/`, kịch bản e2e, RULES.md
 
