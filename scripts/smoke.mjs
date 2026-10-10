@@ -1,6 +1,6 @@
-// End-to-end check against a RUNNING server: three fake accounts register; two create/join a
-// room from the room list and play tic-tac-toe to a win while the third one watches. Mid-game
-// Bob closes his "browser" and logs in on another "device": he must be put back in his seat.
+// End-to-end check against a RUNNING server: three fake accounts register; Bob finds Caro in the
+// hub's catalog; two create/join a room from the room list and play tic-tac-toe to a win while
+// the third one watches. Mid-game Bob closes his "browser" and logs in on another "device": he must be put back in his seat.
 // Usage: node scripts/smoke.mjs [serverUrl]
 import { io } from 'socket.io-client';
 
@@ -43,6 +43,10 @@ let bob = client(await signUp('Bob'));
 const cam = client(await signUp('Cam'));
 try {
   const room = await alice.send('room:create', { gameId: 'tic-tac-toe' });
+  const catalog = await bob.send('catalog:get', {});
+  const caro = catalog.games.find((g) => g.id === 'tic-tac-toe');
+  if (!catalog.genres.some((g) => g.id === caro?.genre) || !(caro.openRooms >= 1))
+    throw new Error(`Caro missing from the catalog: ${JSON.stringify(caro)}`);
   const { rooms } = await bob.send('lobby:watch', { gameId: 'tic-tac-toe' });
   if (!rooms.some((r) => r.code === room.roomCode && r.canJoin))
     throw new Error(`Room missing from list: ${JSON.stringify(rooms)}`);

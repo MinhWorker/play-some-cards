@@ -9,6 +9,8 @@ export default definePlugin({
     maxPlayers: 4,
     status: 'ready',
     portal: { image: 'island' },
+    tagline: 'Đặt bom trong khu vườn đồ chơi, ai trụ lại cuối cùng thì thắng.',
+    duration: { min: 3, max: 8 },
   },
   game: new BomNguyenToGame(),
   room: {

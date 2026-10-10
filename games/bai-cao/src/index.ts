@@ -18,6 +18,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'bai',
+    tagline: 'Ba lá bài, ai nhiều nút hơn thì thắng.',
+    duration: { min: 2, max: 5 },
   },
   game: new BaiCaoGame(),
   room: { options: optionsSchema, bots: (options) => options.bots },

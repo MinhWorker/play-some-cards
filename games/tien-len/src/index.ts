@@ -16,6 +16,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'bai',
+    tagline: 'Đánh hết bài trên tay trước mọi người.',
+    duration: { min: 5, max: 15 },
   },
   game: new TienLenGame(),
   room: { options: optionsSchema, bots: (options) => options.bots },

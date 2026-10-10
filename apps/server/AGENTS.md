@@ -5,10 +5,12 @@ src/rooms/      rooms.service.ts = room logic (unit tested); rooms.gateway.ts = 
                 login + protocol check, plays bot moves and game timers
 src/dev/        gated console commands, snapshots, undo/RNG frames and per-room logs
 src/accounts/   Username/password (scrypt) and login tokens
+src/catalog/    The hub's catalog (`catalog:get`): core genres + a card per game with a genre
 src/matches/    Match history: finished games (fed by RoomsService.onFinished), `history:recent`
 src/db/         Drizzle schema; migrations in drizzle/
 src/version.ts  For /api/health
 packages/shared/src/protocol.ts   Socket events + PROTOCOL_VERSION
+packages/shared/src/catalog.ts    Genre list (core data), GameCard, metaProblems (registry test)
 packages/shared/src/registry.ts   games/getGame, from the generated (gitignored) src/generated/games.ts
 ```
 
@@ -35,6 +37,13 @@ packages/shared/src/registry.ts   games/getGame, from the generated (gitignored)
   to get back to its seat from any tab or device.
 - Accounts, tokens and match history live in Postgres (Neon, `DATABASE_URL`). Without it they
   live in memory, which is fine for local work.
+
+## Catalog
+
+- `catalog:get` returns the genres (`genres` in `packages/shared/src/catalog.ts`, in `order`)
+  and one card per game whose `meta.genre` is set, with `playing` (connected people seated in
+  its rooms) and `openRooms` (`RoomsService.activity`).
+- `wip` games are hidden where `RENDER` is set (production); `XOMDAO_SHOW_WIP=1|0` overrides it.
 
 ## Match history
 

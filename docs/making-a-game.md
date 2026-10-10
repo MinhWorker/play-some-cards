@@ -489,6 +489,36 @@ vào (nếu còn ghế) hoặc rời đi, và tỉ số tính lại từ đầu.
 đi. Trong sandbox, nút "Tuỳ chỉnh" mở màn cài đặt của bạn và chơi lại từ đầu với tuỳ chọn đó. Caro
 (games/tic-tac-toe) là ví dụ (`src/scenes/Setup.ts`, `src/game/bot.ts`).
 
+## Thẻ trò trong sảnh
+
+`meta` trong `src/index.ts` cũng là thẻ trò của game ở sảnh Godot:
+
+```ts
+meta: {
+  id: 'tien-len',
+  name: 'Tiến Lên',
+  minPlayers: 2,
+  maxPlayers: 4,
+  status: 'ready',
+  portal: { image: 'island' },
+  genre: 'bai',                                        // đảo thể loại; bỏ trống = chưa lên sảnh
+  tagline: 'Đánh hết bài trên tay trước mọi người.',   // một câu, tối đa 80 ký tự
+  duration: { min: 5, max: 15 },                       // phút một ván
+  card: 'card',                                        // tuỳ chọn: tranh thẻ trong assets/, mặc định portal.image
+  rewardCap: { 'core:coin': 50 },                      // tuỳ chọn: thưởng tối đa một ván
+}
+```
+
+- `genre` là id trong danh sách thể loại của lõi (`genres` trong
+  `packages/shared/src/catalog.ts`): `co` (Cờ) hoặc `bai` (Bài). Thêm thể loại là thêm một dòng ở
+  đó, không sửa code sảnh.
+- `kind` mặc định là `table`. Sự kiện dùng `kind: 'event'` và thêm
+  `event: { opensAt, closesAt, tiers }` (ngày ISO, dải thưởng theo mốc điểm tăng dần).
+- Test registry (`npm run check`) báo lỗi khi khai báo sai: thể loại không có, thời lượng ngược,
+  tài nguyên không có không gian tên (`core:coin`), sự kiện thiếu ngày.
+- Server gửi danh mục qua `catalog:get`: thể loại, thẻ trò, số người đang chơi và số phòng còn
+  chỗ. Trò `wip` không có trong danh mục của server thật (Render).
+
 ## Hình và âm thanh
 
 Đặt file hoàn chỉnh vào `assets/` là được dùng nguyên như vậy. Làm bằng cách nào cũng được: tự vẽ,

@@ -17,6 +17,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Chiếu hết vua của đối phương.',
+    duration: { min: 15, max: 40 },
   },
   game: new ChessGame(),
   room: {

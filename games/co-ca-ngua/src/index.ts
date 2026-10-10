@@ -14,6 +14,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Gieo xúc xắc, đưa cả bốn ngựa về chuồng trước.',
+    duration: { min: 20, max: 40 },
   },
   game: new CoCaNguaGame(),
   room: { options: optionsSchema, bots: (options) => options.bots },

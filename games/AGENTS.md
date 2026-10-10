@@ -68,6 +68,10 @@ games/<id>/          Only index.ts + client.ts are required
 - Changing an SDK API means, in the same change:
   - updating every game that uses it;
   - documenting it in the engine.ts / GameView.ts headers and `docs/making-a-game.md`.
+- `meta` is also the game's hub card: `genre` (an id from `genres` in
+  `packages/shared/src/catalog.ts`; none = not in the hub yet), `tagline`, `duration` in minutes,
+  optional `kind` (`table`/`event` + `event`), `card` art and `rewardCap`. The registry test
+  checks it with `metaProblems`.
 - `meta.status: 'wip'` is locked only on the production site (`VERCEL_ENV`), so unfinished games
   can be merged. `'ready'` releases the game.
 - The server runs the games' compiled `dist/`, while the web app and typechecks use their

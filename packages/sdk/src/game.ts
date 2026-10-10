@@ -139,6 +139,41 @@ export interface GameMeta {
   status: 'ready' | 'wip';
   /** Its entry on the home map: `image` is a file name in the game's `assets/` (no extension). */
   portal: { image: string };
+  /**
+   * `table` (the default): a game played in rooms whenever you like. `event`: open only between
+   * `event.opensAt` and `event.closesAt`.
+   */
+  kind?: GameKind;
+  /**
+   * Its genre island in the hub: an id from the core genre list (`genres` in @xomdao/shared:
+   * `co`, `bai`…). A game without one stays out of the hub's catalog.
+   */
+  genre?: string;
+  /** One short Vietnamese sentence for its game card ("Xếp năm quân liền hàng trước đối thủ."). */
+  tagline: string;
+  /** How many minutes one game usually takes, shown on the card as "min–max phút". */
+  duration: { min: number; max: number };
+  /** Its game card art: a file name in `assets/` (no extension). Defaults to `portal.image`. */
+  card?: string;
+  /**
+   * The most one player can win from one game, per resource (`{ 'core:coin': 50 }`). The server
+   * refuses rewards above it; a game without it gives none.
+   */
+  rewardCap?: Record<string, number>;
+  /** Required when `kind` is `event`: when it is open and its reward tiers. */
+  event?: EventMeta;
+}
+
+/** `meta.kind`: see `GameMeta`. */
+export type GameKind = 'table' | 'event';
+
+/** A time-limited event (`kind: 'event'`). */
+export interface EventMeta {
+  /** ISO 8601 date-times, `opensAt` before `closesAt`. */
+  opensAt: string;
+  closesAt: string;
+  /** Rewards by milestone, in increasing `points`. */
+  tiers: { points: number; reward: Record<string, number> }[];
 }
 
 /** What `games/<id>/src/index.ts` exports by default. Safe to load on the server. */

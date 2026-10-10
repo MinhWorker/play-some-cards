@@ -99,7 +99,7 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
 
 ## Phase 2: hub v1
 
-- [ ] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự, chính/phụ): bản đầu chỉ có hai thể
+- [x] Danh sách thể loại trong lõi (id, tên, ảnh đảo, thứ tự, chính/phụ): bản đầu chỉ có hai thể
       loại chính Cờ và Bài; plugin
       khai báo `kind` (`table`, `event`), thể loại, tranh thẻ trò, thời gian mở, phần thưởng tối đa
 - [ ] Sảnh: Xóm + hai đảo lớn Cờ, Bài ở chỗ cố định + thể loại phụ gom vào khoảng trống còn lại

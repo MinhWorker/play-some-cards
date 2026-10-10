@@ -14,6 +14,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Mua đất, xây nhà, khiến đối thủ phá sản.',
+    duration: { min: 30, max: 60 },
   },
   game: new CoTyPhuClassicGame(),
   room: { options: optionsSchema, bots: (options) => options.bots },

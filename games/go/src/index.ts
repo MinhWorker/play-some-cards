@@ -18,6 +18,9 @@ export default definePlugin({
     status: 'ready',
     // Its island on the home map: assets/island.webp.
     portal: { image: 'island' },
+    genre: 'co',
+    tagline: 'Vây đất, bắt quân, ai nhiều đất hơn thì thắng.',
+    duration: { min: 20, max: 60 },
   },
   game: new GoGame(),
   room: {
