@@ -4,7 +4,7 @@
 // brings it back. Then a host on a desktop makes a room for two friends and Black sees the board
 // turned round. Needs the debug web build at /godot/ (npm run godot:export -- --debug).
 
-import { godotText, launch, onScene, openGodot, tap, typeInto } from '../godot.mjs';
+import { godotText, launch, onScene, openGodot, tap, tapCard, typeInto } from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['chess'];
@@ -65,7 +65,7 @@ export default async function run(t) {
   await onScene(host, 'lobby');
   await tap(host, 'Island_co');
   await onScene(host, 'select');
-  await tap(host, 'Card_chess');
+  await tapCard(host, 'chess');
   await tap(host, 'Choose');
   await onScene(host, 'lobby');
   await godotText(host, 'SelectedName', 'Cờ Vua');

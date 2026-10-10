@@ -55,6 +55,26 @@ export async function tap(page, name, timeout = 30_000) {
 }
 
 /**
+ * Taps a game's card on the Chọn trò screen. The row scrolls sideways and a card past its right
+ * edge still has a rect (under the detail board), so the wheel first brings it fully into view.
+ */
+export async function tapCard(page, id) {
+  const row = await (await page.waitForFunction(() => window.xomdao.rect('Cards'))).jsonValue();
+  await page.mouse.move(row.x + row.width / 2, row.y + row.height / 2);
+  const inside = () =>
+    page.evaluate((name) => {
+      const cards = window.xomdao.rect('Cards');
+      const card = window.xomdao.rect(name);
+      return card && card.x >= cards.x && card.x + card.width <= cards.x + cards.width;
+    }, `Card_${id}`);
+  for (let i = 0; i < 30 && !(await inside()); i++) {
+    await page.mouse.wheel(0, 60);
+    await page.waitForTimeout(150);
+  }
+  await tap(page, `Card_${id}`);
+}
+
+/**
  * Types `text` into a LineEdit by name. Under load Godot can miss the tap's focus or some keys,
  * so it checks the field and, cleared, types again (three tries).
  */
