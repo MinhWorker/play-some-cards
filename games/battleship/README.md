@@ -36,6 +36,19 @@ Máy chơi: Dễ bắn ngẫu nhiên và hay bắn quanh chỗ vừa trúng; V�
 đường thẳng để đánh chìm tàu; Khó tính xem các tàu còn lại có thể nằm ở đâu và bắn vào ô có nhiều
 khả năng nhất. Máy chỉ biết những gì người chơi biết (ô đã bắn, trúng hay trượt, tàu đã chìm).
 
+## Bản Godot
+
+`godot/main.gd` dựng bàn trong client Godot: biển lớn ở giữa, cột người chơi bên trái (biển của
+bạn thu nhỏ giữa hai ô người chơi khi vào trận), trạng thái, phát bắn vừa rồi, hạm đội đối phương
+và các nút bên phải. Xếp tàu: kéo thả tàu với ô đích xanh/đỏ, chạm chọn, chạm lần nữa để xoay,
+chạm ô trống để dời; **Xếp lại**, **Sẵn sàng**. Vào trận chạm ô biển đối phương để bắn; trượt có
+cột nước, trúng có chớp lửa, **Đầu hàng** hỏi lại một lần. `godot/sea.gd` vẽ một vùng biển,
+`godot/rules.gd` kiểm tra vị trí tàu (chép từ `rules.ts`); hình ở `godot/art/`, âm thanh ở
+`godot/sounds/`, nhạc ở `godot/music/`; test: `godot/test/`.
+
+Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=battleship`
+(đấu máy Dễ, trên server thật).
+
 ## Các thứ nằm ở đâu
 
 ```

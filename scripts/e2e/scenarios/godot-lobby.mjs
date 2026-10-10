@@ -12,6 +12,7 @@ import {
   openGodot,
   room,
   tap,
+  tapCard,
 } from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
@@ -22,7 +23,7 @@ export default async function run(t) {
   const host = await openGodot(t, await t.page(DESKTOP));
 
   await onScene(host, 'lobby');
-  await godotText(host, 'SelectedName', 'Caro');
+  await godotText(host, 'SelectedName', /./);
   const before = await host.evaluate(() => window.xomdao.state().balances['core:coin'] ?? 0);
   await godotText(host, 'Coins', coins(before));
   await host.screenshot({ path: t.shot('1-lobby.png') });
@@ -30,6 +31,8 @@ export default async function run(t) {
   // The card opens the game select on Cờ; Luật shows the game's RULES.md.
   await tap(host, 'SelectedGame');
   await onScene(host, 'select');
+  // Bắn Tàu comes first in Cờ by name, so pick Caro.
+  await tapCard(host, 'tic-tac-toe');
   await host.screenshot({ path: t.shot('2-select.png') });
   await tap(host, 'GameRules');
   await godotText(host, 'RulesText', /5 quân/);
@@ -37,6 +40,7 @@ export default async function run(t) {
   await host.mouse.click(10, 400); // the shade around the board closes it
   await tap(host, 'Choose');
   await onScene(host, 'lobby');
+  await godotText(host, 'SelectedName', 'Caro');
 
   // CHƠI: nobody else is looking, so the computer takes the other seat and the game starts.
   await tap(host, 'Play');

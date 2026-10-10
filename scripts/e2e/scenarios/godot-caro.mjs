@@ -4,7 +4,17 @@
 // sandbox (?play=tic-tac-toe) against the computer. Needs the debug web build at /godot/
 // (npm run godot:export -- --debug).
 
-import { caroTap, godotText, launch, onScene, openGodot, room, tap, typeInto } from '../godot.mjs';
+import {
+  caroTap,
+  godotText,
+  launch,
+  onScene,
+  openGodot,
+  room,
+  tap,
+  tapCard,
+  typeInto,
+} from '../godot.mjs';
 import { DESKTOP, PHONE } from '../lib.mjs';
 
 export const games = ['tic-tac-toe'];
@@ -16,6 +26,13 @@ export default async function run(t) {
   const solo = await openGodot(t, await t.page(PHONE), '?play=tic-tac-toe');
 
   await onScene(host, 'lobby');
+  // Bắn Tàu comes first in Cờ by name, so pick Caro.
+  await tap(host, 'Island_co');
+  await onScene(host, 'select');
+  await tapCard(host, 'tic-tac-toe');
+  await tap(host, 'Choose');
+  await onScene(host, 'lobby');
+  await godotText(host, 'SelectedName', 'Caro');
   await tap(host, 'CreateRoom');
   await host.screenshot({ path: t.shot('1-create.png') });
   await tap(host, 'ConfirmCreate');
