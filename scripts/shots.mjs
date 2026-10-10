@@ -4,6 +4,9 @@
 //
 //   npm run shots [webUrl]                    the home screen on every device
 //   npm run shots -- --path '/?play=xiangqi'  another page (the sandbox needs no account)
+//   npm run shots -- --path '/godot/?play=tic-tac-toe'  the Godot client (a debug build from
+//                                             npm run godot:export -- --debug): waits for its
+//                                             first screen past loading
 //   npm run shots -- --login                  sign up a throwaway account first (home, rooms)
 //   npm run shots -- --devices iphone-15,ipad some devices (comma separated)
 //   npm run shots -- --tab                    in a browser tab (minus its bars), not the app
@@ -67,7 +70,11 @@ for (const name of names) {
 
 rmSync(out, { recursive: true, force: true });
 mkdirSync(out, { recursive: true });
-const browser = await chromium.launch({ headless: true });
+// SwiftShader WebGL 2, which the Godot client needs.
+const browser = await chromium.launch({
+  headless: true,
+  args: ['--use-gl=angle', '--use-angle=swiftshader'],
+});
 
 /** Signs up a throwaway account once; every device reuses its cookies. */
 async function account() {
@@ -106,6 +113,12 @@ for (const name of names) {
     await cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: d.inset });
   }
   await page.goto(new URL(args.path, base).href);
+  if (args.path.startsWith('/godot'))
+    await page.waitForFunction(
+      () => window.xomdao && !['boot', 'status'].includes(window.xomdao.scene()),
+      null,
+      { timeout: 60_000 },
+    );
   await page.waitForTimeout(Number(args.wait));
   if (args.command) {
     const result = await page.evaluate((line) => window.__devCommand?.(line), args.command);

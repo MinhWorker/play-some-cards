@@ -5,10 +5,12 @@
 //   - gdtoolkit (gdlint, gdformat) in a Python virtual environment;
 //   - GUT into apps/client/addons/gut (git-ignored).
 // Each part is skipped when it is already there; every download is checked against version.json.
-// Needs curl, unzip (ditto on macOS), git and Python 3.
+// --export-only installs just the editor and the templates (what godot:export needs, e.g. on
+// Vercel). Needs curl (and ditto on macOS); git and Python 3 for the rest.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -65,13 +67,23 @@ function remoteZip(url, names) {
       ?.split('/')[1],
   );
   if (!total) throw new Error(`${url}: no size`);
-  const tail = range(url, Math.max(0, total - 65557), total - 1);
+  return readZip(url, total, (start, end) => range(url, start, end), names);
+}
+
+/** Reads some entries of a zip file in memory. */
+function localZip(name, buffer, names) {
+  return readZip(name, buffer.length, (start, end) => buffer.subarray(start, end + 1), names);
+}
+
+/** Some entries of a zip of `total` bytes, read with `read(start, end)` (end inclusive). */
+function readZip(where, total, read, names) {
+  const tail = read(Math.max(0, total - 65557), total - 1);
   const eocd = tail.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
-  if (eocd < 0) throw new Error(`${url}: not a zip`);
+  if (eocd < 0) throw new Error(`${where}: not a zip`);
   const size = tail.readUInt32LE(eocd + 12);
   const offset = tail.readUInt32LE(eocd + 16);
-  if (offset === 0xffffffff) throw new Error(`${url}: zip64 is not supported`);
-  const dir = range(url, offset, offset + size - 1);
+  if (offset === 0xffffffff) throw new Error(`${where}: zip64 is not supported`);
+  const dir = read(offset, offset + size - 1);
   const entries = new Map();
   for (let p = 0; p < dir.length && dir.readUInt32LE(p) === 0x02014b50; ) {
     const nameLength = dir.readUInt16LE(p + 28);
@@ -86,10 +98,10 @@ function remoteZip(url, names) {
   const files = {};
   for (const name of names) {
     const entry = entries.get(name);
-    if (!entry) throw new Error(`${url}: no ${name}`);
-    const header = range(url, entry.local, entry.local + 29);
+    if (!entry) throw new Error(`${where}: no ${name}`);
+    const header = read(entry.local, entry.local + 29);
     const start = entry.local + 30 + header.readUInt16LE(26) + header.readUInt16LE(28);
-    const data = range(url, start, start + entry.compressed - 1);
+    const data = read(start, start + entry.compressed - 1);
     if (entry.method === 0) files[name] = data;
     else if (entry.method === 8) files[name] = inflateRawSync(data);
     else throw new Error(`${name}: unsupported zip method ${entry.method}`);
@@ -108,12 +120,17 @@ function installEditor() {
     const zip = join(temp, build.file);
     sh('curl', [...curl, '-o', zip, `${pin.release}/${build.file}`]);
     checkHash(build.file, sha512(readFileSync(zip)), build.sha512);
-    const out = join(temp, 'out');
-    if (process.platform === 'darwin') sh('ditto', ['-x', '-k', zip, out]);
-    else sh('unzip', ['-q', zip, '-d', out]);
     const top = build.bin.split('/')[0];
     rmSync(join(godotDir, top), { recursive: true, force: true });
-    renameSync(join(out, top), join(godotDir, top));
+    if (process.platform === 'darwin') {
+      const out = join(temp, 'out');
+      sh('ditto', ['-x', '-k', zip, out]);
+      renameSync(join(out, top), join(godotDir, top));
+    } else {
+      // The Linux zip holds just the binary; read it here rather than needing unzip.
+      writeFileSync(godotBin(), localZip(build.file, readFileSync(zip), [build.bin])[build.bin]);
+      chmodSync(godotBin(), 0o755);
+    }
   } finally {
     rmSync(temp, { recursive: true, force: true });
   }
@@ -176,8 +193,10 @@ mkdirSync(tools, { recursive: true });
 try {
   installEditor();
   installTemplates();
-  installGdtoolkit();
-  installGut();
+  if (!process.argv.includes('--export-only')) {
+    installGdtoolkit();
+    installGut();
+  }
 } catch (error) {
   console.error(`setup:godot failed: ${error.message}`);
   process.exit(1);

@@ -110,6 +110,12 @@ lên `main` triển khai bản thật; mỗi PR có một URL xem trước. Cài
 Biến môi trường trên Vercel: `VITE_SERVER_URL` = URL công khai của game server (xem bên dưới). Nó
 được gắn cứng lúc build, nên đổi xong phải triển khai lại.
 
+Client Godot được dựng cùng lúc (`node tools/godot/vercel.mjs` trong `buildCommand`): lệnh này cài
+Godot và template web (khoảng 80 MB tải về mỗi lần build), xuất client với `VITE_SERVER_URL` làm
+địa chỉ server, rồi `vite build` chép nó vào `/godot/`. Bản thật dùng bản release
+(https://xomdao.vercel.app/godot/), bản xem trước của PR dùng bản debug, có cầu nối test và
+sandbox `?play=<id>`. Gói `.pck` có mã băm trong tên nên được cache vĩnh viễn.
+
 ## Game server → Render
 
 Dịch vụ Render `xomdao-server` (gói miễn phí, Singapore), cấu hình sao lại trong

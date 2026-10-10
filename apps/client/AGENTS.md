@@ -19,8 +19,10 @@ shows state and sends moves. Folder guide (Vietnamese): `apps/client/README.md`.
 
 ```
 project.godot       960 × 720 base, canvas_items + expand, landscape, Compatibility renderer
-core/               Autoloads: Net (holds the app's XomDaoClient), Session, Wallet, ContentLoader
+core/               Autoloads: Net (the app's XomDaoClient, server_url()), Session (saved token),
+                    Wallet, ContentLoader (game packs), TestBridge (window.xomdao, debug web only)
 hub/                The lobby and each platform module's screen (hub/<module>/); main.tscn starts
+                    (for now the tracer's Caro screens: home, room, game, result)
   gallery/          Every UI kit component on 4 pages: ?gallery=<page> or `-- --gallery=<page>`
 addons/xomdao_sdk/  The only API a game's Godot code uses: XomDaoFrame, XomDaoClient (client.gd)
   ui/               The shared UI kit (theme, widgets, fonts, Phosphor icons, UI sounds)
@@ -38,6 +40,21 @@ export_presets.cfg  The Web preset: single-threaded, PWA
   or of another game. `godot:check` enforces it.
 - A game's tests are `test_*.gd` anywhere in its folder; its `test/` folder is left out of its pack.
 - The main scene prints `xomdao:ready`; `godot:smoke` waits for it.
+- A game's Godot entry is `res://content/<id>/main.tscn`. Its root gets `bind(client:
+  XomDaoClient)` once in the tree, draws `client.snapshot` and follows `state_changed`. It may
+  define `sandbox_options() -> Dictionary`, the room options for `?play=<id>` (debug builds: a
+  real room with the computer in the seats, started at once). The hub draws the ☰ menu, the
+  room and the result; the game draws only its table.
+- `ContentLoader.load_game(id)` gives that scene: from the `content/<id>` link in the editor and
+  headless, otherwise it downloads `content/<id>.<hash>.pck` (listed in `content/manifest.json`
+  next to the page) into `user://content/` once and loads it.
+- The server URL: `window.XOMDAO_SERVER` when the export baked it in (`XOMDAO_SERVER_URL` or
+  `VITE_SERVER_URL`), else the page's own origin (`npm run dev` proxies `/ws`); off the web
+  `XOMDAO_SERVER` or ws://localhost:8033/ws.
+- Name every node a test taps or reads (`Cell_<x>_<y>`, `PlayBot`, `RoomCode`…). The debug
+  bridge `window.xomdao` (`core/test_bridge.gd`): `scene()`, `tree(depth)`, `text(name)`,
+  `rect(name)` (CSS px), `click(name)`, `state()`. The hub sets `TestBridge.scene`.
+  `scripts/e2e/godot.mjs` wraps it for scenarios (`tap` clicks with the real mouse).
 - The server connection is `XomDaoClient` (WebSocket + JSON on `/ws`): `connect_to_server`,
   `login_guest` / `login` / `login_token`, `create_room`, `join_room(code)`, `leave_room`,
   `start_game`, `send(event, payload)`, `request(event, data)`; signals `state_changed`,
@@ -72,5 +89,12 @@ export_presets.cfg  The Web preset: single-threaded, PWA
 | `npm run godot:export` | Web build into `dist/` (`-- --debug` for a debug build) plus `dist/content/<id>.<hash>.pck` and `manifest.json`. Runs on a copy in `.tools/export/` because Godot's export filters do not follow symlinks |
 | `npm run godot:net` | Builds and starts a dev server (no database) on a free port, then runs the GUT tests that need it (`test_net.gd`, skipped by `godot:check`) |
 | `npm run godot:smoke` | Serves `dist/`, opens it in headless Chromium at 800 × 360, waits for `xomdao:ready`, saves `.shots/godot-800x360.png` |
+| `npm run godot:measure` | Download size and time to playable, first and repeat visit, on a throttled phone profile (`-- --server <url>` of a running server; `--cpu`, `--net`). Release build for sizes, debug build for every timing. Numbers go in `docs/adr/0001-godot-client.md` |
+
+In the browser: `npm run dev` serves `dist/` at http://localhost:5033/godot/ (export again to see
+changes) and proxies `/ws`. `npm run e2e -- --only godot-caro` and
+`npm run shots -- --path '/godot/?play=tic-tac-toe'` need a debug export there. CI's `godot` job
+runs that scenario; `e2e-plan` skips it. Vercel builds the client too (`tools/godot/vercel.mjs`:
+release on production, debug on previews) and serves it at `/godot/`.
 
 Format a script with `.tools/gdtoolkit/bin/gdformat <file>`.

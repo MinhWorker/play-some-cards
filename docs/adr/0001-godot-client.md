@@ -1,6 +1,6 @@
 # ADR 0001: Client viết bằng Godot, luật giữ bằng TypeScript trên server
 
-- Trạng thái: Đã chấp nhận (Phase 0)
+- Trạng thái: Đã chấp nhận (Phase 0), xác nhận sau khi đo ở Phase 1
 - Ngày: 2026-10-09
 
 ## Bối cảnh
@@ -51,6 +51,42 @@ Ràng buộc:
 - Người làm dự án cần Godot. Lệnh cài đặt tải đúng phiên bản vào `.tools/`.
 - Rủi ro lớn nhất là tốc độ tải và Safari iOS. Phase 1 phải đo trên máy thật trước khi làm hub;
   nếu không đạt, xem lại quyết định này.
+
+## Số đo (Phase 1, Caro tracer #113)
+
+Đo bằng `npm run godot:measure` ngày 2026-10-10, Godot 4.7.2, bản web đơn luồng có PWA. Chromium
+không giao diện giả lập điện thoại 800 × 360 @3, mạng "Fast 4G" (9 Mbit/s, 60 ms) và CPU chậm 4
+lần; máy chủ tĩnh nén brotli như Vercel. Đây là số giả lập: số trên máy thật do chủ dự án đo.
+
+Dung lượng (brotli, thứ trình duyệt thật sự tải):
+
+| File | Gốc | Tải về |
+| --- | --- | --- |
+| `index.wasm` (engine) | 37,7 MB | 7,6 MB |
+| `index.pck` (lõi: hub, SDK, bộ giao diện, font, icon, âm thanh) | 1,3 MB | 1,2 MB |
+| `index.js`, `index.html` | 0,3 MB | 0,1 MB |
+| `content/tic-tac-toe.<mã băm>.pck` (gói Caro) | 8 KB | 8 KB |
+
+| Lần vào | Tải qua mạng | Engine chạy | Chơi được (đã kết nối, đăng nhập) | Bấm "Chơi với máy" tới lúc thấy bàn |
+| --- | --- | --- | --- | --- |
+| Lần đầu | 9,0 MB | 12,5 s | 14,5 s | 1,8 s |
+| Lần sau (PWA cache) | 0 MB | 6,1 s | 7,5 s | 2,5 s |
+| Lần đầu, không giới hạn mạng và CPU | 9,0 MB | 1,5 s | 1,9 s | 0,8 s |
+
+Nhận xét:
+
+- Phần lớn dung lượng là engine (7,6 MB), đúng như ước tính 8–10 MB. Một trò chỉ thêm vài KB
+  khi chưa có art.
+- Lần sau không tải gì: service worker của PWA giữ engine, gói trò nằm trong `user://`.
+- Lần sau vẫn mất khoảng 6 s trên CPU chậm: phần lớn là biên dịch WebAssembly và khởi động
+  engine, không phải mạng.
+- "Engine chạy" và cột chơi được đo trên bản debug (có cầu nối test); bản release khởi động
+  nhanh hơn một chút (12,5 s so với 13,6 s lần đầu).
+
+Trên máy thật, chủ dự án đã cho hai máy Android Chrome và iPhone Safari chơi Caro với nhau qua bản
+xem trước Vercel. Cả hai đều chạy được, thời gian chờ tải chấp nhận được.
+
+**Kết luận (2026-10-10): đi tiếp với Godot.** Thời gian tải không phải trở ngại lớn.
 
 ## Phương án đã cân nhắc
 

@@ -52,11 +52,32 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - run: npx playwright install --with-deps --only-shell chromium
       - run: npm run godot:smoke
+      # Caro end to end in the debug build (it has the test bridge), against the dev app, which
+      # serves the build at /godot/. scripts/e2e/scenarios/godot-caro.mjs.
+      - run: npm run godot:export -- --debug
+      - name: Start the app
+        env:
+          BOT_DELAY_MS: 200
+        run: |
+          npm run dev > dev.log 2>&1 &
+          for i in $(seq 120); do
+            curl -sf localhost:8033/api/health > /dev/null && curl -sf localhost:5033/godot/ > /dev/null && exit 0
+            sleep 1
+          done
+          cat dev.log; exit 1
+      - run: npm run e2e -- --only godot-caro --retries 1
+      - name: Dev server log
+        if: failure()
+        run: cat dev.log
       - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: godot-web
-          path: .shots/
+          path: |
+            .shots/
+            .e2e/
+          # Both folders start with a dot: without this the upload finds nothing.
+          include-hidden-files: true
           retention-days: 7
 
   # Which e2e scenarios (scripts/e2e/scenarios/) this change needs: all of them on main, the
@@ -77,13 +98,15 @@ jobs:
       - id: pick
         env:
           PAUSED: 'true'
+          # Scenarios of the Godot client: the godot job runs them on its own build.
+          GODOT: godot-caro
           EVENT: ${{ github.event_name }}
           BASE: origin/${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
           if [ "$PAUSED" = true ] || [[ "$HEAD_REF" == release-please--* ]]; then list='[]'
-          elif [ "$EVENT" = pull_request ]; then list=$(node scripts/e2e.mjs --list --changed "$BASE")
-          else list=$(node scripts/e2e.mjs --list)
+          elif [ "$EVENT" = pull_request ]; then list=$(node scripts/e2e.mjs --list --skip "$GODOT" --changed "$BASE")
+          else list=$(node scripts/e2e.mjs --list --skip "$GODOT")
           fi
           echo "scenarios=$list" >> "$GITHUB_OUTPUT"
           echo "E2E scenarios: $list" >> "$GITHUB_STEP_SUMMARY"

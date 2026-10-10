@@ -39,7 +39,8 @@
     "godot:link": "node tools/godot/link.mjs",
     "godot:export": "node tools/godot/export.mjs",
     "godot:smoke": "node tools/godot/smoke.mjs",
-    "godot:net": "node tools/godot/net.mjs"
+    "godot:net": "node tools/godot/net.mjs",
+    "godot:measure": "node tools/godot/measure.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

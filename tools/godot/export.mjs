@@ -5,6 +5,8 @@
 // Godot's export filters do not see through symlinks, so the export runs on a copy of the client
 // in .tools/export/ with the games copied in, and with the game presets added to its
 // export_presets.cfg. The copy keeps its .godot/ import cache between runs.
+// XOMDAO_SERVER_URL (or VITE_SERVER_URL, as on Vercel) bakes the game server's URL into the page
+// (window.XOMDAO_SERVER); without it the client talks to the page's own origin (core/net.gd).
 import { createHash } from 'node:crypto';
 import {
   cpSync,
@@ -73,9 +75,12 @@ function run(args, output) {
 }
 
 const presetsFile = join(project, 'export_presets.cfg');
+const server = process.env.XOMDAO_SERVER_URL || process.env.VITE_SERVER_URL || '';
+const head = server ? `<script>window.XOMDAO_SERVER=${JSON.stringify(server)}</script>` : '';
 const web = readFileSync(presetsFile, 'utf8')
   .replace(/^custom_template\/debug=.*$/m, `custom_template/debug="${templates.debug}"`)
-  .replace(/^custom_template\/release=.*$/m, `custom_template/release="${templates.release}"`);
+  .replace(/^custom_template\/release=.*$/m, `custom_template/release="${templates.release}"`)
+  .replace(/^html\/head_include=.*$/m, `html/head_include=${JSON.stringify(head)}`);
 const manifest = {};
 try {
   writeFileSync(presetsFile, [web, ...games.map((id, i) => packPreset(i + 1, id, web))].join('\n'));

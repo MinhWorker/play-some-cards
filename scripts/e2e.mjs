@@ -7,6 +7,7 @@
 //   npm run e2e -- --only tien-len       some scenarios (comma separated)
 //   npm run e2e -- --changed origin/main only the scenarios the changes since that ref touch
 //   npm run e2e -- --list [...]          print the picked scenario names as JSON, run nothing
+//   --skip a,b   leave these scenarios out
 //   --jobs N     scenarios at once (default: half the CPUs)
 //   --retries N  run a failed scenario again, up to N times (CI: 1); a pass on retry warns
 //   --timeout S  a try that takes longer fails (default 600)
@@ -20,6 +21,7 @@ const { values: args, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     only: { type: 'string' },
+    skip: { type: 'string' },
     changed: { type: 'string' },
     list: { type: 'boolean', default: false },
     jobs: { type: 'string' },
@@ -42,6 +44,7 @@ const scenarios = await Promise.all(
         run: mod.default,
         games: mod.games ?? [],
         always: mod.always ?? false,
+        launch: mod.launch ?? {},
       };
     }),
 );
@@ -98,6 +101,10 @@ if (args.only) {
   }
   picked = picked.filter((s) => only.includes(s.name));
 }
+if (args.skip) {
+  const skip = args.skip.split(',');
+  picked = picked.filter((s) => !skip.includes(s.name));
+}
 if (args.list) {
   console.log(JSON.stringify(picked.map((s) => s.name)));
   process.exit(0);
@@ -120,7 +127,7 @@ async function attempt(scenario) {
   const tag = `${Date.now().toString(36)}${tries++}`;
   const errors = [];
   const pages = [];
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, ...scenario.launch });
   let timer;
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(
