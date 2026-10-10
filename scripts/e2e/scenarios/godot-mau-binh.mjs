@@ -45,8 +45,19 @@ export default async function run(t) {
       // late, so any chi (or the totals) will do for the picture.
       await godotText(page, 'Info', /Chi [123]|Vòng sau|Tổng kết/, 15_000);
       await page.screenshot({ path: t.shot('2-chi.png') });
-      await godotText(page, 'Info', /Vòng sau|Tổng kết/, 15_000);
-      await page.screenshot({ path: t.shot('3-totals.png') });
+      // A slow client can still be on a chi when the server moves on, which cuts its reveal short.
+      const totals = await page.waitForFunction(
+        (round) => {
+          if (/Vòng sau|Tổng kết/.test(window.xomdao.text('Info') ?? '')) return 'totals';
+          const r = window.xomdao.state().room;
+          return r?.status === 'finished' || r?.view?.round !== round || r?.view?.phase !== 'show';
+        },
+        v.round,
+        { timeout: 20_000 },
+      );
+      if ((await totals.jsonValue()) === 'totals') {
+        await page.screenshot({ path: t.shot('3-totals.png') });
+      }
     }
     await page.waitForTimeout(250);
   }
