@@ -80,8 +80,11 @@ export interface State extends Position {
   end: { reason: EndReason; winner: Side | null } | null;
 }
 
-/** What screens get: the state without the repetition bookkeeping. */
-export type View = Omit<State, 'history'>;
+/**
+ * What screens get: the state without the repetition bookkeeping, plus the legal moves of the
+ * player who sees it when it is their turn (empty otherwise), so a screen need not know the rules.
+ */
+export type View = Omit<State, 'history'> & { moves: Move[] };
 
 /**
  * Room options, all on one setup form (scenes/Setup.ts). `optionsSchema.parse({})` gives the

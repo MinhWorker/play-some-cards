@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import plugin from '../index.js';
 import { ChessGame } from './ChessGame.js';
 import { type Options, type Position, QUIET_LIMIT, type State, type View } from './model.js';
-import { fromFen, legalMovesFrom, positionKey, squareOf } from './rules.js';
+import { fromFen, legalMoves, legalMovesFrom, positionKey, squareOf } from './rules.js';
 
 /** The game from a made-up position (FEN) instead of the opening one. */
 class FromPosition extends ChessGame {
@@ -163,10 +163,16 @@ describe('chess', () => {
     expect(left.result).toEqual({ winners: ['b'] });
   });
 
-  it('shows everything but the repetition bookkeeping', () => {
-    const view = fresh().view(null) as View;
+  it('shows everything but the repetition bookkeeping, and your moves on your turn', () => {
+    const game = fresh();
+    const view = game.view(null) as View;
     expect(view).not.toHaveProperty('history');
     expect(view.board).toHaveLength(64);
+    expect(view.moves).toEqual([]);
+    const mine = game.view('a') as View;
+    expect(mine.moves).toEqual(legalMoves(game.state));
+    expect(mine.moves).toHaveLength(20);
+    expect((game.view('b') as View).moves).toEqual([]);
   });
 
   it('asks the computer only in rooms against it, and it plays legal moves', () => {
