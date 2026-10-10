@@ -23,12 +23,23 @@ Godot bản khác sẽ ghi lại `project.godot` và các scene.
 | `project.godot` | Khung gốc 960 × 720, `canvas_items` + `expand`, màn hình ngang ([ui-guide.md](../../docs/ui-guide.md)) |
 | `core/` | Autoload `Net`, `Session`, `Wallet`, `ContentLoader` |
 | `hub/` | Sảnh và màn của từng khối nền tảng; `hub/main.tscn` là màn đầu tiên |
-| `addons/xomdao_sdk/` | API duy nhất phần Godot của trò được dùng |
+| `addons/xomdao_sdk/` | API duy nhất phần Godot của trò được dùng: `XomDaoFrame`, `XomDaoClient` (kết nối server) |
+| `addons/xomdao_sdk/generated/` | Class protocol sinh từ schema zod bằng `npm run gen:protocol`; không sửa tay |
 | `content/<id>` | Symlink tới `games/<id>/godot` (`npm run godot:link` tạo, git bỏ qua) |
 | `test/` | Test GUT của lõi |
 
 Phần Godot của một trò nằm ở `games/<id>/godot/` và chỉ được dùng file trong thư mục đó cùng
 `addons/xomdao_sdk`. Script phải khai kiểu đầy đủ; thiếu kiểu là lỗi.
+
+## Kết nối server
+
+`XomDaoClient` nói chuyện với server qua WebSocket thuần + JSON ở `/ws` (cùng cổng với
+Socket.IO): đăng nhập khách hoặc tài khoản, tạo phòng, vào phòng bằng mã, gửi nước đi, nhận
+`state_changed`. Mất kết nối thì tự nối lại và quay về phòng. Đầu file `client.gd` ghi cách dùng.
+
+Protocol chỉ viết một lần, bằng schema zod trong `packages/shared/src/protocol.ts`. Sửa schema
+xong thì chạy `npm run gen:protocol` để sinh lại GDScript; `npm run check` báo lỗi nếu quên.
+`npm run godot:net` chạy server thật (không DB) rồi chạy test GUT kết nối với nó.
 
 ## Xuất bản
 

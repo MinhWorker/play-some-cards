@@ -46,7 +46,8 @@ docs/              Shared guides for people: making-a-game, ui-guide, deploy
 | --- | --- |
 | `npm install` | Install (npm only, not pnpm/yarn). Also writes the game list: rerun it and restart dev after adding a game folder |
 | `npm run dev` | Server on :8033, web on :5033 (Vite proxies `/api` and `/socket.io`). `PORT=8133 WEB_PORT=5133` moves them |
-| `npm run check` | Lint + typecheck + unit tests, plus `godot:check` when Godot is installed |
+| `npm run check` | Lint + typecheck + `gen:protocol --check` + unit tests, plus `godot:check` when Godot is installed |
+| `npm run gen:protocol` | Regenerate the Godot protocol classes from the zod schemas in `packages/shared/src/protocol.ts` |
 | `npm run format` | Auto-fix formatting and safe lint issues (Biome) |
 | `npm run setup:godot` | Install the pinned Godot, web templates, gdtoolkit and GUT into `.tools/` (Linux, macOS) |
 | `npm run godot -- <args>` | The pinned Godot on `apps/client`; `godot:check`, `godot:link`, `godot:export`, `godot:smoke` in `apps/client/AGENTS.md` |

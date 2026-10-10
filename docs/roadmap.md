@@ -75,10 +75,10 @@ Chủ dự án: "Làm sự kiện câu cá Trung Thu"
 - [x] `npm run godot:export`: bản web đơn luồng + PWA, mỗi trò một `.pck` đặt tên theo mã băm
 
 **Mạng và protocol**
-- [ ] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO
-- [ ] `npm run gen:protocol`: schema zod → class GDScript trong `xomdao_sdk`; CI báo lỗi nếu file
+- [x] Cổng WebSocket thuần trên server, cùng logic phòng với Socket.IO
+- [x] `npm run gen:protocol`: schema zod → class GDScript trong `xomdao_sdk`; CI báo lỗi nếu file
       sinh ra không khớp
-- [ ] `addons/xomdao_sdk`: kết nối lại, đăng nhập, tạo/vào phòng, `send()`, tín hiệu `state_changed`
+- [x] `addons/xomdao_sdk`: kết nối lại, đăng nhập, tạo/vào phòng, `send()`, tín hiệu `state_changed`
 
 **Kiểm tra**
 - [ ] Cầu nối test `window.xomdao` (chỉ bản debug): scene hiện tại, bấm node theo tên, đọc text,

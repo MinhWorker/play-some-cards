@@ -5,6 +5,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
+import { MESSAGE_METADATA } from '@nestjs/websockets/constants.js';
 import { ConsoleError, type ConsoleIssue } from '@xomdao/sdk';
 import {
   type ClientToServerEvents,
@@ -24,7 +25,7 @@ import { LedgerService } from '../ledger/ledger.service.js';
 import { MatchesService } from '../matches/matches.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
-interface SocketData {
+export interface SocketData {
   /** Set by the auth middleware; every connected socket is logged in. */
   user: User;
   /** The room this socket shows. Your member id in it is `user.id`. */
@@ -37,7 +38,13 @@ interface SocketData {
 
 type AppServer = Server<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
 type AppSocket = Socket<ClientToServerEvents, ServerToClientEvents, object, SocketData>;
-type Result =
+/**
+ * A connected client on either transport: a Socket.IO socket, or a plain WebSocket wrapped by
+ * `WsGateway`. Handlers only read `data` and `emit` events, so both work the same.
+ */
+export type Client = Pick<AppSocket, 'data' | 'emit'>;
+/** A handler's reply, sent back as the request's ack. */
+export type Result =
   | { ok: true; [key: string]: unknown }
   | { ok: false; error: string; issue?: ConsoleIssue };
 
@@ -48,8 +55,6 @@ const PRUNE_INTERVAL_MS = 10 * 60 * 1000;
  */
 const BOT_DELAY_MS = Number(process.env.BOT_DELAY_MS) || 700;
 
-const lobbyChannel = (gameId: string) => `lobby:${gameId}`;
-
 /**
  * Translates Socket.IO events into RoomsService calls. Each handler's return value
  * is sent back as the ack. After every change we push a fresh `room:state` to each
@@ -58,6 +63,9 @@ const lobbyChannel = (gameId: string) => `lobby:${gameId}`;
  *
  * Sockets must be logged in (`auth: { token }`). Being in a room belongs to the account, so
  * one account can have several sockets (tabs, devices) showing the same seat.
+ *
+ * The same handlers serve the Godot client's plain WebSocket (`WsGateway`, `handlerFor`): its
+ * clients join `clients()` through `attach` and leave through `handleDisconnect` + `detach`.
  */
 @WebSocketGateway({ cors: { origin: true } })
 export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
@@ -66,6 +74,8 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   private readonly botTimers = new Map<string, NodeJS.Timeout>();
   /** Pending game timers (`ctx.setTimer`), by room code. */
   private readonly gameTimers = new Map<string, NodeJS.Timeout>();
+  /** Clients on the other transport (`WsGateway`). */
+  private readonly extra = new Set<Client>();
 
   constructor(
     private readonly rooms: RoomsService,
@@ -114,8 +124,33 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     setInterval(() => this.rooms.pruneEmptyRooms(), PRUNE_INTERVAL_MS).unref();
   }
 
+  /** A WebSocket client that just logged in. */
+  attach(client: Client) {
+    this.extra.add(client);
+  }
+
+  /** A WebSocket client that closed (after `handleDisconnect`). */
+  detach(client: Client) {
+    this.extra.delete(client);
+  }
+
+  /**
+   * The handler of a client event (the `@SubscribeMessage` method), for `WsGateway`; `undefined`
+   * for an unknown event.
+   */
+  handlerFor(event: string): ((client: Client, req: unknown) => Promise<Result>) | undefined {
+    const proto = RoomsGateway.prototype as unknown as Record<string, unknown>;
+    for (const name of Object.getOwnPropertyNames(proto)) {
+      const method = proto[name];
+      if (typeof method !== 'function' || Reflect.getMetadata(MESSAGE_METADATA, method) !== event)
+        continue;
+      return (client, req) => method.call(this, client, req) as Promise<Result>;
+    }
+    return undefined;
+  }
+
   /** Offline only when none of the account's sockets still shows the room. */
-  handleDisconnect(socket: AppSocket) {
+  handleDisconnect(socket: Client) {
     this.stopDevLogs(socket);
     const { roomCode, user } = socket.data;
     if (!roomCode || !user) return;
@@ -128,7 +163,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('session:resume')
-  resume(socket: AppSocket) {
+  resume(socket: Client) {
     return this.handle(async () => {
       const balances = await this.ledger.balances(socket.data.user.id);
       const room = this.rooms.roomOf(socket.data.user.id);
@@ -137,7 +172,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('profile:update')
-  updateProfile(socket: AppSocket, req: unknown) {
+  updateProfile(socket: Client, req: unknown) {
     return this.handle(async () => {
       const user = await this.accounts.updateProfile(socket.data.user.id, req);
       for (const s of this.socketsOf(user.id)) s.data.user = user;
@@ -148,7 +183,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('history:recent')
-  history(socket: AppSocket) {
+  history(socket: Client) {
     return this.handle(async () => ({ matches: await this.matches.recent(socket.data.user.id) }));
   }
 
@@ -158,17 +193,16 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('lobby:watch')
-  watch(socket: AppSocket, req: { gameId: string }) {
+  watch(socket: Client, req: { gameId: string }) {
     return this.handle(() => {
       this.unwatchLobby(socket);
       socket.data.lobby = req.gameId;
-      void socket.join(lobbyChannel(req.gameId));
       return { rooms: this.rooms.list(req.gameId) };
     });
   }
 
   @SubscribeMessage('lobby:unwatch')
-  unwatch(socket: AppSocket) {
+  unwatch(socket: Client) {
     return this.handle(() => {
       this.unwatchLobby(socket);
       return {};
@@ -176,7 +210,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:create')
-  create(socket: AppSocket, req: { gameId: string; options?: unknown }) {
+  create(socket: Client, req: { gameId: string; options?: unknown }) {
     return this.handle(() => {
       this.leaveCurrentRoom(socket);
       const { room } = this.rooms.create(req.gameId, socket.data.user, req.options);
@@ -185,7 +219,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:join')
-  join(socket: AppSocket, req: { roomCode: string; role: RoomRole }) {
+  join(socket: Client, req: { roomCode: string; role: RoomRole }) {
     return this.handle(() => {
       const role = req.role === 'spectator' ? 'spectator' : 'player';
       this.leaveCurrentRoom(socket, req.roomCode);
@@ -195,7 +229,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:leave')
-  leave(socket: AppSocket) {
+  leave(socket: Client) {
     return this.handle(() => {
       const { roomCode } = this.requireSeat(socket);
       this.leaveRoom(socket, roomCode);
@@ -204,7 +238,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:sit')
-  sit(socket: AppSocket) {
+  sit(socket: Client) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
       this.broadcast(this.rooms.sit(roomCode, playerId));
@@ -213,7 +247,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room:options')
-  setOptions(socket: AppSocket, req: { options: unknown }) {
+  setOptions(socket: Client, req: { options: unknown }) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
       this.broadcast(this.rooms.setOptions(roomCode, playerId, req?.options));
@@ -222,7 +256,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game:start')
-  start(socket: AppSocket) {
+  start(socket: Client) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
       this.broadcast(this.rooms.start(roomCode, playerId));
@@ -231,12 +265,12 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('game:restart')
-  restart(socket: AppSocket) {
+  restart(socket: Client) {
     return this.start(socket);
   }
 
   @SubscribeMessage('game:move')
-  move(socket: AppSocket, req: { move: unknown }) {
+  move(socket: Client, req: { move: unknown }) {
     return this.handle(() => {
       const { roomCode, playerId } = this.requireSeat(socket);
       this.broadcast(this.rooms.move(roomCode, playerId, req?.move));
@@ -245,7 +279,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('dev:logs')
-  devLogs(socket: AppSocket, req: { on: boolean }) {
+  devLogs(socket: Client, req: { on: boolean }) {
     return this.handle(() => {
       this.requireDev();
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -257,13 +291,13 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     });
   }
 
-  private stopDevLogs(socket: AppSocket) {
+  private stopDevLogs(socket: Client) {
     socket.data.devLogOff?.();
     socket.data.devLogOff = undefined;
   }
 
   @SubscribeMessage('dev:command')
-  devCommand(socket: AppSocket, req: { line: string }) {
+  devCommand(socket: Client, req: { line: string }) {
     return this.handle(() => {
       this.requireDev();
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -272,7 +306,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('dev:schema')
-  devSchema(socket: AppSocket) {
+  devSchema(socket: Client) {
     return this.handle(() => {
       this.requireDev();
       const { roomCode, playerId } = this.requireSeat(socket);
@@ -284,28 +318,34 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     if (!this.rooms.devEnabled) throw new RoomError('Server không bật chế độ dev');
   }
 
-  private enter(socket: AppSocket, room: Room): JoinedRoom {
+  private enter(socket: Client, room: Room): JoinedRoom {
     const userId = socket.data.user.id;
     this.unwatchLobby(socket);
     this.stopDevLogs(socket);
     socket.data.roomCode = room.code;
-    void socket.join(room.code);
     this.rooms.setConnected(room.code, userId, true);
     this.broadcast(room);
     return { roomCode: room.code, playerId: userId };
   }
 
   /** Before entering a room: quit the account's other room, if any. */
-  private leaveCurrentRoom(socket: AppSocket, unlessCode?: string) {
+  private leaveCurrentRoom(socket: Client, unlessCode?: string) {
     const current = this.rooms.roomOf(socket.data.user.id);
-    if (current && current.code !== unlessCode?.toUpperCase()) this.leaveRoom(socket, current.code);
+    if (
+      current &&
+      current.code !==
+        String(unlessCode ?? '')
+          .replace(/\s/g, '')
+          .toUpperCase()
+    )
+      this.leaveRoom(socket, current.code);
   }
 
   /**
    * The account quits the room. Its other sockets still showing the room are sent out
    * with `room:closed`; `socket` (the one asking) already knows.
    */
-  private leaveRoom(socket: AppSocket, roomCode: string) {
+  private leaveRoom(socket: Client, roomCode: string) {
     const userId = socket.data.user.id;
     const { room, closed } = this.rooms.leave(roomCode, userId);
     for (const s of this.socketsOf(userId)) {
@@ -314,43 +354,46 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
         s.emit('room:closed', { gameId: room.game.id, reason: 'Bạn đã rời phòng' });
       }
       this.stopDevLogs(s);
-      void s.leave(roomCode);
       s.data.roomCode = undefined;
     }
     if (closed) this.disband(room);
     else this.broadcast(room);
   }
 
-  private requireSeat(socket: AppSocket) {
+  private requireSeat(socket: Client) {
     const { roomCode, user } = socket.data;
     if (!roomCode) throw new RoomError('Bạn chưa ở trong phòng nào');
     return { roomCode, playerId: user.id };
   }
 
   private socketsOf(userId: string) {
-    return [...this.server.sockets.sockets.values()].filter((s) => s.data.user?.id === userId);
+    return this.clients().filter((s) => s.data.user?.id === userId);
+  }
+
+  /** Every logged-in client, on both transports. */
+  private clients(): Client[] {
+    return [...this.server.sockets.sockets.values(), ...this.extra];
   }
 
   /** Sends everyone still in a deleted room back out, then refreshes the room list. */
   private disband(room: Room) {
-    for (const socket of this.server.sockets.sockets.values()) {
+    for (const socket of this.clients()) {
       if (socket.data.roomCode !== room.code) continue;
       socket.emit('room:closed', { gameId: room.game.id, reason: 'Phòng đã giải tán' });
       this.stopDevLogs(socket);
-      void socket.leave(room.code);
       socket.data.roomCode = undefined;
     }
     this.broadcastLobby(room.game.id);
   }
 
   private broadcastLobby(gameId: string) {
-    this.server
-      .to(lobbyChannel(gameId))
-      .emit('lobby:rooms', { gameId, rooms: this.rooms.list(gameId) });
+    const watchers = this.clients().filter((s) => s.data.lobby === gameId);
+    if (!watchers.length) return;
+    const rooms = this.rooms.list(gameId);
+    for (const socket of watchers) socket.emit('lobby:rooms', { gameId, rooms });
   }
 
-  private unwatchLobby(socket: AppSocket) {
-    if (socket.data.lobby) void socket.leave(lobbyChannel(socket.data.lobby));
+  private unwatchLobby(socket: Client) {
     socket.data.lobby = undefined;
   }
 
@@ -358,7 +401,7 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
   private broadcast(room: Room) {
     // A timer the game just set goes into the snapshots, so screens can show the countdown.
     const timer = this.rooms.syncTimer(room);
-    for (const socket of this.server.sockets.sockets.values()) {
+    for (const socket of this.clients()) {
       const { roomCode, user } = socket.data;
       if (roomCode === room.code && user) {
         socket.emit('room:state', this.rooms.snapshotFor(room, user.id));
