@@ -14,6 +14,7 @@ export const genres: Genre[] = [
   { id: 'co', name: 'Cờ', order: 1, island: 'co', main: true },
   { id: 'bai', name: 'Bài', order: 2, island: 'bai', main: true },
   { id: 'su-kien', name: 'Sự kiện', order: 3, island: 'su-kien', main: false },
+  { id: 'hanh-dong', name: 'Hành động', order: 4, island: 'hanh-dong', main: false },
 ];
 
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;

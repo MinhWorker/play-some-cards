@@ -13,13 +13,13 @@ describe('CatalogService', () => {
     if (caro && status) caro.status = status;
   });
 
-  it('lists Cờ, Bài and Sự kiện with their games, leaving out games without a genre', () => {
+  it('lists Cờ, Bài, Sự kiện and Hành động with their games', () => {
     const { genres, games: cards } = new CatalogService(new RoomsService()).catalog();
-    expect(genres.map((g) => g.id)).toEqual(['co', 'bai', 'su-kien']);
+    expect(genres.map((g) => g.id)).toEqual(['co', 'bai', 'su-kien', 'hanh-dong']);
     const ids = cards.map((c) => c.id);
     expect(ids).toContain('tic-tac-toe');
     expect(ids).toContain('tien-len');
-    expect(ids).not.toContain('bom-nguyen-to');
+    expect(ids).toContain('bom-nguyen-to');
     expect(cards.find((c) => c.id === 'tien-len')).toMatchObject({
       genre: 'bai',
       kind: 'table',

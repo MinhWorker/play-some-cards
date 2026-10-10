@@ -28,6 +28,29 @@ và vụ nổ cũng đổi khung hình; không biến dạng nhân vật để g
 chạy trên server, cùng luật trong sandbox. Máy bổ sung vào đấu trường khi thiếu ghế không chiếm
 ghế phòng dành cho người thật.
 
+## Bản Godot
+
+`godot/main.gd` dựng màn chơi trong client Godot theo bố cục **Hành động**: đấu trường ở giữa;
+thẻ bạn nhỏ của mình (HP, bom còn đặt được, tầm nổ) ở trên trái dưới nút ☰; đồng hồ ở giữa hàng
+trên, thẻ những người khác hai bên; D-pad gỗ ở dưới trái; **Bom**, **Kỹ năng**, **Lướt** xếp dọc
+ở dưới phải (vòng tối quay lại khi đang hồi, số giây thay cho tên). Bàn phím: WASD hoặc phím
+mũi tên, Space, E, Shift. Mỗi ngón tay xử lý riêng, nên vừa giữ hướng vừa bấm Bom được.
+Trước trận có bảng **Chọn bạn nhỏ** với năm bạn và nút **Sẵn sàng**; kết quả do hub hiện, kèm
+số lần hạ gục và thùng quà đã mở.
+
+- `godot/arena.gd`: ô cỏ/đất, hàng rào, khối đá, thùng quà, bom, vụ nổ, vật phẩm và nhân vật
+  sắp lớp theo hàng. Nhân vật của mình đi trước snapshot (server đi theo vị trí màn hình gửi
+  kèm `input`), nhân vật khác trượt dần tới vị trí server. Ô sắp nổ sáng theo màu nguyên tố rồi
+  đỏ nhấp nháy, vòng sắp bị lấp nhấp nháy đỏ.
+- `godot/rules.gd`: đi theo lối, vùng nổ, phản ứng dây chuyền và vòng thu hẹp (chép từ
+  `model.ts`, `arena.ts`, `bot.ts`).
+- `godot/atlas.gd`: đọc atlas `art/*.json` thành các chuỗi khung hình.
+- `godot/card.gd`, `godot/pad.gd`, `godot/action.gd`: thẻ người chơi, D-pad, nút hành động.
+- Hình ở `godot/art/`, âm thanh ở `godot/sounds/`; test: `godot/test/`.
+
+Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=bom-nguyen-to`
+(một máy dễ, trên server thật).
+
 ## Phát triển và kiểm tra
 
 Từ thư mục gốc repo:
