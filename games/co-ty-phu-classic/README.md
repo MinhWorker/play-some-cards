@@ -105,3 +105,30 @@ cho `tycoon-release.wav`. Hiệu ứng mở cửa chạy xong trước animation
 mãn hạn ở lần thử thứ ba không thu phí 50.
 Hai tiếng thông báo trao đổi/nhận thẻ dùng các file Freesound trong `assets/audio/sfx/`.
 Nguồn bên thứ ba và giấy phép: [LICENSE-ASSETS.md](../../LICENSE-ASSETS.md).
+
+## Bản Godot
+
+`godot/main.gd` dựng bàn trong client Godot: bàn 2.5D lớn ở giữa, ô người chơi xếp cột bên phải
+(bạn ở dưới cùng, chip là tiền mặt), bảng in trên bàn hiện người đang quyết định với quân, tên và
+tiền. Ô xanh giữa bàn chứa thông báo, xúc xắc và các nút của lượt: Gieo, Nộp 50 / Dùng thẻ khi ở
+tù, Mua / Bỏ qua, Góp / Từ bỏ ở bến xe, Trả / Bỏ khi đấu giá, Xây / Hết lượt, Trả nợ / Phá sản.
+Thẻ nổi trên ô giữa hiện lá Cơ hội, Khí vận, thuế (Xác nhận), đề nghị trao đổi (Đồng ý / Từ
+chối) hoặc ô vừa chạm: giá, tiền thuê, chủ, và với đất của bạn Thế chấp, Chuộc, Bán nhà, Đấu giá.
+Nút Trao đổi ở góc trên phải mở bảng đề nghị: chọn người, mỗi bên một ô đất (hoặc vé ra tù, bán
+riêng giá 200) và tiền. Quân đi từng ô, bay khi ra sân bay hay vào tù, tiền nổi lên trên ô người
+chơi.
+
+| File | Việc |
+| --- | --- |
+| `godot/main.gd` | Bố cục, hoạt ảnh, nút và gửi thao tác |
+| `godot/marks.gd` | Dải màu chủ đất, nhà/khách sạn, đất thế chấp, góp bến xe, ô đang chọn |
+| `godot/trade.gd` | Bảng đề nghị trao đổi |
+| `godot/texts.gd` | Chữ trên thẻ ô, đề nghị trao đổi và dòng trạng thái |
+| `godot/rules.gd` | Dữ liệu 40 ô, toạ độ ô trên ảnh bàn, tiền thuê và thế chấp (chép từ `model.ts`, `rules.ts`, `boardGeometry.ts`) |
+
+Hình ở `godot/art/`, âm thanh ở `godot/sounds/`, nhạc ở `godot/music/`; test: `godot/test/`.
+Chưa có trong bản Godot: giá và tên in trên từng ô bàn (chạm ô để xem), bảng thế chấp nhiều ô một
+lần (thế chấp từng ô).
+
+Chạy: `npm run godot:export -- --debug` rồi mở `http://localhost:5033/godot/?play=co-ty-phu-classic`
+(ba máy, trên server thật).
