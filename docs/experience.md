@@ -12,9 +12,9 @@
 > tham khảo: [ui-references.md](ui-references.md). Khi ảnh concept và tài liệu đó khác nhau, theo
 > tài liệu đó: ảnh AI đẹp nhưng không thực tế.
 >
-> **Hướng nghệ thuật là hoạt hình phẳng**, như ảnh sảnh, chọn trò, Nhà, sự kiện và bộ thành phần.
-> Ảnh ván đấu, kết quả, danh sách phòng và ảnh hub cũ quá chi tiết, nhiều texture: chỉ xem bố cục,
-> không xem phong cách; sẽ vẽ lại.
+> **Hướng nghệ thuật** ở [art-direction.md](art-direction.md). Ảnh sảnh vòng đảo, ván đấu, kết quả,
+> Bến và bộ thành phần đã vẽ theo nó. Ảnh chọn trò, Nhà, sự kiện còn theo bản cũ (nút gỗ sáng, chữ
+> nối bằng dấu chấm): chỉ xem bố cục.
 
 ## Nguyên tắc
 
@@ -31,75 +31,79 @@
    thanh giao diện. Mỗi trò có "chất" riêng trong thẻ trò và bàn chơi của nó, không phải trong HUD.
 6. **Mọi chuyển cảnh đều có chuyển động.** Không màn trắng, không vòng xoay tải giữa màn hình.
 
-## Sảnh: Xóm và các đảo thể loại
+## Sảnh: vòng đảo thể loại
 
-![Sảnh chờ: Xóm ở giữa, các đảo thể loại xung quanh](concepts/lobby.webp)
-
-> Ảnh concept vẽ năm đảo ngang nhau quanh Xóm. Bố cục thật theo mô tả dưới đây: Cờ và Bài là hai
-> đảo lớn, các thể loại khác nhỏ hơn.
+![Sảnh chờ: các đảo thể loại trên một vòng tròn, đảo Bài đang chọn ở giữa](concepts/lobby-ring.webp)
 
 Thế giới có ba tầng, giống "chế độ chơi" và "bản đồ" của game mobile:
 
 | Tầng | Giống trong game mobile | Ở Xóm Đảo |
 | --- | --- | --- |
-| **Sảnh** | Sảnh chờ có nhân vật ở giữa | Đảo **Xóm**, nhân vật của bạn đứng giữa |
-| **Thể loại** | Chế độ chơi (Cổ điển, Giải trí…) | Một **đảo thể loại** quanh Xóm: hai đảo lớn Cờ, Bài; các thể loại khác là đảo nhỏ |
+| **Sảnh** | Sảnh chờ, chọn chế độ ngay trên đó | Biển có **vòng đảo thể loại**, xoay được |
+| **Thể loại** | Chế độ chơi (Cổ điển, Giải trí…) | Một **đảo thể loại** trên vòng: Cờ, Bài, rồi các thể loại phụ |
 | **Trò** | Bản đồ trong một chế độ | Một **thẻ trò** trong danh sách kéo ngang của thể loại |
 
-**Cờ** và **Bài** là hai thể loại chính của dự án. Mỗi cái có chỗ riêng, cố định trên sảnh: hai đảo
-lớn nhất, hai bên Xóm. Các thể loại khác được **gom lại** và đặt vào khoảng trống còn lại (mặt biển
-phía sau Xóm, giữa HUD trên và Xóm), mỗi thể loại một đảo nhỏ.
+Sảnh không có đảo trung tâm hay nhân vật. Các đảo thể loại cùng cỡ, xếp đều trên một vòng tròn nằm
+nghiêng trên biển, nhìn chéo từ trên như một băng chuyền:
 
-| Đảo | Chỗ | Trò |
-| --- | --- | --- |
-| **Cờ** | Đảo lớn, bên trái Xóm | Cờ Tướng, Cờ Vua, Cờ Vây, Cờ Đam, Caro, Cờ Cá Ngựa, Cờ tỷ phú, Bắn Tàu |
-| **Bài** | Đảo lớn, bên phải Xóm | Tiến Lên, Mậu Binh, Bài Cào |
-| **Sắp có** | Đảo nhỏ, khoảng trống phía sau | Đảo sương mù có ổ khoá, chưa có trò |
+- Vuốt ngang hoặc chạm một đảo để **xoay vòng**. Đảo ở chính giữa phía trước là **đảo đang chọn**:
+  to nhất, sáng nhất, có quầng vàng trên mặt nước và bảng tên. Các đảo khác nhỏ và nhạt dần theo
+  độ xa, không có bảng tên.
+- Đảo đang chọn quyết định thẻ "trò đang chọn" ở dưới phải. Chạm lại đảo đang chọn, hoặc chạm thẻ,
+  thì mở màn chọn trò của thể loại đó.
+- **Cờ** và **Bài** là hai thể loại chính: luôn đứng đầu vòng theo thứ tự. Các thể loại phụ nối
+  tiếp theo thứ tự trong danh sách thể loại.
+
+| Đảo | Trò |
+| --- | --- |
+| **Cờ** | Cờ Tướng, Cờ Vua, Cờ Vây, Cờ Đam, Caro, Cờ Cá Ngựa, Cờ tỷ phú, Bắn Tàu |
+| **Bài** | Tiến Lên, Mậu Binh, Bài Cào |
+| **Sắp có** | Đảo sương mù có ổ khoá, chưa có trò |
 
 Bom Nguyên Tố không hợp với Cờ hay Bài. Nó chờ một thể loại phụ đầu tiên, và tới lúc đó vẫn chơi
 trên client Phaser.
 
-Khoảng trống phía sau có một số ô đảo nhỏ vẽ sẵn. Các thể loại phụ lấp ô theo thứ tự; nếu nhiều thể
-loại hơn số ô, ô cuối thành một đảo **gom** mở màn chọn trò ở thể loại phụ đầu tiên chưa có ô. Chạm
-Sắp có chỉ hiện thông báo nhanh "Sắp có".
+Vòng nhận bao nhiêu đảo cũng được: đảo càng nhiều thì vòng càng rộng và đảo phía sau càng nhỏ, nhưng
+đảo đang chọn luôn cùng cỡ. Chạm Sắp có chỉ hiện thông báo nhanh "Sắp có".
 
 Quy tắc dữ liệu:
 
 - Danh sách thể loại là dữ liệu của phần lõi (id, tên, ảnh đảo, thứ tự, và **chính** hay **phụ**).
-  Hai thể loại chính có chỗ cố định; thể loại phụ tự lấp ô trống. Thêm một thể loại phụ là thêm
+  Hai thể loại chính đứng đầu vòng; thể loại phụ nối theo thứ tự. Thêm một thể loại phụ là thêm
   một dòng và một ảnh đảo; không sửa code sảnh.
 - Mỗi trò khai báo nó thuộc thể loại nào. Thêm một trò là thêm một thẻ; không ai vẽ lại sảnh.
 - Thể loại chưa có trò nào `ready` cũng hiện là đảo sương mù có ổ khoá. Khi chưa có thể loại phụ
-  nào, ô đầu tiên là đảo Sắp có.
+  nào, vòng có thêm đảo Sắp có sau Bài.
 
 Bố cục HUD ở sảnh:
 
 | Vùng | Chứa |
 | --- | --- |
-| Trên trái | Ảnh đại diện, tên, cấp → **Nhà** |
+| Trên trái | Ảnh đại diện, tên, chip cấp → **Nhà** |
 | Trên phải | Một hàng icon nhỏ: xu, ngọc, hộp thư, ⚙ |
 | Cột trái | Sự kiện, Nhiệm vụ, Bạn bè (icon tròn nhỏ, có chấm đỏ) |
 | Cột phải | **Banner có tranh**: sự kiện đang mở, Chợ, Túi đồ; nhãn nhỏ "Mới", "Miễn phí" |
-| Dưới trái | Dòng chat mỏng; dưới nó là hàng nút chữ + icon: Nhà, Xếp hạng, Thành tích, Bến |
-| Dưới phải | Thẻ trò đang chọn (đổi được) + nút **CHƠI** thật to + **Tạo phòng** |
-| Giữa | Xóm, nhân vật của bạn, các đảo thể loại |
+| Dưới trái | Hàng nút icon vuông có chữ dưới: Nhà, Chợ, Đình, Bến |
+| Dưới phải | Thẻ trò đang chọn (đầu: tên; thân: tranh; chân: số người, thời lượng, số đang chơi) + nút **CHƠI** thật to + **Tạo phòng** |
+| Giữa | Vòng đảo thể loại |
 
 Các màn khác ngoài sảnh và ván đấu (chọn trò, Nhà, Chợ, Bến, kết quả) chỉ có ← ở trên trái và hàng
 icon tiền + ⚙ ở trên phải.
 
-Các nơi chốn của Xóm vẫn giữ tên làng: **Nhà** (hồ sơ, túi đồ), **Chợ** (cửa hàng), **Đình**
-(tin tức, xếp hạng chung), **Bến** (phòng đang mở, bạn bè online, lời mời). Chúng là nút trên HUD,
-và cũng là công trình bấm được trên đảo Xóm.
+Các nơi chốn giữ tên làng: **Nhà** (hồ sơ, túi đồ), **Chợ** (cửa hàng), **Đình** (tin tức, xếp
+hạng chung), **Bến** (phòng đang mở, bạn bè online, lời mời). Chúng là nút ở hàng dưới trái của
+HUD.
 
 ## Đường đi của người chơi
 
 ```
-Mở game ─► Sảnh (Xóm)
+Mở game ─► Sảnh (vòng đảo)
   │
   ├─ CHƠI ──────────────────────────► Ghép phòng ─► Ván đấu ─► Kết quả ─┬─► Chơi tiếp
   │   (trò đang chọn)                                                     └─► về Sảnh
   │
-  ├─ chạm đảo thể loại / thẻ trò đang chọn
+  ├─ xoay vòng ─► đảo đang chọn đổi, thẻ dưới phải đổi theo
+  ├─ chạm đảo đang chọn / thẻ trò đang chọn
   │      ▼
   │   Chọn trò: tab thể loại + danh sách thẻ kéo ngang
   │      ├─ Chọn ──────► về Sảnh, thẻ dưới phải đổi thành trò mới
@@ -173,10 +177,10 @@ Trò chọn một trong hai bố cục mẫu, để các trò cùng loại trôn
 Màn tuỳ chỉnh khi tạo phòng (số người, luật phụ, bot) là một bảng gỗ do trò điền nội dung, dùng ô
 lựa chọn và nút chung.
 
-Danh sách phòng (từ bảng chi tiết hoặc từ **Bến**) là một bảng gỗ, mỗi dòng: tên phòng, trò, số
-ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng phòng:
+Danh sách phòng (từ bảng chi tiết hoặc từ **Bến**) là một bảng gỗ, mỗi dòng: tranh nhỏ của trò,
+tên trò, chủ phòng và số ghế là hai chip riêng, nút "Vào". Bến có thêm ô nhập mã phòng:
 
-![Danh sách phòng trên biển gỗ (concept cũ)](concepts/island-enter.webp)
+![Bến: nhập mã phòng và danh sách phòng đang mở](concepts/room-list.webp)
 
 ## Kết thúc ván và phần thưởng
 
@@ -193,7 +197,7 @@ ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng p
 
 ![Trong Nhà](concepts/home-profile.webp)
 
-- Mở từ ảnh đại diện ở góc trên trái, nút Nhà ở hàng dưới trái, hoặc chạm ngôi nhà trên Xóm.
+- Mở từ ảnh đại diện ở góc trên trái, hoặc nút Nhà ở hàng dưới trái.
 - Thẻ hồ sơ bên trái: ảnh đại diện, tên, cấp và thanh tiến độ, vài con số tổng.
 - Bên phải là kệ gỗ, chia theo **thẻ đánh dấu** (bookmark) gỗ: Túi đồ, Thành tích, Xếp hạng.
 - Túi đồ là các ô trên kệ. Vật phẩm nào cũng có biểu tượng vuông, nền trong suốt, để đặt được vào ô.
@@ -203,8 +207,8 @@ ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng p
 
 ![Đảo sự kiện Trung Thu](concepts/event-island.webp)
 
-- Bản đầu chưa có sự kiện. Khi khung sự kiện ra đời, **Sự kiện** là một thể loại phụ: một đảo nhỏ ở
-  khoảng trống phía sau Xóm.
+- Bản đầu chưa có sự kiện. Khi khung sự kiện ra đời, **Sự kiện** là một thể loại phụ: một đảo trên
+  vòng đảo.
 - Khi có sự kiện đang mở, đảo Sự kiện sáng lên ở sảnh, có cờ hiệu và số ngày còn lại; nút Sự kiện ở
   cột trái có chấm đỏ. Mỗi sự kiện là một thẻ trong thể loại Sự kiện.
 - Bảng chi tiết của sự kiện có cùng bố cục với bảng chi tiết trò, nhưng **được đổi màu** (ví dụ
@@ -218,43 +222,21 @@ ghế, nút "Vào". Ảnh cũ dưới đây cho thấy cách trình bày dòng p
 
 ![Bộ thành phần giao diện](concepts/ui-kit.webp)
 
-> Chữ tiếng Anh trên bảng này do công cụ tạo ảnh viết sai; chỉ xem hình dạng và màu.
+Chi tiết (mã màu, font, cỡ, màu nút, cách viết prompt) ở [art-direction.md](art-direction.md).
+Tóm tắt:
 
-Ảnh mẫu phong cách là [ảnh sảnh](concepts/lobby.webp): hoạt hình phẳng, mảng màu sạch, viền mềm,
-bóng đơn giản, ít texture. Không vẽ vân gỗ, rêu, hạt nước hay ánh sáng điện ảnh chi tiết.
-
-**Thế giới:** xóm chài Việt Nam kiểu đồ chơi: tre, dây thừng, thúng, thuyền thúng, mái ngói đỏ,
-đèn lồng. Hoạt hình phẳng 2.5D, khối mềm, bóng ngắn, nắng từ trên trái. Đảo thể loại là diorama
-nhỏ; không đảo nào lấn át Xóm và nhân vật ở giữa.
-
-**Vật liệu giao diện:**
-
-| Thành phần | Vật liệu |
-| --- | --- |
-| Nút CHƠI và nút chính trong bảng | Sơn mài đỏ viền vàng, chữ kem: thứ lộng lẫy duy nhất |
-| Bảng lớn (kết quả, chi tiết trò, sự kiện) | Gỗ mật ong, buộc dây thừng, ruột giấy dó màu kem |
-| Nút phụ | Phẳng, màu gỗ, chữ nâu đậm hoặc kem |
-| Icon, hàng nút nhỏ, thanh tiền | Hình phẳng đơn giản, nền nâu trong mờ, chữ kem; không vân gỗ, không dây thừng |
-| Ảnh đại diện | Vòng tre; khung khác là vật phẩm trang trí |
-| Tiền | Đồng **xu** đồng có lỗ vuông; tài nguyên phụ là **ngọc** xanh lá |
-| Thẻ trò | Khung gỗ dọc bo góc, tranh minh hoạ trên, bảng tên giấy dưới |
-| Chấm thông báo | Chấm đỏ đèn lồng ở góc trên phải của nút |
-| Thông báo nhanh | Mẩu giấy dó trượt xuống từ trên giữa |
-
-**Bảng màu** (giá trị sẽ chốt trong `docs/art-direction.md`):
-
-| Vai trò | Màu |
-| --- | --- |
-| Biển | Ngọc lam trong |
-| Cát, giấy | Kem ấm |
-| Gỗ | Mật ong |
-| Cây | Xanh tre |
-| Mái, nhấn | Đỏ ngói, đỏ đèn lồng |
-| Quý, thưởng | Vàng đồng |
-| Chữ | Nâu đậm trên giấy, kem trên gỗ |
-
-**Chữ:** một font tròn đậm cho tiêu đề và số, một font sans dễ đọc cho chữ nhỏ. Cả hai phải có đủ
-dấu tiếng Việt.
+- **Thế giới:** xóm chài Việt Nam kiểu đồ chơi: tre, dây thừng, thúng, thuyền thúng, mái ngói đỏ,
+  đèn lồng. Hoạt hình 2.5D, mảng màu sạch, viền mềm, bóng ngắn, nắng từ trên trái. Ảnh mẫu là
+  [ảnh sảnh vòng đảo](concepts/lobby-ring.webp).
+- **HUD mỏng, một nút lộng lẫy:** nút, icon, hàng tiền nền tối chữ kem; chỉ nút CHƠI là sơn mài
+  viền vàng, to và phát sáng. Bảng lớn là gỗ mật ong, dây thừng, ruột giấy dó.
+- **Màu nút theo loại hành động:** đi tiếp đỏ sơn mài, xã hội xanh biển, xác nhận xanh tre, lùi
+  hoặc bỏ qua xám xanh, thông tin gỗ tối, nguy hiểm nâu đen viền đỏ.
+- **Chữ trong thẻ:** không dùng ký tự nối (`·`, `|`, `/`); tách bằng khoảng trống, màu và chip. Số
+  tăng xanh, số giảm đỏ. Thẻ chia đầu, thân, chân khi cần.
+- **Ảnh đại diện:** ảnh tròn trong vòng tre ở mọi nơi; khung khác là vật phẩm trang trí.
+- **Tiền:** đồng **xu** lỗ vuông; tài nguyên phụ là **ngọc** xanh lá.
+- **Chữ:** Baloo 2 cho tiêu đề, số, nút; Be Vietnam Pro cho chữ thường. Cả hai đủ dấu tiếng Việt.
 
 **Chuyển động:** nút nhún khi chạm; bảng gỗ đung đưa nhẹ khi hiện; camera bay khi đổi màn; xu bay
 khi nhận thưởng. Không có chuyển động nào chặn người chơi quá 0,6 giây.
@@ -284,9 +266,6 @@ Một trò hay sự kiện **không được**:
 
 ## Còn để ngỏ
 
-- Avatar: bố cục sảnh kiểu game mobile đặt **nhân vật** của bạn ở giữa, và ảnh ván đấu cho đối thủ
-  ngồi quanh bàn như nhân vật thật. Đây là hướng đề xuất. Cái giá: mỗi trang phục, mỗi tư thế phải
-  làm bằng Blender. Nếu chỉ dùng ảnh tròn, giữa sảnh sẽ là ngôi nhà của bạn trên Xóm.
 - Cấp người chơi tính từ đâu (tổng ván, kinh nghiệm riêng)?
 - Ngọc (tài nguyên thứ hai) dùng vào việc gì.
 - Có chat chữ hay chỉ biểu cảm.
