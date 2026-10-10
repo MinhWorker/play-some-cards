@@ -3,7 +3,7 @@
 ## CI (GitHub Actions)
 
 - `ci.yml` (mọi PR và mọi lần push lên `main`): `check` = `npm run check` + `npm run build`.
-  E2E chia làm ba job:
+  E2E chia làm ba job (**đang tạm dừng**, xem [E2E trong CI](#e2e-trong-ci)):
   - `e2e-plan` chọn kịch bản cần chạy (`scripts/e2e/scenarios/`). Push lên `main` chạy hết. PR
     chỉ chạy kịch bản liên quan đến file đã đổi (xem [E2E trong CI](#e2e-trong-ci)).
   - `e2e-run` chạy mỗi kịch bản trên một máy riêng: `npm run dev` không có database, rồi
@@ -17,6 +17,10 @@
 - Dependabot mở PR gộp hằng tuần cho npm và GitHub Actions.
 
 ## E2E trong CI
+
+**Đang tạm dừng** trong lúc các trò được làm lại bằng Godot (#108): từ giờ tới lúc đó không ai chơi
+bản Phaser. `e2e-plan` không chọn kịch bản nào nên `e2e` luôn đạt. Muốn chạy lại thì xoá dòng
+`PAUSED: 'true'` trong `ci.yml`. Phần dưới đây mô tả cách CI chọn kịch bản khi bật lại.
 
 Mỗi kịch bản là một file trong `scripts/e2e/scenarios/`, tự tạo tài khoản và phòng riêng. Nhờ đó
 các kịch bản chạy song song được. Tổng thời gian bằng thời gian của kịch bản dài nhất cộng khoảng

@@ -61,7 +61,8 @@ games/<id>/          Only index.ts + client.ts are required
 - Every `Game` has tests with `testGame` (`src/game/<Name>Game.test.ts`).
 - A game's browser test is a scenario, `scripts/e2e/scenarios/<id>.mjs` with
   `export const games = ['<id>']` (copy `tien-len.mjs`). CI runs it on its own machine whenever
-  `games/<id>/` changes; see "E2E trong CI" in `docs/deploy.md`.
+  `games/<id>/` changes (paused while the games move to Godot); see "E2E trong CI" in
+  `docs/deploy.md`.
 - When a mechanic or piece of data would help other games too, add it to the SDK instead of the
   game. Examples: a system event, a `ctx` property, a view helper, a test helper.
 - Changing an SDK API means, in the same change:

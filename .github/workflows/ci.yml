@@ -59,6 +59,8 @@ jobs:
 
   # Which e2e scenarios (scripts/e2e/scenarios/) this change needs: all of them on main, the
   # ones the changed files touch on a PR (none for docs), none for a release PR (versions only).
+  # Paused while the games move to Godot (#108): nobody plays the Phaser app until then, so it
+  # picks none and the required e2e check passes. Remove PAUSED below to run them again.
   e2e-plan:
     runs-on: ubuntu-latest
     outputs:
@@ -72,11 +74,12 @@ jobs:
           node-version-file: .nvmrc
       - id: pick
         env:
+          PAUSED: 'true'
           EVENT: ${{ github.event_name }}
           BASE: origin/${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
         run: |
-          if [[ "$HEAD_REF" == release-please--* ]]; then list='[]'
+          if [ "$PAUSED" = true ] || [[ "$HEAD_REF" == release-please--* ]]; then list='[]'
           elif [ "$EVENT" = pull_request ]; then list=$(node scripts/e2e.mjs --list --changed "$BASE")
           else list=$(node scripts/e2e.mjs --list)
           fi
