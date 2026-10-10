@@ -1,6 +1,6 @@
 # ADR 0001: Client viết bằng Godot, luật giữ bằng TypeScript trên server
 
-- Trạng thái: Đã chấp nhận (Phase 0)
+- Trạng thái: Đã chấp nhận (Phase 0), xác nhận sau khi đo ở Phase 1
 - Ngày: 2026-10-09
 
 ## Bối cảnh
@@ -83,7 +83,10 @@ Nhận xét:
 - "Engine chạy" và cột chơi được đo trên bản debug (có cầu nối test); bản release khởi động
   nhanh hơn một chút (12,5 s so với 13,6 s lần đầu).
 
-Còn phải đo trên máy thật: Android tầm trung (Chrome) và iPhone (Safari), lần đầu và lần sau.
+Trên máy thật, chủ dự án đã cho hai máy Android Chrome và iPhone Safari chơi Caro với nhau qua bản
+xem trước Vercel. Cả hai đều chạy được, thời gian chờ tải chấp nhận được.
+
+**Kết luận (2026-10-10): đi tiếp với Godot.** Thời gian tải không phải trở ngại lớn.
 
 ## Phương án đã cân nhắc
 
