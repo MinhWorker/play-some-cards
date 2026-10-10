@@ -32,6 +32,7 @@ import { judgeRepetition, startsChase } from './referee.js';
 import {
   canMove,
   inCheck,
+  legalMoves,
   legalTargets,
   noAttackers,
   other,
@@ -155,10 +156,13 @@ export class XiangqiGame extends Game<State, Options, View> {
     return best && { event: 'move', payload: best };
   }
 
-  /** Nothing is secret; screens just don't need the repetition bookkeeping. */
-  view({ state }: GameContext<State, Options>, _viewer: Seat | null): View {
+  /** Nothing is secret; screens get the moves they may play instead of the repetition
+   * bookkeeping. */
+  view({ state }: GameContext<State, Options>, viewer: Seat | null): View {
     const { history: _, ...view } = state;
-    return view;
+    const side = viewer && state.players.includes(viewer.id) ? sideOfPlayer(state, viewer) : null;
+    const moves = side && side === state.turn && !state.end ? legalMoves(state.board, side) : [];
+    return { ...view, moves };
   }
 }
 
