@@ -37,6 +37,8 @@ signal error(message: String)
 signal link_changed(open: bool)
 
 const OFFLINE := "offline"
+## The server runs a newer protocol than this build: the page has to load the new one.
+const PROTOCOL_MISMATCH := "protocol-mismatch"
 ## Waits between reconnect attempts grow up to this many seconds.
 const MAX_RETRY_SECONDS := 8.0
 
@@ -52,6 +54,8 @@ var room_code: String = ""
 var player_id: String = ""
 ## The latest state of your room, or null.
 var snapshot: XomDaoRoomSnapshot
+## The error of the last request that failed ("" when none has).
+var last_error: String = ""
 
 var _socket := WebSocketPeer.new()
 var _state: WebSocketPeer.State = WebSocketPeer.STATE_CLOSED
@@ -83,6 +87,24 @@ func close() -> void:
 
 func is_open() -> bool:
 	return _state == WebSocketPeer.STATE_OPEN
+
+
+## The server refused this build's protocol (a newer one is deployed).
+func refused() -> bool:
+	return last_error == PROTOCOL_MISMATCH
+
+
+## Closes for good and forgets who was logged in, to log in again as someone else.
+func reset() -> void:
+	close()
+	while _state != WebSocketPeer.STATE_CLOSED:
+		await get_tree().process_frame
+	token = ""
+	user = null
+	balances = {}
+	player_id = ""
+	last_error = ""
+	_set_room("")
 
 
 ## Logs in as a new guest with only a display name.
@@ -253,6 +275,7 @@ func _ok(event: String, data: Dictionary = {}) -> Dictionary:
 	var ack: Dictionary = await request(event, data)
 	if ack.get("ok") == true:
 		return ack
+	last_error = str(ack.get("error", "?"))
 	error.emit(str(ack.get("error", "?")))
 	return {}
 

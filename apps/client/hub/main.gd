@@ -9,6 +9,9 @@ extends Control
 ## Every node a test taps or reads has a name (TestBridge, core/test_bridge.gd).
 ## ?gallery=<page> (web) or `-- --gallery=<page>` opens the UI component gallery instead.
 
+## How long to keep trying while the server wakes up.
+const WAKE_MS := 120_000
+
 var _client: XomDaoClient = Net.client
 var _screen: Control
 var _shown: String = ""
@@ -81,11 +84,14 @@ static func gallery_page() -> int:
 
 
 func _start() -> void:
-	if not await _client.connect_to_server(Net.server_url()):
+	if not await _connect():
 		_show_status("Không kết nối được máy chủ")
 		return
 	if not await Session.log_in(_client):
-		_show_status("Không đăng nhập được")
+		if _client.refused():
+			_show_update()
+		else:
+			_show_status("Không đăng nhập được")
 		return
 	_client.error.connect(_say)
 	_coins = _balance()
@@ -102,6 +108,63 @@ func _start() -> void:
 	elif code != "" and _client.room_code == "":
 		await _client.join_room(code)
 	_refresh()
+
+
+## Connects, trying again while a sleeping server wakes up (a free host takes up to a minute).
+func _connect() -> bool:
+	var started: int = Time.get_ticks_msec()
+	while not await _client.connect_to_server(Net.server_url()):
+		if Time.get_ticks_msec() - started > WAKE_MS:
+			return false
+		_show_status("Đang đánh thức máy chủ")
+		await get_tree().create_timer(2.0).timeout
+	return true
+
+
+## The server runs a newer version than this page: Tải lại loads it.
+func _show_update() -> void:
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 24)
+	center.add_child(column)
+	var label := Label.new()
+	label.name = "Status"
+	label.text = "Đã có bản mới"
+	label.theme_type_variation = "HudLabel"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(label)
+	var reload: XomDaoButton = XomDaoButton.create("Tải lại", XomDaoUi.Kind.GO)
+	reload.name = "Reload"
+	reload.pressed.connect(_reload_page)
+	column.add_child(reload)
+	_set_screen("status", center)
+
+
+func _reload_page() -> void:
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("location.reload()", true)
+	else:
+		get_tree().reload_current_scene()
+
+
+## Tài khoản over your Nhà.
+func _show_account() -> void:
+	var account := HubAccount.create(_client.user)
+	account.signed_in.connect(_switch_account)
+	account.signed_out.connect(
+		func() -> void:
+			await Session.log_out(_client.token)
+			await _switch_account("")
+	)
+	add_child(account)
+
+
+## Starts again as another player: `token` ("" = a new guest).
+func _switch_account(token: String) -> void:
+	Session.save_token(token)
+	await _client.reset()
+	get_tree().reload_current_scene()
 
 
 ## Debug builds: a real room for this game, the computer in the seats it can take, started.
@@ -243,6 +306,7 @@ func _show_home() -> void:
 	home.top.money.settings_pressed.connect(_menu.open_settings)
 	home.back_pressed.connect(_back_to_lobby)
 	home.equip_requested.connect(_equip.bind(home))
+	home.account_pressed.connect(_show_account)
 	await _fill_home(home, "")
 
 
