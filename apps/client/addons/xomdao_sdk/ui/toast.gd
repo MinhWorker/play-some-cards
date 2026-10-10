@@ -25,6 +25,7 @@ static func show_on(
 	layer.layer = 100
 	host.add_child(layer)
 	var toast := XomDaoToast.create(message, name_of_icon)
+	toast.name = "Toast"
 	var holder := Control.new()
 	holder.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE

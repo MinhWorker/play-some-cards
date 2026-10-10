@@ -127,6 +127,7 @@ func _row(player: XomDaoPlayerInfo, rank: int, amount: int, me: String) -> Contr
 	var avatar := XomDaoAvatar.new()
 	avatar.custom_minimum_size = Vector2(64.0, 64.0)
 	avatar.initial = player.name
+	avatar.frame = player.frame
 	row.add_child(avatar)
 	var label := Label.new()
 	label.text = "Bạn" if player.id == me else player.name

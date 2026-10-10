@@ -25,6 +25,8 @@ hub/                main.gd routes the screens: lobby (island ring + HUD), selec
                     ben (Bến), room (waiting room), the game with ☰, the result over it
   lobby/            HubLobby, HubIslandRing (ring layout, swipe/tap), HubIsland (drawn islands)
   select/ ben/ room/  Game select; Bến; waiting room, Tạo phòng board, result, Luật board
+  home/ shop/       Nhà (HubHome: profile + shelf, someone else's read-only) and Chợ (HubShop);
+                    shelf.gd (HubShelf) is the tabbed shelf of item tiles both use
   gallery/          Every UI kit component on 4 pages: ?gallery=<page> or `-- --gallery=<page>`
 addons/xomdao_sdk/  The only API a game's Godot code uses: XomDaoFrame, XomDaoClient (client.gd)
   ui/               The shared UI kit (theme, widgets, fonts, Phosphor icons, UI sounds)

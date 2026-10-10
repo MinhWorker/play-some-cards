@@ -3,12 +3,15 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AccountsService } from '../accounts/accounts.service.js';
 import { MemoryAccountsStore } from '../accounts/accounts.store.js';
 import { CatalogService } from '../catalog/catalog.service.js';
+import { InventoryService } from '../inventory/inventory.service.js';
+import { MemoryInventoryStore } from '../inventory/inventory.store.js';
 import { LedgerService } from '../ledger/ledger.service.js';
 import { MemoryLedgerStore } from '../ledger/ledger.store.js';
 import { MatchesService } from '../matches/matches.service.js';
 import { MemoryMatchesStore } from '../matches/matches.store.js';
 import { RoomsGateway } from '../rooms/rooms.gateway.js';
 import { RoomsService } from '../rooms/rooms.service.js';
+import { ShopService } from '../shop/shop.service.js';
 import { DevConsoleService } from './dev-console.service.js';
 import { DevSnapshots } from './dev-snapshots.js';
 import { logRoom } from './room-log.js';
@@ -17,13 +20,18 @@ afterEach(() => vi.restoreAllMocks());
 function setup(dev: boolean) {
   const rooms = new RoomsService(dev);
   const { room } = rooms.create('tic-tac-toe', { id: 'a', name: 'A' }, { opponent: 'bot' });
+  const accounts = new AccountsService(new MemoryAccountsStore());
+  const ledger = new LedgerService(new MemoryLedgerStore());
+  const inventory = new InventoryService(new MemoryInventoryStore(), accounts);
   const gateway = new RoomsGateway(
     rooms,
-    new AccountsService(new MemoryAccountsStore()),
+    accounts,
     new DevConsoleService(rooms, new DevSnapshots()),
     new MatchesService(new MemoryMatchesStore()),
     new CatalogService(rooms),
-    new LedgerService(new MemoryLedgerStore()),
+    ledger,
+    inventory,
+    new ShopService(ledger, inventory),
   );
   const socket = {
     data: { user: { id: 'a', name: 'A' }, roomCode: room.code },

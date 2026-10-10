@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://box1csmqih4p8"
-path="res://.godot/imported/back-lattice.webp-487d05b50b316b3f2a0c1e2c1452a354.ctex"
+uid="uid://7inh3fplqhym"
+path="res://.godot/imported/frame-gold.webp-1193e31a42f7bfb6dbce86f2dfbb4aec.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://content/tien-len/art/back-lattice.webp"
-dest_files=["res://.godot/imported/back-lattice.webp-487d05b50b316b3f2a0c1e2c1452a354.ctex"]
+source_file="res://addons/xomdao_sdk/ui/looks/frame-gold.webp"
+dest_files=["res://.godot/imported/frame-gold.webp-1193e31a42f7bfb6dbce86f2dfbb4aec.ctex"]
 
 [params]
 

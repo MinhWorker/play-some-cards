@@ -44,6 +44,12 @@ var compact: bool = false:
 		compact = value
 		_resize()
 
+## The frame the player wears (`XomDaoPlayerInfo.frame`); "" for the bamboo ring.
+var frame: String = "":
+	set(value):
+		frame = value
+		avatar.frame = value
+
 var picture: Texture2D:
 	set(value):
 		picture = value

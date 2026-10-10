@@ -4,6 +4,7 @@ import { z } from 'zod';
 export type { DevCommandInfo, DevConsoleSchema } from '@xomdao/sdk';
 
 import { avatarSchema, frameSchema, profileSchema } from './account.js';
+import { ITEM_SLOTS } from './items.js';
 
 /**
  * The contract between the clients and the server, written once as zod schemas. The server
@@ -25,7 +26,7 @@ import { avatarSchema, frameSchema, profileSchema } from './account.js';
  * version). CI fails when this file changes without a bump, unless the PR has the
  * `protocol:compatible` label.
  */
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 /** Error when the client's PROTOCOL_VERSION differs from the server's. */
 export const PROTOCOL_MISMATCH = 'protocol-mismatch';
@@ -48,6 +49,8 @@ export const User = z.object({
   name: z.string(),
   avatar: avatarSchema,
   frame: frameSchema,
+  /** The back of their cards in card games (`CardBack`); older servers send none. */
+  cardBack: z.string().optional(),
 });
 export type User = z.infer<typeof User>;
 
@@ -60,6 +63,8 @@ export const PlayerInfo = z.object({
   /** The account's picture (`Avatar`) and the ring around it (`Frame`); bots have none. */
   avatar: z.string().optional(),
   frame: z.string().optional(),
+  /** In `players` and `spectators`: the back of their cards (`CardBack`). */
+  cardBack: z.string().optional(),
   /** In `seats` only: left the room during this game. */
   left: z.boolean().optional(),
 });
@@ -252,6 +257,36 @@ export const Catalog = z.object({
 });
 export type Catalog = z.infer<typeof Catalog>;
 
+/** An item at Chợ (`ITEMS` in items.ts), with whether you have it. */
+export const ShopItem = z.object({
+  id: z.string(),
+  slot: z.enum(ITEM_SLOTS),
+  look: z.string(),
+  name: z.string(),
+  /** In `core:coin`; 0 = everyone has it. */
+  price: z.int(),
+  owned: z.boolean(),
+});
+export type ShopItem = z.infer<typeof ShopItem>;
+
+/** Reply of `shop:list`: every item, cheapest first in each slot. */
+export const ShopList = z.object({ items: z.array(ShopItem) });
+
+/** Reply of `shop:buy`: what you bought, and your balances after paying. */
+export const Purchase = z.object({ item: ShopItem, balances: Balances });
+
+/** A player's Nhà: who they are, what they wear and what they own (free items included). */
+export const Profile = z.object({
+  id: z.string(),
+  name: z.string(),
+  avatar: z.string(),
+  frame: z.string(),
+  cardBack: z.string(),
+  /** Item ids, in `ITEMS` order. */
+  owned: z.array(z.string()),
+});
+export type Profile = z.infer<typeof Profile>;
+
 // ── Requests and events ─────────────────────────────────────────────────────────────────────
 
 const Empty = z.object({});
@@ -298,6 +333,17 @@ export const requests = {
   'session:resume': { req: Empty, res: SessionInfo },
   /** Change display name, avatar and frame (also updates your name in your current room). */
   'profile:update': { req: profileSchema, res: z.object({ user: User }) },
+  /**
+   * Chợ: every item for sale, with whether you have it. `shop:buy` pays its price through the
+   * ledger (once per item and account, so a double tap never pays twice) and puts it in your
+   * Túi đồ; it fails with "Không đủ xu" when you can't pay.
+   */
+  'shop:list': { req: Empty, res: ShopList },
+  'shop:buy': { req: z.object({ itemId: z.string() }), res: Purchase },
+  /** Someone's Nhà (yours without `userId`); read-only for others. */
+  'inventory:get': { req: z.object({ userId: z.string().optional() }), res: Profile },
+  /** Wear an item you own (also shows on you in your current room). */
+  'inventory:equip': { req: z.object({ itemId: z.string() }), res: z.object({ user: User }) },
   /** Your most recent finished games (`HISTORY_LIMIT`), newest first. */
   'history:recent': { req: Empty, res: z.object({ matches: z.array(MatchRecord) }) },
   /**
@@ -378,6 +424,10 @@ export const types = {
   EventInfo,
   GameCard,
   Catalog,
+  ShopItem,
+  ShopList,
+  Purchase,
+  Profile,
   ProfileUpdate: profileSchema,
   AuthReply,
   SessionInfo,
@@ -415,6 +465,8 @@ interface DevClientEvents {
     ) => void,
   ) => void;
   'dev:schema': (req: Record<string, never>, ack: Ack<DevConsoleSchema>) => void;
+  /** Adds coins to your own balance through the ledger (e2e: something to spend at Chợ). */
+  'dev:coins': (req: { amount: number }, ack: Ack<{ balances: Balances }>) => void;
 }
 
 /** The Socket.IO events a client sends, from `requests`. */

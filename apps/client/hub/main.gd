@@ -17,7 +17,7 @@ var _catalog: HubCatalog
 ## The game on CHƠI and the genre of the lobby's front island.
 var _game_id: String = ""
 var _genre: String = ""
-## Where the player is out of a room: "lobby", "select" or "ben".
+## Where the player is out of a room: "lobby", "select", "ben", "nha" or "cho".
 var _place: String = "lobby"
 ## The balance the screens show; the result rolls it up to the ledger's.
 var _coins: int = 0
@@ -28,6 +28,8 @@ var _game_id_shown: String = ""
 var _loading: bool = false
 var _result: HubResult
 var _ben: HubBen
+## A shop:buy is on its way.
+var _buying: bool = false
 ## The screen on now (the lobby, the waiting room…).
 var _current: Control
 
@@ -167,6 +169,10 @@ func _show_place() -> void:
 			_show_select(_genre)
 		"ben":
 			_show_ben()
+		"nha":
+			_show_home()
+		"cho":
+			_show_shop()
 		_:
 			_show_lobby()
 
@@ -200,10 +206,113 @@ func _on_genre_changed(genre_id: String, lobby: HubLobby) -> void:
 
 
 func _on_place(place: String) -> void:
-	if place == "ben":
-		_show_ben()
-	else:
-		XomDaoToast.show_on(self, "Sắp có", "lock-simple")
+	match place:
+		"ben":
+			_show_ben()
+		"nha":
+			_show_home()
+		"cho":
+			_show_shop()
+		_:
+			XomDaoToast.show_on(self, "Sắp có", "lock-simple")
+
+
+## Nhà: your profile card and Túi đồ, where you wear what you own.
+func _show_home() -> void:
+	_place = "nha"
+	if _shown == "nha":
+		return
+	var home := HubHome.new()
+	_set_screen("nha", home)
+	home.top.money.show_balance(_coins)
+	home.top.money.settings_pressed.connect(_menu.open_settings)
+	home.back_pressed.connect(_back_to_lobby)
+	home.equip_requested.connect(_equip.bind(home))
+	await _fill_home(home, "")
+
+
+## Someone's Nhà over the screen, read-only (tap a player in the waiting room).
+func _show_profile_of(user_id: String) -> void:
+	if user_id == _client.player_id:
+		return
+	var home := HubHome.new(null, false)
+	home.name = "OtherHome"
+	add_child(home)
+	home.top.money.show_balance(_coins)
+	home.top.money.settings_pressed.connect(_menu.open_settings)
+	home.back_pressed.connect(home.queue_free)
+	if not await _fill_home(home, user_id):
+		home.queue_free()
+
+
+## Fills a Nhà with `inventory:get` (yours for ""), naming the items from `shop:list`.
+func _fill_home(home: HubHome, user_id: String) -> bool:
+	var data: Dictionary = {} if user_id == "" else {"userId": user_id}
+	var reply: Dictionary = await _client.request(XomDaoProtocol.INVENTORY_GET, data)
+	var list: Dictionary = await _client.request(XomDaoProtocol.SHOP_LIST)
+	if reply.get("ok") != true or list.get("ok") != true:
+		_say(str(reply.get("error", list.get("error", "Không tải được"))))
+		return false
+	if is_instance_valid(home):
+		home.show_profile(XomDaoProfile.from_dict(reply), XomDaoShopList.from_dict(list).items)
+	return true
+
+
+func _equip(item_id: String, home: HubHome) -> void:
+	var reply: Dictionary = await _client.request(
+		XomDaoProtocol.INVENTORY_EQUIP, {"itemId": item_id}
+	)
+	if reply.get("ok") != true:
+		_say(str(reply.get("error", "")))
+		return
+	_client.user = XomDaoUser.from_dict(reply["user"])
+	XomDaoUi.play(self, XomDaoUi.SOUND_TAP)
+	if is_instance_valid(home):
+		await _fill_home(home, "")
+
+
+## Chợ: the items for sale; Mua pays through the ledger on the server.
+func _show_shop() -> void:
+	_place = "cho"
+	if _shown == "cho":
+		return
+	_coins = _balance()
+	var shop := HubShop.new()
+	_set_screen("cho", shop)
+	shop.top.money.show_balance(_coins)
+	shop.top.money.settings_pressed.connect(_menu.open_settings)
+	shop.back_pressed.connect(_back_to_lobby)
+	shop.buy_requested.connect(_buy.bind(shop))
+	await _fill_shop(shop)
+
+
+func _fill_shop(shop: HubShop) -> void:
+	var reply: Dictionary = await _client.request(XomDaoProtocol.SHOP_LIST)
+	if reply.get("ok") != true:
+		_say(str(reply.get("error", "Không tải được")))
+		return
+	if is_instance_valid(shop):
+		shop.show_items(XomDaoShopList.from_dict(reply).items, _coins)
+
+
+func _buy(item_id: String, shop: HubShop) -> void:
+	# A second tap while the first is on its way asks nothing more (the server pays once anyway).
+	if _buying:
+		return
+	_buying = true
+	var reply: Dictionary = await _client.request(XomDaoProtocol.SHOP_BUY, {"itemId": item_id})
+	_buying = false
+	if reply.get("ok") != true:
+		_say(str(reply.get("error", "")))
+		return
+	var purchase := XomDaoPurchase.from_dict(reply)
+	_client.balances = purchase.balances
+	_coins = _balance()
+	XomDaoUi.play(self, XomDaoUi.SOUND_COIN)
+	XomDaoToast.show_on(self, "Đã mua %s" % purchase.item.name, "check-circle")
+	if is_instance_valid(shop):
+		shop.top.money.show_balance(_coins)
+		await _fill_shop(shop)
 
 
 func _show_select(genre_id: String) -> void:
@@ -317,6 +426,7 @@ func _show_waiting_room(snapshot: XomDaoRoomSnapshot) -> void:
 		room.leave_pressed.connect(_leave)
 		room.invite_pressed.connect(_invite)
 		room.start_pressed.connect(_client.start_game)
+		room.player_pressed.connect(_show_profile_of)
 	if snapshot == null:
 		return
 	var card: XomDaoGameCard = _catalog.card(snapshot.game_id)

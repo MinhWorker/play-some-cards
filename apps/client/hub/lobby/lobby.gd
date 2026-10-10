@@ -83,6 +83,7 @@ func show_catalog(catalog: HubCatalog, genre_id: String) -> void:
 func show_user(user: XomDaoUser) -> void:
 	_name.text = user.name if user != null else ""
 	avatar.initial = _name.text
+	avatar.frame = user.frame if user != null else ""
 
 
 ## The card at the bottom right: the selected game, or "Sắp có" when there is none to play.

@@ -6,6 +6,8 @@ extends Control
 signal leave_pressed
 signal invite_pressed
 signal start_pressed
+## A seated player was tapped: their Nhà opens.
+signal player_pressed(user_id: String)
 
 var top := HubTopBar.new()
 
@@ -69,6 +71,8 @@ func _ready() -> void:
 func show_room(snapshot: XomDaoRoomSnapshot, me: String, max_players: int, quick: bool) -> void:
 	_code.text = snapshot.code
 	for child: Node in _seats.get_children():
+		# Out of the tree now, so the new seats keep their names.
+		_seats.remove_child(child)
 		child.queue_free()
 	for i: int in maxi(max_players, snapshot.players.size()):
 		var slot := XomDaoPlayerSlot.new()
@@ -77,7 +81,11 @@ func show_room(snapshot: XomDaoRoomSnapshot, me: String, max_players: int, quick
 		if i < snapshot.players.size():
 			var player: XomDaoPlayerInfo = snapshot.players[i]
 			slot.player_name = player.name
+			slot.frame = player.frame
 			slot.host = player.id == snapshot.host_id
+			if not player.bot:
+				slot.mouse_filter = Control.MOUSE_FILTER_STOP
+				slot.gui_input.connect(_on_slot_input.bind(player.id))
 		else:
 			slot.player_name = "Trống"
 			slot.modulate = Color(1, 1, 1, 0.45)
@@ -102,3 +110,8 @@ func _layout() -> void:
 	_board.position = Vector2(
 		(size.x - _board.size.x) / 2.0, maxf(y, (size.y - _board.size.y) / 2.0)
 	)
+
+
+func _on_slot_input(event: InputEvent, user_id: String) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		player_pressed.emit(user_id)

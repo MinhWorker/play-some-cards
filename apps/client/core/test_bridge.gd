@@ -8,6 +8,8 @@ extends Node
 ##   xomdao.rect(name)      its box in CSS pixels of the page { x, y, width, height }, or null
 ##   xomdao.click(name)     presses that button (BaseButton.pressed); false when there is none
 ##   xomdao.state()         { scene, user, room: the latest room snapshot, balances, downloaded }
+##   xomdao.request(ev, d)  sends a request to the server (e.g. `dev:coins`); its reply lands in
+##                          xomdao.reply() (null until it does), and its `balances` in the client
 ##
 ## Each call runs synchronously in Godot (single-threaded build) and returns plain JSON data.
 
@@ -23,6 +25,8 @@ window.xomdao = {
 	text(name) { return this._call('text', [name]); },
 	click(name) { return this._call('click', [name]); },
 	state() { return this._call('state', []); },
+	request(event, data) { return this._call('request', [event, data ?? {}]); },
+	reply() { return this._call('reply', []); },
 	rect(name) {
 		const r = this._call('rect', [name]);
 		if (!r) return null;
@@ -37,6 +41,8 @@ window.xomdao = {
 ## Set by the hub: the name of what is on screen.
 var scene: String = "boot"
 
+## The last reply to xomdao.request(), or null while it is on its way.
+var _reply: Variant = null
 var _api: JavaScriptObject
 var _callback: JavaScriptObject
 
@@ -65,6 +71,8 @@ func _answer(call: String, params: Array) -> Variant:
 		"rect": func() -> Variant: return _rect(find(arg) as Control),
 		"click": func() -> Variant: return _click(find(arg) as BaseButton),
 		"state": func() -> Variant: return _state(),
+		"request": func() -> Variant: return _request(arg, params[1] if params.size() > 1 else {}),
+		"reply": func() -> Variant: return _reply,
 	}
 	var answer: Callable = answers.get(call, func() -> Variant: return null)
 	return answer.call()
@@ -91,6 +99,19 @@ func _click(button: BaseButton) -> bool:
 		return false
 	button.pressed.emit()
 	return true
+
+
+func _request(event: String, data: Variant) -> bool:
+	_reply = null
+	_send(event, data if data is Dictionary else {})
+	return true
+
+
+func _send(event: String, data: Dictionary) -> void:
+	var reply: Dictionary = await Net.client.request(event, data)
+	if reply.get("balances") is Dictionary:
+		Net.client.balances = reply["balances"]
+	_reply = reply
 
 
 func _state() -> Dictionary:

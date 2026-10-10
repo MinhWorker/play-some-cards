@@ -12,7 +12,7 @@ import {
   registerSchema,
   type User,
 } from '@xomdao/shared';
-import type { AccountsStore } from './accounts.store.js';
+import type { AccountsStore, Looks } from './accounts.store.js';
 
 export class AccountError extends Error {}
 
@@ -102,6 +102,21 @@ export class AccountsService {
     const parsed = profileSchema.safeParse(input);
     if (!parsed.success) throw new AccountError(firstIssue(parsed.error));
     const user = await this.store.updateProfile(userId, parsed.data);
+    if (!user) throw new AccountError('Không tìm thấy tài khoản');
+    return user;
+  }
+
+  /** An account by id, or `null`. */
+  userById(userId: string): Promise<User | null> {
+    return this.store.userById(userId);
+  }
+
+  /**
+   * Changes how the player shows (their frame, card back). Only Túi đồ calls this, after
+   * checking they own the item.
+   */
+  async setLooks(userId: string, looks: Looks): Promise<User> {
+    const user = await this.store.setLooks(userId, looks);
     if (!user) throw new AccountError('Không tìm thấy tài khoản');
     return user;
   }

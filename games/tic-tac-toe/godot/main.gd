@@ -117,6 +117,8 @@ func _show(snapshot: XomDaoRoomSnapshot) -> void:
 		cell.add_theme_stylebox_override("disabled", _box(fill, 0.0, 2))
 	_x_slot.player_name = _name(str(players[0]))
 	_o_slot.player_name = _name(str(players[1]))
+	_x_slot.frame = _frame(str(players[0]))
+	_o_slot.frame = _frame(str(players[1]))
 	for i: int in 2:
 		var slot: XomDaoPlayerSlot = [_x_slot, _o_slot][i]
 		var on_turn: bool = snapshot.status == "playing" and str(view["turn"]) == str(players[i])
@@ -164,6 +166,14 @@ func _name(id: String) -> String:
 		if player.id == id:
 			return player.name
 	return "?"
+
+
+## The frame a player wears, "" for the computer.
+func _frame(id: String) -> String:
+	for player: XomDaoPlayerInfo in _snapshot.seats + _snapshot.players:
+		if player.id == id:
+			return player.frame
+	return ""
 
 
 ## A player's seat beside the board, with the mark they play on a chip.
