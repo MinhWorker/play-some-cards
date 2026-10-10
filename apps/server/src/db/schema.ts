@@ -1,8 +1,10 @@
 // Database tables (Drizzle ORM). After changing this file run `npm run db:generate -w @xomdao/server`
 // to write a migration into `apps/server/drizzle/`; the server applies pending migrations on start.
-// Rooms and games still live in memory (see rooms.service.ts); accounts and finished games
-// (match history) are stored here.
+// Rooms and games still live in memory (see rooms.service.ts); accounts, finished games
+// (match history) and the ledger are stored here. Each module owns its own tables
+// (docs/adr/0002-modules.md).
 import {
+  bigint,
   boolean,
   index,
   integer,
@@ -68,4 +70,40 @@ export const matchPlayers = pgTable(
     primaryKey({ columns: [t.matchId, t.seat] }),
     index('match_players_user_id_idx').on(t.userId),
   ],
+);
+
+/**
+ * Ledger (apps/server/src/ledger): one row per change to a balance. `key` makes a change happen
+ * once (a game's reward is keyed by its match id). Only the ledger writes these two tables.
+ */
+export const ledgerEntries = pgTable(
+  'ledger_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** Namespaced: `core:coin`. */
+    resource: text('resource').notNull(),
+    /** Above 0 adds, below 0 spends. */
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    /** Why, for people reading the table: `match:tic-tac-toe`. */
+    reason: text('reason').notNull(),
+    key: text('key').notNull().unique(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('ledger_entries_user_id_idx').on(t.userId)],
+);
+
+/** Each account's balance per resource: the sum of its ledger rows. */
+export const balances = pgTable(
+  'balances',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    resource: text('resource').notNull(),
+    amount: bigint('amount', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.resource] })],
 );

@@ -20,6 +20,7 @@ import { AccountError, AccountsService } from '../accounts/accounts.service.js';
 import { CatalogService } from '../catalog/catalog.service.js';
 import { DevConsoleService } from '../dev/dev-console.service.js';
 import { followRoomLog } from '../dev/room-log.js';
+import { LedgerService } from '../ledger/ledger.service.js';
 import { MatchesService } from '../matches/matches.service.js';
 import { type Room, RoomError, RoomsService } from './rooms.service.js';
 
@@ -72,9 +73,20 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
     private readonly devConsole: DevConsoleService,
     private readonly matches: MatchesService,
     private readonly catalog: CatalogService,
+    private readonly ledger: LedgerService,
   ) {
     rooms.onFinished((game) => {
       this.matches.record(game).catch((err) => console.error('Could not save a match', err));
+    });
+    rooms.onFinished((game) => {
+      this.ledger.rewardMatch(game).then(
+        (notices) => {
+          for (const notice of notices) {
+            for (const s of this.socketsOf(notice.userId)) s.emit('reward', notice);
+          }
+        },
+        (err) => console.error('Could not pay rewards', err),
+      );
     });
   }
 
@@ -117,9 +129,10 @@ export class RoomsGateway implements OnGatewayInit, OnGatewayDisconnect {
 
   @SubscribeMessage('session:resume')
   resume(socket: AppSocket) {
-    return this.handle(() => {
+    return this.handle(async () => {
+      const balances = await this.ledger.balances(socket.data.user.id);
       const room = this.rooms.roomOf(socket.data.user.id);
-      return { user: socket.data.user, room: room ? this.enter(socket, room) : null };
+      return { user: socket.data.user, room: room ? this.enter(socket, room) : null, balances };
     });
   }
 

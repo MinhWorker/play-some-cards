@@ -9,6 +9,20 @@ export type PlayerId = string;
 export interface GameResult {
   /** Empty array means a draw. */
   winners: PlayerId[];
+  /**
+   * What the game gave out with `ctx.reward` (absent when nothing). The server pays it into the
+   * players' balances once, within the game's `meta.rewardCap`.
+   */
+  rewards?: Reward[];
+}
+
+/** One `ctx.reward(player, resource, amount)`. */
+export interface Reward {
+  player: PlayerId;
+  /** A namespaced resource: `core:coin`. */
+  resource: string;
+  /** A whole number above 0. */
+  amount: number;
 }
 
 /**

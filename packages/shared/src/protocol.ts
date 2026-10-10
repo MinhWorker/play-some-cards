@@ -107,6 +107,21 @@ export interface RoomSummary {
   canJoin: boolean;
 }
 
+/** An account's amount of each resource it has (`core:coin`); resources never held are missing. */
+export type Balances = Record<string, number>;
+
+/** The main currency. */
+export const COIN = 'core:coin';
+
+/** What a player received when a game ended (`reward`). */
+export interface RewardNotice {
+  userId: string;
+  gameId: string;
+  rewards: { resource: string; amount: number }[];
+  /** Balances after the reward. */
+  balances: Balances;
+}
+
 /** Every request gets either `{ ok: true, ...data }` or `{ ok: false, error }`. */
 export type Ack<T = object> = (res: ({ ok: true } & T) | { ok: false; error: string }) => void;
 
@@ -135,7 +150,7 @@ export interface ClientToServerEvents {
    */
   'session:resume': (
     req: Record<string, never>,
-    ack: Ack<{ user: User; room: JoinedRoom | null }>,
+    ack: Ack<{ user: User; room: JoinedRoom | null; balances: Balances }>,
   ) => void;
   /** Change display name, avatar and frame (also updates your name in your current room). */
   'profile:update': (req: ProfileUpdate, ack: Ack<{ user: User }>) => void;
@@ -190,4 +205,6 @@ export interface ServerToClientEvents {
   'lobby:rooms': (update: { gameId: string; rooms: RoomSummary[] }) => void;
   /** The room was disbanded (no players left); everyone still inside is sent out. */
   'room:closed': (info: { gameId: string; reason: string }) => void;
+  /** A game you played ended and paid you (once per game, within its `meta.rewardCap`). */
+  reward: (notice: RewardNotice) => void;
 }

@@ -90,7 +90,7 @@ describe('RoomsService', () => {
       service.move(room.code, id, place(x, y));
     }
     expect(room.status).toBe('finished');
-    expect(room.result).toEqual({ winners: [host.id] });
+    expect(room.result?.winners).toEqual([host.id]);
   });
 
   it('tells its listeners when a game ends', () => {

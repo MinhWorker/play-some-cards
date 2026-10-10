@@ -106,7 +106,7 @@ Nếu tốc độ tải hoặc Safari iOS không đạt, dừng lại và xem l�
       (lúc đầu là đảo Sắp có) + HUD sảnh; màn chọn trò với danh sách thẻ kéo ngang; chọn thẻ thì
       tải ngầm `.pck` của trò
 - [ ] Đăng nhập, hồ sơ, danh sách phòng (bến cảng), tạo/vào phòng
-- [ ] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
+- [x] Sổ cái trên server với một loại tiền `core:coin`; `ctx.reward()` trong SDK, có giới hạn theo
       khai báo của trò. Bảng dữ liệu thiết kế sẵn cho nhiều loại tài nguyên
 - [ ] Art hub theo `docs/art-direction.md`
 - [ ] `npm run new:game` tạo cả luật TS, thư mục `godot/`, kịch bản e2e, RULES.md

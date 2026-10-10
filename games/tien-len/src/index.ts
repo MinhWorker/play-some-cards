@@ -4,7 +4,7 @@
  * Server entry: the game's meta, its logic (a `Game`) and its room options (computer players).
  */
 import { definePlugin } from '@xomdao/sdk';
-import { optionsSchema } from './game/model.js';
+import { optionsSchema, WIN_COINS } from './game/model.js';
 import { TienLenGame } from './game/TienLenGame.js';
 
 export default definePlugin({
@@ -19,6 +19,7 @@ export default definePlugin({
     genre: 'bai',
     tagline: 'Đánh hết bài trên tay trước mọi người.',
     duration: { min: 5, max: 15 },
+    rewardCap: { 'core:coin': WIN_COINS },
   },
   game: new TienLenGame(),
   room: { options: optionsSchema, bots: (options) => options.bots },

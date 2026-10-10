@@ -6,6 +6,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { AccountsModule } from './accounts/accounts.module.js';
 import { DbModule } from './db/db.module.js';
 import { HealthController } from './health.controller.js';
+import { LedgerModule } from './ledger/ledger.module.js';
 import { MatchesModule } from './matches/matches.module.js';
 import { RoomsModule } from './rooms/rooms.module.js';
 
@@ -18,6 +19,7 @@ const webDist = resolve(dirname(fileURLToPath(import.meta.url)), '../../web/dist
     DbModule,
     AccountsModule,
     MatchesModule,
+    LedgerModule,
     RoomsModule,
     ...(existsSync(webDist)
       ? [ServeStaticModule.forRoot({ rootPath: webDist, exclude: ['/api/{*path}'] })]

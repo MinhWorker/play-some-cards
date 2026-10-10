@@ -13,6 +13,7 @@ const seat = (id: string, extra: Partial<FinishedGame['seats'][number]> = {}) =>
 
 const game = (endedAt: number, winners: string[], seats = [seat('a'), seat('b')]) => ({
   gameId: 'tic-tac-toe',
+  matchId: `match-${endedAt}`,
   startedAt: endedAt - 60_000,
   endedAt,
   seats,

@@ -6,7 +6,7 @@
  */
 import { definePlugin } from '@xomdao/sdk';
 import { CaroGame } from './game/CaroGame.js';
-import { optionsSchema } from './game/model.js';
+import { optionsSchema, WIN_COINS } from './game/model.js';
 
 export default definePlugin({
   meta: {
@@ -20,6 +20,7 @@ export default definePlugin({
     genre: 'co',
     tagline: 'Xếp năm quân liền hàng trước đối thủ.',
     duration: { min: 5, max: 15 },
+    rewardCap: { 'core:coin': WIN_COINS },
   },
   game: new CaroGame(),
   room: {

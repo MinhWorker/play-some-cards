@@ -489,6 +489,21 @@ vào (nếu còn ghế) hoặc rời đi, và tỉ số tính lại từ đầu.
 đi. Trong sandbox, nút "Tuỳ chỉnh" mở màn cài đặt của bạn và chơi lại từ đầu với tuỳ chọn đó. Caro
 (games/tic-tac-toe) là ví dụ (`src/scenes/Setup.ts`, `src/game/bot.ts`).
 
+## Phần thưởng
+
+Khi hết ván, game thưởng tài nguyên cho người chơi bằng `ctx.reward`:
+
+```ts
+ctx.finish([player.id]);
+ctx.reward(player.id, 'core:coin', WIN_COINS); // tài nguyên có không gian tên, số nguyên > 0
+```
+
+- Khai báo mức tối đa một người nhận trong một ván ở `meta.rewardCap` (`{ 'core:coin': 20 }`).
+  Server từ chối phần vượt mức, chỉ trả một lần cho mỗi ván và không trả cho máy.
+- Game không tự cộng tiền: sổ cái trên server ghi lại, rồi gửi `reward` kèm số dư mới cho người
+  chơi. Caro và Tiến Lên thưởng xu khi thắng (`WIN_COINS` trong `src/game/model.ts`, con số tạm).
+- Trong test, phần thưởng nằm ở `game.result.rewards`.
+
 ## Thẻ trò trong sảnh
 
 `meta` trong `src/index.ts` cũng là thẻ trò của game ở sảnh Godot:

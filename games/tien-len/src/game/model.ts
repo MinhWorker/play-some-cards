@@ -21,6 +21,8 @@ export const dealMs = (cards: number) =>
 export const INTRO = { roundMs: 1200, leadMs: 1200 };
 /** The round's ranking stays up this long before the next deal. */
 export const ROUND_OVER_MS = 5000;
+/** Coins for winning a match (a placeholder amount; also the game's `meta.rewardCap`). */
+export const WIN_COINS = 30;
 
 /** Cards someone put on the table. */
 export interface Play {
