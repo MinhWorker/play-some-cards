@@ -208,6 +208,15 @@ tên trò, chủ phòng và số ghế là hai chip riêng, nút "Vào". Bến c
   phần thưởng. Ô đã đạt đứng trước.
 - Xếp hạng là ô cho mỗi bảng có tên người đó: Cả xóm (theo kinh nghiệm) và từng trò (theo số ván
   thắng), mỗi ô ghi "Hạng N".
+- Nút **Tài khoản** nằm cạnh ← (chỉ ở Nhà của mình). Lần đầu vào, người chơi là khách. Bảng Tài
+  khoản của khách có hai lựa chọn:
+  - **Đăng nhập**: tên đăng nhập và mật khẩu.
+  - **Tạo tài khoản**: thêm tên trong game.
+
+  Người đã đăng nhập thấy tên đăng nhập của mình và nút **Đăng xuất** (sau đó vào lại như khách
+  mới). Token đăng nhập của bản web cũ vẫn dùng được, nên người chơi cũ không phải đăng nhập lại.
+- Khi máy chủ đang ngủ (gói miễn phí), màn đầu ghi "Đang đánh thức máy chủ" và thử lại tới hai
+  phút. Khi máy chủ đã lên bản protocol mới, màn đầu ghi "Đã có bản mới" kèm nút **Tải lại**.
 
 ## Đình: xếp hạng
 

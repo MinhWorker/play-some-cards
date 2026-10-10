@@ -19,7 +19,7 @@ shows state and sends moves. Folder guide (Vietnamese): `apps/client/README.md`.
 
 ```
 project.godot       960 × 720 base, canvas_items + expand, landscape, Compatibility renderer
-core/               Autoloads: Net (the app's XomDaoClient, server_url()), Session (saved token),
+core/               Autoloads: Net (the app's XomDaoClient, server_url()), Session (saved token, /api/auth register/login/logout),
                     Wallet, ContentLoader (game packs), TestBridge (window.xomdao, debug web only)
 hub/                main.gd routes the screens: lobby (island ring + HUD), select (game select),
                     ben (Bến), room (waiting room), the game with ☰, the result over it

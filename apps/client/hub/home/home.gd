@@ -8,6 +8,8 @@ extends Control
 signal back_pressed
 ## Dùng on an item of Túi đồ (your own Nhà only).
 signal equip_requested(item_id: String)
+## Tài khoản under the profile card (your own Nhà only).
+signal account_pressed
 
 const CARD_WIDTH := 240.0
 
@@ -30,6 +32,8 @@ var _played: XomDaoChip = XomDaoChip.create("0 ván")
 var _won: XomDaoChip = XomDaoChip.create("0 thắng", "trophy")
 var _board: XomDaoBoard = XomDaoBoard.create("")
 var _shelf := HubShelf.new()
+## Tài khoản, next to ← (your own Nhà only).
+var _account: XomDaoIconButton = XomDaoIconButton.create("user-plus")
 
 
 func _init(settings: XomDaoSettings = null, own: bool = true) -> void:
@@ -81,6 +85,10 @@ func _init(settings: XomDaoSettings = null, own: bool = true) -> void:
 	var label := Label.new()
 	label.text = "Lưng bài"
 	backs.add_child(label)
+	if own:
+		_account.name = "AccountButton"
+		_account.pressed.connect(account_pressed.emit)
+		top.add_child(_account)
 	_board.name = "ShelfBoard"
 	add_child(_board)
 	_board.content.add_child(_shelf)
@@ -183,6 +191,10 @@ func _tile(item: XomDaoShopItem) -> HubItemTile:
 
 func _layout() -> void:
 	top._layout()
+	_account.scale = top.back.scale
+	_account.position = (
+		top.back.position + Vector2((XomDaoIconButton.SIZE + 12.0) * _account.scale.x, 0.0)
+	)
 	var inset: Vector2 = XomDaoFrame.safe_inset(self)
 	var edge: float = XomDaoSettings.current().margin
 	var y: float = top.bottom() + 8.0

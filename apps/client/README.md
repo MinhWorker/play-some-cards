@@ -21,7 +21,7 @@ Godot bản khác sẽ ghi lại `project.godot` và các scene.
 | Đường dẫn | Có gì |
 | --- | --- |
 | `project.godot` | Khung gốc 960 × 720, `canvas_items` + `expand`, màn hình ngang ([ui-guide.md](../../docs/ui-guide.md)) |
-| `core/` | Autoload `Net` (kết nối), `Session` (token đăng nhập), `Wallet`, `ContentLoader` (tải gói trò), `TestBridge` (cầu nối test, chỉ bản debug) |
+| `core/` | Autoload `Net` (kết nối), `Session` (token đăng nhập; đăng ký, đăng nhập, đăng xuất qua `/api/auth`), `Wallet`, `ContentLoader` (tải gói trò), `TestBridge` (cầu nối test, chỉ bản debug) |
 | `hub/` | Sảnh và màn của từng khối nền tảng; `hub/main.tscn` là màn đầu tiên, hiện là màn tạm của Caro |
 | `addons/xomdao_sdk/` | API duy nhất phần Godot của trò được dùng: `XomDaoFrame`, `XomDaoClient` (kết nối server) |
 | `addons/xomdao_sdk/ui/` | Bộ thành phần giao diện chung: theme, nút, bảng, hàng tiền, ô người chơi, thẻ trò, ô lựa chọn, thông báo nhanh, menu ☰, lá bài và chiếu cho trò bài, font, icon, âm thanh |
